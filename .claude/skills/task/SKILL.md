@@ -23,6 +23,24 @@ ls ai-docs/plans/*.progress.md 2>/dev/null
 
 ---
 
+## ⚡ Second: check for deferred plan activation
+
+If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a matching plan exists in `ai-docs/plans/deferred/`:
+
+1. Identify the matching `*.spec.md` (and `*.design.md` if present) in `ai-docs/plans/deferred/`.
+2. Move them to `ai-docs/plans/`:
+   ```bash
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.spec.md ai-docs/plans/
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.design.md ai-docs/plans/     # if exists
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.progress.md ai-docs/plans/   # if exists
+   ```
+3. Update `ai-docs/plans/INDEX.md`: move the plan row from the **Deferred plans** table to the **Active plans** table and mark its status as `🟢 ready` (or `🟡 spec-only` if no design).
+4. Tell the user: "Activated plan [name] — moved spec (and design) to `ai-docs/plans/`."
+5. If a `.progress.md` was moved: treat it as an active task — read it and resume from `## Next action` (same as the RESUME path above).
+6. Otherwise (no progress file): skip Steps 1–7 and jump directly to Step 8 (spec + design already exist).
+
+---
+
 ### Step 1: Get the task description
 
 If `$ARGUMENTS` is provided — use it as the initial task description.
