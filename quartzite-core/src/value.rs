@@ -19,7 +19,7 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 ///     fn as_any(&self) -> &dyn core::any::Any { self }
 /// }
 /// ```
-pub trait CustomValue: core::any::Any + core::fmt::Debug {
+pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     fn type_name(&self) -> &'static str;
     fn clone_box(&self) -> Box<dyn CustomValue>;
     fn as_any(&self) -> &dyn core::any::Any;
@@ -30,6 +30,14 @@ impl Clone for Box<dyn CustomValue> {
         self.clone_box()
     }
 }
+
+/// Weak reference to a runtime object. Wraps the `ObjectId` inner `u64`.
+///
+/// Liveness is confirmed by `ObjectTree::is_valid(ref)` in `quartzite-runtime`.
+/// The type is intentionally opaque here so that `quartzite-core` stays `no_std`-safe
+/// and runtime-agnostic.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct WeakObjectRef(pub u64);
 
 /// A closed, dynamically-typed value container.
 ///
@@ -47,7 +55,7 @@ pub enum Value {
     Map(BTreeMap<String, Value>),
     Bytes(Vec<u8>),
     Custom(Arc<dyn CustomValue>),
-    // Object(WeakObjectRef) deferred until quartzite-runtime decides ownership model
+    Object(WeakObjectRef),
 }
 
 // `Value` intentionally does not implement `Eq`: the `Float` variant uses
@@ -65,6 +73,7 @@ impl PartialEq for Value {
             (Value::Bytes(a), Value::Bytes(b)) => a == b,
             // Custom values are compared by Arc pointer identity, not deep equality.
             (Value::Custom(a), Value::Custom(b)) => Arc::ptr_eq(a, b),
+            (Value::Object(a), Value::Object(b)) => a == b,
             _ => false,
         }
     }
@@ -83,6 +92,7 @@ impl Value {
             Value::Map(_) => "Map",
             Value::Bytes(_) => "Bytes",
             Value::Custom(_) => "Custom",
+            Value::Object(_) => "Object",
         }
     }
 }

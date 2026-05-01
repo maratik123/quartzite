@@ -1,0 +1,206 @@
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock, Weak},
+};
+
+use quartzite_core::{
+    ConnectionId, ObjectId,
+    receiver_guard::ReceiverGuard,
+    signal::{DispatcherAlreadySet, QueuedDispatcher, set_queued_dispatcher},
+};
+
+use crate::event_loop::EventLoop;
+
+/// Index of which connection ids belong to a given signal.
+type SignalIndex = usize;
+
+/// Record of a single active signal → slot connection.
+pub struct ConnectionRecord {
+    pub sender_id: ObjectId,
+    pub signal_index: SignalIndex,
+    pub receiver_id: ObjectId,
+    pub receiver_guard: Weak<ReceiverGuard>,
+    pub slot: SlotKind,
+}
+
+type DirectCallback = Box<dyn Fn(&[quartzite_core::Value]) + Send + Sync>;
+
+/// The callable part of a connection, discriminated by delivery mode.
+pub enum SlotKind {
+    Direct(DirectCallback),
+}
+
+/// Process-wide store of active connections.
+///
+/// Two secondary indices allow O(m) cleanup when an object is destroyed.
+/// Locks are released before invoking slots to prevent deadlock on re-entrant emit.
+pub struct ConnectionTable {
+    connections: RwLock<HashMap<ConnectionId, ConnectionRecord>>,
+    by_receiver: RwLock<HashMap<ObjectId, Vec<ConnectionId>>>,
+    by_signal: RwLock<HashMap<(ObjectId, SignalIndex), Vec<ConnectionId>>>,
+    event_loop: Arc<EventLoop>,
+}
+
+impl ConnectionTable {
+    pub fn new(event_loop: Arc<EventLoop>) -> Arc<Self> {
+        Arc::new(Self {
+            connections: RwLock::new(HashMap::new()),
+            by_receiver: RwLock::new(HashMap::new()),
+            by_signal: RwLock::new(HashMap::new()),
+            event_loop,
+        })
+    }
+
+    /// Register this table as the process-wide `QueuedDispatcher`.
+    /// Returns `Err(DispatcherAlreadySet)` if a dispatcher is already registered.
+    pub fn install_as_dispatcher(self: &Arc<Self>) -> Result<(), DispatcherAlreadySet> {
+        set_queued_dispatcher(Arc::clone(self) as Arc<dyn QueuedDispatcher>)
+    }
+
+    /// Register a new connection. Captures `receiver_guard` from the receiver's
+    /// `ObjectBase` at call time.
+    pub fn register(
+        &self,
+        sender_id: ObjectId,
+        signal_index: SignalIndex,
+        receiver_id: ObjectId,
+        receiver_guard: Weak<ReceiverGuard>,
+        slot: SlotKind,
+    ) -> ConnectionId {
+        let id = ConnectionId::new();
+        let record = ConnectionRecord {
+            sender_id,
+            signal_index,
+            receiver_id,
+            receiver_guard,
+            slot,
+        };
+        self.connections.write().unwrap().insert(id, record);
+        self.by_receiver
+            .write()
+            .unwrap()
+            .entry(receiver_id)
+            .or_default()
+            .push(id);
+        self.by_signal
+            .write()
+            .unwrap()
+            .entry((sender_id, signal_index))
+            .or_default()
+            .push(id);
+        id
+    }
+
+    /// Remove a connection by id.
+    pub fn remove(&self, id: ConnectionId) {
+        if let Some(record) = self.connections.write().unwrap().remove(&id) {
+            if let Some(v) = self
+                .by_receiver
+                .write()
+                .unwrap()
+                .get_mut(&record.receiver_id)
+            {
+                v.retain(|&c| c != id);
+            }
+            if let Some(v) = self
+                .by_signal
+                .write()
+                .unwrap()
+                .get_mut(&(record.sender_id, record.signal_index))
+            {
+                v.retain(|&c| c != id);
+            }
+        }
+    }
+
+    /// Remove all connections where `id` is the receiver (called on object destroy).
+    pub fn remove_by_receiver(&self, id: ObjectId) {
+        let ids: Vec<ConnectionId> = self
+            .by_receiver
+            .write()
+            .unwrap()
+            .remove(&id)
+            .unwrap_or_default();
+        let mut conns = self.connections.write().unwrap();
+        let mut by_signal = self.by_signal.write().unwrap();
+        for cid in ids {
+            if let Some(record) = conns.remove(&cid)
+                && let Some(v) = by_signal.get_mut(&(record.sender_id, record.signal_index))
+            {
+                v.retain(|&c| c != cid);
+            }
+        }
+    }
+
+    /// Returns connection ids for a given (sender, signal) pair.
+    pub fn receivers_for_signal(
+        &self,
+        sender_id: ObjectId,
+        signal_index: SignalIndex,
+    ) -> Vec<ConnectionId> {
+        self.by_signal
+            .read()
+            .unwrap()
+            .get(&(sender_id, signal_index))
+            .cloned()
+            .unwrap_or_default()
+    }
+}
+
+impl QueuedDispatcher for ConnectionTable {
+    fn post(&self, f: Box<dyn FnOnce() + Send>) {
+        self.event_loop.post(f);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+
+    fn make_table() -> Arc<ConnectionTable> {
+        let el = Arc::new(EventLoop::new());
+        ConnectionTable::new(el)
+    }
+
+    #[test]
+    fn register_and_remove() {
+        let table = make_table();
+        let sender = ObjectId::new();
+        let receiver = ObjectId::new();
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+
+        let id = table.register(
+            sender,
+            0,
+            receiver,
+            guard_weak,
+            SlotKind::Direct(Box::new(|_| {})),
+        );
+
+        assert!(table.receivers_for_signal(sender, 0).contains(&id));
+        table.remove(id);
+        assert!(!table.receivers_for_signal(sender, 0).contains(&id));
+        drop(guard_arc);
+    }
+
+    #[test]
+    fn remove_by_receiver_cleans_up() {
+        let table = make_table();
+        let sender = ObjectId::new();
+        let receiver = ObjectId::new();
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+
+        table.register(
+            sender,
+            0,
+            receiver,
+            guard_weak,
+            SlotKind::Direct(Box::new(|_| {})),
+        );
+
+        table.remove_by_receiver(receiver);
+        assert!(table.receivers_for_signal(sender, 0).is_empty());
+        drop(guard_arc);
+    }
+}

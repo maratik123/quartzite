@@ -30,5 +30,9 @@ pub use meta::{
 pub use object_base::ObjectBase;
 pub use receiver_guard::ReceiverGuard;
 pub use signal::{ConnectionType, Signal};
+#[cfg(feature = "std")]
+pub use signal::{
+    DispatcherAlreadySet, QueuedDispatcher, queued_dispatcher, set_queued_dispatcher,
+};
 pub use traits::{AsObject, Object, ObjectExt, SignalCallback};
-pub use value::{CustomValue, FromValue, IntoValue, TypeError, Value};
+pub use value::{CustomValue, FromValue, IntoValue, TypeError, Value, WeakObjectRef};

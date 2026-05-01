@@ -1,0 +1,12 @@
+[package]
+name = "quartzite-runtime"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+quartzite-core = { path = "../quartzite-core" }
+slotmap = "1"
+
+[dev-dependencies]
+rstest = "0.26.1"
+pretty_assertions = "1"
