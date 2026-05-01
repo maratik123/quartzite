@@ -38,6 +38,9 @@
       "Bash(git *)",
       "Bash(gh *)"
     ],
-    "deny": []
+    "deny": [
+      "Edit(.idea/**)",
+      "Write(.idea/**)"
+    ]
   }
 }

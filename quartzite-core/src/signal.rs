@@ -90,7 +90,7 @@ impl<Args: 'static> Signal<Args> {
         let mut to_remove: Vec<ConnectionId> = Vec::new();
 
         for (id, ct) in &snapshot {
-            // Skip if already disconnected (e.g. by a previous slot in this emission).
+            // Skip if already disconnected (e.g., by a previous slot in this emission).
             if let Some(entry) = self.slots.iter().find(|s| s.id == *id) {
                 (entry.callback)(args);
             }
@@ -180,10 +180,10 @@ mod tests {
         sig.emit(&(true,)); // must not panic
     }
 
-    // --- Re-entrancy note ---
+    // --- Reentrancy note ---
     // With `emit(&mut self)`, calling `emit` on the *same* signal from within a
     // slot is prevented at compile time (cannot hold &mut and call &mut again).
-    // Cross-signal re-entrancy is fine and requires no special handling.
+    // Cross-signal reentrancy is fine and requires no special handling.
     // This is a documented design decision: simpler than RefCell, limitation is
     // acceptable for single-threaded object graphs.
 
@@ -201,7 +201,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn slot_added_during_emit_not_called_in_same_pass() {
         // This test documents snapshot behavior: slots added by other means
-        // (not re-entrantly, since &mut self prevents that) are not called
+        // (not reentrantly, since &mut self prevents that) are not called
         // in the pass where they are added.
         // Here we simply verify that two pre-connected slots both fire.
         let mut sig: Signal<()> = Signal::new();

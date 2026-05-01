@@ -25,7 +25,7 @@ pub trait AsObject {
 }
 
 /// Full meta-system trait. Extends `AsObject` with property access, method invocation,
-/// and signal connection. Also object-safe: all methods use `&str`, `&[Value]`, and
+/// and signal connection. Also, object-safe: all methods use `&str`, `&[Value]`, and
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject {
     fn meta_object(&self) -> &'static MetaObject;
@@ -35,7 +35,7 @@ pub trait Object: AsObject {
     fn connect_signal(&mut self, signal: &str, callback: SignalCallback) -> Option<ConnectionId>;
 }
 
-/// Ergonomic blanket-impl extension. Methods here are not object-safe (e.g. generics
+/// Ergonomic blanket-impl extension. Methods here are not object-safe (e.g., generics
 /// in `downcast_ref`), so they live in a separate trait that is not dyn-compatible.
 ///
 /// Automatically implemented for every type that implements `AsObject`.

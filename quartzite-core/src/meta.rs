@@ -162,7 +162,7 @@ impl EnumMeta {
 /// The complete static reflection record for a type.
 ///
 /// Each concrete object type provides exactly one `&'static MetaObject`.
-/// All slices are `'static` so that the whole struct can be stored in a `static`.
+/// All slices are `'static` so that the whole struct can be stored in `static`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MetaObject {
     pub class_name: &'static str,

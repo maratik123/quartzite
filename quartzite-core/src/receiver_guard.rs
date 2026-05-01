@@ -5,7 +5,7 @@ use std::sync::{Arc, Weak};
 
 /// Zero-sized lifetime token. Every `ObjectBase` holds one `Arc<ReceiverGuard>`.
 /// Incoming signal connections hold a `Weak<ReceiverGuard>`. When the object is
-/// dropped the `Arc` drops and all `Weak::upgrade()` calls return `None`, causing
+///  dropped, the `Arc` drops and all `Weak::upgrade()` calls return `None`, causing
 /// queued slot calls targeting that object to be silently discarded.
 pub struct ReceiverGuard;
 

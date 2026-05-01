@@ -4,7 +4,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 pub struct ObjectId(u64);
 
 impl ObjectId {
-    // Relaxed is sufficient: we only need uniqueness, not cross-thread ordering.
+    // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
@@ -25,7 +25,7 @@ impl Default for ObjectId {
 pub struct ConnectionId(u64);
 
 impl ConnectionId {
-    // Relaxed is sufficient: we only need uniqueness, not cross-thread ordering.
+    // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
