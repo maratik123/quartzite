@@ -1,15 +1,12 @@
-use syn::{parse2, spanned::Spanned, Data, DeriveInput, Field, Fields, Ident, Type};
+use syn::{parse2, spanned::Spanned, Data, DeriveInput, Fields, Ident, Type};
 
 use crate::util::extract_attr;
 
 pub(crate) struct ExtendInput {
-    pub vis: syn::Visibility,
     pub ident: Ident,
-    pub attrs: Vec<syn::Attribute>,
     pub is_root: bool,
     pub base_field: Option<BaseField>,
     pub mixin_fields: Vec<MixinField>,
-    pub other_fields: Vec<Field>,
 }
 
 pub(crate) struct BaseField {
@@ -60,7 +57,6 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
     // Classify fields.
     let mut base_fields: Vec<BaseField> = Vec::new();
     let mut mixin_fields: Vec<MixinField> = Vec::new();
-    let mut other_fields: Vec<Field> = Vec::new();
 
     for mut field in fields.named.into_iter() {
         let is_base = extract_attr(&mut field.attrs, "base");
@@ -81,8 +77,6 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                 ty_ident,
                 ty: field.ty.clone(),
             });
-        } else {
-            other_fields.push(field);
         }
     }
 
@@ -103,13 +97,10 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
     }
 
     Ok(ExtendInput {
-        vis: derive.vis,
         ident: derive.ident,
-        attrs: derive.attrs,
         is_root,
         base_field,
         mixin_fields,
-        other_fields,
     })
 }
 

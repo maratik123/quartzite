@@ -17,7 +17,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
 
     quote! {
         #[doc(hidden)]
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, non_upper_case_globals)]
         mod #mod_ident {
             #props_static
             #signals_static

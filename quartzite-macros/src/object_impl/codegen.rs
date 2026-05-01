@@ -52,6 +52,7 @@ fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStrea
         }
     });
     quote! {
+        #[allow(non_upper_case_globals)]
         static #static_name: &'static [::quartzite_core::MethodMeta] = &[
             #(#entries),*
         ];
@@ -104,6 +105,7 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
         }
     });
     quote! {
+        #[allow(non_snake_case)]
         fn #fn_name(
             this: &mut #type_ident,
             name: &str,
@@ -124,9 +126,11 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
     let signals_name = Ident::new(&format!("__SIGNALS__{type_ident}"), type_ident.span());
     let methods_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
     quote! {
+        #[allow(non_upper_case_globals)]
         static #meta_static_name: ::std::sync::OnceLock<::quartzite_core::MetaObject> =
             ::std::sync::OnceLock::new();
 
+        #[allow(non_snake_case)]
         fn #meta_init_fn() -> &'static ::quartzite_core::MetaObject {
             #meta_static_name.get_or_init(|| ::quartzite_core::MetaObject {
                 class_name: ::core::stringify!(#type_ident),

@@ -8,23 +8,24 @@ use crate::util::{accessor_name, as_trait_name};
 pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
 
-    // Re-emit the struct (attrs already stripped of #[root]/#[base]/#[mixin]).
-    out.extend(emit_struct(&ir));
+    // NOTE: The original struct is NOT re-emitted here.
+    // Derive macros append to the item; re-emitting would cause duplicate definitions.
+    // Helper attributes (#[root]/#[base]/#[mixin]) are inert and harmless.
 
-    // Generate trait + impls based on the decision table.
     match (&ir.is_root, &ir.base_field) {
         (true, None) => {
-            // Terminal root: define As{Self} trait + self-ref impl.
+            // Terminal root with no parent: define As{Self} trait + self-ref impl.
             out.extend(emit_root_trait_and_impl(&ir));
         }
         (true, Some(base)) => {
-            // New hierarchy level: trait with supertrait + self-ref + blanket impl.
+            // Root with parent: trait + self-ref + direct parent-chain impls.
             out.extend(emit_root_trait_and_impl(&ir));
-            out.extend(emit_blanket_impl(&ir.ident, base));
+            out.extend(emit_parent_chain_impls(&ir.ident, base));
         }
         (false, Some(base)) => {
-            // Concrete type: delegation impl for parent trait only.
+            // Concrete type: parent delegation + AsObject delegation.
             out.extend(emit_delegation_impl(&ir.ident, base));
+            out.extend(emit_as_object_impl(&ir.ident, base));
         }
         (false, None) => {
             // Standalone capabilities: only mixin leaf impls (validated: ≥1 mixin).
@@ -37,36 +38,6 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     }
 
     out
-}
-
-/// Re-emits the original struct with helper attrs already stripped.
-fn emit_struct(ir: &ExtendInput) -> TokenStream {
-    let vis = &ir.vis;
-    let ident = &ir.ident;
-    let attrs = &ir.attrs;
-    let other_fields = &ir.other_fields;
-
-    // Collect base + mixin fields back (attrs already stripped).
-    let base_iter = ir.base_field.iter().map(|b| {
-        let fi = &b.ident;
-        let ty = &b.ty;
-        quote! { pub #fi: #ty, }
-    });
-    let mixin_iter = ir.mixin_fields.iter().map(|m| {
-        let fi = &m.ident;
-        let ty = &m.ty;
-        quote! { pub #fi: #ty, }
-    });
-    let other_iter = other_fields.iter().map(|f| quote! { #f, });
-
-    quote! {
-        #(#attrs)*
-        #vis struct #ident {
-            #(#base_iter)*
-            #(#mixin_iter)*
-            #(#other_iter)*
-        }
-    }
 }
 
 /// For a root struct, emits:
@@ -83,8 +54,6 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
 
     let supertrait = ir.base_field.as_ref().and_then(|b| {
         as_trait_name(&b.ty_ident).map(|parent_trait| {
-            // Use quartzite_core prefix if the parent is AsObject (core-defined).
-            // Otherwise emit bare (user-defined hierarchy level in same crate).
             if parent_trait == "AsObject" {
                 quote! { : ::quartzite_core::AsObject }
             } else {
@@ -106,41 +75,39 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     }
 }
 
-/// Emits the blanket `impl<T: As{Self}> As{Parent} for T` for transitive ancestor satisfaction.
-fn emit_blanket_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
-    let self_trait = match as_trait_name(self_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(self_ident),
-    };
-    let parent_trait = match as_trait_name(&base.ty_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(&base.ty_ident),
-    };
-    let parent_ty = &base.ty;
-    let self_acc = accessor_name(self_ident);
-    let self_acc_mut = acc_mut_ident(&self_acc);
-    let parent_acc = accessor_name(&base.ty_ident);
-    let parent_acc_mut = acc_mut_ident(&parent_acc);
+/// Emits direct `impl As{Parent} for Self` + `impl AsObject for Self` for a root type.
+/// Uses direct field access for ObjectBase, delegation for higher-level parents.
+fn emit_parent_chain_impls(self_ident: &Ident, base: &BaseField) -> TokenStream {
+    let mut out = emit_as_object_impl(self_ident, base);
+    // For non-ObjectBase parents, also emit the intermediate delegation impl.
+    if base.ty_ident != "ObjectBase" {
+        out.extend(emit_delegation_impl(self_ident, base));
+    }
+    out
+}
 
-    // AsObject is defined in quartzite_core — use full path.
-    let parent_trait_path = if parent_trait == "AsObject" {
-        quote! { ::quartzite_core::AsObject }
+/// Emits `impl AsObject for {Self}` — always delegates `object_base` through the base field.
+/// For a direct `ObjectBase` field, accesses it directly; otherwise delegates through the accessor.
+fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
+    let base_field = &base.ident;
+    let (object_base_expr, object_base_mut_expr) = if base.ty_ident == "ObjectBase" {
+        (
+            quote! { &self.#base_field },
+            quote! { &mut self.#base_field },
+        )
     } else {
-        quote! { #parent_trait }
+        (
+            quote! { self.#base_field.object_base() },
+            quote! { self.#base_field.object_base_mut() },
+        )
     };
-    let parent_ty_path = if parent_trait == "AsObject" {
-        quote! { ::quartzite_core::ObjectBase }
-    } else {
-        quote! { #parent_ty }
-    };
-
     quote! {
-        impl<T: #self_trait> #parent_trait_path for T {
-            fn #parent_acc(&self) -> &#parent_ty_path {
-                self.#self_acc().#parent_acc()
+        impl ::quartzite_core::AsObject for #self_ident {
+            fn object_base(&self) -> &::quartzite_core::ObjectBase {
+                #object_base_expr
             }
-            fn #parent_acc_mut(&mut self) -> &mut #parent_ty_path {
-                self.#self_acc_mut().#parent_acc_mut()
+            fn object_base_mut(&mut self) -> &mut ::quartzite_core::ObjectBase {
+                #object_base_mut_expr
             }
             fn as_any(&self) -> &dyn ::core::any::Any { self }
             fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any { self }
@@ -148,43 +115,34 @@ fn emit_blanket_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
     }
 }
 
-/// Emits direct delegation `impl As{Parent} for {Self}` for a concrete (non-root) type.
+/// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in AsObject).
 fn emit_delegation_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
     let parent_trait = match as_trait_name(&base.ty_ident) {
         Some(t) => t,
         None => return emit_degenerate_error(&base.ty_ident),
     };
+    // Only emit for non-ObjectBase parents (AsObject is handled by emit_as_object_impl).
+    if parent_trait == "AsObject" {
+        return TokenStream::new();
+    }
     let parent_ty = &base.ty;
     let base_field_ident = &base.ident;
     let parent_acc = accessor_name(&base.ty_ident);
     let parent_acc_mut = acc_mut_ident(&parent_acc);
 
-    let parent_trait_path = if parent_trait == "AsObject" {
-        quote! { ::quartzite_core::AsObject }
-    } else {
-        quote! { #parent_trait }
-    };
-    let parent_ty_path = if parent_trait == "AsObject" {
-        quote! { ::quartzite_core::ObjectBase }
-    } else {
-        quote! { #parent_ty }
-    };
-
     quote! {
-        impl #parent_trait_path for #self_ident {
-            fn #parent_acc(&self) -> &#parent_ty_path {
+        impl #parent_trait for #self_ident {
+            fn #parent_acc(&self) -> &#parent_ty {
                 self.#base_field_ident.#parent_acc()
             }
-            fn #parent_acc_mut(&mut self) -> &mut #parent_ty_path {
+            fn #parent_acc_mut(&mut self) -> &mut #parent_ty {
                 self.#base_field_ident.#parent_acc_mut()
             }
-            fn as_any(&self) -> &dyn ::core::any::Any { self }
-            fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any { self }
         }
     }
 }
 
-/// Emits `impl As{Mixin} for {Self}` — leaf impl only, no ancestor propagation.
+/// Emits `impl As{Mixin} for {Self}` — leaf impl only.
 fn emit_mixin_impl(self_ident: &Ident, mixin: &MixinField) -> TokenStream {
     let mixin_trait = match as_trait_name(&mixin.ty_ident) {
         Some(t) => t,
