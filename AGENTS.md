@@ -42,6 +42,8 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 ## Workflow
 
 - Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
+- **Never commit to local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any commits. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
+  - Recovery (commits on local master, not yet pushed): `git checkout -b feat/...` → `git checkout master && git reset --hard origin/master` → push feature branch and open PR from it.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
