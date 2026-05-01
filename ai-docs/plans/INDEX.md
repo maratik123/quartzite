@@ -14,7 +14,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [geometry-events](deferred/2026-05-01-geometry-events.spec.md) | `quartzite-geometry` `quartzite-events` | 🟡 spec-only | — |
-| [macros](deferred/2026-05-01-macros.spec.md) | `quartzite-macros` | 🟢 spec+design | — |
+| [macros](2026-05-01-macros.spec.md) | `quartzite-macros` | 🟢 spec+design | — |
 | [runtime](deferred/2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 spec+design | — (ownership model decided: Arena/SlotMap — see design §Approach) |
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
