@@ -24,7 +24,7 @@ Before any `git push`: run `git branch --show-current` and confirm it is **not**
 
 If "submit PR" is requested and commits are already pushed to origin/master: stop and tell the user — there is no recovery without a force push, which branch protection may block.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
