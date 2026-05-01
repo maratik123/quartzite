@@ -17,8 +17,9 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 1. `AGENTS.md` — current instructions
 2. Get the diff via `git diff`
 3. Read the design doc (passed in prompt) and spec (passed in prompt)
-4. Check against the checklist below
-5. Issue the verdict
+4. If a progress file is passed in the prompt, read it and note all `⚠️ Objected` items
+5. Check against the checklist below
+6. Issue the verdict
 
 ## Checklist
 
@@ -52,6 +53,14 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - All new source files in Rust (`.rs`)?
 - Max 100 chars per line (rustfmt)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
+
+### 6. Objection quality (if progress file is present)
+
+For each `⚠️ Objected` item in the progress file:
+- Read the stated reason.
+- `major` / `blocker`: is the reason specific, technically accurate, and traceable to a design decision or a language constraint? Vague reasons ("probably fine", "negligible", "too much work") → raise as a violation.
+- `nit` / `minor`: any reason stated? No reason at all → raise as a violation.
+- An objection to a `major`/`blocker` finding made without user confirmation → raise as a violation.
 
 ## What you do NOT check
 

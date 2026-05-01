@@ -57,6 +57,14 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - `cargo fmt` applied (no formatting drift)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
 
+### 6. Objection quality (round > 1 only)
+
+For each `⚠️ Objected` item in the progress file:
+- Read the stated reason.
+- `major` / `blocker`: is the reason specific, technically accurate, and traceable to a design decision or a Rust/language constraint? If not → re-open.
+- `nit` / `minor`: is any reason stated at all? If not → re-open.
+- An objection to a `major`/`blocker` finding that was not first confirmed by the user (as required by `/task` Step 11) is automatically invalid → re-open.
+
 ## What you do NOT check
 
 - Formatting — that's `cargo fmt`; if CI is green, skip
@@ -88,4 +96,9 @@ Severity levels: `blocker` · `major` · `minor` · `nit`
 - On REJECT — every violation must have an exact file and line number.
 - Maximum 10 findings per round. If more exist, list the 10 most severe.
 - Don't invent problems. If unsure, read the code before raising a finding.
-- On re-review (round > 1): check that previously `✅ Fixed` or `⚠️ Objected` items are not re-raised. Focus only on remaining `⬜ Open` items plus anything newly introduced.
+- On re-review (round > 1):
+  - `✅ Fixed` items: do not re-raise unless the fix is incorrect or incomplete.
+  - `⚠️ Objected` items: **evaluate the objection rationale — do not accept it blindly.**
+    - `major` / `blocker`: valid only if the reason is specific and technically correct (e.g., Rust type system enforces the constraint at compile time, genuine out-of-scope, well-known intentional design tradeoff with a named authority). Vague reasons ("probably fine", "too much work", "negligible") → re-open as `⬜ Open`.
+    - `nit` / `minor`: more latitude, but a reason must be stated. No reason at all → re-open.
+  - Focus on remaining `⬜ Open` items plus anything newly introduced.
