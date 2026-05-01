@@ -174,3 +174,163 @@ fn emit_degenerate_error(ident: &Ident) -> TokenStream {
         ),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use proc_macro2::TokenStream;
+    use quote::quote;
+
+    fn emit(ts: TokenStream) -> String {
+        let ir = crate::extend::parse::parse(ts).expect("parse ok");
+        super::codegen(ir).to_string()
+    }
+
+    // Case 1: #[root] with no base — emits As{Self} trait + self-ref impl, nothing else.
+    #[test]
+    fn root_no_base_emits_trait_and_self_impl() {
+        let out = emit(quote! {
+            #[root]
+            struct Widget { x: i32 }
+        });
+        assert!(out.contains("pub trait AsWidget"), "missing trait: {out}");
+        assert!(out.contains("fn widget"), "missing accessor: {out}");
+        assert!(
+            out.contains("impl AsWidget for Widget"),
+            "missing self-impl: {out}"
+        );
+        assert!(!out.contains("AsObject"), "unexpected AsObject: {out}");
+    }
+
+    // Case 2: #[root] with ObjectBase base — supertrait, self-ref impl, and direct AsObject impl.
+    #[test]
+    fn root_with_object_base_emits_supertrait_and_as_object() {
+        let out = emit(quote! {
+            #[root]
+            struct Widget {
+                #[base]
+                object_base: ObjectBase,
+            }
+        });
+        assert!(out.contains("pub trait AsWidget"), "missing trait: {out}");
+        assert!(
+            out.contains("AsObject"),
+            "missing AsObject supertrait: {out}"
+        );
+        assert!(
+            out.contains("impl AsWidget for Widget"),
+            "missing self-impl: {out}"
+        );
+        assert!(
+            out.contains("AsObject for Widget"),
+            "missing AsObject impl: {out}"
+        );
+        // Direct field access (not via accessor) for ObjectBase.
+        assert!(
+            out.contains("& self . object_base"),
+            "expected direct field access: {out}"
+        );
+        assert!(
+            !out.contains("AsObjectBase"),
+            "unexpected AsObjectBase: {out}"
+        );
+    }
+
+    // Case 3: #[root] with non-ObjectBase base — self trait + parent delegation + AsObject via chain.
+    #[test]
+    fn root_with_widget_base_emits_delegation_and_as_object() {
+        let out = emit(quote! {
+            #[root]
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            out.contains("pub trait AsButton"),
+            "missing self trait: {out}"
+        );
+        assert!(
+            out.contains("impl AsButton for Button"),
+            "missing self-impl: {out}"
+        );
+        assert!(
+            out.contains("impl AsWidget for Button"),
+            "missing parent delegation: {out}"
+        );
+        assert!(
+            out.contains("AsObject for Button"),
+            "missing AsObject impl: {out}"
+        );
+        // Delegation calls through the field.
+        assert!(
+            out.contains("self . widget . widget"),
+            "missing delegation call: {out}"
+        );
+        // AsObject access delegates through widget field.
+        assert!(
+            out.contains("self . widget . object_base"),
+            "expected chained object_base: {out}"
+        );
+    }
+
+    // Case 4: non-root with base — delegation + AsObject, no new trait definition.
+    #[test]
+    fn child_with_base_emits_delegation_and_as_object() {
+        let out = emit(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            !out.contains("pub trait"),
+            "unexpected trait definition: {out}"
+        );
+        assert!(
+            out.contains("impl AsWidget for Button"),
+            "missing delegation: {out}"
+        );
+        assert!(
+            out.contains("AsObject for Button"),
+            "missing AsObject impl: {out}"
+        );
+    }
+
+    // Case 5: mixin only — leaf impl only, no trait def, no AsObject.
+    #[test]
+    fn mixin_only_emits_leaf_impl() {
+        let out = emit(quote! {
+            struct Panel {
+                #[mixin]
+                layout_base: LayoutBase,
+            }
+        });
+        assert!(
+            out.contains("impl AsLayout for Panel"),
+            "missing mixin impl: {out}"
+        );
+        assert!(!out.contains("pub trait"), "unexpected trait: {out}");
+        assert!(!out.contains("AsObject"), "unexpected AsObject: {out}");
+    }
+
+    // Multiple mixin fields each get their own leaf impl.
+    #[test]
+    fn multiple_mixins_emit_each_impl() {
+        let out = emit(quote! {
+            struct Mixed {
+                #[mixin]
+                layout_base: LayoutBase,
+                #[mixin]
+                style_base: StyleBase,
+            }
+        });
+        assert!(
+            out.contains("impl AsLayout for Mixed"),
+            "missing LayoutBase: {out}"
+        );
+        assert!(
+            out.contains("impl AsStyle for Mixed"),
+            "missing StyleBase: {out}"
+        );
+    }
+}
