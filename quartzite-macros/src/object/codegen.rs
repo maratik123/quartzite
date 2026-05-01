@@ -205,7 +205,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             cb: ::quartzite_core::SignalCallback,
         ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
             let cb: ::quartzite_core::__macro::Arc<
-                dyn ::core::ops::Fn(&[::quartzite_core::Value]) + Send,
+                dyn ::core::ops::Fn(&[::quartzite_core::Value]) + Send + Sync,
             > = ::quartzite_core::__macro::Arc::from(cb);
             match name {
                 #(#arms)*

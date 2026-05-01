@@ -2,6 +2,7 @@
 members = [
     "quartzite-core",
     "quartzite-macros",
+    "quartzite-runtime",
 ]
 resolver = "2"
 

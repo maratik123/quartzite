@@ -14,7 +14,7 @@ use crate::{
 ///
 /// The `Send` bound future-proofs the API for queued (cross-thread) signal delivery,
 /// which is handled by `quartzite-runtime`.
-pub type SignalCallback = Box<dyn Fn(&[Value]) + Send>;
+pub type SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>;
 
 /// Object-safe accessor trait. Every concrete object type implements this to expose
 /// its `ObjectBase` and allow `Any`-based downcasting.
@@ -30,7 +30,7 @@ pub trait AsObject {
 /// Full meta-system trait. Extends `AsObject` with property access, method invocation,
 /// and signal connection. Also, object-safe: all methods use `&str`, `&[Value]`, and
 /// boxed closures — no generics that would break object safety.
-pub trait Object: AsObject {
+pub trait Object: AsObject + Send {
     fn meta_object(&self) -> &'static MetaObject;
 
     /// Returns the current value of `name`, or `None` if `name` is not a known property.

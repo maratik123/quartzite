@@ -9,13 +9,13 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [core-types](done/2026-05-01-core-types.spec.md) | `quartzite-core` | ✅ implemented (45 tests) | — |
 | [github-workflow](done/2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
 | [macros](done/2026-05-01-macros.spec.md) | `quartzite-macros` | ✅ implemented (47 tests) | — |
+| [runtime](2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 ready | — |
 
 ## Deferred plans
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [geometry-events](deferred/2026-05-01-geometry-events.spec.md) | `quartzite-geometry` `quartzite-events` | 🟡 spec-only | — |
-| [runtime](deferred/2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 spec+design | — (ownership model decided: Arena/SlotMap — see design §Approach) |
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
 | [auto-connection](deferred/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | 🟢 spec+design | runtime Task 0 (`QueuedDispatcher` + `ConnectionType::Queued`) · runtime design `post()` signature must use `+ 'static` |
