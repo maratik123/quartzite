@@ -6,8 +6,8 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
-| [core-types](2026-05-01-core-types.spec.md) | `quartzite-core` | ✅ implemented (45 tests) | — |
-| [github-workflow](2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
+| [core-types](done/2026-05-01-core-types.spec.md) | `quartzite-core` | ✅ implemented (45 tests) | — |
+| [github-workflow](done/2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
 
 ## Deferred plans
 
