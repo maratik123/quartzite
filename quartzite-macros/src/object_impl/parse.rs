@@ -1,11 +1,8 @@
-use syn::{
-    parse2, spanned::Spanned, Block, FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type,
-};
+use syn::{parse2, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::util::extract_attr;
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct ObjectImplInput {
     pub self_ty: Type,
     pub self_ty_ident: Ident,
@@ -14,19 +11,17 @@ pub(crate) struct ObjectImplInput {
 }
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct MethodItem {
     pub ident: Ident,
+    #[cfg_attr(not(test), expect(dead_code))]
     pub is_slot: bool,
+    #[cfg_attr(not(test), expect(dead_code))]
     pub is_invokable: bool,
     pub params: Vec<ParamMeta>,
     pub ret_ty: ReturnType,
-    pub block: Block,
-    pub attrs: Vec<syn::Attribute>,
 }
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct ParamMeta {
     pub ident: Ident,
     pub ty: Type,
@@ -58,16 +53,12 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplIn
                     let ident = fn_item.sig.ident.clone();
                     let params = extract_params(&fn_item.sig.inputs)?;
                     let ret_ty = fn_item.sig.output.clone();
-                    let block = fn_item.block.clone();
-                    let attrs = fn_item.attrs.clone();
                     methods.push(MethodItem {
                         ident,
                         is_slot,
                         is_invokable,
                         params,
                         ret_ty,
-                        block,
-                        attrs,
                     });
                     // Re-push cleaned fn (slot/invokable attrs already stripped)
                     other_items.push(ImplItem::Fn(fn_item));
