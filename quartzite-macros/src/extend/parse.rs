@@ -1,7 +1,8 @@
-use syn::{Data, DeriveInput, Fields, Ident, Type, parse2, spanned::Spanned};
+use syn::{parse2, spanned::Spanned, Data, DeriveInput, Fields, Ident, Type};
 
 use crate::util::extract_attr;
 
+#[cfg_attr(test, derive(Debug))]
 pub(crate) struct ExtendInput {
     pub ident: Ident,
     pub is_root: bool,
@@ -9,12 +10,14 @@ pub(crate) struct ExtendInput {
     pub mixin_fields: Vec<MixinField>,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub(crate) struct BaseField {
     pub ident: Ident,
     pub ty_ident: Ident,
     pub ty: Type,
 }
 
+#[cfg_attr(test, derive(Debug))]
 pub(crate) struct MixinField {
     pub ident: Ident,
     pub ty_ident: Ident,
@@ -102,6 +105,97 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         base_field,
         mixin_fields,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use proc_macro2::TokenStream;
+    use quote::quote;
+
+    fn parse_ok(ts: TokenStream) -> super::ExtendInput {
+        super::parse(ts).expect("should parse successfully")
+    }
+
+    fn parse_err(ts: TokenStream) -> String {
+        super::parse(ts).unwrap_err().to_string()
+    }
+
+    // AC3: two #[base] fields → compile error.
+    #[test]
+    fn two_base_fields_errors() {
+        let err = parse_err(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+                #[base]
+                other: Other,
+            }
+        });
+        assert!(
+            err.contains("at most one #[base] field allowed"),
+            "unexpected: {err}"
+        );
+    }
+
+    // AC4: no #[root], no #[base], no #[mixin] → compile error.
+    #[test]
+    fn no_markers_errors() {
+        let err = parse_err(quote! {
+            struct Plain { x: i32 }
+        });
+        assert!(
+            err.contains("#[derive(Extend)] requires"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn root_with_no_fields_ok() {
+        let ir = parse_ok(quote! {
+            #[root]
+            struct ObjectBase {}
+        });
+        assert!(ir.is_root);
+        assert!(ir.base_field.is_none());
+        assert!(ir.mixin_fields.is_empty());
+    }
+
+    #[test]
+    fn base_field_classified() {
+        let ir = parse_ok(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+                pub x: i32,
+            }
+        });
+        assert!(!ir.is_root);
+        assert_eq!(ir.base_field.as_ref().unwrap().ident, "widget");
+        assert_eq!(ir.base_field.as_ref().unwrap().ty_ident, "Widget");
+        assert!(ir.mixin_fields.is_empty());
+    }
+
+    #[test]
+    fn mixin_field_classified() {
+        let ir = parse_ok(quote! {
+            struct Panel {
+                #[mixin]
+                layout_base: LayoutBase,
+            }
+        });
+        assert_eq!(ir.mixin_fields.len(), 1);
+        assert_eq!(ir.mixin_fields[0].ident, "layout_base");
+        assert!(ir.base_field.is_none());
+    }
+
+    #[test]
+    fn generic_struct_errors() {
+        let err = parse_err(quote! {
+            #[root]
+            struct Foo<T> { x: T }
+        });
+        assert!(err.contains("generic"), "unexpected: {err}");
+    }
 }
 
 /// Extracts the last path-segment ident from a `Type::Path`.

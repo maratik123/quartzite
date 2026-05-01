@@ -14,5 +14,4 @@ heck = "0.5"
 
 [dev-dependencies]
 quartzite-core = { path = "../quartzite-core" }
-trybuild = "1"
 pretty_assertions = "1"

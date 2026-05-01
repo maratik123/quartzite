@@ -42,7 +42,7 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         let name = p.ident.to_string();
         let ty = &p.ty;
         let readable = true;
-        let writable = !p.read_only;
+        let writable = !p.read_only && !p.constant;
         let notify = p.notify.is_some();
         let stored = p.stored;
         let designable = p.designable;

@@ -1,4 +1,4 @@
-use syn::{Data, DeriveInput, Expr, Fields, Ident, Lit, parse2, spanned::Spanned};
+use syn::{parse2, spanned::Spanned, Data, DeriveInput, Expr, Fields, Ident, Lit};
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MetaEnumInput {
@@ -63,7 +63,12 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInpu
             next_value
         };
 
-        next_value = value.checked_add(1).unwrap_or(0);
+        next_value = value.checked_add(1).ok_or_else(|| {
+            syn::Error::new(
+                variant.ident.span(),
+                "discriminant overflow: no room for an implicit value after i64::MAX",
+            )
+        })?;
         variants.push(EnumVariant {
             ident: variant.ident,
             value,
