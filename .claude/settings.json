@@ -39,6 +39,7 @@
       "Bash(gh *)"
     ],
     "deny": [
+      "Read(.idea/**)",
       "Edit(.idea/**)",
       "Write(.idea/**)"
     ]
