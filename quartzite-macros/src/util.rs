@@ -34,7 +34,6 @@ pub(crate) fn accessor_name(type_ident: &Ident) -> Ident {
 }
 
 /// Returns the hidden module ident: `__quartzite_{TypeName}`.
-#[expect(dead_code)]
 pub(crate) fn hidden_mod_ident(type_ident: &Ident) -> Ident {
     Ident::new(&format!("__quartzite_{}", type_ident), type_ident.span())
 }

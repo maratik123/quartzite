@@ -6,7 +6,6 @@ use syn::{
 use crate::util::extract_attr;
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct ObjectInput {
     pub ident: Ident,
     pub props: Vec<PropField>,
@@ -14,7 +13,6 @@ pub(crate) struct ObjectInput {
 }
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct PropField {
     pub ident: Ident,
     pub ty: Type,
@@ -27,7 +25,6 @@ pub(crate) struct PropField {
 }
 
 #[cfg_attr(test, derive(Debug))]
-#[expect(dead_code)]
 pub(crate) struct SignalField {
     pub ident: Ident,
     pub args_ty: Type,
