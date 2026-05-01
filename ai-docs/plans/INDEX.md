@@ -14,8 +14,8 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [geometry-events](deferred/2026-05-01-geometry-events.spec.md) | `quartzite-geometry` `quartzite-events` | 🟡 spec-only | — |
-| [macros](deferred/2026-05-01-macros.spec.md) | `quartzite-macros` | 🟢 spec+design | — |
-| [runtime](deferred/2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 spec+design | open Q: arena vs `Rc<RefCell<>>` ownership model (must decide before Task 1) |
+| [macros](2026-05-01-macros.spec.md) | `quartzite-macros` | 🟢 spec+design | — |
+| [runtime](deferred/2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 spec+design | — (ownership model decided: Arena/SlotMap — see design §Approach) |
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
 | [auto-connection](deferred/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | 🟢 spec+design | runtime Task 0 (`QueuedDispatcher` + `ConnectionType::Queued`) · runtime design `post()` signature must use `+ 'static` |
@@ -37,6 +37,5 @@ core-types ✅
 
 ## Suggested next steps
 
-1. **Decide** runtime ownership model (arena/SlotMap vs `Rc<RefCell<>>`) — unblocks the critical path
-2. **Start** geometry-events (no blockers, no design needed if straightforward) or macros (design ready)
-3. **runtime** after (1) — unblocks widgets, auto-connection, and the full stack
+1. **Start** geometry-events (no blockers, no design needed if straightforward) or macros (design ready)
+2. **runtime** — ready to implement (ownership model: Arena/SlotMap; unblocks widgets, auto-connection, and the full stack)
