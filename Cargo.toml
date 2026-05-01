@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "quartzite-core",
+    "quartzite-macros",
 ]
 resolver = "2"
 
