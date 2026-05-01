@@ -1,9 +1,9 @@
 ---
-name: task-workflow
-description: "Full ticket workflow: ticket → interview → spec → design → design-review → impl → verify. Steps are strictly ordered and cannot be skipped."
+name: task-issue
+description: "Full ticket workflow: ticket → interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[issue-number]"
-allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(rustfmt *)
+allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *)
 ---
 
 Full workflow for working on a task (issue). Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -88,10 +88,14 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 > First action: verify both spec and design (with GO verdict) exist. Missing = previous steps incomplete.
 
 - Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start (see `/context-reset` for format)
+- **Record base commit** in the progress file immediately:
+  ```
+  base_commit: <output of `git rev-parse HEAD`>
+  ```
 - After each subtask:
   1. `cargo build` — must compile
   2. `cargo test test_name` — if subtask adds tests
-  3. `rustfmt` changed files; `cargo clippy -- -D warnings`
+  3. `cargo fmt`; `cargo clippy -- -D warnings`
   4. Update `.progress.md`
   5. If N=3 of M≥5 → handoff via Task (see `/context-reset`)
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
@@ -110,9 +114,45 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-5. On ALL PASS → delete `.progress.md`
+5. On ALL PASS → proceed to Step 10
 
-**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec
+### Step 10: Self-review loop (max 3 rounds)
+
+Spawn the self-review agent:
+
+```
+Task(subagent_type="general-purpose", prompt="
+  Read .claude/agents/self-review.md and follow it.
+  Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
+  Design: ai-docs/plans/YYYY-MM-DD-name.design.md
+  Progress: ai-docs/plans/YYYY-MM-DD-name.progress.md
+  base_commit is recorded in the progress file.
+")
+```
+
+**On APPROVE:** delete `.progress.md` → done.
+
+**On REJECT:** proceed to Step 11. After Step 11, loop back here.
+
+**After round 3 with REJECT:** surface all remaining `⬜ Open` findings to the user and ask how to proceed. Do not delete `.progress.md` until resolved.
+
+### Step 11: Review fixes
+
+For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file:
+
+- **Fix it** → mark `✅ Fixed` in the progress file, implement the change.
+- **Object to it** (finding is wrong or intentionally out of scope):
+  - `nit` / `minor`: agent may object autonomously — write reason, mark `⚠️ Objected: <reason>`.
+  - `major` / `blocker`: **surface to user first** before objecting. User must approve the objection.
+
+After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
+1. `cargo build` — must compile
+2. `cargo test` — all green
+3. `cargo clippy -- -D warnings` — clean
+4. Update `.progress.md`
+5. Return to Step 10.
+
+**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE
 
 ## Gate checklist
 
@@ -123,5 +163,8 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 | Step 5 | All decisions confirmed? Every AC verifiable? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
+| Step 8 start | `base_commit` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
+| Step 10 | Self-review APPROVE before deleting progress file? |
+| Step 11 | `major`/`blocker` objections confirmed by user? |
