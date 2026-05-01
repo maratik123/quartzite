@@ -1,4 +1,4 @@
-use syn::{parse2, spanned::Spanned, Data, DeriveInput, Fields, Ident, Type};
+use syn::{Data, DeriveInput, Fields, Ident, Type, parse2, spanned::Spanned};
 
 use crate::util::extract_attr;
 
@@ -32,14 +32,14 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                 return Err(syn::Error::new(
                     derive.ident.span(),
                     "#[derive(Extend)] only supports named-field structs",
-                ))
+                ));
             }
         },
         _ => {
             return Err(syn::Error::new(
                 derive.ident.span(),
                 "#[derive(Extend)] only supports structs",
-            ))
+            ));
         }
     };
 

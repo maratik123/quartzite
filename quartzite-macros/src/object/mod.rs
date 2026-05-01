@@ -1,5 +1,5 @@
-mod parse;
 mod codegen;
+mod parse;
 
 pub(crate) fn expand(input: proc_macro2::TokenStream) -> proc_macro2::TokenStream {
     match parse::parse(input) {

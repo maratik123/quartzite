@@ -1,4 +1,4 @@
-use syn::{parse2, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type};
+use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spanned::Spanned};
 
 use crate::util::extract_attr;
 
@@ -106,14 +106,15 @@ fn extract_params(
         match arg {
             FnArg::Receiver(_) => continue,
             FnArg::Typed(pat_ty) => {
-                let ident =
-                    match &*pat_ty.pat {
-                        Pat::Ident(pi) => pi.ident.clone(),
-                        other => return Err(syn::Error::new(
+                let ident = match &*pat_ty.pat {
+                    Pat::Ident(pi) => pi.ident.clone(),
+                    other => {
+                        return Err(syn::Error::new(
                             other.span(),
                             "#[slot]/#[invokable] method parameters must be simple named bindings",
-                        )),
-                    };
+                        ));
+                    }
+                };
                 params.push(ParamMeta {
                     ident,
                     ty: *pat_ty.ty.clone(),

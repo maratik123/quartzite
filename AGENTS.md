@@ -26,8 +26,8 @@ cargo test                            # all tests
 cargo test test_name                  # filter by substring
 cargo test -- --nocapture             # show stdout
 cargo clippy -- -D warnings           # lint (strict)
-rustfmt <file>                        # fix formatting
-rustfmt --check <file>                # check only
+cargo fmt                             # fix formatting
+cargo fmt -- --check                  # check only
 ```
 
 Search: `rg <pattern> --type rust [-l | -C 3]`

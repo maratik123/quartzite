@@ -1,4 +1,4 @@
-use syn::{parse2, spanned::Spanned, Data, DeriveInput, Expr, Fields, Ident, Lit};
+use syn::{Data, DeriveInput, Expr, Fields, Ident, Lit, parse2, spanned::Spanned};
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MetaEnumInput {
@@ -21,7 +21,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInpu
             return Err(syn::Error::new(
                 derive.ident.span(),
                 "#[derive(MetaEnum)] only supports enums",
-            ))
+            ));
         }
     };
 
@@ -35,7 +35,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInpu
                 return Err(syn::Error::new(
                     variant.ident.span(),
                     "#[derive(MetaEnum)] only supports unit variants (no tuple or struct fields)",
-                ))
+                ));
             }
         }
 
@@ -49,14 +49,14 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInpu
                         return Err(syn::Error::new(
                             other.span(),
                             "#[derive(MetaEnum)] only supports integer literal discriminants",
-                        ))
+                        ));
                     }
                 },
                 other => {
                     return Err(syn::Error::new(
                         other.span(),
                         "#[derive(MetaEnum)] only supports integer literal discriminants",
-                    ))
+                    ));
                 }
             }
         } else {
