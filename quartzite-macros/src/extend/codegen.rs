@@ -53,13 +53,11 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     let acc_mut = acc_mut_ident(&acc);
 
     let supertrait = ir.base_field.as_ref().and_then(|b| {
-        as_trait_name(&b.ty_ident).map(|parent_trait| {
-            if parent_trait == "AsObject" {
-                quote! { : ::quartzite_core::AsObject }
-            } else {
-                quote! { : #parent_trait }
-            }
-        })
+        if b.ty_ident == "ObjectBase" {
+            Some(quote! { : ::quartzite_core::AsObject })
+        } else {
+            as_trait_name(&b.ty_ident).map(|parent_trait| quote! { : #parent_trait })
+        }
     });
 
     quote! {

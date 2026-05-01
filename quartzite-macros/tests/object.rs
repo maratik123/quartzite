@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use quartzite_core::{FromValue, ObjectBase, Signal, Value};
-use quartzite_macros::{Extend, Object};
+use quartzite_core::{FromValue, Object, ObjectBase, Signal, Value};
+use quartzite_macros::{object_impl, Extend, Object};
 
 #[derive(Extend, Object)]
 #[root]
@@ -16,6 +16,9 @@ struct Counter {
     pub version: i32,
 }
 
+#[object_impl]
+impl Counter {}
+
 // AC6: read_property returns correct Value; write_property updates field and emits notify.
 #[test]
 fn ac6_read_write_property_with_notify() {
@@ -26,18 +29,16 @@ fn ac6_read_write_property_with_notify() {
         version: 1,
     };
 
-    // read_property
-    let val = __quartzite_Counter::__read_property_Counter(&c, "count");
+    let val = c.read_property("count");
     assert_eq!(val, Some(Value::Int(0)));
 
-    // write_property triggers notify
     let notified = Arc::new(Mutex::new(false));
     let notified_clone = Arc::clone(&notified);
     c.count_changed.connect(move |_args: &(i32,)| {
         *notified_clone.lock().unwrap() = true;
     });
 
-    let written = __quartzite_Counter::__write_property_Counter(&mut c, "count", Value::Int(42));
+    let written = c.write_property("count", Value::Int(42));
     assert!(written);
     assert_eq!(c.count, 42);
     assert!(*notified.lock().unwrap());
@@ -52,9 +53,9 @@ fn ac7_read_only_write_returns_false() {
         count_changed: Signal::default(),
         version: 1,
     };
-    let written = __quartzite_Counter::__write_property_Counter(&mut c, "version", Value::Int(99));
+    let written = c.write_property("version", Value::Int(99));
     assert!(!written);
-    assert_eq!(c.version, 1); // unchanged
+    assert_eq!(c.version, 1);
 }
 
 // AC10: connect_signal registers a callback that fires on emit.
@@ -75,7 +76,7 @@ fn ac10_connect_signal_and_emit() {
         }
     });
 
-    let id = __quartzite_Counter::__connect_signal_dynamic_Counter(&mut c, "count_changed", cb);
+    let id = c.connect_signal("count_changed", cb);
     assert!(id.is_some());
 
     c.count_changed.emit(&(7,));

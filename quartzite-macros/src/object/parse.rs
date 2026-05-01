@@ -1,6 +1,6 @@
 use syn::{
-    Data, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type, parse2,
-    spanned::Spanned,
+    parse2, spanned::Spanned, Data, DeriveInput, Field, Fields, GenericArgument, Ident,
+    PathArguments, Type,
 };
 
 use crate::util::extract_attr;
@@ -31,7 +31,7 @@ pub(crate) struct SignalField {
 }
 
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput> {
-    let mut derive: DeriveInput = parse2(input)?;
+    let derive: DeriveInput = parse2(input)?;
 
     let fields = match &derive.data {
         Data::Struct(s) => match &s.fields {
@@ -58,8 +58,6 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
         ));
     }
 
-    let _ = &mut derive.attrs; // struct-level attrs not consumed here
-
     let mut props = Vec::new();
     let mut signals = Vec::new();
 
@@ -76,6 +74,17 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
                 ident: field_ident,
                 args_ty,
             });
+        }
+    }
+
+    for prop in &props {
+        if let Some(notify_ident) = &prop.notify
+            && !signals.iter().any(|s| s.ident == *notify_ident)
+        {
+            return Err(syn::Error::new(
+                notify_ident.span(),
+                format!("notify signal `{notify_ident}` not found among #[signal] fields"),
+            ));
         }
     }
 
@@ -236,10 +245,26 @@ mod tests {
             struct Foo {
                 #[prop(notify = count_changed)]
                 pub count: i32,
+                #[signal]
+                pub count_changed: Signal<(i32,)>,
             }
         });
         let p = &ir.props[0];
         assert_eq!(p.notify.as_ref().unwrap(), "count_changed");
+    }
+
+    #[test]
+    fn notify_missing_signal_errors() {
+        let err = parse_err(quote! {
+            struct Foo {
+                #[prop(notify = count_changed)]
+                pub count: i32,
+            }
+        });
+        assert!(
+            err.contains("not found among #[signal] fields"),
+            "unexpected: {err}"
+        );
     }
 
     #[test]

@@ -23,6 +23,7 @@ fn ac1_root_trait_and_self_impl() {
 
 // AC2: concrete type with #[base] generates delegation impl for parent trait.
 #[derive(Extend)]
+#[allow(dead_code)]
 struct Button {
     #[base]
     widget: Widget,
@@ -48,6 +49,7 @@ fn ac2_delegation_impl() {
 // AC5: #[mixin] generates only the leaf trait impl (not ancestor chain).
 #[derive(Extend)]
 #[root]
+#[allow(dead_code)]
 struct LayoutBase {
     pub width: u32,
     pub height: u32,

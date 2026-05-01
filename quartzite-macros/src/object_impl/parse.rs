@@ -1,4 +1,4 @@
-use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spanned::Spanned};
+use syn::{parse2, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type};
 
 use crate::util::extract_attr;
 
@@ -13,10 +13,6 @@ pub(crate) struct ObjectImplInput {
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MethodItem {
     pub ident: Ident,
-    #[cfg_attr(not(test), expect(dead_code))]
-    pub is_slot: bool,
-    #[cfg_attr(not(test), expect(dead_code))]
-    pub is_invokable: bool,
     pub params: Vec<ParamMeta>,
     pub ret_ty: ReturnType,
 }
@@ -55,8 +51,6 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplIn
                     let ret_ty = fn_item.sig.output.clone();
                     methods.push(MethodItem {
                         ident,
-                        is_slot,
-                        is_invokable,
                         params,
                         ret_ty,
                     });
@@ -158,8 +152,7 @@ mod tests {
             }
         });
         assert_eq!(ir.methods.len(), 1);
-        assert!(ir.methods[0].is_slot);
-        assert!(!ir.methods[0].is_invokable);
+        assert_eq!(ir.methods[0].ident, "on_click");
         assert_eq!(ir.methods[0].params.len(), 1);
         assert_eq!(ir.methods[0].params[0].ident, "x");
     }
@@ -173,8 +166,7 @@ mod tests {
             }
         });
         assert_eq!(ir.methods.len(), 1);
-        assert!(ir.methods[0].is_invokable);
-        assert!(!ir.methods[0].is_slot);
+        assert_eq!(ir.methods[0].ident, "compute");
         assert_eq!(ir.methods[0].params.len(), 2);
     }
 

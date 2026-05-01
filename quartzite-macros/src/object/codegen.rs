@@ -130,7 +130,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         } else {
             let notify_emit = p.notify.as_ref().map(|sig_ident| {
                 quote! {
-                    let __notify_val = this.#field.clone();
+                    let __notify_val = v.clone();
                     this.#sig_ident.emit(&(__notify_val,));
                 }
             });
@@ -194,7 +194,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             name: &str,
             cb: ::std::boxed::Box<dyn ::core::ops::Fn(&[::quartzite_core::Value])>,
         ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
-            let cb = ::std::sync::Arc::new(cb);
+            let cb: ::std::sync::Arc<dyn ::core::ops::Fn(&[::quartzite_core::Value])> = ::std::sync::Arc::from(cb);
             match name {
                 #(#arms)*
                 _ => ::core::option::Option::None,
