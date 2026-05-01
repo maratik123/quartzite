@@ -203,6 +203,217 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use proc_macro2::TokenStream;
+    use quote::quote;
+
+    fn emit(ts: TokenStream) -> String {
+        let ir = crate::object::parse::parse(ts).expect("parse ok");
+        super::codegen(ir).to_string()
+    }
+
+    // Top-level: everything lives inside the hidden __quartzite_Foo module.
+    #[test]
+    fn codegen_wraps_in_hidden_mod() {
+        let out = emit(quote! { struct Foo {} });
+        assert!(
+            out.contains("mod __quartzite_Foo"),
+            "missing hidden mod: {out}"
+        );
+        assert!(out.contains("__PROPS__Foo"), "missing props static: {out}");
+        assert!(
+            out.contains("__SIGNALS__Foo"),
+            "missing signals static: {out}"
+        );
+        assert!(
+            out.contains("__read_property_Foo"),
+            "missing read fn: {out}"
+        );
+        assert!(
+            out.contains("__write_property_Foo"),
+            "missing write fn: {out}"
+        );
+        assert!(
+            out.contains("__connect_signal_dynamic_Foo"),
+            "missing connect fn: {out}"
+        );
+    }
+
+    // Props static: readable=true always; writable obeys read_only and constant flags.
+    #[test]
+    fn writable_prop_flags() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub count: i32,
+            }
+        });
+        assert!(out.contains("readable : true"), "missing readable: {out}");
+        assert!(out.contains("writable : true"), "missing writable: {out}");
+        assert!(out.contains("notify : false"), "unexpected notify: {out}");
+    }
+
+    #[test]
+    fn read_only_prop_has_writable_false() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop(read_only)]
+                pub val: i32,
+            }
+        });
+        assert!(
+            out.contains("writable : false"),
+            "expected writable false: {out}"
+        );
+    }
+
+    #[test]
+    fn constant_prop_has_writable_false() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop(constant)]
+                pub val: i32,
+            }
+        });
+        assert!(
+            out.contains("writable : false"),
+            "expected writable false: {out}"
+        );
+        assert!(out.contains("constant : true"), "missing constant: {out}");
+    }
+
+    #[test]
+    fn notify_prop_has_notify_true() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop(notify = changed)]
+                pub val: i32,
+                #[signal]
+                pub changed: Signal<(i32,)>,
+            }
+        });
+        assert!(out.contains("notify : true"), "missing notify flag: {out}");
+    }
+
+    // Signals static: name, auto-named params (arg0, arg1…), type stringify.
+    #[test]
+    fn signal_static_includes_name_and_params() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub value_changed: Signal<(i32,)>,
+            }
+        });
+        assert!(
+            out.contains("\"value_changed\""),
+            "missing signal name: {out}"
+        );
+        assert!(out.contains("\"arg0\""), "missing param name: {out}");
+        assert!(
+            out.contains("stringify ! (i32)"),
+            "missing param type: {out}"
+        );
+    }
+
+    #[test]
+    fn signal_multi_arg_names_incremented() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub moved: Signal<(i32, i32)>,
+            }
+        });
+        assert!(out.contains("\"arg0\""), "missing arg0: {out}");
+        assert!(out.contains("\"arg1\""), "missing arg1: {out}");
+    }
+
+    // read_property: known field → IntoValue; unknown → None.
+    #[test]
+    fn read_property_emits_into_value_arm() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub score: i32,
+            }
+        });
+        assert!(out.contains("\"score\""), "missing prop arm: {out}");
+        assert!(
+            out.contains("IntoValue :: into_value"),
+            "missing IntoValue: {out}"
+        );
+        assert!(
+            out.contains("this . score . clone"),
+            "missing field access: {out}"
+        );
+    }
+
+    // write_property: writable uses FromValue; read_only arm returns false literal.
+    #[test]
+    fn write_property_writable_uses_from_value() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub score: i32,
+            }
+        });
+        assert!(
+            out.contains("FromValue :: from_value"),
+            "missing FromValue: {out}"
+        );
+    }
+
+    #[test]
+    fn write_property_read_only_arm_is_false() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop(read_only)]
+                pub version: i32,
+            }
+        });
+        assert!(
+            out.contains("\"version\" => false"),
+            "missing false arm: {out}"
+        );
+        assert!(
+            !out.contains("FromValue"),
+            "unexpected FromValue for read_only: {out}"
+        );
+    }
+
+    #[test]
+    fn write_property_notify_emits_signal_call() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop(notify = changed)]
+                pub val: i32,
+                #[signal]
+                pub changed: Signal<(i32,)>,
+            }
+        });
+        assert!(out.contains("changed . emit"), "missing signal emit: {out}");
+        assert!(out.contains("__notify_val"), "missing notify val: {out}");
+    }
+
+    // connect_signal: signal name in match, Arc::from, per-arm Arc::clone, conversion closure.
+    #[test]
+    fn connect_signal_emits_arc_from_and_clone() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        assert!(out.contains("\"ticked\""), "missing signal arm: {out}");
+        assert!(out.contains("Arc :: from"), "missing Arc::from: {out}");
+        assert!(out.contains("Arc :: clone"), "missing Arc::clone: {out}");
+        assert!(
+            out.contains("IntoValue :: into_value"),
+            "missing conversion: {out}"
+        );
+    }
+}
+
 /// Extracts element types from a tuple type; returns a single-element vec for non-tuples.
 fn tuple_elems(ty: &Type) -> Vec<&Type> {
     match ty {
