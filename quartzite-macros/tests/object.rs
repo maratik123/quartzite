@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use quartzite_core::{FromValue, Object, ObjectBase, Signal, Value};
-use quartzite_macros::{object_impl, Extend, Object};
+use quartzite_macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
 #[root]

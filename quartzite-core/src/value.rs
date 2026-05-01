@@ -5,24 +5,29 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 
 /// Trait for user-defined value types stored inside `Value::Custom`.
 ///
-/// Implementors must support cloning (`clone_box`) and downcast (`as_any`).
-/// The `fmt_debug` method is required to allow `Debug` formatting on the trait object.
-pub trait CustomValue: core::any::Any {
+/// Implementors must support cloning (`clone_box`), downcast (`as_any`), and
+/// `Debug` formatting (required as a supertrait so that `Box<dyn CustomValue>`
+/// and `Arc<dyn CustomValue>` are automatically `Debug`).
+///
+/// # Example
+/// ```ignore
+/// #[derive(Debug, Clone)]
+/// struct MyVal(i32);
+/// impl CustomValue for MyVal {
+///     fn type_name(&self) -> &'static str { "MyVal" }
+///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
+///     fn as_any(&self) -> &dyn core::any::Any { self }
+/// }
+/// ```
+pub trait CustomValue: core::any::Any + core::fmt::Debug {
     fn type_name(&self) -> &'static str;
     fn clone_box(&self) -> Box<dyn CustomValue>;
     fn as_any(&self) -> &dyn core::any::Any;
-    fn fmt_debug(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result;
 }
 
 impl Clone for Box<dyn CustomValue> {
     fn clone(&self) -> Self {
         self.clone_box()
-    }
-}
-
-impl core::fmt::Debug for dyn CustomValue {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        self.fmt_debug(f)
     }
 }
 
@@ -45,6 +50,8 @@ pub enum Value {
     // Object(WeakObjectRef) deferred until quartzite-runtime decides ownership model
 }
 
+// `Value` intentionally does not implement `Eq`: the `Float` variant uses
+// IEEE 754 semantics where NaN != NaN, making reflexivity unsound.
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -107,12 +114,38 @@ pub trait IntoValue {
     fn into_value(self) -> Value;
 }
 
-macro_rules! impl_int {
+// `i64` is the native Int storage type — conversion is infallible.
+impl FromValue for i64 {
+    fn from_value(val: Value) -> Result<Self, TypeError> {
+        match val {
+            Value::Int(n) => Ok(n),
+            _ => Err(TypeError {
+                expected: "Int",
+                got: val.type_name(),
+            }),
+        }
+    }
+}
+
+impl IntoValue for i64 {
+    fn into_value(self) -> Value {
+        Value::Int(self)
+    }
+}
+
+// For other integer types, use a checked conversion so that out-of-range values
+// produce a `TypeError` instead of silently wrapping or truncating.
+macro_rules! impl_int_checked {
     ($t:ty) => {
         impl FromValue for $t {
             fn from_value(val: Value) -> Result<Self, TypeError> {
                 match val {
-                    Value::Int(n) => Ok(n as $t),
+                    Value::Int(n) => {
+                        <$t as ::core::convert::TryFrom<i64>>::try_from(n).map_err(|_| TypeError {
+                            expected: concat!("Int fitting ", stringify!($t)),
+                            got: "Int",
+                        })
+                    }
                     _ => Err(TypeError {
                         expected: "Int",
                         got: val.type_name(),
@@ -128,10 +161,9 @@ macro_rules! impl_int {
     };
 }
 
-impl_int!(i32);
-impl_int!(i64);
-impl_int!(u32);
-impl_int!(u64);
+impl_int_checked!(i32);
+impl_int_checked!(u32);
+impl_int_checked!(u64);
 
 impl FromValue for f64 {
     fn from_value(val: Value) -> Result<Self, TypeError> {
@@ -213,9 +245,7 @@ mod tests {
     // --- Minimal CustomValue for testing ---
 
     #[derive(Debug, Clone)]
-    struct MyCustom {
-        label: &'static str,
-    }
+    struct MyCustom;
 
     impl CustomValue for MyCustom {
         fn type_name(&self) -> &'static str {
@@ -228,12 +258,6 @@ mod tests {
 
         fn as_any(&self) -> &dyn core::any::Any {
             self
-        }
-
-        fn fmt_debug(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.debug_struct("MyCustom")
-                .field("label", &self.label)
-                .finish()
         }
     }
 
@@ -269,7 +293,7 @@ mod tests {
 
     #[test]
     fn custom_clone_no_panic() {
-        let arc: Arc<dyn CustomValue> = Arc::new(MyCustom { label: "hello" });
+        let arc: Arc<dyn CustomValue> = Arc::new(MyCustom);
         let val = Value::Custom(arc);
         let cloned = val.clone();
         // Both should be Custom variants (pointer may differ due to clone_box).
@@ -325,5 +349,58 @@ mod tests {
     fn f64_round_trip(#[case] f: f64) {
         let val = f.into_value();
         assert_eq!(f64::from_value(val), Ok(f));
+    }
+
+    // --- Checked integer conversion boundary tests ---
+
+    #[test]
+    fn u32_rejects_negative() {
+        assert!(u32::from_value(Value::Int(-1)).is_err());
+    }
+
+    #[test]
+    fn u32_rejects_out_of_range() {
+        assert!(u32::from_value(Value::Int(i64::from(u32::MAX) + 1)).is_err());
+    }
+
+    #[test]
+    fn u32_accepts_max() {
+        assert_eq!(
+            u32::from_value(Value::Int(i64::from(u32::MAX))),
+            Ok(u32::MAX)
+        );
+    }
+
+    #[test]
+    fn u64_rejects_negative() {
+        assert!(u64::from_value(Value::Int(-1)).is_err());
+    }
+
+    #[test]
+    fn u64_accepts_zero() {
+        assert_eq!(u64::from_value(Value::Int(0)), Ok(0u64));
+    }
+
+    #[test]
+    fn i32_rejects_out_of_range() {
+        assert!(i32::from_value(Value::Int(i64::MAX)).is_err());
+    }
+
+    #[test]
+    fn i32_accepts_min_max() {
+        assert_eq!(
+            i32::from_value(Value::Int(i64::from(i32::MIN))),
+            Ok(i32::MIN)
+        );
+        assert_eq!(
+            i32::from_value(Value::Int(i64::from(i32::MAX))),
+            Ok(i32::MAX)
+        );
+    }
+
+    #[test]
+    fn i64_round_trip() {
+        assert_eq!(i64::from_value(Value::Int(i64::MAX)), Ok(i64::MAX));
+        assert_eq!(i64::from_value(Value::Int(i64::MIN)), Ok(i64::MIN));
     }
 }

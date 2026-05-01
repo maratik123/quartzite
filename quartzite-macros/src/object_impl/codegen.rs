@@ -53,7 +53,7 @@ fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStrea
     });
     quote! {
         #[allow(non_upper_case_globals)]
-        static #static_name: &'static [::quartzite_core::MethodMeta] = &[
+        const #static_name: &[::quartzite_core::MethodMeta] = &[
             #(#entries),*
         ];
     }
@@ -125,20 +125,59 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
     let props_name = Ident::new(&format!("__PROPS__{type_ident}"), type_ident.span());
     let signals_name = Ident::new(&format!("__SIGNALS__{type_ident}"), type_ident.span());
     let methods_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
+    // MetaObject::new is const fn and all its arguments are const — no OnceLock needed.
     quote! {
         #[allow(non_upper_case_globals)]
-        static #meta_static_name: ::std::sync::OnceLock<::quartzite_core::MetaObject> =
-            ::std::sync::OnceLock::new();
+        static #meta_static_name: ::quartzite_core::MetaObject =
+            ::quartzite_core::MetaObject::new(
+                ::core::stringify!(#type_ident),
+                #mod_ident::#props_name,
+                #mod_ident::#signals_name,
+                #methods_name,
+                &[],
+            );
 
         #[allow(non_snake_case)]
         fn #meta_init_fn() -> &'static ::quartzite_core::MetaObject {
-            #meta_static_name.get_or_init(|| ::quartzite_core::MetaObject {
-                class_name: ::core::stringify!(#type_ident),
-                properties: #mod_ident::#props_name,
-                signals: #mod_ident::#signals_name,
-                methods: &#methods_name,
-                enums: &[],
-            })
+            &#meta_static_name
+        }
+    }
+}
+
+fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
+    let read_fn = Ident::new(&format!("__read_property_{type_ident}"), type_ident.span());
+    let write_fn = Ident::new(&format!("__write_property_{type_ident}"), type_ident.span());
+    let connect_fn = Ident::new(
+        &format!("__connect_signal_dynamic_{type_ident}"),
+        type_ident.span(),
+    );
+    let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
+    let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
+    quote! {
+        impl ::quartzite_core::Object for #self_ty {
+            fn meta_object(&self) -> &'static ::quartzite_core::MetaObject {
+                #meta_init()
+            }
+            fn read_property(&self, name: &str) -> ::core::option::Option<::quartzite_core::Value> {
+                #mod_ident::#read_fn(self, name)
+            }
+            fn write_property(&mut self, name: &str, val: ::quartzite_core::Value) -> bool {
+                #mod_ident::#write_fn(self, name, val)
+            }
+            fn invoke_method(
+                &mut self,
+                name: &str,
+                args: &[::quartzite_core::Value],
+            ) -> ::core::option::Option<::quartzite_core::Value> {
+                #invoke_fn(self, name, args)
+            }
+            fn connect_signal(
+                &mut self,
+                signal: &str,
+                callback: ::quartzite_core::SignalCallback,
+            ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
+                #mod_ident::#connect_fn(self, signal, callback)
+            }
         }
     }
 }
@@ -270,14 +309,17 @@ mod tests {
         );
     }
 
-    // Meta static: OnceLock, meta_init fn, class_name stringify, mod references.
+    // Meta static: plain static (no OnceLock), meta_init fn, class_name stringify, mod references.
     #[test]
-    fn meta_static_emits_once_lock_and_init_fn() {
+    fn meta_static_emits_static_and_init_fn() {
         let out = emit(quote! {
             impl Foo {}
         });
         assert!(out.contains("META_Foo"), "missing META_Foo: {out}");
-        assert!(out.contains("OnceLock"), "missing OnceLock: {out}");
+        assert!(
+            !out.contains("OnceLock"),
+            "unexpected OnceLock — should use plain static: {out}"
+        );
         assert!(
             out.contains("__meta_init_Foo"),
             "missing meta_init fn: {out}"
@@ -325,43 +367,5 @@ mod tests {
             }
         });
         assert!(out.contains("fn helper"), "helper not re-emitted: {out}");
-    }
-}
-
-fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
-    let read_fn = Ident::new(&format!("__read_property_{type_ident}"), type_ident.span());
-    let write_fn = Ident::new(&format!("__write_property_{type_ident}"), type_ident.span());
-    let connect_fn = Ident::new(
-        &format!("__connect_signal_dynamic_{type_ident}"),
-        type_ident.span(),
-    );
-    let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
-    let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
-    quote! {
-        impl ::quartzite_core::Object for #self_ty {
-            fn meta_object(&self) -> &'static ::quartzite_core::MetaObject {
-                #meta_init()
-            }
-            fn read_property(&self, name: &str) -> ::core::option::Option<::quartzite_core::Value> {
-                #mod_ident::#read_fn(self, name)
-            }
-            fn write_property(&mut self, name: &str, val: ::quartzite_core::Value) -> bool {
-                #mod_ident::#write_fn(self, name, val)
-            }
-            fn invoke_method(
-                &mut self,
-                name: &str,
-                args: &[::quartzite_core::Value],
-            ) -> ::core::option::Option<::quartzite_core::Value> {
-                #invoke_fn(self, name, args)
-            }
-            fn connect_signal(
-                &mut self,
-                signal: &str,
-                callback: ::quartzite_core::SignalCallback,
-            ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
-                #mod_ident::#connect_fn(self, signal, callback)
-            }
-        }
     }
 }

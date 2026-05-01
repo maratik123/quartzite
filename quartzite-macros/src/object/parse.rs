@@ -1,6 +1,6 @@
 use syn::{
-    parse2, spanned::Spanned, Data, DeriveInput, Field, Fields, GenericArgument, Ident,
-    PathArguments, Type,
+    Data, DeriveInput, Field, Fields, GenericArgument, Ident, PathArguments, Type, parse2,
+    spanned::Spanned,
 };
 
 use crate::util::extract_attr;

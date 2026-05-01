@@ -73,3 +73,15 @@ fn invoke_method_wrong_arity_returns_none() {
     let result = w.invoke_method("set_value", &[]);
     assert_eq!(result, None);
 }
+
+#[test]
+fn invoke_method_wrong_arg_type_returns_none() {
+    let mut w = Widget {
+        object_base: ObjectBase::new(),
+        value: 0,
+        value_changed: Signal::default(),
+    };
+    // set_value expects Value::Int (i32), but we pass Value::Bool
+    let result = w.invoke_method("set_value", &[Value::Bool(true)]);
+    assert_eq!(result, None);
+}

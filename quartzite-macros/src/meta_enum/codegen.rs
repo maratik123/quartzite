@@ -24,6 +24,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
     });
 
     quote! {
+        #[allow(non_upper_case_globals)]
         static #enum_static_name: ::quartzite_core::EnumMeta = ::quartzite_core::EnumMeta {
             name: #type_name_str,
             entries: &[#(#entries),*],

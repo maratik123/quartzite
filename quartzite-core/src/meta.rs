@@ -149,13 +149,13 @@ impl EnumMeta {
     }
 
     /// Find an entry by name; returns `None` if not present.
-    pub fn entry_by_name(&self, name: &str) -> Option<&EnumEntry> {
-        self.entries.iter().find(|e| e.name == name)
+    pub fn entry_by_name(&self, name: &str) -> Option<EnumEntry> {
+        self.entries.iter().find(|e| e.name == name).copied()
     }
 
     /// Find an entry by integer value; returns `None` if not present.
-    pub fn entry_by_value(&self, value: i64) -> Option<&EnumEntry> {
-        self.entries.iter().find(|e| e.value == value)
+    pub fn entry_by_value(&self, value: i64) -> Option<EnumEntry> {
+        self.entries.iter().find(|e| e.value == value).copied()
     }
 }
 
@@ -190,23 +190,23 @@ impl MetaObject {
     }
 
     /// Find property metadata by name.
-    pub fn property(&self, name: &str) -> Option<&PropertyMeta> {
-        self.properties.iter().find(|p| p.name == name)
+    pub fn property(&self, name: &str) -> Option<PropertyMeta> {
+        self.properties.iter().find(|p| p.name == name).copied()
     }
 
     /// Find signal metadata by name.
-    pub fn signal(&self, name: &str) -> Option<&SignalMeta> {
-        self.signals.iter().find(|s| s.name == name)
+    pub fn signal(&self, name: &str) -> Option<SignalMeta> {
+        self.signals.iter().find(|s| s.name == name).copied()
     }
 
     /// Find method metadata by name.
-    pub fn method(&self, name: &str) -> Option<&MethodMeta> {
-        self.methods.iter().find(|m| m.name == name)
+    pub fn method(&self, name: &str) -> Option<MethodMeta> {
+        self.methods.iter().find(|m| m.name == name).copied()
     }
 
     /// Find enum metadata by name.
-    pub fn enum_meta(&self, name: &str) -> Option<&EnumMeta> {
-        self.enums.iter().find(|e| e.name == name)
+    pub fn enum_meta(&self, name: &str) -> Option<EnumMeta> {
+        self.enums.iter().find(|e| e.name == name).copied()
     }
 }
 
@@ -267,5 +267,37 @@ mod tests {
 
         assert!(meta.property("name").is_some());
         assert!(meta.property("missing").is_none());
+        assert_eq!(meta.property("name").unwrap().type_name, "String");
+    }
+
+    #[test]
+    fn meta_object_signal_lookup() {
+        static SIGS: &[SignalMeta] = &[SignalMeta::new("clicked", &[])];
+        let meta = MetaObject::new("Button", &[], SIGS, &[], &[]);
+
+        assert!(meta.signal("clicked").is_some());
+        assert!(meta.signal("missing").is_none());
+        assert_eq!(meta.signal("clicked").unwrap().name, "clicked");
+    }
+
+    #[test]
+    fn meta_object_method_lookup() {
+        static METHODS: &[MethodMeta] = &[MethodMeta::new("click", &[], "()")];
+        let meta = MetaObject::new("Button", &[], &[], METHODS, &[]);
+
+        assert!(meta.method("click").is_some());
+        assert!(meta.method("missing").is_none());
+        assert_eq!(meta.method("click").unwrap().return_type, "()");
+    }
+
+    #[test]
+    fn meta_object_enum_meta_lookup() {
+        static ENTRIES: &[EnumEntry] = &[EnumEntry::new("On", 1), EnumEntry::new("Off", 0)];
+        static ENUMS: &[EnumMeta] = &[EnumMeta::new("State", ENTRIES)];
+        let meta = MetaObject::new("Device", &[], &[], &[], ENUMS);
+
+        assert!(meta.enum_meta("State").is_some());
+        assert!(meta.enum_meta("missing").is_none());
+        assert_eq!(meta.enum_meta("State").unwrap().entries.len(), 2);
     }
 }

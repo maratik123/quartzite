@@ -79,28 +79,19 @@ impl<Args: 'static> Signal<Args> {
 
     /// Invoke all connected slots with `args`.
     ///
-    /// `SingleShot` slots are called once and then removed. The slot list is
-    /// snapshotted (by collecting `(id, conn_type)` pairs) before iteration so
-    /// that slots added during emission are not called in the same emit pass.
+    /// `SingleShot` slots are called once and then removed in-place.
+    /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
+    /// or `emit` on the *same* signal instance during emission — the borrow checker
+    /// prevents it. Cross-signal mutation from within a slot is fine.
     pub fn emit(&mut self, args: &Args) {
-        // Snapshot before iterating so we observe only pre-existing slots.
-        let snapshot: Vec<(ConnectionId, ConnectionType)> =
-            self.slots.iter().map(|s| (s.id, s.conn_type)).collect();
-
-        let mut to_remove: Vec<ConnectionId> = Vec::new();
-
-        for (id, ct) in &snapshot {
-            // Skip if already disconnected (e.g., by a previous slot in this emission).
-            if let Some(entry) = self.slots.iter().find(|s| s.id == *id) {
-                (entry.callback)(args);
+        let mut i = 0;
+        while i < self.slots.len() {
+            (self.slots[i].callback)(args);
+            if self.slots[i].conn_type == ConnectionType::SingleShot {
+                self.slots.remove(i);
+            } else {
+                i += 1;
             }
-            if *ct == ConnectionType::SingleShot {
-                to_remove.push(*id);
-            }
-        }
-
-        for id in to_remove {
-            self.disconnect(id);
         }
     }
 }
@@ -112,7 +103,7 @@ mod tests {
     use std::{cell::Cell, rc::Rc};
 
     #[cfg(not(feature = "std"))]
-    use alloc::{rc::Rc, vec};
+    use alloc::rc::Rc;
 
     // --- AC4: emit calls all connected Direct slots ---
 
@@ -199,11 +190,9 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    fn slot_added_during_emit_not_called_in_same_pass() {
-        // This test documents snapshot behavior: slots added by other means
-        // (not reentrantly, since &mut self prevents that) are not called
-        // in the pass where they are added.
-        // Here we simply verify that two pre-connected slots both fire.
+    fn all_pre_connected_direct_slots_fire() {
+        // `emit` takes `&mut self` so no slot can connect/disconnect the same signal
+        // during emission. This test verifies that multiple pre-connected slots both fire.
         let mut sig: Signal<()> = Signal::new();
         let count = Rc::new(Cell::new(0u32));
         let c1 = Rc::clone(&count);

@@ -10,9 +10,14 @@ use crate::{
 };
 
 pub struct ObjectBase {
-    pub id: ObjectId,
+    /// Private: uniqueness invariant — must never be overwritten after construction.
+    id: ObjectId,
     pub name: String,
-    pub receiver_guard: Arc<ReceiverGuard>,
+    /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
+    /// all `Weak<ReceiverGuard>` held by queued connections.
+    receiver_guard: Arc<ReceiverGuard>,
+    /// Reserved for use by `quartzite-runtime` to track outgoing signal connections.
+    /// `ObjectBase` itself does not populate this field.
     pub outgoing_connections: Vec<ConnectionId>,
     pub dynamic_properties: BTreeMap<String, Value>,
     pub signals_blocked: bool,
@@ -40,6 +45,16 @@ impl ObjectBase {
             name: name.into(),
             ..Self::new()
         }
+    }
+
+    /// Returns the unique identifier for this object.
+    pub fn id(&self) -> ObjectId {
+        self.id
+    }
+
+    /// Returns a reference to the receiver guard (lifetime token for signal delivery).
+    pub fn receiver_guard(&self) -> &Arc<ReceiverGuard> {
+        &self.receiver_guard
     }
 
     #[cfg(feature = "std")]
@@ -87,6 +102,6 @@ mod tests {
     fn each_new_gets_unique_id() {
         let a = ObjectBase::new();
         let b = ObjectBase::new();
-        assert_ne!(a.id, b.id);
+        assert_ne!(a.id(), b.id());
     }
 }

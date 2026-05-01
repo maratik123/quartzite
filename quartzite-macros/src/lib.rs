@@ -1,3 +1,12 @@
+//! Derive macros and attribute macros for the quartzite object system.
+//!
+//! - [`Object`](derive_object) / [`object_impl`]: generate `AsObject`/`Object` trait impls
+//!   with property access, method dispatch, and signal connection.
+//! - [`Extend`](derive_extend): generate `AsObject` delegation via a `#[base]` field,
+//!   enabling type-safe single-inheritance hierarchies.
+//! - [`MetaEnum`](derive_meta_enum): generate `IntoValue`/`FromValue` and `EnumMeta` for
+//!   C-like enums.
+
 use proc_macro::TokenStream;
 
 mod util;

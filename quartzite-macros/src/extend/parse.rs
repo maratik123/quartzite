@@ -1,4 +1,4 @@
-use syn::{parse2, spanned::Spanned, Data, DeriveInput, Fields, Ident, Type};
+use syn::{Data, DeriveInput, Fields, Ident, Type, parse2, spanned::Spanned};
 
 use crate::util::extract_attr;
 
@@ -22,6 +22,20 @@ pub(crate) struct MixinField {
     pub ident: Ident,
     pub ty_ident: Ident,
     pub ty: Type,
+}
+
+/// Extracts the last path-segment ident from a `Type::Path`.
+fn extract_last_ident(ty: &Type, context: &Ident) -> syn::Result<Ident> {
+    let seg = match ty {
+        Type::Path(tp) => tp.path.segments.last().cloned(),
+        _ => None,
+    };
+    seg.map(|s| s.ident).ok_or_else(|| {
+        syn::Error::new(
+            context.span(),
+            "expected a simple type path for #[base] / #[mixin] field",
+        )
+    })
 }
 
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput> {
@@ -196,18 +210,4 @@ mod tests {
         });
         assert!(err.contains("generic"), "unexpected: {err}");
     }
-}
-
-/// Extracts the last path-segment ident from a `Type::Path`.
-fn extract_last_ident(ty: &Type, context: &Ident) -> syn::Result<Ident> {
-    let seg = match ty {
-        Type::Path(tp) => tp.path.segments.last().cloned(),
-        _ => None,
-    };
-    seg.map(|s| s.ident).ok_or_else(|| {
-        syn::Error::new(
-            context.span(),
-            "expected a simple type path for #[base] / #[mixin] field",
-        )
-    })
 }

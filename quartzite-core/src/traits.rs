@@ -11,7 +11,10 @@ use crate::{
 };
 
 /// Boxed callback type used by `Object::connect_signal`.
-pub type SignalCallback = Box<dyn Fn(&[Value])>;
+///
+/// The `Send` bound future-proofs the API for queued (cross-thread) signal delivery,
+/// which is handled by `quartzite-runtime`.
+pub type SignalCallback = Box<dyn Fn(&[Value]) + Send>;
 
 /// Object-safe accessor trait. Every concrete object type implements this to expose
 /// its `ObjectBase` and allow `Any`-based downcasting.
@@ -29,9 +32,25 @@ pub trait AsObject {
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject {
     fn meta_object(&self) -> &'static MetaObject;
+
+    /// Returns the current value of `name`, or `None` if `name` is not a known property.
     fn read_property(&self, name: &str) -> Option<Value>;
+
+    /// Sets property `name` to `val`. Returns `true` on success.
+    ///
+    /// Returns `false` if `name` is unknown, the property is read-only, or `val` has
+    /// the wrong type.
     fn write_property(&mut self, name: &str, val: Value) -> bool;
+
+    /// Invokes method `name` with `args`. Returns `Some(result)` on success.
+    ///
+    /// Returns `None` if `name` is unknown, the argument count is wrong, or any
+    /// argument fails type conversion.
     fn invoke_method(&mut self, name: &str, args: &[Value]) -> Option<Value>;
+
+    /// Connects a dynamic callback to signal `name`. Returns `Some(id)` on success.
+    ///
+    /// Returns `None` if `name` does not match any signal on this object.
     fn connect_signal(&mut self, signal: &str, callback: SignalCallback) -> Option<ConnectionId>;
 }
 
@@ -42,7 +61,7 @@ pub trait Object: AsObject {
 pub trait ObjectExt: AsObject {
     /// Returns the unique `ObjectId` of this object.
     fn id(&self) -> ObjectId {
-        self.object_base().id
+        self.object_base().id()
     }
 
     /// Returns the current name of this object.
@@ -152,14 +171,6 @@ mod tests {
         base: ObjectBase,
     }
 
-    impl OtherObject {
-        fn new() -> Self {
-            Self {
-                base: ObjectBase::new(),
-            }
-        }
-    }
-
     impl AsObject for OtherObject {
         fn object_base(&self) -> &ObjectBase {
             &self.base
@@ -207,7 +218,7 @@ mod tests {
     #[test]
     fn object_ext_id_matches_base() {
         let obj = DummyObject::new();
-        assert_eq!(obj.id(), obj.object_base().id);
+        assert_eq!(obj.id(), obj.object_base().id());
     }
 
     #[test]

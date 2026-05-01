@@ -1,4 +1,4 @@
-use syn::{parse2, spanned::Spanned, FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type};
+use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spanned::Spanned};
 
 use crate::util::extract_attr;
 
@@ -33,7 +33,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplIn
         ));
     }
 
-    let self_ty = *item.self_ty.clone();
+    let self_ty = *item.self_ty;
     let self_ty_ident = extract_self_ty_ident(&self_ty)?;
 
     let mut methods = Vec::new();

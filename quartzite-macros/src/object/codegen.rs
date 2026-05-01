@@ -36,6 +36,14 @@ fn signals_static_ident(type_ident: &Ident) -> Ident {
     Ident::new(&format!("__SIGNALS__{type_ident}"), type_ident.span())
 }
 
+/// Extracts element types from a tuple type; returns a single-element vec for non-tuples.
+fn tuple_elems(ty: &Type) -> Vec<&Type> {
+    match ty {
+        Type::Tuple(tt) => tt.elems.iter().collect(),
+        _ => vec![ty],
+    }
+}
+
 fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
     let static_name = props_static_ident(type_ident);
     let entries = props.iter().map(|p| {
@@ -65,7 +73,7 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         }
     });
     quote! {
-        pub static #static_name: &'static [::quartzite_core::PropertyMeta] = &[
+        pub const #static_name: &[::quartzite_core::PropertyMeta] = &[
             #(#entries),*
         ];
     }
@@ -90,7 +98,7 @@ fn emit_signals_static(type_ident: &Ident, signals: &[SignalField]) -> TokenStre
         }
     });
     quote! {
-        pub static #static_name: &'static [::quartzite_core::SignalMeta] = &[
+        pub const #static_name: &[::quartzite_core::SignalMeta] = &[
             #(#entries),*
         ];
     }
@@ -129,6 +137,8 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
             quote! { #name => false }
         } else {
             let notify_emit = p.notify.as_ref().map(|sig_ident| {
+                // CONSTRAINT: the notify signal must be `Signal<(PropType,)>` — one
+                // element tuple matching the property's type. Enforced at compile time.
                 quote! {
                     let __notify_val = v.clone();
                     this.#sig_ident.emit(&(__notify_val,));
@@ -181,7 +191,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             .collect();
         quote! {
             #name => {
-                let cb = ::std::sync::Arc::clone(&cb);
+                let cb = ::quartzite_core::__macro::Arc::clone(&cb);
                 ::core::option::Option::Some(this.#field.connect(move |args: &#args_ty| {
                     (*cb)(&[#(#conversions),*])
                 }))
@@ -192,9 +202,11 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
         pub fn #fn_name(
             this: &mut super::#type_ident,
             name: &str,
-            cb: ::std::boxed::Box<dyn ::core::ops::Fn(&[::quartzite_core::Value])>,
+            cb: ::quartzite_core::SignalCallback,
         ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
-            let cb: ::std::sync::Arc<dyn ::core::ops::Fn(&[::quartzite_core::Value])> = ::std::sync::Arc::from(cb);
+            let cb: ::quartzite_core::__macro::Arc<
+                dyn ::core::ops::Fn(&[::quartzite_core::Value]) + Send,
+            > = ::quartzite_core::__macro::Arc::from(cb);
             match name {
                 #(#arms)*
                 _ => ::core::option::Option::None,
@@ -411,13 +423,5 @@ mod tests {
             out.contains("IntoValue :: into_value"),
             "missing conversion: {out}"
         );
-    }
-}
-
-/// Extracts element types from a tuple type; returns a single-element vec for non-tuples.
-fn tuple_elems(ty: &Type) -> Vec<&Type> {
-    match ty {
-        Type::Tuple(tt) => tt.elems.iter().collect(),
-        _ => vec![ty],
     }
 }

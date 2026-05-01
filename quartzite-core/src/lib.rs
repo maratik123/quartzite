@@ -11,6 +11,16 @@ pub mod signal;
 pub mod traits;
 pub mod value;
 
+/// Hidden module used by quartzite-macros generated code to access types
+/// that are portable across `std` and `no_std + alloc` configurations.
+#[doc(hidden)]
+pub mod __macro {
+    #[cfg(not(feature = "std"))]
+    pub use alloc::sync::Arc;
+    #[cfg(feature = "std")]
+    pub use std::sync::Arc;
+}
+
 // --- Top-level re-exports ---
 
 pub use id::{ConnectionId, ObjectId};
