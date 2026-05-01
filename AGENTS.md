@@ -42,6 +42,7 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 ## Workflow
 
 - Plan first. Tests before prod code (TDD). Lint changed files.
+- Every `codegen.rs` must have a `#[cfg(test)] mod tests` block. Use `parse()` + `codegen().to_string().contains(...)` to cover each emit helper and its key branches.
 - `.gitignore` (not `.arcignore`).
 
 ## Agent Docs

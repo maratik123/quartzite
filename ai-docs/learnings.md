@@ -7,3 +7,11 @@
 **Rule:** Let chains (`if let A = x && let B = y { ... }`) are valid in this codebase. Do not avoid them. Run `rustfmt` via `cargo fmt` (which picks up the workspace edition automatically) rather than invoking `rustfmt <file>` directly.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-02 — testing — codegen files require unit tests like any other file
+
+**What happened:** `object_impl/codegen.rs` (183 lines, 4 functions) was written without a `#[cfg(test)]` module. The code reviewer and user both flagged this. The `extend/codegen.rs` gap was caught in review; `object_impl/codegen.rs` only after the user asked.
+
+**Rule:** Every `codegen.rs` file must have a `#[cfg(test)] mod tests` block before the PR is ready. Tests call `parse()` to build IR from `quote!` input, then call `codegen()`, then `assert!(out.to_string().contains(...))`. Cover: the main entry point, each emit helper, and at least the key branches (void vs typed return, empty vs populated collections).
+
+**Escalated?** AGENTS.md
