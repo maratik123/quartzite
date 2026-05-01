@@ -48,7 +48,7 @@
 | AC2 | Opening a PR triggers the CI workflow automatically |
 | AC3 | CI workflow runs `cargo build`, `cargo test`, and `cargo clippy -- -D warnings` on ubuntu-latest |
 | AC4 | A PR cannot be merged unless all CI checks pass |
-| AC5 | A PR cannot be merged without at least 1 approving review |
+| AC5 | ~~A PR cannot be merged without at least 1 approving review~~ — dropped: GitHub disallows self-approval on personal repos; CI-only enforcement chosen |
 | AC6 | `README.md` exists at the repo root with project name, description, and build instructions |
 | AC7 | `LICENSE` file exists at the repo root containing the LGPL-3.0 license text |
 
