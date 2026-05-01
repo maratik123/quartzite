@@ -41,6 +41,7 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 
 ## Workflow
 
+- Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
 - `.gitignore` (not `.arcignore`).
