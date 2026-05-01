@@ -5,6 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/quartzite-core/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/quartzite-core/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-macros/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-macros/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
