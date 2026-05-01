@@ -12,7 +12,15 @@
 
 **What happened:** When the user said "submit PR", commits were already on local master. Instead of creating a feature branch first, `git push` was run directly against master — pushing the commits to origin/master. `master` is branch-protected (no force push), so the commits could not be removed after the fact and a proper PR became impossible.
 
-**Rule:** When work is intended for a PR, create a feature branch (`git checkout -b feat/...`) *before* making any commits. Never commit to local master with the intention of later turning it into a PR. If "submit PR" is requested and commits are already on master, stop and ask the user — do not push.
+**Rule:** When work is intended for a PR, create a feature branch (`git checkout -b feat/...`) *before* making any commits. Never commit to local master with the intention of later turning it into a PR.
+
+Recovery — if commits were accidentally made on local master and not yet pushed:
+1. `git checkout -b feat/...` — branch off from current HEAD (carries the commits)
+2. `git checkout master && git reset --hard origin/master` — reset local master to remote state
+3. Push the feature branch and open the PR from it
+4. **Never push master** — not even as an intermediate step.
+
+If "submit PR" is requested and commits are already pushed to origin/master: stop and tell the user — there is no recovery without a force push, which branch protection may block.
 
 **Escalated?** no
 
