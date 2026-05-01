@@ -8,13 +8,13 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 |------|----------|--------|------------|
 | [core-types](done/2026-05-01-core-types.spec.md) | `quartzite-core` | ✅ implemented (45 tests) | — |
 | [github-workflow](done/2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
+| [macros](done/2026-05-01-macros.spec.md) | `quartzite-macros` | ✅ implemented (47 tests) | — |
 
 ## Deferred plans
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [geometry-events](deferred/2026-05-01-geometry-events.spec.md) | `quartzite-geometry` `quartzite-events` | 🟡 spec-only | — |
-| [macros](2026-05-01-macros.spec.md) | `quartzite-macros` | 🟢 spec+design | — |
 | [runtime](deferred/2026-05-01-runtime.spec.md) | `quartzite-runtime` | 🟢 spec+design | — (ownership model decided: Arena/SlotMap — see design §Approach) |
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
@@ -26,7 +26,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 core-types ✅
 ├── geometry-events        (ready to start)
 │   └── paint-style/paint  (ready after geometry-events)
-├── macros                 (ready to start)
+├── macros ✅
 ├── runtime                (ready after ownership model decision)
 │   ├── auto-connection    (ready after runtime Task 0)
 │   ├── widgets            (ready after runtime + macros + geometry-events)
@@ -37,5 +37,5 @@ core-types ✅
 
 ## Suggested next steps
 
-1. **Start** geometry-events (no blockers, no design needed if straightforward) or macros (design ready)
+1. **Start** geometry-events (no blockers, no design needed if straightforward)
 2. **runtime** — ready to implement (ownership model: Arena/SlotMap; unblocks widgets, auto-connection, and the full stack)

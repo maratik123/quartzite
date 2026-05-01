@@ -26,8 +26,8 @@ cargo test                            # all tests
 cargo test test_name                  # filter by substring
 cargo test -- --nocapture             # show stdout
 cargo clippy -- -D warnings           # lint (strict)
-rustfmt <file>                        # fix formatting
-rustfmt --check <file>                # check only
+cargo fmt                             # fix formatting
+cargo fmt -- --check                  # check only
 ```
 
 Search: `rg <pattern> --type rust [-l | -C 3]`
@@ -42,6 +42,7 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 ## Workflow
 
 - Plan first. Tests before prod code (TDD). Lint changed files.
+- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
 - `.gitignore` (not `.arcignore`).
 
 ## Agent Docs
