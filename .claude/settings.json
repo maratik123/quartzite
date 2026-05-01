@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"REQUIRED SESSION START to read rules from CLAUDE.md. Show user a summary of this rules\"}}'",
+            "timeout": 30,
+            "statusMessage": "Read session rules..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f && [[ \"$f\" == *.rs ]] && rustfmt \"$f\"; } || true",
+            "timeout": 30,
+            "statusMessage": "Formatting Rust..."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Edit(./**)",
+      "Edit(~/.claude/**)",
+      "Edit(.claude/**)",
+      "Write(./**)",
+      "Write(~/.claude/**)",
+      "Write(.claude/**)",
+      "Bash(cargo *)",
+      "Bash(git *)",
+      "Bash(gh *)"
+    ],
+    "deny": []
+  }
+}

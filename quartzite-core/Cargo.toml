@@ -1,0 +1,14 @@
+[package]
+name = "quartzite-core"
+version.workspace = true
+edition.workspace = true
+
+[features]
+default = ["std"]
+std = []
+
+[dependencies]
+
+[dev-dependencies]
+rstest = "0.23"
+pretty_assertions = "1"
