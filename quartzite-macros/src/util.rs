@@ -39,6 +39,16 @@ pub(crate) fn hidden_mod_ident(type_ident: &Ident) -> Ident {
     Ident::new(&format!("__quartzite_{}", type_ident), type_ident.span())
 }
 
+/// Removes the first `#[name]` attribute from `attrs`; returns whether it was present.
+pub(crate) fn extract_attr(attrs: &mut Vec<syn::Attribute>, name: &str) -> bool {
+    if let Some(i) = attrs.iter().position(|a| a.path().is_ident(name)) {
+        attrs.remove(i);
+        true
+    } else {
+        false
+    }
+}
+
 /// Emits a `compile_error!` at the given span.
 pub(crate) fn emit_compile_error(span: Span, msg: &str) -> TokenStream {
     let msg_lit = syn::LitStr::new(msg, span);

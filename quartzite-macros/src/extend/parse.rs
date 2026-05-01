@@ -1,5 +1,7 @@
 use syn::{parse2, spanned::Spanned, Data, DeriveInput, Field, Fields, Ident, Type};
 
+use crate::util::extract_attr;
+
 pub(crate) struct ExtendInput {
     pub vis: syn::Visibility,
     pub ident: Ident,
@@ -109,16 +111,6 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         mixin_fields,
         other_fields,
     })
-}
-
-/// Removes the first `#[name]` from `attrs`; returns whether it was present.
-pub(crate) fn extract_attr(attrs: &mut Vec<syn::Attribute>, name: &str) -> bool {
-    if let Some(i) = attrs.iter().position(|a| a.path().is_ident(name)) {
-        attrs.remove(i);
-        true
-    } else {
-        false
-    }
 }
 
 /// Extracts the last path-segment ident from a `Type::Path`.

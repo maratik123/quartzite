@@ -1,5 +1,5 @@
-use super::parse::Ir;
+use super::parse::ObjectInput;
 
-pub(crate) fn codegen(_ir: Ir) -> proc_macro2::TokenStream {
+pub(crate) fn codegen(_ir: ObjectInput) -> proc_macro2::TokenStream {
     todo!()
 }
