@@ -8,10 +8,10 @@
 
 **Escalated?** AGENTS.md
 
-### 2026-05-02 — testing — codegen files require unit tests like any other file
+### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
-**What happened:** `object_impl/codegen.rs` (183 lines, 4 functions) was written without a `#[cfg(test)]` module. The code reviewer and user both flagged this. The `extend/codegen.rs` gap was caught in review; `object_impl/codegen.rs` only after the user asked.
+**What happened:** Three codegen files (`object/codegen.rs`, `object_impl/codegen.rs`, `meta_enum/codegen.rs`) were written without `#[cfg(test)]` modules. Gaps were caught in review and by the user. The original rule was codegen-specific, but the user generalised it: any file with substantial logic needs tests.
 
-**Rule:** Every `codegen.rs` file must have a `#[cfg(test)] mod tests` block before the PR is ready. Tests call `parse()` to build IR from `quote!` input, then call `codegen()`, then `assert!(out.to_string().contains(...))`. Cover: the main entry point, each emit helper, and at least the key branches (void vs typed return, empty vs populated collections).
+**Rule:** Any file with ~50+ lines of non-trivial code must have a `#[cfg(test)] mod tests` block. This applies equally to codegen, parse, util, and any other module — not just files named `codegen.rs`.
 
 **Escalated?** AGENTS.md
