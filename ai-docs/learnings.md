@@ -8,6 +8,14 @@
 
 **Escalated?** AGENTS.md
 
+### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
+
+**What happened:** When the user said "submit PR", commits were already on local master. Instead of creating a feature branch first, `git push` was run directly against master — pushing the commits to origin/master. `master` is branch-protected (no force push), so the commits could not be removed after the fact and a proper PR became impossible.
+
+**Rule:** When work is intended for a PR, create a feature branch (`git checkout -b feat/...`) *before* making any commits. Never commit to local master with the intention of later turning it into a PR. If "submit PR" is requested and commits are already on master, stop and ask the user — do not push.
+
+**Escalated?** no
+
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
 **What happened:** Three codegen files (`object/codegen.rs`, `object_impl/codegen.rs`, `meta_enum/codegen.rs`) were written without `#[cfg(test)]` modules. Gaps were caught in review and by the user. The original rule was codegen-specific, but the user generalised it: any file with substantial logic needs tests.
