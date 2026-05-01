@@ -20,6 +20,8 @@ Recovery — if commits were accidentally made on local master and not yet pushe
 3. Push the feature branch and open the PR from it
 4. **Never push master** — not even as an intermediate step.
 
+Before any `git push`: run `git branch --show-current` and confirm it is **not** `master`. If it is master — stop, do not push, apply the recovery procedure above.
+
 If "submit PR" is requested and commits are already pushed to origin/master: stop and tell the user — there is no recovery without a force push, which branch protection may block.
 
 **Escalated?** no
