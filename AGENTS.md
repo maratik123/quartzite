@@ -49,9 +49,12 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 | Path | Purpose |
 |------|---------|
 | `ai-docs/context.md` | Project context — read on demand |
-| `ai-docs/plans/*.spec.md` | Task spec + acceptance criteria |
-| `ai-docs/plans/*.design.md` | Design documents |
+| `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
+| `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
+| `ai-docs/plans/*.design.md` | Active task design documents |
 | `ai-docs/plans/*.progress.md` | Active task progress / handoff state |
+| `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
+| `ai-docs/plans/deferred/` | Blocked or future plans |
 | `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 
