@@ -165,13 +165,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "quartzite-examples"
-version = "0.1.0"
-dependencies = [
- "quartzite",
-]
-
-[[package]]
 name = "quartzite-macros"
 version = "0.1.0"
 dependencies = [
