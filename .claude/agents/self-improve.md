@@ -18,14 +18,14 @@ Read:
 Go through `ai-docs/learnings.md` and group entries:
 - By category (`code-style`, `process`, `architecture`, `testing`, `search`, `other`)
 - By recurrence (how many times the same mistake)
-- By escalation status (none / AGENTS.md / skill / hook)
+- By escalation status: treat `no` and `memory` as **unescalated** (memory is global, not project-level); treat `AGENTS.md`, `skill`, `hook`, `settings`, `agent` as escalated
 
 ### Step 2: Determine actions
 
 | Occurrences | Current status | Action |
 |---|---|---|
-| 1 | none | Nothing — wait for recurrence |
-| ≥2 | none | Update `AGENTS.md` or skill/agent file — add/strengthen rule |
+| 1 | no / memory | Nothing — wait for recurrence |
+| ≥2 | no / memory | Update `AGENTS.md` or skill/agent file — add/strengthen rule |
 | ≥2 | AGENTS.md/skill | Rule exists but isn't working → move closer to the point of execution |
 | ≥3 | rule in place | Propose a hook in `.claude/settings.json` |
 
