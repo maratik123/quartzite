@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "quartzite",
     "quartzite-core",
     "quartzite-examples",
     "quartzite-macros",
@@ -15,3 +14,33 @@ rust-version = "1.95"
 authors = ["Marat Bukharov <marat.buharov@gmail.com>"]
 license = "LGPL-3.0-or-later"
 repository = "https://github.com/maratik123/quartzite"
+
+[package]
+name = "quartzite"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A GUI and object framework for Rust"
+
+[features]
+default = ["std", "derive"]
+## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
+## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
+std = ["quartzite-core/std"]
+## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
+## Disable to reduce compile time in macro-free or `no_std` builds.
+derive = ["dep:quartzite-macros"]
+
+[dependencies]
+quartzite-core    = { path = "quartzite-core", default-features = false }
+quartzite-macros  = { path = "quartzite-macros", optional = true }
+quartzite-runtime = { path = "quartzite-runtime" }
+document-features = "~0.2"
+
+[package.metadata.docs.rs]
+features = ["std", "derive"]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

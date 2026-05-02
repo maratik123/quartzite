@@ -1,4 +1,4 @@
-use quartzite_core::{FromValue, IntoValue, TypeError, Value};
+use quartzite::core::{FromValue, IntoValue, TypeError, Value};
 use quartzite_macros::MetaEnum;
 
 #[derive(MetaEnum, PartialEq, Debug)]

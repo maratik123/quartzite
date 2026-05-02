@@ -45,7 +45,7 @@ mod object_impl;
 /// # Examples
 ///
 /// ```no_run
-/// use quartzite_core::ObjectBase;
+/// use quartzite::core::ObjectBase;
 /// use quartzite_macros::Extend;
 ///
 /// // Root of the hierarchy: generates AsWidget + AsObject delegation.
@@ -89,7 +89,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```ignore
-/// use quartzite_core::{ObjectBase, Signal};
+/// use quartzite::core::{ObjectBase, Signal};
 /// use quartzite_macros::{Extend, Object};
 ///
 /// #[derive(Extend, Object)]
@@ -122,7 +122,7 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 /// # Examples
 ///
 /// ```ignore
-/// use quartzite_core::{ObjectBase, Signal};
+/// use quartzite::core::{ObjectBase, Signal};
 /// use quartzite_macros::{Extend, Object, object_impl};
 ///
 /// #[derive(Extend, Object)]

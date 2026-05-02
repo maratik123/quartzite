@@ -19,6 +19,33 @@ Early development. Core crates are implemented; widget and painting layers are n
 | `quartzite-widgets` | planned |
 | `quartzite-paint` / `quartzite-style` | planned |
 
+## Usage
+
+Add `quartzite` to your `Cargo.toml` — no sub-crate deps required:
+
+```toml
+[dependencies]
+quartzite = { git = "https://github.com/maratik123/quartzite" }
+```
+
+Import the prelude for typical usage, or use explicit module paths:
+
+```rust
+// one glob covers the object model, signals, derive macros, and runtime
+use quartzite::prelude::*;
+
+// explicit paths when you want legibility
+use quartzite::core::ObjectBase;
+use quartzite::macros::MetaEnum;   // requires `derive` feature (on by default)
+use quartzite::runtime::Application;
+```
+
+Disable the `derive` feature to skip proc-macro compilation:
+
+```toml
+quartzite = { git = "...", default-features = false, features = ["std"] }
+```
+
 ## Prerequisites
 
 - Rust stable (≥ 1.95)

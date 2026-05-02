@@ -10,5 +10,4 @@ description = "Runnable examples for the quartzite object framework"
 publish = false
 
 [dependencies]
-quartzite = { path = "../quartzite" }
-quartzite-core = { path = "../quartzite-core" }
+quartzite = { path = ".." }

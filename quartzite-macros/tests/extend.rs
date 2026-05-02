@@ -1,4 +1,4 @@
-use quartzite_core::{AsObject, ObjectBase};
+use quartzite::core::{AsObject, ObjectBase};
 use quartzite_macros::Extend;
 
 // AC1: #[root] struct generates As{Type} trait and self-ref impl.
