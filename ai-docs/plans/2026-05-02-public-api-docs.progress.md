@@ -12,20 +12,20 @@
 | 1 | Document quartzite-macros proc-macro functions | ✅ |
 | 2 | Document quartzite-core ID types | ✅ |
 | 3 | Document quartzite-core ObjectBase | ✅ |
-| 4 | Document Signal::new() and ReceiverGuard | ⬜ |
-| 5 | Document quartzite-core meta types | ⬜ |
-| 6 | Document quartzite-core value types + traits | ⬜ |
-| 7 | Add #![deny(missing_docs)] + crate doc to quartzite-core/src/lib.rs | ⬜ |
-| 8 | Document quartzite-runtime application items | ⬜ |
-| 9 | Document ObjectRef<T> and WeakRef<T> | ⬜ |
-| 10 | Document factory, event_loop, connection_table, thread_pool, timer items | ⬜ |
-| 11 | Add #![deny(missing_docs)] + crate + module docs to quartzite-runtime/src/lib.rs | ⬜ |
-| 12 | Add #![deny(missing_docs)] to quartzite-macros/src/lib.rs | ⬜ |
-| 13 | Add #![deny(missing_docs)] to quartzite/src/lib.rs | ⬜ |
-| 14 | Add # Examples to all single-line-only public docs | ⬜ |
-| 15 | Update CI RUSTDOCFLAGS | ⬜ |
-| 16 | Update self-review agent | ⬜ |
-| 17 | Add documentation rule to AGENTS.md | ⬜ |
+| 4 | Document Signal::new() and ReceiverGuard | ✅ |
+| 5 | Document quartzite-core meta types | ✅ |
+| 6 | Document quartzite-core value types + traits | ✅ |
+| 7 | Add #![deny(missing_docs)] + crate doc to quartzite-core/src/lib.rs | ✅ |
+| 8 | Document quartzite-runtime application items | ✅ |
+| 9 | Document ObjectRef<T> and WeakRef<T> | ✅ |
+| 10 | Document factory, event_loop, connection_table, thread_pool, timer items | ✅ |
+| 11 | Add #![deny(missing_docs)] + crate + module docs to quartzite-runtime/src/lib.rs | ✅ |
+| 12 | Add #![deny(missing_docs)] to quartzite-macros/src/lib.rs | ✅ |
+| 13 | Add #![deny(missing_docs)] to quartzite/src/lib.rs | ✅ |
+| 14 | Add # Examples to all single-line-only public docs | ✅ |
+| 15 | Update CI RUSTDOCFLAGS | ✅ |
+| 16 | Update self-review agent | ✅ |
+| 17 | Add documentation rule to AGENTS.md | ✅ |
 
 ## Files touched
 
@@ -51,10 +51,15 @@
 - .claude/agents/self-review.md
 - AGENTS.md
 
-## Next action
+## Next action: ready for self-review
 
-Continue from subtask 4: document Signal::new() and ReceiverGuard.
-Subtasks 4–17 remain. Context-reset handoff triggered at subtask 3 of 17.
+All subtasks 1–17 complete. Final verification passed:
+- cargo build: clean
+- cargo test: all green (155 unit tests + 60 doctests)
+- cargo fmt --check: no drift
+- cargo clippy -D warnings: clean
+- RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace: zero errors/warnings
+- cargo test --doc --workspace: 60 passed, 3 ignored (proc-macro self-use examples)
 
 ## Self-Review
 
