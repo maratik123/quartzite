@@ -3,7 +3,7 @@ name: task-issue
 description: "Full ticket workflow: ticket → interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[issue-number]"
-allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *)
+allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
 Full workflow for working on a task (issue). Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -87,10 +87,16 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 
 > First action: verify both spec and design (with GO verdict) exist. Missing = previous steps incomplete.
 
+- **Create a feature branch immediately** — before writing any code or making any commits:
+  ```bash
+  git checkout -b feat/YYYY-MM-DD-name
+  ```
+  Use the same date-name as the spec file. Record the branch name in the progress file.
 - Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start (see `/context-reset` for format)
 - **Record base commit** in the progress file immediately:
   ```
   base_commit: <output of `git rev-parse HEAD`>
+  branch: feat/YYYY-MM-DD-name
   ```
 - After each subtask:
   1. `cargo build` — must compile
@@ -148,7 +154,7 @@ Task(subagent_type="general-purpose", prompt="
 ")
 ```
 
-**On APPROVE:** delete `.progress.md` → done.
+**On APPROVE:** delete `.progress.md` → proceed to Step 12.
 
 **On REJECT:** proceed to Step 11. After Step 11, loop back here.
 
@@ -170,7 +176,26 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 4. Update `.progress.md`
 5. Return to Step 10.
 
-**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE
+### Step 12: Create PR
+
+1. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
+2. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+3. Stage all changed files: implementation files from `## Files touched` in the progress file, plus doc files updated in Step 9.5 (`INDEX.md`, `context.md`, `README.md`, spec/design in `done/`).
+4. Commit:
+   ```
+   feat(<crate>): <short imperative description>
+
+   <1-3 lines: what changed and why; key ACs covered>
+   N new tests; all M tests green.
+   ```
+5. `git push -u origin <branch>`
+6. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+   - **Summary** (bullet list of what changed)
+   - `Closes #<issue-number>` to auto-close the issue on merge
+   - **Test plan** (checklist: one line per AC, plus clippy/build)
+7. Post the PR URL to the user.
+
+**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch
 
 ## Gate checklist
 
@@ -181,9 +206,10 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 5 | All decisions confirmed? Every AC verifiable? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
-| Step 8 start | `base_commit` recorded in progress file? |
+| Step 8 start | Feature branch created (`git branch --show-current` ≠ master)? `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
 | Step 9.5 | INDEX.md updated? spec/design moved to done/? context.md + README.md current? |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? |
+| Step 12 | Branch ≠ master? `Cargo.lock` refreshed? `Closes #N` in body? PR created and URL posted? |
