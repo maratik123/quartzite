@@ -14,7 +14,7 @@
 
 **Rule:** Never add, remove, modify, or `.gitignore` IDE files (`.idea/`, `*.iml`, `.vscode/`, etc.) unless the user explicitly asks. Treat them as the user's domain.
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — "submit to PR" means push to remote, not merge
 
@@ -22,7 +22,7 @@
 
 **Rule:** "Submit to PR" (and similar: "push to PR", "add to PR") means `git push` the branch to remote. It does not mean merging. Only merge when the user explicitly says "merge" or "merge the PR".
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — "wtf" signals that the previous action was wrong
 
@@ -30,7 +30,7 @@
 
 **Rule:** "wtf" (and similar expressions of surprise/frustration) means the last action was the opposite of what the user wanted. Stop immediately, ask what went wrong, and do not proceed until the intent is clarified.
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — never use git reset --hard; use soft reset, stash, cherry-pick, or backup branch
 
