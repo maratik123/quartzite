@@ -38,6 +38,7 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 - Max line: 100 (rustfmt default).
 - Strict clippy (enforced).
 - Prefer Rust idioms over literal C++ ports. When in doubt, ask.
+- Let chains (`if let A = x && let B = y { ... }`) are valid in this codebase (edition 2024). Do not avoid them. Always format via `cargo fmt`, never `rustfmt <file>` directly.
 
 ## Workflow
 
