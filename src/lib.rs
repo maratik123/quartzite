@@ -10,7 +10,8 @@
 //! use quartzite::prelude::*;
 //! ```
 //!
-//! `MetaEnum` for enum reflection is available via [`quartzite::macros::MetaEnum`](macros).
+//! `MetaEnum` for enum reflection is available via [`macros::MetaEnum`] (requires the `derive`
+//! feature, enabled by default).
 
 /// Core object model, signals, and reflection types — re-exported from [`quartzite_core`].
 ///
@@ -23,6 +24,10 @@ pub mod core {
 ///
 /// Prefer `use quartzite::macros::MetaEnum` over adding a direct `quartzite-macros` dependency.
 /// Most macros (`Extend`, `Object`, `object_impl`) are already included in [`prelude`].
+///
+/// Requires the `derive` feature (enabled by default).
+#[cfg(feature = "derive")]
+#[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
 pub mod macros {
     pub use quartzite_macros::*;
 }
@@ -54,8 +59,10 @@ pub mod prelude {
         DispatcherAlreadySet, QueuedDispatcher, queued_dispatcher, set_queued_dispatcher,
     };
 
-    // quartzite-macros: derive macros
+    // quartzite-macros: derive macros (requires derive feature)
     // `Object` is re-exported as `DeriveObject` to avoid shadowing the `Object` trait above.
+    #[cfg(feature = "derive")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
     pub use quartzite_macros::{Extend, Object as DeriveObject, object_impl};
 
     // quartzite-runtime

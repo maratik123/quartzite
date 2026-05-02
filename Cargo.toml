@@ -26,18 +26,21 @@ repository.workspace = true
 description = "A GUI and object framework for Rust"
 
 [features]
-default = ["std"]
+default = ["std", "derive"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
 std = ["quartzite-core/std"]
+## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
+## Disable to reduce compile time in macro-free or `no_std` builds.
+derive = ["dep:quartzite-macros"]
 
 [dependencies]
 quartzite-core    = { path = "quartzite-core", default-features = false }
-quartzite-macros  = { path = "quartzite-macros" }
+quartzite-macros  = { path = "quartzite-macros", optional = true }
 quartzite-runtime = { path = "quartzite-runtime" }
 document-features = "~0.2"
 
 [package.metadata.docs.rs]
-features = ["std"]
+features = ["std", "derive"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]
