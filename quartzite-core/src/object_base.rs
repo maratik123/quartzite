@@ -17,7 +17,7 @@ use crate::{
 /// storage for dynamic properties and outgoing connection bookkeeping.
 ///
 /// Objects are typically created through a higher-level type that includes an
-/// `ObjectBase` field and derives [`Extend`](quartzite_macros::Extend).
+/// `ObjectBase` field and derives `Extend` (from `quartzite-macros`).
 ///
 /// # Examples
 ///

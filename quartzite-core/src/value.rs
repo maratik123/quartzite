@@ -95,6 +95,16 @@ impl PartialEq for Value {
 
 impl Value {
     /// Returns a static string naming the active variant (for use in error messages).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::Value;
+    ///
+    /// assert_eq!(Value::Int(42).type_name(), "Int");
+    /// assert_eq!(Value::Null.type_name(), "Null");
+    /// assert_eq!(Value::Bool(true).type_name(), "Bool");
+    /// ```
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Null => "Null",

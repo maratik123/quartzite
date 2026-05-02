@@ -197,6 +197,16 @@ impl<Args: 'static> Signal<Args> {
 
     /// Connect a `Direct` slot. Returns the `ConnectionId` that can be used to
     /// disconnect later.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let id = sig.connect(|args| println!("value = {}", args.0));
+    /// sig.disconnect(id);
+    /// ```
     pub fn connect<F: Fn(&Args) + Send + 'static>(&mut self, f: F) -> ConnectionId {
         self.connect_typed(f, ConnectionType::Direct)
     }
@@ -281,6 +291,17 @@ impl<Args: 'static> Signal<Args> {
     }
 
     /// Remove the slot identified by `id`. No-op if `id` is not found.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<()> = Signal::new();
+    /// let id = sig.connect(|_| {});
+    /// sig.disconnect(id);
+    /// sig.emit(&()); // slot no longer called
+    /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
         self.slots.retain(|s| s.id != id);
         #[cfg(feature = "std")]
@@ -299,6 +320,18 @@ impl<Args: 'static> Signal<Args> {
     /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
     /// or `emit` on the *same* signal instance during emission — the borrow checker
     /// prevents it. Cross-signal mutation from within a slot is fine.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let mut received = 0i32;
+    /// // Note: closures that capture by &mut can't be used with Signal; use Arc/Mutex for shared state.
+    /// sig.connect(|_| {});
+    /// sig.emit(&(42,));
+    /// ```
     pub fn emit(&mut self, args: &Args) {
         let mut i = 0;
         while i < self.slots.len() {

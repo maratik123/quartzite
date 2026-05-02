@@ -25,6 +25,16 @@ pub struct PropertyFlags {
 
 impl PropertyFlags {
     /// All flags false — useful as a starting point before enabling specific flags.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::PropertyFlags;
+    ///
+    /// let f = PropertyFlags::none();
+    /// assert!(!f.readable);
+    /// assert!(!f.writable);
+    /// ```
     pub const fn none() -> Self {
         Self {
             readable: false,
@@ -38,6 +48,17 @@ impl PropertyFlags {
     }
 
     /// The most common combination: readable + writable + stored + designable.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::PropertyFlags;
+    ///
+    /// let f = PropertyFlags::read_write();
+    /// assert!(f.readable);
+    /// assert!(f.writable);
+    /// assert!(!f.constant);
+    /// ```
     pub const fn read_write() -> Self {
         Self {
             readable: true,
@@ -51,6 +72,17 @@ impl PropertyFlags {
     }
 
     /// Readable, stored, designable, constant (not writable).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::PropertyFlags;
+    ///
+    /// let f = PropertyFlags::read_only();
+    /// assert!(f.readable);
+    /// assert!(!f.writable);
+    /// assert!(f.constant);
+    /// ```
     pub const fn read_only() -> Self {
         Self {
             readable: true,
@@ -242,11 +274,33 @@ impl EnumMeta {
     }
 
     /// Find an entry by name; returns `None` if not present.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{EnumEntry, EnumMeta};
+    ///
+    /// static ENTRIES: &[EnumEntry] = &[EnumEntry::new("Alpha", 0), EnumEntry::new("Beta", 1)];
+    /// let em = EnumMeta::new("MyEnum", ENTRIES);
+    /// assert_eq!(em.entry_by_name("Beta").map(|e| e.value), Some(1));
+    /// assert!(em.entry_by_name("Gamma").is_none());
+    /// ```
     pub fn entry_by_name(&self, name: &str) -> Option<EnumEntry> {
         self.entries.iter().find(|e| e.name == name).copied()
     }
 
     /// Find an entry by integer value; returns `None` if not present.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{EnumEntry, EnumMeta};
+    ///
+    /// static ENTRIES: &[EnumEntry] = &[EnumEntry::new("Alpha", 0), EnumEntry::new("Beta", 1)];
+    /// let em = EnumMeta::new("MyEnum", ENTRIES);
+    /// assert_eq!(em.entry_by_value(1).map(|e| e.name), Some("Beta"));
+    /// assert!(em.entry_by_value(99).is_none());
+    /// ```
     pub fn entry_by_value(&self, value: i64) -> Option<EnumEntry> {
         self.entries.iter().find(|e| e.value == value).copied()
     }
@@ -300,21 +354,66 @@ impl MetaObject {
     }
 
     /// Find property metadata by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{MetaObject, PropertyFlags, PropertyMeta};
+    ///
+    /// static PROPS: &[PropertyMeta] = &[PropertyMeta::new("count", "i64", PropertyFlags::read_write())];
+    /// let meta = MetaObject::new("Widget", PROPS, &[], &[], &[]);
+    /// assert!(meta.property("count").is_some());
+    /// assert!(meta.property("missing").is_none());
+    /// ```
     pub fn property(&self, name: &str) -> Option<PropertyMeta> {
         self.properties.iter().find(|p| p.name == name).copied()
     }
 
     /// Find signal metadata by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{MetaObject, SignalMeta};
+    ///
+    /// static SIGS: &[SignalMeta] = &[SignalMeta::new("clicked", &[])];
+    /// let meta = MetaObject::new("Button", &[], SIGS, &[], &[]);
+    /// assert!(meta.signal("clicked").is_some());
+    /// assert!(meta.signal("missing").is_none());
+    /// ```
     pub fn signal(&self, name: &str) -> Option<SignalMeta> {
         self.signals.iter().find(|s| s.name == name).copied()
     }
 
     /// Find method metadata by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{MetaObject, MethodMeta};
+    ///
+    /// static METHODS: &[MethodMeta] = &[MethodMeta::new("reset", &[], "()")];
+    /// let meta = MetaObject::new("Counter", &[], &[], METHODS, &[]);
+    /// assert!(meta.method("reset").is_some());
+    /// assert!(meta.method("missing").is_none());
+    /// ```
     pub fn method(&self, name: &str) -> Option<MethodMeta> {
         self.methods.iter().find(|m| m.name == name).copied()
     }
 
     /// Find enum metadata by name.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{EnumEntry, EnumMeta, MetaObject};
+    ///
+    /// static ENTRIES: &[EnumEntry] = &[EnumEntry::new("On", 1), EnumEntry::new("Off", 0)];
+    /// static ENUMS: &[EnumMeta] = &[EnumMeta::new("State", ENTRIES)];
+    /// let meta = MetaObject::new("Device", &[], &[], &[], ENUMS);
+    /// assert!(meta.enum_meta("State").is_some());
+    /// assert!(meta.enum_meta("missing").is_none());
+    /// ```
     pub fn enum_meta(&self, name: &str) -> Option<EnumMeta> {
         self.enums.iter().find(|e| e.name == name).copied()
     }

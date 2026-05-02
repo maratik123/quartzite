@@ -56,11 +56,33 @@ impl Timer {
 
     /// Connect a slot to the `timeout` signal. The closure must be `Send`
     /// because it may be called on the event-loop thread (not the caller's thread).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::Timer;
+    ///
+    /// let timer = Timer::new(Duration::from_millis(500));
+    /// let id = timer.connect_timeout(|_| println!("tick"));
+    /// timer.disconnect_timeout(id);
+    /// ```
     pub fn connect_timeout<F: Fn(&()) + Send + 'static>(&self, f: F) -> ConnectionId {
         self.timeout.lock().unwrap().connect(f)
     }
 
     /// Disconnect a previously connected timeout slot.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::Timer;
+    ///
+    /// let timer = Timer::new(Duration::from_millis(500));
+    /// let id = timer.connect_timeout(|_| {});
+    /// timer.disconnect_timeout(id);
+    /// ```
     pub fn disconnect_timeout(&self, id: ConnectionId) {
         self.timeout.lock().unwrap().disconnect(id);
     }

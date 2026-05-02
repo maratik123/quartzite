@@ -66,22 +66,60 @@ pub trait Object: AsObject + Send {
 /// Automatically implemented for every type that implements `AsObject`.
 pub trait ObjectExt: AsObject {
     /// Returns the unique `ObjectId` of this object.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::ObjectExt;
+    /// // obj is any type that implements AsObject
+    /// # fn example(obj: &impl ObjectExt) {
+    /// let id = obj.id();
+    /// # }
+    /// ```
     fn id(&self) -> ObjectId {
         self.object_base().id()
     }
 
     /// Returns the current name of this object.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::ObjectExt;
+    /// # fn example(obj: &impl ObjectExt) {
+    /// let name: &str = obj.name();
+    /// # }
+    /// ```
     fn name(&self) -> &str {
         &self.object_base().name
     }
 
     /// Replaces the object's name.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::ObjectExt;
+    /// # fn example(obj: &mut impl ObjectExt) {
+    /// obj.set_name("new-name");
+    /// assert_eq!(obj.name(), "new-name");
+    /// # }
+    /// ```
     fn set_name(&mut self, name: impl Into<String>) {
         self.object_base_mut().name = name.into();
     }
 
     /// Returns `true` when called on the same thread that created this object.
     /// Only available with the `std` feature (requires `std::thread`).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::ObjectExt;
+    /// # fn example(obj: &impl ObjectExt) {
+    /// assert!(obj.is_on_current_thread());
+    /// # }
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     fn is_on_current_thread(&self) -> bool {
@@ -90,16 +128,47 @@ pub trait ObjectExt: AsObject {
 
     /// Attempts a checked downcast to a concrete type. Returns `Some(&T)` when the
     /// underlying type is exactly `T`, `None` otherwise (AC8).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::{AsObject, ObjectExt};
+    /// # fn example<T: AsObject + 'static>(obj: &impl ObjectExt) {
+    /// if let Some(concrete) = obj.downcast_ref::<T>() {
+    ///     // use concrete
+    /// }
+    /// # }
+    /// ```
     fn downcast_ref<T: AsObject + 'static>(&self) -> Option<&T> {
         self.as_any().downcast_ref::<T>()
     }
 
     /// Mutable variant of `downcast_ref`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::{AsObject, ObjectExt};
+    /// # fn example<T: AsObject + 'static>(obj: &mut impl ObjectExt) {
+    /// if let Some(concrete) = obj.downcast_mut::<T>() {
+    ///     // mutate concrete
+    /// }
+    /// # }
+    /// ```
     fn downcast_mut<T: AsObject + 'static>(&mut self) -> Option<&mut T> {
         self.as_any_mut().downcast_mut::<T>()
     }
 
     /// Returns `true` when the underlying concrete type is `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::traits::{AsObject, ObjectExt};
+    /// # fn example<T: AsObject + 'static>(obj: &impl ObjectExt) {
+    /// let matched: bool = obj.is::<T>();
+    /// # }
+    /// ```
     fn is<T: AsObject + 'static>(&self) -> bool {
         self.as_any().is::<T>()
     }

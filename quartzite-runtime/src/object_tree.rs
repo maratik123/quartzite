@@ -40,6 +40,13 @@ impl ObjectTree {
 
     /// Insert `obj` into the tree, optionally under `parent_id`.
     /// Returns the `ObjectId` of the inserted object.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// // tree.insert(Box::new(my_object), None);
+    /// ```
     pub fn insert(&mut self, obj: Box<dyn Object>, parent_id: Option<ObjectId>) -> ObjectId {
         let id = obj.object_base().id();
         let slot = SlotKey(self.store.insert(obj));
@@ -54,12 +61,30 @@ impl ObjectTree {
     }
 
     /// Returns `true` if `id` is present in the tree.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &ObjectTree, id: quartzite_core::ObjectId) {
+    /// assert!(!tree.contains(id));
+    /// # }
+    /// ```
     pub fn contains(&self, id: ObjectId) -> bool {
         self.forward.contains_key(&id)
     }
 
     /// Run `f` with a shared reference to the object identified by `id`.
     /// Returns `None` if `id` is not in the tree.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &ObjectTree, id: quartzite_core::ObjectId) {
+    /// let name = tree.with(id, |obj| obj.object_base().name.clone());
+    /// # }
+    /// ```
     pub fn with<R, F>(&self, id: ObjectId, f: F) -> Option<R>
     where
         F: FnOnce(&dyn Object) -> R,
@@ -70,6 +95,16 @@ impl ObjectTree {
 
     /// Run `f` with an exclusive reference to the object identified by `id`.
     /// Returns `None` if `id` is not in the tree.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// use quartzite_core::value::Value;
+    /// # fn example(tree: &mut ObjectTree, id: quartzite_core::ObjectId) {
+    /// tree.with_mut(id, |obj| { obj.write_property("count", Value::Int(0)); });
+    /// # }
+    /// ```
     pub fn with_mut<R, F>(&mut self, id: ObjectId, f: F) -> Option<R>
     where
         F: FnOnce(&mut dyn Object) -> R,
@@ -79,11 +114,31 @@ impl ObjectTree {
     }
 
     /// Returns the parent `ObjectId` of `id`, or `None` if `id` is a root.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &ObjectTree, child_id: quartzite_core::ObjectId) {
+    /// if let Some(parent_id) = tree.parent_of(child_id) {
+    ///     // use parent_id
+    /// }
+    /// # }
+    /// ```
     pub fn parent_of(&self, id: ObjectId) -> Option<ObjectId> {
         self.parent_map.get(&id).copied()
     }
 
     /// Returns the ordered list of children of `id`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &ObjectTree, parent_id: quartzite_core::ObjectId) {
+    /// let children: &[quartzite_core::ObjectId] = tree.children_of(parent_id);
+    /// # }
+    /// ```
     pub fn children_of(&self, id: ObjectId) -> &[ObjectId] {
         self.children_map
             .get(&id)
@@ -92,6 +147,15 @@ impl ObjectTree {
     }
 
     /// Move `id` to a new parent. If `new_parent` is `None`, `id` becomes a root.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &mut ObjectTree, id: quartzite_core::ObjectId) {
+    /// tree.reparent(id, None); // detach from its current parent
+    /// # }
+    /// ```
     pub fn reparent(&mut self, id: ObjectId, new_parent: Option<ObjectId>) {
         self.detach_from_parent(id);
         if let Some(pid) = new_parent {
@@ -109,6 +173,15 @@ impl ObjectTree {
     }
 
     /// Find an object by `name` field. Returns the first match.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &ObjectTree) {
+    /// let id = tree.find_by_name("my-button");
+    /// # }
+    /// ```
     pub fn find_by_name(&self, name: &str) -> Option<ObjectId> {
         for (id, slot) in &self.forward {
             if let Some(obj) = self.store.get(slot.0)
@@ -121,6 +194,16 @@ impl ObjectTree {
     }
 
     /// Remove `id` and all its descendants from the tree (depth-first post-order).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectTree;
+    /// # fn example(tree: &mut ObjectTree, id: quartzite_core::ObjectId) {
+    /// tree.destroy(id);
+    /// assert!(!tree.contains(id));
+    /// # }
+    /// ```
     pub fn destroy(&mut self, id: ObjectId) {
         // Collect subtree in depth-first post-order (leaves first).
         let mut order: Vec<ObjectId> = Vec::new();

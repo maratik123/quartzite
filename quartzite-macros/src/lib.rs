@@ -35,7 +35,7 @@ mod object_impl;
 /// # Attributes
 ///
 /// - `#[root]` — marks the struct as the root of a hierarchy; generates the `As{TypeName}`
-///   trait and a self-returning impl. The `#[base]` field must hold an [`ObjectBase`] or
+///   trait and a self-returning impl. The `#[base]` field must hold an `ObjectBase` or
 ///   any type that already implements `AsObject`.
 /// - `#[base]` — the field that holds the parent object. Generates delegation impls for
 ///   `As{ParentTypeName}` and all its ancestors.
@@ -83,7 +83,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///   - `stored = false` — exclude from serialisation
 ///   - `designable = false` — hide from visual editors
 ///   - `user` — mark as the primary user-editable property
-/// - `#[signal]` — marks a [`Signal<Args>`](quartzite_core::Signal) field so its
+/// - `#[signal]` — marks a `Signal<Args>` field so its
 ///   parameter types are recorded in the `MetaObject`.
 ///
 /// # Examples
@@ -115,7 +115,7 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 ///
 /// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
 /// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
-///   via [`IntoValue`](quartzite_core::IntoValue)
+///   via `IntoValue`
 ///
 /// The struct must already derive both [`Extend`] and [`Object`].
 ///
@@ -154,15 +154,13 @@ pub fn object_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
     object_impl::expand(item.into()).into()
 }
 
-/// Derive macro for C-like enums that generates [`IntoValue`] / [`FromValue`] conversions
-/// and an [`EnumMeta`] descriptor for runtime reflection.
+/// Derive macro for C-like enums that generates `IntoValue` / `FromValue` conversions
+/// and an `EnumMeta` descriptor for runtime reflection.
 ///
 /// Only unit variants (with optional explicit discriminants) are supported. Variants with
 /// tuple or struct fields are rejected at compile time.
 ///
-/// [`IntoValue`]: quartzite_core::IntoValue
-/// [`FromValue`]: quartzite_core::FromValue
-/// [`EnumMeta`]: quartzite_core::EnumMeta
+/// `IntoValue`, `FromValue`, and `EnumMeta` are types from `quartzite_core`.
 ///
 /// # Examples
 ///
