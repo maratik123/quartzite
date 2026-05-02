@@ -689,8 +689,7 @@ mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        // Drain any closures left by previous tests so our count is clean.
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
 
@@ -704,9 +703,9 @@ mod tests {
 
         // Emit after receiver is destroyed — must NOT post.
         sig.emit(&99);
-        let posted = dispatcher.posted.lock().unwrap();
-        assert!(
-            posted.is_empty(),
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
             "no post must occur after receiver is destroyed"
         );
     }
@@ -719,7 +718,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn auto_same_thread_calls_slot_synchronously() {
         let dispatcher = install_test_dispatcher();
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -735,8 +734,9 @@ mod tests {
             called.load(Ordering::SeqCst),
             "Auto same-thread slot must be called synchronously before emit returns"
         );
-        assert!(
-            dispatcher.posted.lock().unwrap().is_empty(),
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
             "Auto same-thread must not post to dispatcher"
         );
     }
@@ -749,7 +749,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn auto_cross_thread_posts_to_dispatcher() {
         let dispatcher = install_test_dispatcher();
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -769,8 +769,8 @@ mod tests {
             "Auto cross-thread slot must NOT be called directly during emit"
         );
 
-        // Execute the posted closure; only then does the slot run.
-        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+        // Drain only entries added by our emit; leave any foreign entries untouched.
+        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
         posted.into_iter().for_each(|f| f());
 
@@ -788,7 +788,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn auto_thread_id_same_thread_calls_directly() {
         let dispatcher = install_test_dispatcher();
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -804,8 +804,9 @@ mod tests {
             called.load(Ordering::SeqCst),
             "same-thread Auto slot must be called directly"
         );
-        assert!(
-            dispatcher.posted.lock().unwrap().is_empty(),
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
             "no closure must be posted for same-thread Auto"
         );
     }
@@ -818,7 +819,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
         let dispatcher = install_test_dispatcher();
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -838,7 +839,8 @@ mod tests {
             "foreign-thread-id Auto slot must NOT be called directly"
         );
 
-        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+        // Drain only entries added by our emit; leave any foreign entries untouched.
+        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
         posted.into_iter().for_each(|f| f());
 
@@ -856,7 +858,7 @@ mod tests {
     #[cfg(feature = "std")]
     fn auto_disconnect_removes_slot() {
         let dispatcher = install_test_dispatcher();
-        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+        let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -873,9 +875,36 @@ mod tests {
             !called.load(Ordering::SeqCst),
             "disconnected Auto slot must not be called"
         );
-        assert!(
-            dispatcher.posted.lock().unwrap().is_empty(),
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
             "disconnected Auto slot must not post to dispatcher"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Regression: is_empty check is fragile under concurrent test posts
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_same_thread_does_not_grow_dispatcher_queue_when_foreign_entry_exists() {
+        let dispatcher = install_test_dispatcher();
+
+        // Simulate a concurrent test having already posted to the shared dispatcher.
+        dispatcher.posted.lock().unwrap().push(Box::new(|| {}));
+        let pre_len = dispatcher.posted.lock().unwrap().len();
+
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_auto(std::thread::current().id(), move |_| {});
+        sig.emit(&(1,));
+
+        // Queue must not grow — the foreign entry is still there, but our emit
+        // must not have added anything.
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
+            "same-thread auto emit must not grow the dispatcher queue"
         );
     }
 
