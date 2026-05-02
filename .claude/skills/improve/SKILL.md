@@ -2,8 +2,7 @@
 name: improve
 description: "Analyze corrections log (ai-docs/learnings.md), find repeating patterns, propose instruction updates and escalation to hooks."
 disable-model-invocation: true
-context: fork
-agent: general-purpose
+argument-hint: "[optional context]"
 ---
 
 Launch the `self-improve` subagent.

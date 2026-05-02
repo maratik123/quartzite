@@ -110,6 +110,8 @@ AsObject        AsWidget        AsWidget (generated)
 
 ## Plans (Implementation Order)
 
+Crate-level plans:
+
 1. `quartzite-core` — core types + traits + signal + value ✅
 2. `quartzite-macros` — Extend + Object + object_impl derive macros ✅
 3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
@@ -117,6 +119,8 @@ AsObject        AsWidget        AsWidget (generated)
 5. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
 6. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 7. `quartzite-paint` + `quartzite-style` — painter + theming
+
+Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns).
 
 ## Open Questions
 

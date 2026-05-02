@@ -33,12 +33,14 @@ core-types ✅
 │   └── paint-style/paint  (ready after geometry-events)
 ├── macros ✅
 ├── runtime ✅
-│   ├── auto-connection    (ready to start)
+│   ├── auto-connection ✅
 │   ├── widgets            (ready after geometry-events)
 │   │   └── paint-style/style  (ready after widgets)
 │   └── paint-style/style  (same)
 └── github-workflow ✅     (independent)
 ```
+
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 

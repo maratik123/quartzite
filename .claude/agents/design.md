@@ -15,7 +15,7 @@ Designer agent. Receives a task description (and optionally reviewer feedback), 
 2. **Investigate code** — find affected files, understand current behavior
 3. **Formulate the approach** — consider alternatives, choose one with justification
 4. **Decompose** — break into atomic tasks with dependencies
-5. **Assess risks** — DB migrations (if any), API backward compatibility, performance, error handling
+5. **Assess risks** — API backward compatibility, performance, error handling, panic/unsafe surface
 6. **Self-check** — run through the quality checklist
 7. **Produce the artifact** — strictly in the format below
 
@@ -32,7 +32,6 @@ Designer agent. Receives a task description (and optionally reviewer feedback), 
 
 - **Completeness:** all files listed? Tasks are atomic?
 - **Correctness:** architecture follows Rust idioms and crate conventions?
-- **Migrations:** if DB schema changes — is a migration described?
 - **Tests:** for every non-trivial logic — a test plan? (module, entry point, fixtures)
 - **Risks:** breaking API changes? Panic paths? Error propagation correct?
 - **Economy:** YAGNI — no unnecessary abstractions?
