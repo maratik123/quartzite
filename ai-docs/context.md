@@ -37,7 +37,7 @@ Python interop (`quartzite-python` via PyO3) is **deferred** — the reflection 
 ## Out of Scope
 
 - Binary/ABI compatibility with other frameworks
-- C++ single-inheritance model — replaced by traits + composition
+- Single-inheritance model — replaced by traits + composition
 - External code generation — replaced by proc macros
 - Declarative/scripting layer — not a goal for v1; deferred
 
