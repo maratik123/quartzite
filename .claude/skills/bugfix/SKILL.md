@@ -5,7 +5,7 @@ when_to_use: "Activate on: 'not working', 'broken', 'wrong', 'incorrect', 'doesn
 allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(cargo fmt *) Bash(git rm ai-docs/bugfix/*) Bash(rm -f ai-docs/bugfix/*)
 ---
 
-Reactive bug-fixing workflow. **Fundamentally different from `/task` and `/task-issue`:**
+Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 - First step is analysis, NOT code
 - Failing test is written BEFORE the fix, not after
 
