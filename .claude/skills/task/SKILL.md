@@ -3,7 +3,7 @@ name: task
 description: "Full task workflow from user description: interview → spec → design → design-review → impl → verify → self-review. Use when the user describes a task directly (no GitHub issue). Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[short task description]"
-allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
 Full workflow for a user-described task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -190,8 +190,9 @@ finding (Step 11) requires a design change rather than a code fix:
 2. `cargo test` — all green
 3. `cargo fmt -- --check` — no formatting drift
 4. `cargo clippy -- -D warnings` — clean
-5. For each AC — confirm covered by test or manual verification
-4. Show summary table:
+5. `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps` — no doc errors or warnings
+6. For each AC — confirm covered by test or manual verification
+5. Show summary table:
 
 ```
 | # | Criterion | Test / Verification | Status |
@@ -286,7 +287,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
