@@ -121,4 +121,4 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Run `cargo fmt --all` (and re-check with `cargo fmt --all -- --check`) after *every* code change — including fixes made after self-review. The verify step (Step 9) is not a one-time gate; it must be re-run after any subsequent edit before committing. Never commit without a clean `cargo fmt --all -- --check` immediately before the commit.
 
-**Escalated?** no
+**Escalated?** hook
