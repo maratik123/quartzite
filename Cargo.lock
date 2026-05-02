@@ -165,6 +165,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-examples"
+version = "0.1.0"
+dependencies = [
+ "quartzite",
+ "quartzite-core",
+]
+
+[[package]]
 name = "quartzite-macros"
 version = "0.1.0"
 dependencies = [

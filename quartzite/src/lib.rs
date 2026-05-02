@@ -13,6 +13,14 @@
 //! The `quartzite-macros` crate also exports `MetaEnum` for enum reflection; it
 //! is available directly from `quartzite_macros::MetaEnum` for users who need it.
 
+/// Re-export of [`quartzite_core`] for direct access to core types and as a
+/// migration target when switching from this facade to the sub-crate directly.
+pub use quartzite_core;
+
+/// Re-export of [`quartzite_runtime`] for direct access to runtime types and
+/// as a migration target when switching from this facade to the sub-crate directly.
+pub use quartzite_runtime;
+
 /// Curated set of commonly used quartzite types, re-exported for convenience.
 ///
 /// Import with `use quartzite::prelude::*;` to bring the core object model,

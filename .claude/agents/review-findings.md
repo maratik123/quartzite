@@ -37,7 +37,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Lifetime / ownership: surprising footguns for callers?
 
 ### 3. Test coverage
-- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block?
+- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `quartzite-examples/examples/` are runnable demos — no test block required)
 - Tests cover edge cases and error paths, not just the happy path?
 - Any test that would pass even if the production code were deleted (cosmetic test)?
 - Integration tests for public-facing macro output?
