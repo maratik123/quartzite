@@ -1,9 +1,12 @@
+//! Process-singleton `Application` and `ApplicationError`.
 use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tree::ObjectTree};
 
+/// Error returned by [`Application::new`] when it fails.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApplicationError {
+    /// An `Application` instance already exists in this process.
     AlreadyExists,
 }
 
@@ -78,14 +81,19 @@ impl Application {
         self.0.event_loop.stop();
     }
 
+    /// Returns a reference to the process-wide object tree.
+    ///
+    /// Lock the mutex before accessing the tree from any thread.
     pub fn object_tree(&self) -> &Mutex<ObjectTree> {
         &self.0.object_tree
     }
 
+    /// Returns a reference to the process-wide connection table.
     pub fn connection_table(&self) -> &Arc<ConnectionTable> {
         &self.0.connection_table
     }
 
+    /// Returns a reference to the process-wide event loop.
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
     }

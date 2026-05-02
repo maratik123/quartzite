@@ -1,3 +1,4 @@
+//! Single-threaded event loop for posting and executing closures.
 use std::{
     sync::{
         Arc,
@@ -18,6 +19,17 @@ pub struct EventLoop {
 }
 
 impl EventLoop {
+    /// Create a new, idle event loop. Call [`run`](Self::run) on the intended
+    /// loop thread to start processing events.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = EventLoop::new();
+    /// assert!(!el.is_running());
+    /// ```
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::channel();
         Self {

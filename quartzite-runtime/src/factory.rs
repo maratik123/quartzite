@@ -1,3 +1,4 @@
+//! Object factory: creates objects by class name for scripting and serialization.
 use std::collections::HashMap;
 
 use quartzite_core::traits::Object;
@@ -10,6 +11,16 @@ pub struct ObjectFactory {
 }
 
 impl ObjectFactory {
+    /// Create an empty `ObjectFactory` with no registered constructors.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// let factory = ObjectFactory::new();
+    /// assert!(factory.create("Unknown").is_none());
+    /// ```
     pub fn new() -> Self {
         Self {
             registry: HashMap::new(),

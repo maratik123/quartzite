@@ -1,3 +1,4 @@
+//! Interval timer that fires a signal via the event loop.
 use std::{
     sync::{
         Arc, Mutex,
@@ -15,8 +16,11 @@ use quartzite_core::{ConnectionId, object_base::ObjectBase, signal::Signal};
 /// `Signal` is not `Sync`, so the signal is wrapped in `Arc<Mutex<>>` to allow
 /// the background thread to capture and emit it on the event-loop thread.
 pub struct Timer {
+    /// Base object state (id, name, thread affinity).
     pub base: ObjectBase,
+    /// Duration between `timeout` signal emissions.
     pub interval: Duration,
+    /// When `true` the timer fires once and then stops automatically.
     pub single_shot: bool,
     running: Arc<AtomicBool>,
     handle: Option<JoinHandle<()>>,
@@ -26,6 +30,19 @@ pub struct Timer {
 }
 
 impl Timer {
+    /// Create a new repeating timer that fires every `interval`.
+    ///
+    /// The timer is not started; call [`start`](Self::start) to begin firing.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::Timer;
+    ///
+    /// let timer = Timer::new(Duration::from_millis(500));
+    /// assert!(!timer.is_running());
+    /// ```
     pub fn new(interval: Duration) -> Self {
         Self {
             base: ObjectBase::new(),
@@ -80,6 +97,9 @@ impl Timer {
         self.handle = Some(handle);
     }
 
+    /// Stop the timer and join the background thread.
+    ///
+    /// No-op if the timer is not running. Blocks until the background thread exits.
     pub fn stop(&mut self) {
         self.running.store(false, Ordering::SeqCst);
         if let Some(h) = self.handle.take() {
@@ -87,6 +107,7 @@ impl Timer {
         }
     }
 
+    /// Returns `true` while the background thread is active.
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }

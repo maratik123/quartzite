@@ -1,3 +1,4 @@
+//! Process-wide store of active signal–slot connections.
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock, Weak},
@@ -16,10 +17,15 @@ type SignalIndex = usize;
 
 /// Record of a single active signal → slot connection.
 pub struct ConnectionRecord {
+    /// `ObjectId` of the object that owns the signal.
     pub sender_id: ObjectId,
+    /// Index of the signal in the sender's `MetaObject::signals` slice.
     pub signal_index: SignalIndex,
+    /// `ObjectId` of the object that owns the slot.
     pub receiver_id: ObjectId,
+    /// Weak reference to the receiver's lifetime token; used to detect receiver destruction.
     pub receiver_guard: Weak<ReceiverGuard>,
+    /// The callable slot, discriminated by delivery mode.
     pub slot: SlotKind,
 }
 
@@ -27,6 +33,7 @@ type DirectCallback = Box<dyn Fn(&[quartzite_core::Value]) + Send + Sync>;
 
 /// The callable part of a connection, discriminated by delivery mode.
 pub enum SlotKind {
+    /// Invoke the callback directly on the emitting thread.
     Direct(DirectCallback),
 }
 
@@ -42,6 +49,20 @@ pub struct ConnectionTable {
 }
 
 impl ConnectionTable {
+    /// Create a new, empty `ConnectionTable` backed by `event_loop` for queued dispatch.
+    ///
+    /// Returns an `Arc` because `ConnectionTable` is shared between the application and
+    /// the `QueuedDispatcher` registration.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    ///
+    /// let event_loop = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(event_loop);
+    /// ```
     pub fn new(event_loop: Arc<EventLoop>) -> Arc<Self> {
         Arc::new(Self {
             connections: RwLock::new(HashMap::new()),

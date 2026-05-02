@@ -1,3 +1,4 @@
+//! Hierarchical store for all runtime objects.
 use std::collections::HashMap;
 
 use quartzite_core::{ObjectId, traits::Object};
@@ -26,6 +27,7 @@ pub struct ObjectTree {
 }
 
 impl ObjectTree {
+    /// Create an empty `ObjectTree`.
     pub fn new() -> Self {
         Self {
             store: SlotMap::new(),
