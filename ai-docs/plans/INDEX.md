@@ -10,6 +10,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [github-workflow](done/2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
 | [macros](done/2026-05-01-macros.spec.md) | `quartzite-macros` | ✅ implemented (47 tests) | — |
 | [runtime](done/2026-05-01-runtime.spec.md) | `quartzite-runtime` | ✅ implemented (176 tests) | — |
+| [auto-connection](done/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | ✅ implemented (6 tests) | — |
 
 ## Deferred plans
 
@@ -18,7 +19,6 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [geometry-events](deferred/2026-05-01-geometry-events.spec.md) | `quartzite-geometry` `quartzite-events` | 🟡 spec-only | — |
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
-| [auto-connection](deferred/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | 🟢 spec+design | runtime Task 0 (`QueuedDispatcher` + `ConnectionType::Queued`) · runtime design `post()` signature must use `+ 'static` |
 
 ## Dependency order
 
@@ -38,4 +38,3 @@ core-types ✅
 ## Suggested next steps
 
 1. **Start** geometry-events (no blockers, unblocks widgets and paint-style)
-2. **Start** auto-connection (runtime is done; no other blockers)
