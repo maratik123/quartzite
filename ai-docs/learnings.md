@@ -68,7 +68,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
 
-**Escalated?** skill:task
+**Escalated?** skill:task, skill:task-issue
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
@@ -84,4 +84,4 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** Run `git branch --show-current` and confirm it is **not** `master` before any `git commit` that is intended for a PR. A pre-push check is a last resort, not the primary safeguard. The commit should never happen on master — the push check only exists as a final gate.
 
-**Escalated?** hook
+**Escalated?** hook, skill:task, skill:task-issue

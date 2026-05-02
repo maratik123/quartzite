@@ -72,7 +72,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 ### YYYY-MM-DD — [category] — [short description]
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
-**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | memory
+**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | memory (comma-separate multiple)
 ```
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `search` | `other`
