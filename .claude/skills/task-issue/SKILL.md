@@ -62,7 +62,7 @@ One business requirement = ONE AC. Show to user for confirmation.
 > First action: confirm `ai-docs/plans/YYYY-MM-DD-name.spec.md` exists.
 
 ```
-Task(subagent_type="general-purpose", prompt="
+Agent(subagent_type="general-purpose", prompt="
   Read .claude/agents/design.md and follow it.
   Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
   Research codebase, produce Design Document.
@@ -74,14 +74,17 @@ Result: `ai-docs/plans/YYYY-MM-DD-name.design.md`
 ### Step 7: Design review
 
 ```
-Task(subagent_type="general-purpose", prompt="
+Agent(subagent_type="general-purpose", prompt="
   Read .claude/agents/design-review.md and follow it.
   Design: ai-docs/plans/YYYY-MM-DD-name.design.md
   Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
 ")
 ```
 
-Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
+Verdict: GO / ITERATE / STOP.
+- **GO** → proceed to Step 8.
+- **ITERATE** → back to Step 6 (max 3 rounds total).
+- **STOP** → fundamental flaw with the approach. Surface the verdict and `Issues` table to the user, do not start Step 8. Wait for direction (e.g., narrow scope, change approach, abandon).
 
 ### Design Amendment (re-entrant — triggered from Step 8 or Step 11)
 
@@ -93,7 +96,7 @@ finding (Step 11) requires a design change rather than a code fix:
 3. Update `ai-docs/plans/YYYY-MM-DD-name.design.md` to reflect the new approach.
 4. Re-run design review — same as Step 7 (max 3 rounds total across all design-review runs):
    ```
-   Task(subagent_type="general-purpose", prompt="
+   Agent(subagent_type="general-purpose", prompt="
      Read .claude/agents/design-review.md and follow it.
      Design: ai-docs/plans/YYYY-MM-DD-name.design.md
      Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
@@ -142,8 +145,9 @@ finding (Step 11) requires a design change rather than a code fix:
 2. `cargo test` — all green
 3. `cargo fmt -- --check` — no formatting drift
 4. `cargo clippy -- -D warnings` — clean
-5. For each AC — confirm covered by test or manual verification
-6. Show summary table:
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
+6. For each AC — confirm covered by test or manual verification
+7. Show summary table:
 
 ```
 | # | Criterion | Test / Verification | Status |
@@ -151,7 +155,7 @@ finding (Step 11) requires a design change rather than a code fix:
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-7. On ALL PASS → proceed to Step 9.5
+8. On ALL PASS → proceed to Step 9.5
 
 ### Step 9.5: Update documentation
 
@@ -171,7 +175,7 @@ Then proceed to Step 10.
 Spawn the self-review agent:
 
 ```
-Task(subagent_type="general-purpose", prompt="
+Agent(subagent_type="general-purpose", prompt="
   Read .claude/agents/self-review.md and follow it.
   Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
   Design: ai-docs/plans/YYYY-MM-DD-name.design.md
@@ -239,7 +243,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |

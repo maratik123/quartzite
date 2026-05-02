@@ -50,11 +50,12 @@
 
 **Rule:** When work is intended for a PR, create a feature branch (`git checkout -b feat/...`) *before* making any commits. Never commit to local master with the intention of later turning it into a PR.
 
-Recovery — if commits were accidentally made on local master and not yet pushed:
-1. `git checkout -b feat/...` — branch off from current HEAD (carries the commits)
-2. `git checkout master && git reset --hard origin/master` — reset local master to remote state
-3. Push the feature branch and open the PR from it
-4. **Never push master** — not even as an intermediate step.
+Recovery — if commits were accidentally made on local master and not yet pushed (full procedure in `AGENTS.md`):
+1. `git stash` — save any uncommitted changes
+2. `git checkout -b feat/...` — branch off from current HEAD (carries the commits)
+3. `git checkout master && git reset --soft origin/master && git restore --staged .` — soft-rewind local master to remote state without discarding work
+4. Push the feature branch and open the PR from it; pop the stash on the feature branch if needed
+5. **Never push master** — not even as an intermediate step. **Never use `git reset --hard`** — see the dedicated rule above.
 
 Before any `git push`: run `git branch --show-current` and confirm it is **not** `master`. If it is master — stop, do not push, apply the recovery procedure above.
 
@@ -68,7 +69,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
 
-**Escalated?** skill:task, skill:task-issue
+**Escalated?** skill:task, skill:task-issue, hook (PreToolUse on `git commit` blocks master)
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 

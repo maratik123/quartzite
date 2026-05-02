@@ -11,15 +11,15 @@ When triggered (N=3, M>=5 OR compaction detected):
 
 1. `cargo build` — ensure code compiles
 2. Update `ai-docs/plans/YYYY-MM-DD-name.progress.md` (format below)
-3. Launch: `Task(prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue")`
-4. Remaining subtasks — one per Task call, not batched
+3. Launch: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue")`
+4. Remaining subtasks — one per Agent call, not batched
 5. Do NOT continue in current context
 
-## Checkpoint handoff: 1 Task = 1 subtask
+## Checkpoint handoff: 1 Agent = 1 subtask
 
 - Do NOT ask "continue?" between subtasks — just proceed
-- Each Task = 1 subtask, ending with `cargo build`
-- Update progress.md after each Task
+- Each Agent = 1 subtask, ending with `cargo build`
+- Update progress.md after each Agent
 
 ## `.progress.md` format
 
@@ -62,6 +62,6 @@ _Updated: YYYY-MM-DD HH:MM_
 ## Rules
 
 1. Progress file = `ai-docs/plans/*.progress.md`. Updated at each checkpoint.
-2. On context reset: pass file path in Task prompt: `"Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue"`
+2. On context reset: pass file path in Agent prompt: `"Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue"`
 3. `cargo build` BEFORE handoff — don't pass broken code
-4. Maximum 3 handoffs per task. If more needed — task is too large, decompose.
+4. Maximum 3 handoffs per task. If more needed — the task is too large, decompose.

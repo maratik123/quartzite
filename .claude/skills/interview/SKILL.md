@@ -10,7 +10,7 @@ Requirements interview with the product owner.
 Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`.
 
 > **MUST run before:** code investigation, design agent, or writing code.
-> For the full workflow use `/task-workflow` — it includes interview as steps 2-4.
+> For the full workflow use `/task` (or `/task-issue` for an existing GitHub issue) — it includes interview as steps 2-4.
 
 ## Rules
 

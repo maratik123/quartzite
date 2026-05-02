@@ -2,10 +2,10 @@
 name: bugfix
 description: "Reactive bug-fixing workflow. Trace → Root cause → Failing test → Fix. Prevents the fix-break cycle."
 when_to_use: "Activate on: 'not working', 'broken', 'wrong', 'incorrect', 'doesn't show', unexpected panic/crash/compile error, failing test that should pass. Divergence signal: 'expected X got Y', 'should return X but returns Y'. During implementation: 'this is wrong', 'overengineered', 'not what I meant'. Regression: 'broke again', 'stopped working', 'worked before'. SKIP for general questions, codebase exploration, known/planned limitations."
-allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(git rm *)
+allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(cargo fmt *) Bash(git rm *) Bash(rm *)
 ---
 
-Reactive bug-fixing workflow. **Fundamentally different from task-workflow:**
+Reactive bug-fixing workflow. **Fundamentally different from `/task` and `/task-issue`:**
 - First step is analysis, NOT code
 - Failing test is written BEFORE the fix, not after
 
@@ -135,8 +135,8 @@ Now open Edit.
 1. Run the failing test from Step 3: `cargo test test_name` — must turn green
 2. Run the full suite: `cargo test` — confirm nothing else broke
 3. Run `cargo clippy -- -D warnings` for changed files
-4. Run `rustfmt` on changed `.rs` files
-5. **Delete the trace artifact:** `git rm ai-docs/bugfix/trace-*.md`
+4. Run `cargo fmt`
+5. **Delete the trace artifact:** `git rm ai-docs/bugfix/trace-*.md 2>/dev/null || rm -f ai-docs/bugfix/trace-*.md` (handles both tracked and untracked traces)
 
 ---
 

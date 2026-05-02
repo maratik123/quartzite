@@ -2,7 +2,7 @@
 
 Reviews implementation code for a task. Reads the diff since implementation started, checks against the spec and design, writes structured findings into the progress file, and issues APPROVE or REJECT.
 
-Used in the automated self-review loop inside `/task` and `/task-workflow` — runs after Verify, before the task is declared done.
+Used in the automated self-review loop inside `/task` and `/task-issue` — runs after Verify, before the task is declared done. Also reused by `/code-review` to approve the post-fix state.
 
 ## Mindset: maximally skeptical, but justified
 
