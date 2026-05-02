@@ -25,14 +25,15 @@ use crate::{
 /// use quartzite_core::ObjectBase;
 ///
 /// let base = ObjectBase::named("my-button");
-/// assert_eq!(base.name, "my-button");
+/// assert_eq!(base.name(), Some("my-button"));
 /// assert!(!base.signals_blocked);
 /// ```
 pub struct ObjectBase {
     /// Private: uniqueness invariant — must never be overwritten after construction.
     id: ObjectId,
     /// Human-readable name used for debugging and lookup in the object tree.
-    pub name: String,
+    /// `None` for anonymous objects; access via [`ObjectBase::name`].
+    name: Option<String>,
     /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
     /// all `Weak<ReceiverGuard>` held by queued connections.
     receiver_guard: Arc<ReceiverGuard>,
@@ -60,14 +61,14 @@ impl ObjectBase {
     /// use quartzite_core::ObjectBase;
     ///
     /// let base = ObjectBase::new();
-    /// assert!(base.name.is_empty());
+    /// assert!(base.name().is_none());
     /// assert!(!base.signals_blocked);
     /// ```
     pub fn new() -> Self {
         let (guard, _) = ReceiverGuard::new_pair();
         Self {
             id: ObjectId::new(),
-            name: String::new(),
+            name: None,
             receiver_guard: guard,
             outgoing_connections: Vec::new(),
             dynamic_properties: BTreeMap::new(),
@@ -85,13 +86,50 @@ impl ObjectBase {
     /// use quartzite_core::ObjectBase;
     ///
     /// let base = ObjectBase::named("sensor-1");
-    /// assert_eq!(base.name, "sensor-1");
+    /// assert_eq!(base.name(), Some("sensor-1"));
     /// ```
     pub fn named(name: impl Into<String>) -> Self {
         Self {
-            name: name.into(),
+            name: Some(name.into()),
             ..Self::new()
         }
+    }
+
+    /// Returns the name of this object, or `None` if it is anonymous.
+    ///
+    /// To rename or clear the name at runtime, use [`ObjectTree::rename`] or
+    /// [`ObjectTree::clear_name`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// assert!(ObjectBase::new().name().is_none());
+    /// assert_eq!(ObjectBase::named("btn").name(), Some("btn"));
+    /// ```
+    pub fn name(&self) -> Option<&str> {
+        self.name.as_deref()
+    }
+
+    /// Sets the name directly on this base (low-level, used by `ObjectTree::rename`/`clear_name`).
+    ///
+    /// Prefer calling `ObjectTree::rename` or `ObjectTree::clear_name` in production code
+    /// so the name index stays consistent.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let mut base = ObjectBase::new();
+    /// base.set_name_raw(Some("widget".into()));
+    /// assert_eq!(base.name(), Some("widget"));
+    /// base.set_name_raw(None);
+    /// assert!(base.name().is_none());
+    /// ```
+    pub fn set_name_raw(&mut self, name: Option<String>) {
+        self.name = name;
     }
 
     /// Returns the unique identifier for this object.
@@ -172,9 +210,15 @@ mod tests {
     }
 
     #[test]
+    fn new_object_name_is_none() {
+        let base = ObjectBase::new();
+        assert!(base.name().is_none());
+    }
+
+    #[test]
     fn named_sets_name() {
         let base = ObjectBase::named("foo");
-        assert_eq!(base.name, "foo");
+        assert_eq!(base.name(), Some("foo"));
     }
 
     #[test]

@@ -92,7 +92,7 @@ impl ObjectTree {
     /// ```no_run
     /// use quartzite_runtime::ObjectTree;
     /// # fn example(tree: &ObjectTree, id: quartzite_core::ObjectId) {
-    /// let name = tree.with(id, |obj| obj.object_base().name.clone());
+    /// let name = tree.with(id, |obj| obj.object_base().name().unwrap_or("").to_owned());
     /// # }
     /// ```
     pub fn with<R, F>(&self, id: ObjectId, f: F) -> Option<R>
@@ -195,7 +195,7 @@ impl ObjectTree {
     pub fn find_by_name(&self, name: &str) -> Option<ObjectId> {
         for (id, slot) in &self.forward {
             if let Some(obj) = self.store.get(slot.0)
-                && obj.object_base().name == name
+                && obj.object_base().name() == Some(name)
             {
                 return Some(*id);
             }
@@ -322,7 +322,7 @@ mod tests {
         let mut tree = ObjectTree::new();
         let obj = StubObject::named("alpha");
         let id = tree.insert(obj, None);
-        let found = tree.with(id, |o| o.object_base().name.clone());
+        let found = tree.with(id, |o| o.object_base().name().unwrap_or("").to_owned());
         assert_eq!(found, Some("alpha".to_string()));
     }
 

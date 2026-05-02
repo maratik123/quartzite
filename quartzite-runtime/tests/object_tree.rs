@@ -84,7 +84,10 @@ impl LogObj {
 
 impl Drop for LogObj {
     fn drop(&mut self) {
-        self.log.lock().unwrap().push(self.base.name.clone());
+        self.log
+            .lock()
+            .unwrap()
+            .push(self.base.name().unwrap_or("").to_owned());
     }
 }
 
@@ -142,7 +145,7 @@ fn make_tree() -> ObjectTree {
 fn insert_returns_id_and_get_finds_it() {
     let mut tree = make_tree();
     let id = tree.insert(Stub::named("alpha"), None);
-    let name = tree.with(id, |o| o.object_base().name.clone());
+    let name = tree.with(id, |o| o.object_base().name().unwrap_or("").to_owned());
     assert_eq!(name, Some("alpha".to_string()));
 }
 

@@ -1,8 +1,4 @@
 //! Core object traits: `AsObject`, `Object`, `ObjectExt`, and `SignalCallback`.
-#[cfg(not(feature = "std"))]
-use alloc::string::String;
-#[cfg(feature = "std")]
-use std::string::String;
 
 use crate::{
     id::{ConnectionId, ObjectId},
@@ -30,7 +26,7 @@ pub trait AsObject {
     /// use quartzite_core::AsObject;
     /// # fn example(obj: &impl AsObject) {
     /// let base = obj.object_base();
-    /// println!("object name: {}", base.name);
+    /// println!("object name: {:?}", base.name());
     /// # }
     /// ```
     fn object_base(&self) -> &ObjectBase;
@@ -42,7 +38,8 @@ pub trait AsObject {
     /// ```no_run
     /// use quartzite_core::AsObject;
     /// # fn example(obj: &mut impl AsObject) {
-    /// obj.object_base_mut().name = "renamed".into();
+    /// // To rename an object, use ObjectTree::rename so the name index stays consistent.
+    /// let _base = obj.object_base_mut();
     /// # }
     /// ```
     fn object_base_mut(&mut self) -> &mut ObjectBase;
@@ -134,33 +131,21 @@ pub trait ObjectExt: AsObject {
         self.object_base().id()
     }
 
-    /// Returns the current name of this object.
+    /// Returns the current name of this object, or `None` if it is anonymous.
+    ///
+    /// To rename an object at runtime, use `ObjectTree::rename` or `ObjectTree::clear_name`
+    /// so the name index in the tree stays consistent.
     ///
     /// # Examples
     ///
     /// ```no_run
     /// use quartzite_core::traits::ObjectExt;
     /// # fn example(obj: &impl ObjectExt) {
-    /// let name: &str = obj.name();
+    /// let name: Option<&str> = obj.name();
     /// # }
     /// ```
-    fn name(&self) -> &str {
-        &self.object_base().name
-    }
-
-    /// Replaces the object's name.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use quartzite_core::traits::ObjectExt;
-    /// # fn example(obj: &mut impl ObjectExt) {
-    /// obj.set_name("new-name");
-    /// assert_eq!(obj.name(), "new-name");
-    /// # }
-    /// ```
-    fn set_name(&mut self, name: impl Into<String>) {
-        self.object_base_mut().name = name.into();
+    fn name(&self) -> Option<&str> {
+        self.object_base().name()
     }
 
     /// Returns `true` when called on the same thread that created this object.
@@ -348,11 +333,10 @@ mod tests {
     }
 
     #[test]
-    fn object_ext_name_round_trip() {
-        let mut obj = DummyObject::new();
-        assert_eq!(obj.name(), "");
-        obj.set_name("test-name");
-        assert_eq!(obj.name(), "test-name");
+    fn object_ext_name_returns_option() {
+        let obj = DummyObject::new();
+        // Anonymous objects return None.
+        assert_eq!(obj.name(), None);
     }
 
     #[test]
