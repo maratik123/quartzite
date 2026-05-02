@@ -30,6 +30,7 @@ impl ObjectId {
     /// assert_ne!(id.raw(), 0);
     /// ```
     // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
+    #[inline]
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
@@ -48,12 +49,14 @@ impl ObjectId {
     /// let id = ObjectId::new();
     /// assert!(id.raw() > 0);
     /// ```
+    #[inline]
     pub fn raw(self) -> u64 {
         self.0
     }
 }
 
 impl Default for ObjectId {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -91,6 +94,7 @@ impl ConnectionId {
     /// assert_ne!(id.raw(), 0);
     /// ```
     // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
+    #[inline]
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
@@ -106,12 +110,14 @@ impl ConnectionId {
     /// let id = ConnectionId::new();
     /// assert!(id.raw() > 0);
     /// ```
+    #[inline]
     pub fn raw(self) -> u64 {
         self.0
     }
 }
 
 impl Default for ConnectionId {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

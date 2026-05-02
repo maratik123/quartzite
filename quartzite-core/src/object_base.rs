@@ -108,6 +108,7 @@ impl ObjectBase {
     /// assert!(ObjectBase::new().name().is_none());
     /// assert_eq!(ObjectBase::named("btn").name(), Some("btn"));
     /// ```
+    #[inline]
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
@@ -128,6 +129,7 @@ impl ObjectBase {
     /// base.set_name_raw(None);
     /// assert!(base.name().is_none());
     /// ```
+    #[inline]
     pub fn set_name_raw(&mut self, name: Option<String>) {
         self.name = name;
     }
@@ -142,6 +144,7 @@ impl ObjectBase {
     /// let base = ObjectBase::new();
     /// assert!(base.id().raw() > 0);
     /// ```
+    #[inline]
     pub fn id(&self) -> ObjectId {
         self.id
     }
@@ -157,6 +160,7 @@ impl ObjectBase {
     /// let guard = base.receiver_guard();
     /// assert_eq!(std::sync::Arc::strong_count(guard), 1);
     /// ```
+    #[inline]
     pub fn receiver_guard(&self) -> &Arc<ReceiverGuard> {
         &self.receiver_guard
     }
@@ -181,6 +185,7 @@ impl ObjectBase {
 }
 
 impl Default for ObjectBase {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

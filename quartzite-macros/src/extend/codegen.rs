@@ -67,7 +67,9 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
         }
 
         impl #self_trait for #self_ident {
+            #[inline]
             fn #acc(&self) -> &#self_ident { self }
+            #[inline]
             fn #acc_mut(&mut self) -> &mut #self_ident { self }
         }
     }
@@ -101,13 +103,17 @@ fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
     };
     quote! {
         impl ::quartzite_core::AsObject for #self_ident {
+            #[inline]
             fn object_base(&self) -> &::quartzite_core::ObjectBase {
                 #object_base_expr
             }
+            #[inline]
             fn object_base_mut(&mut self) -> &mut ::quartzite_core::ObjectBase {
                 #object_base_mut_expr
             }
+            #[inline]
             fn as_any(&self) -> &dyn ::core::any::Any { self }
+            #[inline]
             fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any { self }
         }
     }
@@ -130,9 +136,11 @@ fn emit_delegation_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
 
     quote! {
         impl #parent_trait for #self_ident {
+            #[inline]
             fn #parent_acc(&self) -> &#parent_ty {
                 self.#base_field_ident.#parent_acc()
             }
+            #[inline]
             fn #parent_acc_mut(&mut self) -> &mut #parent_ty {
                 self.#base_field_ident.#parent_acc_mut()
             }
@@ -153,7 +161,9 @@ fn emit_mixin_impl(self_ident: &Ident, mixin: &MixinField) -> TokenStream {
 
     quote! {
         impl #mixin_trait for #self_ident {
+            #[inline]
             fn #mixin_acc(&self) -> &#mixin_ty { &self.#mixin_field }
+            #[inline]
             fn #mixin_acc_mut(&mut self) -> &mut #mixin_ty { &mut self.#mixin_field }
         }
     }
@@ -329,6 +339,66 @@ mod tests {
         assert!(
             out.contains("impl AsStyle for Mixed"),
             "missing StyleBase: {out}"
+        );
+    }
+
+    // AC9: self-ref accessor pair carries #[inline].
+    #[test]
+    fn self_ref_accessors_are_inline() {
+        let out = emit(quote! {
+            #[root]
+            struct Widget { x: i32 }
+        });
+        assert!(
+            out.contains("# [inline]"),
+            "missing #[inline] on accessor: {out}"
+        );
+    }
+
+    // AC9: AsObject impl methods carry #[inline].
+    #[test]
+    fn as_object_impl_methods_are_inline() {
+        let out = emit(quote! {
+            #[root]
+            struct Widget {
+                #[base]
+                object_base: ObjectBase,
+            }
+        });
+        let count = out.matches("# [inline]").count();
+        assert!(
+            count >= 4,
+            "expected >=4 #[inline] (object_base x2, as_any x2), got {count}: {out}"
+        );
+    }
+
+    // AC9: parent delegation methods carry #[inline].
+    #[test]
+    fn delegation_methods_are_inline() {
+        let out = emit(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            out.contains("# [inline]"),
+            "missing #[inline] on delegation: {out}"
+        );
+    }
+
+    // AC9: mixin leaf accessor pair carries #[inline].
+    #[test]
+    fn mixin_accessors_are_inline() {
+        let out = emit(quote! {
+            struct Panel {
+                #[mixin]
+                layout_base: LayoutBase,
+            }
+        });
+        assert!(
+            out.contains("# [inline]"),
+            "missing #[inline] on mixin accessor: {out}"
         );
     }
 }
