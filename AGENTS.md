@@ -38,12 +38,13 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 - Max line: 100 (rustfmt default).
 - Strict clippy (enforced).
 - Prefer Rust idioms over literal C++ ports. When in doubt, ask.
+- Let chains (`if let A = x && let B = y { ... }`) are valid in this codebase (edition 2024). Do not avoid them. Always format via `cargo fmt`, never `rustfmt <file>` directly.
 
 ## Workflow
 
 - Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
 - **Never commit to local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any commits. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
-  - Recovery (commits on local master, not yet pushed): `git checkout -b feat/...` → `git checkout master && git reset --hard origin/master` → push feature branch and open PR from it.
+  - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
