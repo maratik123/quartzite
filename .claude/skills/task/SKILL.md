@@ -167,6 +167,7 @@ finding (Step 11) requires a design change rather than a code fix:
   git checkout -b feat/YYYY-MM-DD-name
   ```
   Use the same date-name as the spec file. Record the branch name in the progress file.
+- **Before every `git commit` in this step:** run `git branch --show-current` and confirm it is NOT `master`. If it is — stop immediately, do not commit, apply the recovery procedure in AGENTS.md.
 - Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start (see `/context-reset` for format)
 - **Record base commit** in the progress file immediately:
   ```
@@ -281,7 +282,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 5 | All decisions confirmed? Every AC verifiable? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
-| Step 8 start | Feature branch created (`git branch --show-current` ≠ master)? `base_commit` + `branch` recorded in progress file? |
+| Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
