@@ -11,10 +11,12 @@ description = "Core object model, signals, properties, and value types for quart
 default = ["std"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments.
-std = []
+std = ["indexmap/std"]
 
 [dependencies]
 document-features = "~0.2"
+indexmap = { version = "2", default-features = false }
+hashbrown = { version = "0.15", default-features = false }
 
 [dev-dependencies]
 rstest = "0.26.1"
