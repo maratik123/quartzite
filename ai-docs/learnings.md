@@ -8,6 +8,30 @@
 
 **Escalated?** AGENTS.md
 
+### 2026-05-02 — process — do not touch IDE files unless explicitly asked
+
+**What happened:** `.idea/quartzite.iml` had an uncommitted modification. Without being asked, it was added to `.gitignore` and removed from tracking.
+
+**Rule:** Never add, remove, modify, or `.gitignore` IDE files (`.idea/`, `*.iml`, `.vscode/`, etc.) unless the user explicitly asks. Treat them as the user's domain.
+
+**Escalated?** no
+
+### 2026-05-02 — process — "submit to PR" means push to remote, not merge
+
+**What happened:** User said "submit to pr". Interpreted as merging the PR via `gh pr merge`. User meant pushing the local commits to the remote branch so they appear in the open PR.
+
+**Rule:** "Submit to PR" (and similar: "push to PR", "add to PR") means `git push` the branch to remote. It does not mean merging. Only merge when the user explicitly says "merge" or "merge the PR".
+
+**Escalated?** no
+
+### 2026-05-02 — process — "wtf" signals that the previous action was wrong
+
+**What happened:** User said "add ide files". Interpreted as adding IDE files to `.gitignore`. User meant commit and track them. User responded "wtf?" to signal the action was wrong.
+
+**Rule:** "wtf" (and similar expressions of surprise/frustration) means the last action was the opposite of what the user wanted. Stop immediately, ask what went wrong, and do not proceed until the intent is clarified.
+
+**Escalated?** no
+
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
 **What happened:** When the user said "submit PR", commits were already on local master. Instead of creating a feature branch first, `git push` was run directly against master — pushing the commits to origin/master. `master` is branch-protected (no force push), so the commits could not be removed after the fact and a proper PR became impossible.
