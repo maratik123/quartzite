@@ -19,6 +19,7 @@ pub enum ConnectionType {
     SingleShot,
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     Queued,
     /// Same-thread → `Direct`; cross-thread → `Queued`. Requires `std`.
     ///
@@ -26,6 +27,7 @@ pub enum ConnectionType {
     /// [`Signal::connect_auto`]. Changing the receiver's thread affinity after
     /// connecting does not update the stored `ThreadId` (see AC5).
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     Auto,
 }
 
@@ -41,6 +43,7 @@ struct SlotEntry<Args: 'static> {
 /// Receives closures posted by queued signal connections and executes them on
 /// the event-loop thread. Implemented by `ConnectionTable` in `quartzite-runtime`.
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub trait QueuedDispatcher: Send + Sync {
     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
 }
@@ -51,12 +54,14 @@ static QUEUED_DISPATCHER: std::sync::OnceLock<Arc<dyn QueuedDispatcher>> =
 
 /// Error returned by `set_queued_dispatcher` when a dispatcher is already registered.
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DispatcherAlreadySet;
 
 /// Register the process-wide queued dispatcher. Called by `Application::new()`.
 /// Returns `Ok(())` on the first call; `Err(DispatcherAlreadySet)` on subsequent calls.
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), DispatcherAlreadySet> {
     QUEUED_DISPATCHER.set(d).map_err(|_| DispatcherAlreadySet)
 }
@@ -64,6 +69,7 @@ pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), Dispatc
 /// Returns a reference to the registered dispatcher, or `None` before
 /// `Application` has been created.
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn queued_dispatcher() -> Option<&'static Arc<dyn QueuedDispatcher>> {
     QUEUED_DISPATCHER.get()
 }
@@ -213,6 +219,7 @@ impl<Args: 'static> Signal<Args> {
     /// (receiver destroyed), the closure is silently discarded. Requires
     /// `Args: Clone + Send` so the arguments can be moved across threads.
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_queued<F>(&mut self, f: F, guard: std::sync::Weak<ReceiverGuard>) -> ConnectionId
     where
         F: Fn(Args) + Send + Sync + 'static,
@@ -242,6 +249,7 @@ impl<Args: 'static> Signal<Args> {
     /// The `receiver_thread_id` is captured at connect time and is not updated
     /// if the receiver migrates to a different thread later.
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_auto<F>(
         &mut self,
         receiver_thread_id: std::thread::ThreadId,

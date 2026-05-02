@@ -2,6 +2,10 @@
 name = "quartzite-macros"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Proc-macro crate for the quartzite GUI framework"
 
 [lib]
 proc-macro = true
@@ -14,3 +18,7 @@ heck = "0.5"
 
 [dev-dependencies]
 quartzite-core = { path = "../quartzite-core" }
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

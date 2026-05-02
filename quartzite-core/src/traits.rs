@@ -77,6 +77,7 @@ pub trait ObjectExt: AsObject {
     /// Returns `true` when called on the same thread that created this object.
     /// Only available with the `std` feature (requires `std::thread`).
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     fn is_on_current_thread(&self) -> bool {
         self.object_base().is_on_current_thread()
     }

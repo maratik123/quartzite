@@ -56,7 +56,16 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - All new source files in Rust (`.rs`)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
 
-### 6. Objection quality (round > 1 only)
+### 6. Documentation
+
+Run `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps 2>&1` and check:
+- Exits with code 0 (no doc errors)?
+- No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
+- Public items added by this diff have at least a one-line doc comment?
+
+On any error or warning → REJECT with the exact rustdoc message as the finding.
+
+### 7. Objection quality (round > 1 only)
 
 For each `⚠️ Objected` item in the progress file:
 - Read the stated reason.
@@ -69,6 +78,7 @@ For each `⚠️ Objected` item in the progress file:
 - `cargo fmt` / formatting drift — already mandated after every subtask in the Implementation step; guaranteed clean before self-review runs
 - `cargo clippy` — same; already enforced during Implementation
 - `cargo build` / `cargo check` / `cargo test` — same; all enforced during Implementation and Verify steps
+- `cargo fmt` output / HTML rendering — run `cargo doc` for warnings (checklist §6), but do not open a browser or visually inspect rendered pages
 - Subjective preferences — only objective violations
 
 ## Findings format (written to progress file)

@@ -10,6 +10,7 @@ Early development. Core crates are implemented; widget and painting layers are n
 
 | Crate | Status |
 |---|---|
+| `quartzite` (facade) | ✅ implemented |
 | `quartzite-core` | ✅ implemented |
 | `quartzite-macros` | ✅ implemented |
 | `quartzite-runtime` | ✅ implemented |
