@@ -44,4 +44,4 @@ jobs:
       - name: Docs
         run: cargo doc --no-deps --workspace
         env:
-          RUSTDOCFLAGS: "-D warnings"
+          RUSTDOCFLAGS: "-D warnings -D missing-docs"

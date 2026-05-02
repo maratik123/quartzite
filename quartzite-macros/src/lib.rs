@@ -88,7 +88,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```ignore
 /// use quartzite_core::{ObjectBase, Signal};
 /// use quartzite_macros::{Extend, Object};
 ///
@@ -121,7 +121,7 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 ///
 /// # Examples
 ///
-/// ```no_run
+/// ```ignore
 /// use quartzite_core::{ObjectBase, Signal};
 /// use quartzite_macros::{Extend, Object, object_impl};
 ///

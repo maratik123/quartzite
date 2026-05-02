@@ -58,10 +58,12 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 6. Documentation
 
-Run `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps 2>&1` and check:
+Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps 2>&1` and check:
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
+- Every crate that has new public items also has `#![deny(missing_docs)]` in its `lib.rs`?
+- Every new public item with only a single-line doc has a `# Examples` block?
 
 On any error or warning → REJECT with the exact rustdoc message as the finding.
 
