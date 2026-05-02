@@ -65,6 +65,14 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
 - `.gitignore` (not `.arcignore`).
 
+## Communication
+
+Interpret user phrasing literally and conservatively. When uncertain — ask, don't guess.
+
+- **"Submit / push to PR"** = `git push` the branch to remote so commits appear in the open PR. **NOT** `gh pr merge`. Only merge when the user explicitly says "merge" or "merge the PR".
+- **"wtf?" / "what?" / "huh?"** (or similar surprise/frustration) = the previous action was the opposite of what the user wanted. **Stop immediately**, do not retry, ask what was wrong before doing anything else.
+- **IDE files** (`.idea/`, `*.iml`, `.vscode/`, `*.swp`, etc.) — never add, remove, modify, stage, or `.gitignore` them unless the user explicitly asks. They are the user's domain. "add ide files" most likely means **commit and track them**, not gitignore them — confirm before acting.
+
 ## Agent Docs
 
 | Path | Purpose |
