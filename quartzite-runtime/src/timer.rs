@@ -1,14 +1,14 @@
 //! Interval timer that fires a signal via the event loop.
 use std::{
     sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use quartzite_core::{ConnectionId, object_base::ObjectBase, signal::Signal};
+use quartzite_core::{object_base::ObjectBase, signal::Signal, ConnectionId};
 
 /// Fires its `timeout` signal at a given interval via the event loop.
 ///
@@ -130,6 +130,16 @@ impl Timer {
     }
 
     /// Returns `true` while the background thread is active.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::Timer;
+    ///
+    /// let mut timer = Timer::new(Duration::from_millis(100));
+    /// assert!(!timer.is_running());
+    /// ```
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }

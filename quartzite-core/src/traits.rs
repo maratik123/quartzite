@@ -23,12 +23,56 @@ pub type SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>;
 /// This trait is deliberately minimal so that `Box<dyn AsObject>` remains valid.
 pub trait AsObject {
     /// Returns a shared reference to this object's `ObjectBase`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::AsObject;
+    /// # fn example(obj: &impl AsObject) {
+    /// let base = obj.object_base();
+    /// println!("object name: {}", base.name);
+    /// # }
+    /// ```
     fn object_base(&self) -> &ObjectBase;
+
     /// Returns a mutable reference to this object's `ObjectBase`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::AsObject;
+    /// # fn example(obj: &mut impl AsObject) {
+    /// obj.object_base_mut().name = "renamed".into();
+    /// # }
+    /// ```
     fn object_base_mut(&mut self) -> &mut ObjectBase;
+
     /// Upcast to `&dyn Any` to enable checked downcasting via `downcast_ref`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::AsObject;
+    /// # fn example<T: AsObject + 'static>(obj: &impl AsObject) {
+    /// if let Some(concrete) = obj.as_any().downcast_ref::<T>() {
+    ///     // use concrete
+    /// }
+    /// # }
+    /// ```
     fn as_any(&self) -> &dyn core::any::Any;
+
     /// Upcast to `&mut dyn Any` to enable checked downcasting via `downcast_mut`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::AsObject;
+    /// # fn example<T: AsObject + 'static>(obj: &mut impl AsObject) {
+    /// if let Some(concrete) = obj.as_any_mut().downcast_mut::<T>() {
+    ///     // mutate concrete
+    /// }
+    /// # }
+    /// ```
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
@@ -37,6 +81,16 @@ pub trait AsObject {
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject + Send {
     /// Returns the static `MetaObject` descriptor for this type.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::Object;
+    /// # fn example(obj: &impl Object) {
+    /// let meta = obj.meta_object();
+    /// println!("class: {}", meta.class_name);
+    /// # }
+    /// ```
     fn meta_object(&self) -> &'static MetaObject;
 
     /// Returns the current value of `name`, or `None` if `name` is not a known property.

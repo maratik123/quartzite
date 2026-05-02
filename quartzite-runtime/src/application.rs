@@ -38,6 +38,14 @@ pub struct Application(Arc<ApplicationInner>);
 
 impl Application {
     /// Create the application. Returns `Err(AlreadyExists)` if called more than once.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().expect("only one Application per process");
+    /// ```
     pub fn new() -> Result<Self, ApplicationError> {
         let event_loop = Arc::new(EventLoop::new());
         let connection_table = ConnectionTable::new(Arc::clone(&event_loop));
@@ -62,21 +70,63 @@ impl Application {
     }
 
     /// Access the global application without consuming it.
+    ///
+    /// Returns `None` if [`Application::new`] has not been called yet.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// if let Some(app) = Application::global() {
+    ///     app.quit();
+    /// }
+    /// ```
     pub fn global() -> Option<Application> {
         APP.get().map(|inner| Application(Arc::clone(inner)))
     }
 
     /// Post a closure to run on the event-loop thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// app.post_event(Box::new(|| println!("on event-loop thread")));
+    /// ```
     pub fn post_event(&self, f: Box<dyn FnOnce() + Send>) {
         self.0.event_loop.post(f);
     }
 
     /// Run the event loop, blocking the calling thread until `quit()` is called.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// // post a quit event immediately so the loop exits right away in tests
+    /// let app2 = Application::global().unwrap();
+    /// app.post_event(Box::new(move || app2.quit()));
+    /// app.exec();
+    /// ```
     pub fn exec(&self) {
         self.0.event_loop.run();
     }
 
     /// Stop the event loop.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// app.quit();
+    /// ```
     pub fn quit(&self) {
         self.0.event_loop.stop();
     }
@@ -89,11 +139,29 @@ impl Application {
     }
 
     /// Returns a reference to the process-wide connection table.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// let _table = app.connection_table();
+    /// ```
     pub fn connection_table(&self) -> &Arc<ConnectionTable> {
         &self.0.connection_table
     }
 
     /// Returns a reference to the process-wide event loop.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// let _el = app.event_loop();
+    /// ```
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
     }

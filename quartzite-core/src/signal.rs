@@ -15,8 +15,29 @@ use crate::receiver_guard::ReceiverGuard;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConnectionType {
     /// Invoke the slot immediately in the emitting call stack.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect_typed(|args| println!("direct: {}", args.0), ConnectionType::Direct);
+    /// sig.emit(&(42,));
+    /// ```
     Direct,
     /// Invoke the slot exactly once, then automatically disconnect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect_typed(|_| {}, ConnectionType::SingleShot);
+    /// sig.emit(&(1,)); // fires once
+    /// sig.emit(&(2,)); // slot already disconnected; no-op
+    /// ```
     SingleShot,
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
     #[cfg(feature = "std")]
@@ -362,8 +383,8 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::sync::{
-        Arc, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
+        Arc, Mutex, OnceLock,
     };
 
     // ---------------------------------------------------------------------------
