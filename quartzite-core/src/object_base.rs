@@ -4,10 +4,7 @@ use alloc::{string::String, sync::Arc};
 #[cfg(feature = "std")]
 use std::{string::String, sync::Arc};
 
-use crate::{
-    id::ObjectId,
-    receiver_guard::ReceiverGuard,
-};
+use crate::{id::ObjectId, receiver_guard::ReceiverGuard};
 
 /// Core data carried by every object in the quartzite object tree.
 ///
