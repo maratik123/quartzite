@@ -182,7 +182,7 @@ finding (Step 11) requires a design change rather than a code fix:
   2. `cargo test test_name` — if subtask adds tests
   3. `cargo fmt`; `cargo clippy -- -D warnings`
   4. Update `.progress.md`
-  5. If N=3 of M≥5 → handoff via Task (see `/context-reset`)
+  5. If N=3 of M≥5 → handoff via Agent (see `/context-reset`)
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
 - Implementation reveals design must change → trigger **Design Amendment** above, then resume here.

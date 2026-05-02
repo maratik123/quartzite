@@ -3,7 +3,7 @@ name: code-review
 description: "Whole-codebase review on the current branch (or branch given as argument). Reads all source files and done plans, runs fix loop and self-review loop until APPROVE, then commits."
 disable-model-invocation: true
 argument-hint: "[branch-name]"
-allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git log *) Bash(git add *) Bash(git commit *)
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git log *) Bash(git add *) Bash(git commit *)
 ---
 
 Whole-codebase review workflow. Steps execute **strictly in sequence**.
@@ -60,7 +60,8 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. `cargo fmt`
-5. Update `## Files touched` and mark subtask `[x]` in progress file
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean
+6. Update `## Files touched` and mark subtask `[x]` in progress file
 
 **Context handoff rule:** if the finding count is ≥ 10 and more than half remain open, spawn a sub-agent per subtask rather than working inline — pass the progress file path so it can resume.
 
@@ -70,7 +71,8 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. `cargo fmt -- --check` — clean
-5. Update progress file: `**Last build:** PASS`
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI / `/task` Step 9)
+6. Update progress file: `**Last build:** PASS`
 
 ### Step 5: Self-review loop (max 3 rounds)
 
@@ -119,6 +121,6 @@ EOF
 |---|---|
 | Step 2 | branch confirmed? base_commit recorded? |
 | Step 3 | build green after every 3 fixes? |
-| Step 4 | all four checks pass? |
+| Step 4 | all five checks pass? |
 | Step 5 | self-review APPROVE before commit? |
 | Commit | `major`/`blocker` objections user-approved? progress file deleted? |

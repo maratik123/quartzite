@@ -2,7 +2,7 @@
 name: bugfix
 description: "Reactive bug-fixing workflow. Trace → Root cause → Failing test → Fix. Prevents the fix-break cycle."
 when_to_use: "Activate on: 'not working', 'broken', 'wrong', 'incorrect', 'doesn't show', unexpected panic/crash/compile error, failing test that should pass. Divergence signal: 'expected X got Y', 'should return X but returns Y'. During implementation: 'this is wrong', 'overengineered', 'not what I meant'. Regression: 'broke again', 'stopped working', 'worked before'. SKIP for general questions, codebase exploration, known/planned limitations."
-allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(cargo fmt *) Bash(git rm *) Bash(rm *)
+allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(cargo fmt *) Bash(git rm ai-docs/bugfix/*) Bash(rm -f ai-docs/bugfix/*)
 ---
 
 Reactive bug-fixing workflow. **Fundamentally different from `/task` and `/task-issue`:**
