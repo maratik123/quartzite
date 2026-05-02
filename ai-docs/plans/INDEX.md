@@ -14,6 +14,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [code-quality-cleanup](done/2026-05-02-code-quality-cleanup.spec.md) | `quartzite-macros` `quartzite-runtime` `quartzite-core` | ✅ implemented (0 new tests) | — |
 | [docs-and-facade](done/2026-05-02-docs-and-facade.spec.md) | all crates + `quartzite` | ✅ implemented (1 new test) | — |
 | [public-api-docs](done/2026-05-02-public-api-docs.spec.md) | all crates | ✅ implemented (47 new doctests) | — |
+| [lookup-perf](done/2026-05-02-lookup-perf.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (21 new tests) | — |
 
 ## Deferred plans
 
@@ -43,3 +44,4 @@ core-types ✅
 1. **Start** geometry-events (no blockers, unblocks widgets and paint-style)
 2. **Expand** `quartzite` facade prelude as new crates are implemented
 3. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
+4. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land

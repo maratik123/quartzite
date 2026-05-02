@@ -503,9 +503,9 @@ mod tests {
     #[test]
     fn rename_updates_index() {
         let mut tree = ObjectTree::new();
-        let id = tree.insert(StubObject::named("old"), None);
+        // Start from an unnamed object (None) to exercise the None→Some path.
+        let id = tree.insert(new_unnamed(), None);
         tree.rename(id, "new");
-        assert!(tree.find_by_name("old").is_empty());
         assert_eq!(tree.find_by_name("new"), &[id]);
     }
 
