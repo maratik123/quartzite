@@ -309,8 +309,8 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
         Arc, Mutex, OnceLock,
+        atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
     };
 
     // ---------------------------------------------------------------------------
