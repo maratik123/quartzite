@@ -17,9 +17,9 @@
 | 3d | Emit match lookups from `#[object_impl]` | ✅ |
 | 3e | Emit match lookups from `#[meta_enum]` | ✅ |
 | 4a | `ObjectBase::name` → `Option<String>`; remove `set_name` | ✅ |
-| 4b | `by_name` index in `ObjectTree` | ⬜ |
-| 4c | `rename` / `clear_name` / `find_by_name` return `&[ObjectId]` | ⬜ |
-| 4d | Update all callers | ⬜ |
+| 4b | `by_name` index in `ObjectTree` | ✅ |
+| 4c | `rename` / `clear_name` / `find_by_name` return `&[ObjectId]` | ✅ |
+| 4d | Update all callers | ✅ |
 
 ## Files touched
 
@@ -47,4 +47,4 @@ purely additive):
 
 ## Next action
 
-Continue with task 4b: add `by_name: HashMap<String, Vec<ObjectId>>` index to `ObjectTree`.
+All tasks complete. Run final full verification.

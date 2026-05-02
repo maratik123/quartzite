@@ -200,14 +200,14 @@ fn find_by_name_returns_correct_id() {
     let foo = tree.insert(Stub::named("foo"), None);
     tree.insert(Stub::named("bar"), None);
 
-    assert_eq!(tree.find_by_name("foo"), Some(foo));
+    assert_eq!(tree.find_by_name("foo"), &[foo]);
 }
 
-// AC5 edge — absent name returns None.
+// AC5 edge — absent name returns empty slice.
 #[test]
-fn find_by_name_returns_none_when_absent() {
+fn find_by_name_returns_empty_when_absent() {
     let tree = make_tree();
-    assert!(tree.find_by_name("nope").is_none());
+    assert!(tree.find_by_name("nope").is_empty());
 }
 
 // Verify reparent updates both old and new parent's children lists.
