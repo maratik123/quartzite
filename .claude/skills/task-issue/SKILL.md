@@ -3,7 +3,7 @@ name: task-issue
 description: "Full ticket workflow: ticket → interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[issue-number]"
-allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
+allowed-tools: Bash(gh issue view *) Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
 Full workflow for working on a task (issue). Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -134,7 +134,7 @@ finding (Step 11) requires a design change rather than a code fix:
   2. `cargo test test_name` — if subtask adds tests
   3. `cargo fmt`; `cargo clippy -- -D warnings`
   4. Update `.progress.md`
-  5. If N=3 of M≥5 → handoff via Task (see `/context-reset`)
+  5. If N=3 of M≥5 → handoff via Agent (see `/context-reset`)
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
 - Implementation reveals design must change → trigger **Design Amendment** above, then resume here.

@@ -59,7 +59,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 6. Documentation
 
-Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps 2>&1` and check:
+Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 2>&1` and check:
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
