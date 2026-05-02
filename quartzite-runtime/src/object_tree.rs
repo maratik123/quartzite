@@ -320,6 +320,7 @@ impl ObjectTree {
 }
 
 impl Default for ObjectTree {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

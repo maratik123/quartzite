@@ -60,6 +60,7 @@ impl ObjectFactory {
 }
 
 impl Default for ObjectFactory {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

@@ -66,6 +66,7 @@ impl EventLoop {
     /// let tx = el.sender();
     /// tx.send(Box::new(|| println!("posted"))).ok();
     /// ```
+    #[inline]
     pub fn sender(&self) -> Sender<Box<dyn FnOnce() + Send>> {
         self.sender.clone()
     }
@@ -128,12 +129,14 @@ impl EventLoop {
     /// let el = EventLoop::new();
     /// assert!(!el.is_running());
     /// ```
+    #[inline]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }
 }
 
 impl Default for EventLoop {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }

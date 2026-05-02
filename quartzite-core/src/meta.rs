@@ -35,6 +35,7 @@ impl PropertyFlags {
     /// assert!(!f.readable);
     /// assert!(!f.writable);
     /// ```
+    #[inline]
     pub const fn none() -> Self {
         Self {
             readable: false,
@@ -59,6 +60,7 @@ impl PropertyFlags {
     /// assert!(f.writable);
     /// assert!(!f.constant);
     /// ```
+    #[inline]
     pub const fn read_write() -> Self {
         Self {
             readable: true,
@@ -83,6 +85,7 @@ impl PropertyFlags {
     /// assert!(!f.writable);
     /// assert!(f.constant);
     /// ```
+    #[inline]
     pub const fn read_only() -> Self {
         Self {
             readable: true,
@@ -97,6 +100,7 @@ impl PropertyFlags {
 }
 
 impl Default for PropertyFlags {
+    #[inline]
     fn default() -> Self {
         Self::read_write()
     }
@@ -124,6 +128,7 @@ impl PropertyMeta {
     /// let meta = PropertyMeta::new("count", "i64", PropertyFlags::read_write());
     /// assert_eq!(meta.name, "count");
     /// ```
+    #[inline]
     pub const fn new(name: &'static str, type_name: &'static str, flags: PropertyFlags) -> Self {
         Self {
             name,
@@ -154,6 +159,7 @@ impl ParamMeta {
     /// assert_eq!(p.name, "value");
     /// assert_eq!(p.type_name, "i64");
     /// ```
+    #[inline]
     pub const fn new(name: &'static str, type_name: &'static str) -> Self {
         Self { name, type_name }
     }
@@ -180,6 +186,7 @@ impl SignalMeta {
     /// assert_eq!(s.name, "clicked");
     /// assert!(s.params.is_empty());
     /// ```
+    #[inline]
     pub const fn new(name: &'static str, params: &'static [ParamMeta]) -> Self {
         Self { name, params }
     }
@@ -208,6 +215,7 @@ impl MethodMeta {
     /// assert_eq!(m.name, "click");
     /// assert_eq!(m.return_type, "()");
     /// ```
+    #[inline]
     pub const fn new(
         name: &'static str,
         params: &'static [ParamMeta],
@@ -242,17 +250,20 @@ impl EnumEntry {
     /// assert_eq!(e.name, "Alpha");
     /// assert_eq!(e.value, 0);
     /// ```
+    #[inline]
     pub const fn new(name: &'static str, value: i64) -> Self {
         Self { name, value }
     }
 }
 
 /// No-op entry-by-name lookup — always returns `None`. Used in hand-written `EnumMeta` statics.
+#[inline]
 pub fn noop_lookup_entry_by_name(_: &str) -> Option<EnumEntry> {
     None
 }
 
 /// No-op entry-by-value lookup — always returns `None`. Used in hand-written `EnumMeta` statics.
+#[inline]
 pub fn noop_lookup_entry_by_value(_: i64) -> Option<EnumEntry> {
     None
 }
@@ -304,6 +315,7 @@ impl EnumMeta {
     /// assert_eq!(em.name, "State");
     /// assert_eq!(em.entries.len(), 2);
     /// ```
+    #[inline]
     pub const fn new(
         name: &'static str,
         entries: &'static [EnumEntry],
@@ -329,6 +341,7 @@ impl EnumMeta {
     /// let em = EnumMeta::new("MyEnum", ENTRIES, noop_lookup_entry_by_name, noop_lookup_entry_by_value);
     /// assert!(em.entry_by_name("Beta").is_none()); // noop returns None
     /// ```
+    #[inline]
     pub fn entry_by_name(&self, name: &str) -> Option<EnumEntry> {
         (self.lookup_entry_by_name)(name)
     }
@@ -344,27 +357,32 @@ impl EnumMeta {
     /// let em = EnumMeta::new("MyEnum", ENTRIES, noop_lookup_entry_by_name, noop_lookup_entry_by_value);
     /// assert!(em.entry_by_value(1).is_none()); // noop returns None
     /// ```
+    #[inline]
     pub fn entry_by_value(&self, value: i64) -> Option<EnumEntry> {
         (self.lookup_entry_by_value)(value)
     }
 }
 
 /// No-op property lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+#[inline]
 pub fn noop_lookup_property(_: &str) -> Option<PropertyMeta> {
     None
 }
 
 /// No-op signal lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+#[inline]
 pub fn noop_lookup_signal(_: &str) -> Option<SignalMeta> {
     None
 }
 
 /// No-op method lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+#[inline]
 pub fn noop_lookup_method(_: &str) -> Option<MethodMeta> {
     None
 }
 
 /// No-op enum lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+#[inline]
 pub fn noop_lookup_enum(_: &str) -> Option<EnumMeta> {
     None
 }
@@ -442,6 +460,7 @@ impl MetaObject {
     // Each slice + fn-pointer pair is a distinct, non-groupable concern; a builder would add
     // runtime overhead to a const fn used exclusively in static initialisers.
     #[allow(clippy::too_many_arguments)]
+    #[inline]
     pub const fn new(
         class_name: &'static str,
         properties: &'static [PropertyMeta],
@@ -493,6 +512,7 @@ impl MetaObject {
     /// assert!(meta.property("count").is_some());
     /// assert!(meta.property("missing").is_none());
     /// ```
+    #[inline]
     pub fn property(&self, name: &str) -> Option<PropertyMeta> {
         (self.lookup_property)(name)
     }
@@ -524,6 +544,7 @@ impl MetaObject {
     /// assert!(meta.signal("clicked").is_some());
     /// assert!(meta.signal("missing").is_none());
     /// ```
+    #[inline]
     pub fn signal(&self, name: &str) -> Option<SignalMeta> {
         (self.lookup_signal)(name)
     }
@@ -555,6 +576,7 @@ impl MetaObject {
     /// assert!(meta.method("reset").is_some());
     /// assert!(meta.method("missing").is_none());
     /// ```
+    #[inline]
     pub fn method(&self, name: &str) -> Option<MethodMeta> {
         (self.lookup_method)(name)
     }
@@ -589,6 +611,7 @@ impl MetaObject {
     /// assert!(meta.enum_meta("State").is_some());
     /// assert!(meta.enum_meta("missing").is_none());
     /// ```
+    #[inline]
     pub fn enum_meta(&self, name: &str) -> Option<EnumMeta> {
         (self.lookup_enum)(name)
     }

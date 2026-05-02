@@ -183,6 +183,7 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
             );
 
         #[allow(non_snake_case)]
+        #[inline]
         fn #meta_init_fn() -> &'static ::quartzite_core::MetaObject {
             &#meta_static_name
         }
@@ -200,15 +201,19 @@ fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) 
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     quote! {
         impl ::quartzite_core::Object for #self_ty {
+            #[inline]
             fn meta_object(&self) -> &'static ::quartzite_core::MetaObject {
                 #meta_init()
             }
+            #[inline]
             fn read_property(&self, name: &str) -> ::core::option::Option<::quartzite_core::Value> {
                 #mod_ident::#read_fn(self, name)
             }
+            #[inline]
             fn write_property(&mut self, name: &str, val: ::quartzite_core::Value) -> bool {
                 #mod_ident::#write_fn(self, name, val)
             }
+            #[inline]
             fn invoke_method(
                 &mut self,
                 name: &str,
@@ -216,6 +221,7 @@ fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) 
             ) -> ::core::option::Option<::quartzite_core::Value> {
                 #invoke_fn(self, name, args)
             }
+            #[inline]
             fn connect_signal(
                 &mut self,
                 signal: &str,
@@ -495,5 +501,27 @@ mod tests {
             }
         });
         assert!(out.contains("fn helper"), "helper not re-emitted: {out}");
+    }
+
+    // AC9: Object trait shims and __meta_init carry #[inline].
+    #[test]
+    fn object_impl_shims_are_inline() {
+        let out = emit(quote! { impl Foo {} });
+        let count = out.matches("# [inline]").count();
+        // 5 Object trait shims + 1 __meta_init_Foo
+        assert!(
+            count >= 6,
+            "expected >=6 #[inline] tokens, got {count}: {out}"
+        );
+    }
+
+    // AC9: __meta_init specifically carries #[inline].
+    #[test]
+    fn meta_init_fn_is_inline() {
+        let out = emit(quote! { impl Foo {} });
+        assert!(
+            out.contains("# [inline] fn __meta_init_Foo"),
+            "missing #[inline] on __meta_init_Foo: {out}"
+        );
     }
 }

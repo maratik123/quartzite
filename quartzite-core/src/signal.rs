@@ -116,6 +116,7 @@ pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), Dispatc
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[inline]
 pub fn queued_dispatcher() -> Option<&'static Arc<dyn QueuedDispatcher>> {
     QUEUED_DISPATCHER.get()
 }

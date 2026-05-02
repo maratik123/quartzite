@@ -166,6 +166,7 @@ impl Timer {
     /// let mut timer = Timer::new(Duration::from_millis(100));
     /// assert!(!timer.is_running());
     /// ```
+    #[inline]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }
