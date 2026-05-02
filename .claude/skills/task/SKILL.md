@@ -186,9 +186,11 @@ finding (Step 11) requires a design change rather than a code fix:
 
 ### Step 9: Verify
 
-1. `cargo test` — all green
-2. `cargo clippy -- -D warnings` — clean
-3. For each AC — confirm covered by test or manual verification
+1. `cargo build` — compiles clean
+2. `cargo test` — all green
+3. `cargo fmt -- --check` — no formatting drift
+4. `cargo clippy -- -D warnings` — clean
+5. For each AC — confirm covered by test or manual verification
 4. Show summary table:
 
 ```
@@ -197,7 +199,7 @@ finding (Step 11) requires a design change rather than a code fix:
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-5. On ALL PASS → proceed to Step 9.5
+6. On ALL PASS → proceed to Step 9.5
 
 ### Step 9.5: Update documentation
 
@@ -284,7 +286,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo test` green? clippy clean? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |

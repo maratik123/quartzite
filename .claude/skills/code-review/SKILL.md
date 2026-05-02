@@ -37,7 +37,7 @@ Create the progress file path: `ai-docs/plans/YYYY-MM-DD-code-review.progress.md
 
 ```
 Agent(subagent_type="general-purpose", prompt="
-  Read .claude/agents/codebase-review.md and follow it exactly.
+  Read .claude/agents/review-findings.md and follow it exactly.
   Branch: [branch name]
   base_commit: [base_commit]
   Write progress file to: ai-docs/plans/YYYY-MM-DD-code-review.progress.md

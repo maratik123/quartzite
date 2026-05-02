@@ -1,4 +1,4 @@
-# Codebase Review Agent
+# Review Findings Agent
 
 Reviews the entire codebase on the current branch. No diff, no spec — reads source files directly. Produces a findings table and writes it into the progress file.
 
@@ -53,7 +53,9 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 
 ## What you do NOT check
 
-- Formatting — that's `cargo fmt`
+- `cargo fmt` / formatting drift — enforced by the fix loop in the calling skill
+- `cargo clippy` — same; enforced by the fix loop
+- `cargo build` / `cargo check` / `cargo test` — same; enforced by the fix loop's verify step
 - Anything explicitly documented as intentional in done plans
 - Subjective preferences — only objective violations
 
