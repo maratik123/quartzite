@@ -37,7 +37,17 @@ impl AsObject for Stub {
     }
 }
 
-static STUB_META: MetaObject = MetaObject::new("Stub", &[], &[], &[], &[]);
+static STUB_META: MetaObject = MetaObject::new(
+    "Stub",
+    &[],
+    &[],
+    &[],
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    quartzite_core::meta::noop_lookup_method,
+    quartzite_core::meta::noop_lookup_enum,
+);
 
 impl Object for Stub {
     fn meta_object(&self) -> &'static MetaObject {
@@ -74,7 +84,10 @@ impl LogObj {
 
 impl Drop for LogObj {
     fn drop(&mut self) {
-        self.log.lock().unwrap().push(self.base.name.clone());
+        self.log
+            .lock()
+            .unwrap()
+            .push(self.base.name().unwrap_or("").to_owned());
     }
 }
 
@@ -93,7 +106,17 @@ impl AsObject for LogObj {
     }
 }
 
-static LOG_META: MetaObject = MetaObject::new("LogObj", &[], &[], &[], &[]);
+static LOG_META: MetaObject = MetaObject::new(
+    "LogObj",
+    &[],
+    &[],
+    &[],
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    quartzite_core::meta::noop_lookup_method,
+    quartzite_core::meta::noop_lookup_enum,
+);
 
 impl Object for LogObj {
     fn meta_object(&self) -> &'static MetaObject {
@@ -122,7 +145,7 @@ fn make_tree() -> ObjectTree {
 fn insert_returns_id_and_get_finds_it() {
     let mut tree = make_tree();
     let id = tree.insert(Stub::named("alpha"), None);
-    let name = tree.with(id, |o| o.object_base().name.clone());
+    let name = tree.with(id, |o| o.object_base().name().unwrap_or("").to_owned());
     assert_eq!(name, Some("alpha".to_string()));
 }
 
@@ -177,14 +200,14 @@ fn find_by_name_returns_correct_id() {
     let foo = tree.insert(Stub::named("foo"), None);
     tree.insert(Stub::named("bar"), None);
 
-    assert_eq!(tree.find_by_name("foo"), Some(foo));
+    assert_eq!(tree.find_by_name("foo"), &[foo]);
 }
 
-// AC5 edge — absent name returns None.
+// AC5 edge — absent name returns empty slice.
 #[test]
-fn find_by_name_returns_none_when_absent() {
+fn find_by_name_returns_empty_when_absent() {
     let tree = make_tree();
-    assert!(tree.find_by_name("nope").is_none());
+    assert!(tree.find_by_name("nope").is_empty());
 }
 
 // Verify reparent updates both old and new parent's children lists.

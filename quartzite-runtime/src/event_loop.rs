@@ -1,9 +1,9 @@
 //! Single-threaded event loop for posting and executing closures.
 use std::{
     sync::{
+        Arc,
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver, Sender},
-        Arc,
     },
     time::Duration,
 };

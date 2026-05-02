@@ -34,7 +34,17 @@ impl AsObject for FooObj {
     }
 }
 
-static FOO_META: MetaObject = MetaObject::new("FooObj", &[], &[], &[], &[]);
+static FOO_META: MetaObject = MetaObject::new(
+    "FooObj",
+    &[],
+    &[],
+    &[],
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    quartzite_core::meta::noop_lookup_method,
+    quartzite_core::meta::noop_lookup_enum,
+);
 
 impl Object for FooObj {
     fn meta_object(&self) -> &'static MetaObject {

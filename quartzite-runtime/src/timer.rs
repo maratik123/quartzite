@@ -1,14 +1,14 @@
 //! Interval timer that fires a signal via the event loop.
 use std::{
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle},
     time::Duration,
 };
 
-use quartzite_core::{object_base::ObjectBase, signal::Signal, ConnectionId};
+use quartzite_core::{ConnectionId, object_base::ObjectBase, signal::Signal};
 
 /// Fires its `timeout` signal at a given interval via the event loop.
 ///

@@ -14,6 +14,8 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
     let read_fn = emit_read_property(type_ident, &ir.props);
     let write_fn = emit_write_property(type_ident, &ir.props);
     let connect_fn = emit_connect_signal_dynamic(type_ident, &ir.signals);
+    let lookup_prop_fn = emit_lookup_prop_fn(type_ident, &ir.props);
+    let lookup_signal_fn = emit_lookup_signal_fn(type_ident, &ir.signals);
 
     quote! {
         #[doc(hidden)]
@@ -24,6 +26,8 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
             #read_fn
             #write_fn
             #connect_fn
+            #lookup_prop_fn
+            #lookup_signal_fn
         }
     }
 }
@@ -101,6 +105,49 @@ fn emit_signals_static(type_ident: &Ident, signals: &[SignalField]) -> TokenStre
         pub const #static_name: &[::quartzite_core::SignalMeta] = &[
             #(#entries),*
         ];
+    }
+}
+
+fn emit_lookup_prop_fn(type_ident: &Ident, props: &[PropField]) -> TokenStream {
+    let fn_name = Ident::new(
+        &format!("__lookup_property_{type_ident}"),
+        type_ident.span(),
+    );
+    let static_name = props_static_ident(type_ident);
+    let arms = props.iter().enumerate().map(|(idx, p)| {
+        let name = p.ident.to_string();
+        let idx_lit = Index::from(idx);
+        quote! {
+            #name => ::core::option::Option::Some(#static_name[#idx_lit])
+        }
+    });
+    quote! {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite_core::PropertyMeta> {
+            match name {
+                #(#arms,)*
+                _ => ::core::option::Option::None,
+            }
+        }
+    }
+}
+
+fn emit_lookup_signal_fn(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let fn_name = Ident::new(&format!("__lookup_signal_{type_ident}"), type_ident.span());
+    let static_name = signals_static_ident(type_ident);
+    let arms = signals.iter().enumerate().map(|(idx, s)| {
+        let name = s.ident.to_string();
+        let idx_lit = Index::from(idx);
+        quote! {
+            #name => ::core::option::Option::Some(#static_name[#idx_lit])
+        }
+    });
+    quote! {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite_core::SignalMeta> {
+            match name {
+                #(#arms,)*
+                _ => ::core::option::Option::None,
+            }
+        }
     }
 }
 
@@ -249,6 +296,14 @@ mod tests {
         assert!(
             out.contains("__connect_signal_dynamic_Foo"),
             "missing connect fn: {out}"
+        );
+        assert!(
+            out.contains("__lookup_property_Foo"),
+            "missing lookup_property fn: {out}"
+        );
+        assert!(
+            out.contains("__lookup_signal_Foo"),
+            "missing lookup_signal fn: {out}"
         );
     }
 
@@ -422,6 +477,58 @@ mod tests {
         assert!(
             out.contains("IntoValue :: into_value"),
             "missing conversion: {out}"
+        );
+    }
+
+    // lookup_prop_fn: match arm per property, indexing into __PROPS__ static.
+    #[test]
+    fn lookup_prop_fn_has_match_arm() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub score: i32,
+            }
+        });
+        assert!(
+            out.contains("fn __lookup_property_Foo"),
+            "missing lookup fn: {out}"
+        );
+        assert!(
+            out.contains("\"score\"") && out.contains("__PROPS__Foo [0]"),
+            "missing match arm or index: {out}"
+        );
+    }
+
+    // lookup_signal_fn: match arm per signal, indexing into __SIGNALS__ static.
+    #[test]
+    fn lookup_signal_fn_has_match_arm() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        assert!(
+            out.contains("fn __lookup_signal_Foo"),
+            "missing lookup fn: {out}"
+        );
+        assert!(
+            out.contains("\"ticked\"") && out.contains("__SIGNALS__Foo [0]"),
+            "missing match arm or index: {out}"
+        );
+    }
+
+    // lookup_prop_fn with no props produces a fn that always returns None.
+    #[test]
+    fn lookup_prop_fn_empty_returns_none() {
+        let out = emit(quote! { struct Foo {} });
+        assert!(
+            out.contains("fn __lookup_property_Foo"),
+            "missing lookup fn: {out}"
+        );
+        assert!(
+            !out.contains("__PROPS__Foo ["),
+            "unexpected index arm for empty props: {out}"
         );
     }
 }

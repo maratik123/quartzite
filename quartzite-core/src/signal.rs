@@ -1,12 +1,16 @@
 //! Typed signals with multiple connection modes (`Direct`, `SingleShot`, `Queued`, `Auto`).
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+// With `std` feature: IndexMap<K, V> uses RandomState (two-param form available).
+// Without `std`: no default hasher type param; use hashbrown's DefaultHashBuilder explicitly.
 #[cfg(feature = "std")]
-use std::{sync::Arc, vec::Vec};
+use indexmap::IndexMap;
+#[cfg(not(feature = "std"))]
+type IndexMap<K, V> = indexmap::IndexMap<K, V, hashbrown::DefaultHashBuilder>;
 
 use crate::id::ConnectionId;
 #[cfg(feature = "std")]
 use crate::receiver_guard::ReceiverGuard;
+#[cfg(feature = "std")]
+use std::sync::Arc;
 
 /// Determines how a slot is invoked when a signal is emitted.
 ///
@@ -57,7 +61,6 @@ pub enum ConnectionType {
 /// Callbacks require `Send` so that `Signal<Args>` can be wrapped in
 /// `Arc<Mutex<Signal<Args>>>` for cross-thread posting (e.g. `Timer`).
 struct SlotEntry<Args: 'static> {
-    id: ConnectionId,
     callback: Box<dyn Fn(&Args) + Send>,
     conn_type: ConnectionType,
 }
@@ -120,7 +123,6 @@ pub fn queued_dispatcher() -> Option<&'static Arc<dyn QueuedDispatcher>> {
 /// Object-safe interface for a queued slot stored inside a `Signal<Args>`.
 #[cfg(feature = "std")]
 trait DynQueuedSlot<Args: 'static>: Send + Sync {
-    fn id(&self) -> ConnectionId;
     fn post_if_alive(&self, args: &Args);
 }
 
@@ -128,17 +130,12 @@ trait DynQueuedSlot<Args: 'static>: Send + Sync {
 /// the arguments into a cross-thread closure.
 #[cfg(feature = "std")]
 struct QueuedSlotInner<Args: Clone + Send + 'static> {
-    id: ConnectionId,
     callback: Arc<dyn Fn(Args) + Send + Sync>,
     guard: std::sync::Weak<ReceiverGuard>,
 }
 
 #[cfg(feature = "std")]
 impl<Args: Clone + Send + 'static> DynQueuedSlot<Args> for QueuedSlotInner<Args> {
-    fn id(&self) -> ConnectionId {
-        self.id
-    }
-
     fn post_if_alive(&self, args: &Args) {
         if self.guard.upgrade().is_none() {
             return;
@@ -154,7 +151,6 @@ impl<Args: Clone + Send + 'static> DynQueuedSlot<Args> for QueuedSlotInner<Args>
 /// Object-safe interface for an `Auto`-connection slot stored inside a `Signal<Args>`.
 #[cfg(feature = "std")]
 trait DynAutoSlot<Args: 'static>: Send + Sync {
-    fn id(&self) -> ConnectionId;
     /// Dispatches the slot: same-thread → direct call; cross-thread → post to dispatcher.
     fn dispatch(&self, emit_thread_id: std::thread::ThreadId, args: &Args);
 }
@@ -165,17 +161,12 @@ trait DynAutoSlot<Args: 'static>: Send + Sync {
 /// and moves them into a `'static` closure posted to the dispatcher.
 #[cfg(feature = "std")]
 struct AutoSlotInner<Args: Clone + Send + 'static> {
-    id: ConnectionId,
     receiver_thread_id: std::thread::ThreadId,
     callback: Arc<dyn Fn(Args) + Send + Sync>,
 }
 
 #[cfg(feature = "std")]
 impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
-    fn id(&self) -> ConnectionId {
-        self.id
-    }
-
     fn dispatch(&self, emit_thread_id: std::thread::ThreadId, args: &Args) {
         if emit_thread_id == self.receiver_thread_id {
             (self.callback)(args.clone());
@@ -201,12 +192,15 @@ impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
 /// Slot callbacks require `Send` so that `Signal<Args>` can be safely wrapped
 /// in `Arc<Mutex<Signal<Args>>>` for cross-thread emission (e.g. `Timer`).
 /// The signal itself is not `Sync` — concurrent emission is not supported.
+///
+/// Slots are stored in an `IndexMap` keyed by `ConnectionId`, preserving
+/// insertion order for deterministic emission while providing O(1) disconnect.
 pub struct Signal<Args: 'static> {
-    slots: Vec<SlotEntry<Args>>,
+    slots: IndexMap<ConnectionId, SlotEntry<Args>>,
     #[cfg(feature = "std")]
-    queued_slots: Vec<Box<dyn DynQueuedSlot<Args>>>,
+    queued_slots: IndexMap<ConnectionId, Box<dyn DynQueuedSlot<Args>>>,
     #[cfg(feature = "std")]
-    auto_slots: Vec<Box<dyn DynAutoSlot<Args>>>,
+    auto_slots: IndexMap<ConnectionId, Box<dyn DynAutoSlot<Args>>>,
 }
 
 impl<Args: 'static> Default for Signal<Args> {
@@ -228,11 +222,11 @@ impl<Args: 'static> Signal<Args> {
     /// ```
     pub fn new() -> Self {
         Signal {
-            slots: Vec::new(),
+            slots: IndexMap::new(),
             #[cfg(feature = "std")]
-            queued_slots: Vec::new(),
+            queued_slots: IndexMap::new(),
             #[cfg(feature = "std")]
-            auto_slots: Vec::new(),
+            auto_slots: IndexMap::new(),
         }
     }
 
@@ -279,11 +273,13 @@ impl<Args: 'static> Signal<Args> {
             "connect_typed does not support Queued or Auto; use connect_queued / connect_auto"
         );
         let id = ConnectionId::new();
-        self.slots.push(SlotEntry {
+        self.slots.insert(
             id,
-            callback: Box::new(f),
-            conn_type: ct,
-        });
+            SlotEntry {
+                callback: Box::new(f),
+                conn_type: ct,
+            },
+        );
         id
     }
 
@@ -311,11 +307,13 @@ impl<Args: 'static> Signal<Args> {
         Args: Clone + Send,
     {
         let id = ConnectionId::new();
-        self.queued_slots.push(Box::new(QueuedSlotInner {
+        self.queued_slots.insert(
             id,
-            callback: Arc::new(f),
-            guard,
-        }));
+            Box::new(QueuedSlotInner {
+                callback: Arc::new(f),
+                guard,
+            }),
+        );
         id
     }
 
@@ -357,15 +355,20 @@ impl<Args: 'static> Signal<Args> {
         Args: Clone + Send,
     {
         let id = ConnectionId::new();
-        self.auto_slots.push(Box::new(AutoSlotInner {
+        self.auto_slots.insert(
             id,
-            receiver_thread_id,
-            callback: Arc::new(f),
-        }));
+            Box::new(AutoSlotInner {
+                receiver_thread_id,
+                callback: Arc::new(f),
+            }),
+        );
         id
     }
 
     /// Remove the slot identified by `id`. No-op if `id` is not found.
+    ///
+    /// Runs in O(1) via `IndexMap::shift_remove`, preserving insertion order
+    /// for all remaining slots.
     ///
     /// # Examples
     ///
@@ -378,11 +381,11 @@ impl<Args: 'static> Signal<Args> {
     /// sig.emit(&()); // slot no longer called
     /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
-        self.slots.retain(|s| s.id != id);
+        self.slots.shift_remove(&id);
         #[cfg(feature = "std")]
-        self.queued_slots.retain(|s| s.id() != id);
+        self.queued_slots.shift_remove(&id);
         #[cfg(feature = "std")]
-        self.auto_slots.retain(|s| s.id() != id);
+        self.auto_slots.shift_remove(&id);
     }
 
     /// Invoke all connected slots with `args`.
@@ -402,29 +405,23 @@ impl<Args: 'static> Signal<Args> {
     /// use quartzite_core::signal::Signal;
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
-    /// let mut received = 0i32;
-    /// // Note: closures that capture by &mut can't be used with Signal; use Arc/Mutex for shared state.
     /// sig.connect(|_| {});
     /// sig.emit(&(42,));
     /// ```
     pub fn emit(&mut self, args: &Args) {
-        let mut i = 0;
-        while i < self.slots.len() {
-            (self.slots[i].callback)(args);
-            if self.slots[i].conn_type == ConnectionType::SingleShot {
-                self.slots.remove(i);
-            } else {
-                i += 1;
-            }
+        for entry in self.slots.values() {
+            (entry.callback)(args);
         }
+        self.slots
+            .retain(|_, e| e.conn_type != ConnectionType::SingleShot);
         #[cfg(feature = "std")]
         {
-            for slot in &self.queued_slots {
+            for slot in self.queued_slots.values() {
                 slot.post_if_alive(args);
             }
             if !self.auto_slots.is_empty() {
                 let emit_thread_id = std::thread::current().id();
-                for slot in &self.auto_slots {
+                for slot in self.auto_slots.values() {
                     slot.dispatch(emit_thread_id, args);
                 }
             }
@@ -437,8 +434,8 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::sync::{
-        atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
         Arc, Mutex, OnceLock,
+        atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
     };
 
     // ---------------------------------------------------------------------------
@@ -532,6 +529,75 @@ mod tests {
         assert!(
             !called.load(Ordering::Relaxed),
             "disconnected slot must not be called"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC1 (lookup-perf): disconnect is O(1) and preserves emission order
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn disconnect_is_o1_and_preserves_order() {
+        let mut sig: Signal<()> = Signal::new();
+        let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
+
+        let l1 = Arc::clone(&log);
+        let l2 = Arc::clone(&log);
+        let l3 = Arc::clone(&log);
+
+        sig.connect(move |_| l1.lock().unwrap().push(1)); // slot A
+        let id_b = sig.connect(move |_| l2.lock().unwrap().push(2)); // slot B
+        sig.connect(move |_| l3.lock().unwrap().push(3)); // slot C
+
+        sig.disconnect(id_b);
+        sig.emit(&());
+
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec![1, 3],
+            "A and C must fire in insertion order; B must be absent"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC2 (lookup-perf): SingleShot two-pass retain
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn single_shot_removed_by_retain() {
+        // Augments single_shot_called_once — specifically verifies the two-pass retain path:
+        // connects one SingleShot and one Direct; emits twice; SingleShot fires once, Direct twice.
+        let mut sig: Signal<()> = Signal::new();
+        let ss_count = Arc::new(AtomicU32::new(0));
+        let direct_count = Arc::new(AtomicU32::new(0));
+
+        let ss2 = Arc::clone(&ss_count);
+        let d2 = Arc::clone(&direct_count);
+
+        sig.connect_typed(
+            move |_| {
+                ss2.fetch_add(1, Ordering::Relaxed);
+            },
+            ConnectionType::SingleShot,
+        );
+        sig.connect(move |_| {
+            d2.fetch_add(1, Ordering::Relaxed);
+        });
+
+        sig.emit(&());
+        sig.emit(&());
+
+        assert_eq!(
+            ss_count.load(Ordering::Relaxed),
+            1,
+            "SingleShot must fire exactly once"
+        );
+        assert_eq!(
+            direct_count.load(Ordering::Relaxed),
+            2,
+            "Direct must fire on both emits"
         );
     }
 
