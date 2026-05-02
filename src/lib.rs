@@ -21,11 +21,11 @@ pub use quartzite_core;
 /// as a migration target when switching from this facade to the sub-crate directly.
 pub use quartzite_runtime;
 
-/// Curated set of commonly used quartzite types, re-exported for convenience.
+/// Curated set of types needed for typical usage — one glob covers a working import.
 ///
-/// Import with `use quartzite::prelude::*;` to bring the core object model,
-/// signal types, and runtime into scope without needing to reference individual
-/// sub-crates.
+/// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
+/// macros, and runtime in one line. For production code that values legibility,
+/// import from [`quartzite_core`] or [`quartzite_runtime`] explicitly instead.
 pub mod prelude {
     // quartzite-core: object model
     pub use quartzite_core::{
