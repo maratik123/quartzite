@@ -10,14 +10,21 @@
 //! use quartzite::prelude::*;
 //! ```
 //!
-//! The `quartzite-macros` crate also exports `MetaEnum` for enum reflection; it
-//! is available directly from `quartzite_macros::MetaEnum` for users who need it.
+//! `MetaEnum` for enum reflection is available via [`quartzite::macros::MetaEnum`](macros).
 
 /// Core object model, signals, and reflection types — re-exported from [`quartzite_core`].
 ///
 /// Prefer `use quartzite::core::Foo` over adding a direct `quartzite-core` dependency.
 pub mod core {
     pub use quartzite_core::*;
+}
+
+/// Derive macros and attribute macros — re-exported from [`quartzite_macros`].
+///
+/// Prefer `use quartzite::macros::MetaEnum` over adding a direct `quartzite-macros` dependency.
+/// Most macros (`Extend`, `Object`, `object_impl`) are already included in [`prelude`].
+pub mod macros {
+    pub use quartzite_macros::*;
 }
 
 /// Application runtime, event loop, and object tree — re-exported from [`quartzite_runtime`].
@@ -31,7 +38,7 @@ pub mod runtime {
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
 /// macros, and runtime in one line. For production code that values legibility,
-/// import from [`quartzite_core`] or [`quartzite_runtime`] explicitly instead.
+/// import from [`core`], [`macros`], or [`runtime`] explicitly instead.
 pub mod prelude {
     // quartzite-core: object model
     pub use quartzite_core::{
