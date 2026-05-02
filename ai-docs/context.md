@@ -112,6 +112,7 @@ AsObject        AsWidget        AsWidget (generated)
 | `ObjectBase::signals_blocked` | Private `bool` field; toggled via `block_signals()` / `unblock_signals()`. Generated `emit_<signal>` wrappers and property notify emissions check it before firing; direct `Signal::emit` calls do not (see issue #38). |
 | `emit_<signal>` codegen | `#[derive(Object)]` generates `pub fn emit_<signal>(&mut self, arg0: T0, ...)` methods (flattened tuple args) on the struct. Guard uses `AsObject::object_base(self).signals_blocked()` — works for root and derived types alike. |
 | `connect_<signal>_auto` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_auto(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `receiver.thread_id` and `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_auto`. |
+| `connect_<signal>_queued` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_queued(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_queued(f, guard)` (`f` first — opposite order from `connect_auto`). No `thread_id` argument needed. |
 
 ## Plans (Implementation Order)
 
@@ -126,7 +127,7 @@ Crate-level plans:
 7. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 8. `quartzite-paint` + `quartzite-style` — painter + theming
 
-Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen).
+Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen), connect-queued-codegen (`connect_<signal>_queued` typed wrappers).
 
 ## Open Questions
 

@@ -18,6 +18,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
     let lookup_signal_fn = emit_lookup_signal_fn(type_ident, &ir.signals);
     let emit_wrappers = emit_signal_wrappers(type_ident, &ir.signals);
     let connect_auto_wrappers = emit_connect_auto_wrappers(type_ident, &ir.signals);
+    let connect_queued_wrappers = emit_connect_queued_wrappers(type_ident, &ir.signals);
 
     quote! {
         #[doc(hidden)]
@@ -34,6 +35,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
 
         #emit_wrappers
         #connect_auto_wrappers
+        #connect_queued_wrappers
     }
 }
 
@@ -338,6 +340,54 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
                     receiver.thread_id,
                     ::std::sync::Arc::downgrade(receiver.receiver_guard()),
                     f,
+                )
+            }
+        }
+    });
+    quote! {
+        // `#[cfg(feature = "std")]` is evaluated against the destination crate.
+        // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates
+        // that do not declare `std` as an explicit feature.
+        #[allow(unexpected_cfgs)]
+        impl #type_ident {
+            #(#methods)*
+        }
+    }
+}
+
+fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    if signals.is_empty() {
+        return quote! {};
+    }
+    let methods = signals.iter().map(|s| {
+        let field = &s.ident;
+        let fn_name = Ident::new(&format!("connect_{field}_queued"), field.span());
+        let fn_name_str = fn_name.to_string();
+        let args_ty = &s.args_ty;
+        let example_doc = format!(
+            " # Examples\n\n```no_run\n# fn example(obj: &mut Receiver, receiver: &quartzite::core::ObjectBase) {{\n#     obj.{fn_name_str}(receiver, |_| {{}});\n# }}\n```"
+        );
+        quote! {
+            /// Connects this signal to a slot with `Queued` delivery.
+            ///
+            /// The slot is always posted to the receiver's dispatcher, even when emitted
+            /// from the same thread. The slot is silently skipped once `receiver` has been
+            /// dropped.
+            #[doc = #example_doc]
+            #[cfg(feature = "std")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+            #[inline]
+            pub fn #fn_name<F>(
+                &mut self,
+                receiver: &::quartzite::core::ObjectBase,
+                f: F,
+            ) -> ::quartzite::core::ConnectionId
+            where
+                F: ::core::ops::Fn(#args_ty) + ::core::marker::Send + ::core::marker::Sync + 'static,
+            {
+                self.#field.connect_queued(
+                    f,
+                    ::std::sync::Arc::downgrade(receiver.receiver_guard()),
                 )
             }
         }
@@ -786,21 +836,25 @@ mod tests {
         let mod_start = out
             .find("mod __quartzite_Foo")
             .expect("hidden mod not found");
-        // There will be two `impl Foo` blocks — one for emit wrappers and one for
-        // connect_auto wrappers. Find the last one.
-        let last_impl = out.rfind("impl Foo").expect("outer impl block not found");
+        // Three `impl Foo` blocks: emit wrappers [0], connect_auto wrappers [1],
+        // connect_queued wrappers [2]. The auto block is at index 1.
+        let positions: Vec<usize> = out.match_indices("impl Foo").map(|(i, _)| i).collect();
+        assert_eq!(positions.len(), 3, "expected 3 impl Foo blocks: {out}");
+        let auto_impl = positions[1];
+        let queued_impl = positions[2];
         assert!(
-            last_impl > mod_start,
+            auto_impl > mod_start,
             "connect_auto impl Foo block not after hidden mod: {out}"
         );
-        let mod_section = &out[mod_start..last_impl];
+        let mod_section = &out[mod_start..auto_impl];
         assert!(
             !mod_section.contains("connect_ticked_auto"),
             "connect_ticked_auto found inside hidden mod section: {mod_section}"
         );
+        let auto_section = &out[auto_impl..queued_impl];
         assert!(
-            out[last_impl..].contains("connect_ticked_auto"),
-            "connect_ticked_auto not found in outer impl block: {out}"
+            auto_section.contains("connect_ticked_auto"),
+            "connect_ticked_auto not found in auto impl block: {auto_section}"
         );
     }
 
@@ -816,6 +870,93 @@ mod tests {
         assert!(
             !out.contains("connect_auto"),
             "unexpected connect_auto wrapper for no-signal struct: {out}"
+        );
+    }
+
+    // connect_queued wrappers: generated for each signal, gated cfg(feature="std"), #[inline].
+    #[test]
+    fn connect_queued_wrapper_generated_for_signal() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub value_changed: Signal<(i32,)>,
+            }
+        });
+        assert!(
+            out.contains("pub fn connect_value_changed_queued"),
+            "missing connect_queued wrapper: {out}"
+        );
+        assert!(
+            out.contains("cfg (feature = \"std\")"),
+            "missing cfg(feature=\"std\") gate: {out}"
+        );
+        assert!(
+            out.contains("# [inline] pub fn connect_value_changed_queued"),
+            "missing #[inline] on connect_queued wrapper: {out}"
+        );
+        assert!(
+            out.contains("receiver : & :: quartzite :: core :: ObjectBase"),
+            "missing receiver param: {out}"
+        );
+        assert!(
+            out.contains("connect_queued"),
+            "wrapper must delegate to connect_queued: {out}"
+        );
+        assert!(
+            out.contains("receiver . receiver_guard ()"),
+            "wrapper must pass receiver.receiver_guard() to connect_queued: {out}"
+        );
+        assert!(
+            out.contains("allow (unexpected_cfgs)"),
+            "missing #[allow(unexpected_cfgs)] on impl block: {out}"
+        );
+        assert!(
+            out.contains("no_run"),
+            "missing # Examples no_run fence in generated doc: {out}"
+        );
+    }
+
+    // connect_queued wrappers live outside the hidden module.
+    #[test]
+    fn connect_queued_wrapper_lives_outside_hidden_mod() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        let mod_start = out
+            .find("mod __quartzite_Foo")
+            .expect("hidden mod not found");
+        // The connect_queued impl block is the last (third) impl block.
+        let last_impl = out.rfind("impl Foo").expect("outer impl block not found");
+        assert!(
+            last_impl > mod_start,
+            "connect_queued impl Foo block not after hidden mod: {out}"
+        );
+        let mod_section = &out[mod_start..last_impl];
+        assert!(
+            !mod_section.contains("connect_ticked_queued"),
+            "connect_ticked_queued found inside hidden mod section: {mod_section}"
+        );
+        assert!(
+            out[last_impl..].contains("connect_ticked_queued"),
+            "connect_ticked_queued not found in outer impl block: {out}"
+        );
+    }
+
+    // No signals → no connect_queued wrappers.
+    #[test]
+    fn connect_queued_wrapper_absent_with_no_signals() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub count: i32,
+            }
+        });
+        assert!(
+            !out.contains("connect_queued"),
+            "unexpected connect_queued wrapper for no-signal struct: {out}"
         );
     }
 
