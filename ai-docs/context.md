@@ -79,11 +79,7 @@ AsObject        AsWidget        AsWidget (generated)
 
 ### Ownership Model
 
-**Open question** — two candidates:
-- **Arena/SlotMap** (`ObjectId` handles, central store) — no lifetime issues, cache-friendly
-- **`Rc<RefCell<>>`** — simpler code, familiar pattern, runtime overhead
-
-Decision deferred until `quartzite-runtime` is designed.
+**Arena/SlotMap** (`ObjectId` handles, `slotmap::SlotMap<DefaultKey, Box<dyn Object>>` central store). Objects are owned by `ObjectTree`; callers hold `ObjectId` (logical u64 identity) or `ObjectRef<T>` / `WeakRef<T>` typed wrappers. `ObjectTree` is wrapped in `Mutex<ObjectTree>` in `Application` — `Object: Send` supertrait ensures soundness without unsafe.
 
 ### Signal/Slot Lifetime Safety
 
@@ -105,20 +101,19 @@ Decision deferred until `quartzite-runtime` is designed.
 | `AsObject` vs `Object` | Separate: `AsObject` = pure accessor; `Object` = meta-system |
 | Crate naming | `quartzite-*` |
 | Python interop | Deferred; reflection layer designed to enable it later |
-| Object ownership | Open question (arena vs Rc<RefCell<>>) |
+| Object ownership | Arena/SlotMap — `ObjectTree` + `ObjectId` + `Mutex<ObjectTree>` in Application |
 
 ## Plans (Implementation Order)
 
 1. `quartzite-core` — core types + traits + signal + value ✅
-2. `quartzite-macros` — Extend + Object + object_impl derive macros
-3. `quartzite-runtime` — Application, EventLoop, ObjectTree
+2. `quartzite-macros` — Extend + Object + object_impl derive macros ✅
+3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
 4. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
 5. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 6. `quartzite-paint` + `quartzite-style` — painter + theming
 
 ## Open Questions
 
-- Object ownership model: arena (`SlotMap`) vs `Rc<RefCell<>>`?
 - Async/await integration strategy
 - Accessibility (a11y) support
 - No-std support scope (core only, or further?)
