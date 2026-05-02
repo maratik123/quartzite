@@ -49,6 +49,34 @@ Red flags (STOP and ask):
 
 Create `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `## Acceptance Criteria` (required).
 
+The spec header **must** include the tracking issue URL (the issue from `$ARGUMENTS`):
+
+```markdown
+# [Task name]
+
+**Source:** issue #<N>
+**Date:** [YYYY-MM-DD]
+**Tracked in:** https://github.com/<owner>/<repo>/issues/<N>
+
+## Scope
+## Out of scope
+## Deferred
+- what | why
+
+## Key decisions
+| Question | Decision |
+|---|---|
+
+## Technical constraints
+
+## Acceptance Criteria
+| # | Criterion |
+|---|-----------|
+| AC1 | [specific, verifiable condition] |
+
+## Open questions
+```
+
 AC rules:
 - ✅ "Function returns `Err` if input is empty"
 - ✅ "Event is emitted when state transitions to Ready"
@@ -226,7 +254,9 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 6. `git push -u origin <branch>`
 7. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
-   - `Closes #<issue-number>` to auto-close the issue on merge
+   - **Tracking** — reference the issue from `$ARGUMENTS`:
+     - PR fully resolves the issue → `Closes #<issue-number>` (auto-closes on merge)
+     - PR is partial (multi-PR effort or umbrella issue stays open) → `Refs #<issue-number>` (no `Closes`)
    - **Test plan** (checklist: one line per AC, plus clippy/build)
 8. Post the PR URL to the user.
 
@@ -238,7 +268,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 |---|---|
 | Step 3 | All issue items extracted? |
 | Step 4 | Scope confirmed? |
-| Step 5 | All decisions confirmed? Every AC verifiable? |
+| Step 5 | All decisions confirmed? Every AC verifiable? Spec includes `**Tracked in:**` (issue from `$ARGUMENTS`)? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
@@ -248,4 +278,4 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? `Closes #N` in body? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? `Closes #N` (full resolution) or `Refs #N` (partial) in PR body? PR created and URL posted? |
