@@ -22,7 +22,9 @@ fn auto_cross_thread_no_dispatcher_silent_drop() {
 
     // Callback panics if called — verifies it is never invoked.
     let mut sig: Signal<(i32,)> = Signal::new();
-    sig.connect_auto(foreign_id, |_| {
+    // Weak::new() — no real receiver; the guard check will skip silently too,
+    // but the primary assertion is that no panic occurs without a dispatcher.
+    sig.connect_auto(foreign_id, std::sync::Weak::new(), |_| {
         panic!("slot must not be called when no dispatcher is installed");
     });
 

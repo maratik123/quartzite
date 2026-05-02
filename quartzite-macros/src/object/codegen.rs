@@ -17,6 +17,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
     let lookup_prop_fn = emit_lookup_prop_fn(type_ident, &ir.props);
     let lookup_signal_fn = emit_lookup_signal_fn(type_ident, &ir.signals);
     let emit_wrappers = emit_signal_wrappers(type_ident, &ir.signals);
+    let connect_auto_wrappers = emit_connect_auto_wrappers(type_ident, &ir.signals);
 
     quote! {
         #[doc(hidden)]
@@ -32,6 +33,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
         }
 
         #emit_wrappers
+        #connect_auto_wrappers
     }
 }
 
@@ -302,6 +304,49 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
         }
     });
     quote! {
+        impl #type_ident {
+            #(#methods)*
+        }
+    }
+}
+
+fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    if signals.is_empty() {
+        return quote! {};
+    }
+    let methods = signals.iter().map(|s| {
+        let field = &s.ident;
+        let fn_name = Ident::new(&format!("connect_{field}_auto"), field.span());
+        let args_ty = &s.args_ty;
+        quote! {
+            /// Connects this signal to a slot with `Auto` delivery.
+            ///
+            /// Same-thread emits call `f` directly; cross-thread emits post to the dispatcher.
+            /// The slot is silently skipped once `receiver` has been dropped.
+            #[cfg(feature = "std")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+            #[inline]
+            pub fn #fn_name<F>(
+                &mut self,
+                receiver: &::quartzite::core::ObjectBase,
+                f: F,
+            ) -> ::quartzite::core::ConnectionId
+            where
+                F: ::core::ops::Fn(#args_ty) + ::core::marker::Send + ::core::marker::Sync + 'static,
+            {
+                self.#field.connect_auto(
+                    receiver.thread_id,
+                    ::std::sync::Arc::downgrade(receiver.receiver_guard()),
+                    f,
+                )
+            }
+        }
+    });
+    quote! {
+        // `#[cfg(feature = "std")]` is evaluated against the destination crate.
+        // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates
+        // that do not declare `std` as an explicit feature.
+        #[allow(unexpected_cfgs)]
         impl #type_ident {
             #(#methods)*
         }
@@ -690,6 +735,90 @@ mod tests {
     }
 
     // emit wrappers live outside the hidden module.
+    // connect_auto wrappers: generated for each signal, gated cfg(feature="std"), #[inline].
+    #[test]
+    fn connect_auto_wrapper_generated_for_signal() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub value_changed: Signal<(i32,)>,
+            }
+        });
+        assert!(
+            out.contains("pub fn connect_value_changed_auto"),
+            "missing connect_auto wrapper: {out}"
+        );
+        assert!(
+            out.contains("cfg (feature = \"std\")"),
+            "missing cfg(feature=\"std\") gate: {out}"
+        );
+        assert!(
+            out.contains("# [inline] pub fn connect_value_changed_auto"),
+            "missing #[inline] on connect_auto wrapper: {out}"
+        );
+        assert!(
+            out.contains("receiver : & :: quartzite :: core :: ObjectBase"),
+            "missing receiver param: {out}"
+        );
+        assert!(
+            out.contains("connect_auto"),
+            "wrapper must delegate to connect_auto: {out}"
+        );
+        assert!(
+            out.contains("receiver . thread_id"),
+            "wrapper must pass receiver.thread_id to connect_auto: {out}"
+        );
+        assert!(
+            out.contains("receiver . receiver_guard ()"),
+            "wrapper must pass receiver.receiver_guard() to connect_auto: {out}"
+        );
+    }
+
+    // connect_auto wrappers live outside the hidden module.
+    #[test]
+    fn connect_auto_wrapper_lives_outside_hidden_mod() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        let mod_start = out
+            .find("mod __quartzite_Foo")
+            .expect("hidden mod not found");
+        // There will be two `impl Foo` blocks — one for emit wrappers and one for
+        // connect_auto wrappers. Find the last one.
+        let last_impl = out.rfind("impl Foo").expect("outer impl block not found");
+        assert!(
+            last_impl > mod_start,
+            "connect_auto impl Foo block not after hidden mod: {out}"
+        );
+        let mod_section = &out[mod_start..last_impl];
+        assert!(
+            !mod_section.contains("connect_ticked_auto"),
+            "connect_ticked_auto found inside hidden mod section: {mod_section}"
+        );
+        assert!(
+            out[last_impl..].contains("connect_ticked_auto"),
+            "connect_ticked_auto not found in outer impl block: {out}"
+        );
+    }
+
+    // No signals → no connect_auto wrappers.
+    #[test]
+    fn connect_auto_wrapper_absent_with_no_signals() {
+        let out = emit(quote! {
+            struct Foo {
+                #[prop]
+                pub count: i32,
+            }
+        });
+        assert!(
+            !out.contains("connect_auto"),
+            "unexpected connect_auto wrapper for no-signal struct: {out}"
+        );
+    }
+
     // emit wrappers live outside the hidden module (in the outer impl block, not in mod __quartzite_Foo).
     #[test]
     fn emit_wrappers_live_outside_hidden_mod() {
