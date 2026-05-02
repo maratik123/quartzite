@@ -18,7 +18,7 @@
 | `quartzite-paint` | Painter, Color, Font, Pen, Brush, Image, Path |
 | `quartzite-style` | Style trait, Palette, StyleRegistry |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout, Button, Label, LineEdit, … |
-| `quartzite` (facade) | Re-exports all crates; prelude |
+| `quartzite` (facade) | Re-exports all crates; curated `prelude` module ✅ |
 
 Python interop (`quartzite-python` via PyO3) is **deferred** — the reflection layer must not block it.
 
@@ -109,9 +109,10 @@ AsObject        AsWidget        AsWidget (generated)
 1. `quartzite-core` — core types + traits + signal + value ✅
 2. `quartzite-macros` — Extend + Object + object_impl derive macros ✅
 3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
-4. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
-5. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
-6. `quartzite-paint` + `quartzite-style` — painter + theming
+4. `quartzite` (facade) — prelude re-exports, Cargo metadata, docs.rs config ✅
+5. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
+6. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
+7. `quartzite-paint` + `quartzite-style` — painter + theming
 
 ## Open Questions
 

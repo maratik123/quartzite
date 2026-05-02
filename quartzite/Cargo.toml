@@ -1,23 +1,23 @@
 [package]
-name = "quartzite-core"
+name = "quartzite"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Core object model, signals, properties, and value types for quartzite"
+description = "A GUI and object framework for Rust"
 
 [features]
 default = ["std"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
-## Disable to build in `no_std + alloc` environments.
-std = []
+## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
+std = ["quartzite-core/std"]
 
 [dependencies]
+quartzite-core    = { path = "../quartzite-core", default-features = false }
+quartzite-macros  = { path = "../quartzite-macros" }
+quartzite-runtime = { path = "../quartzite-runtime" }
 document-features = "~0.2"
-
-[dev-dependencies]
-rstest = "0.26.1"
 
 [package.metadata.docs.rs]
 features = ["std"]

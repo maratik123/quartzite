@@ -22,6 +22,7 @@ pub struct ObjectBase {
     pub dynamic_properties: BTreeMap<String, Value>,
     pub signals_blocked: bool,
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub thread_id: std::thread::ThreadId,
 }
 
@@ -58,6 +59,7 @@ impl ObjectBase {
     }
 
     #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn is_on_current_thread(&self) -> bool {
         self.thread_id == std::thread::current().id()
     }

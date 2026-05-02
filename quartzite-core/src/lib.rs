@@ -1,4 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = document_features::document_features!()]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -31,6 +33,7 @@ pub use object_base::ObjectBase;
 pub use receiver_guard::ReceiverGuard;
 pub use signal::{ConnectionType, Signal};
 #[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub use signal::{
     DispatcherAlreadySet, QueuedDispatcher, queued_dispatcher, set_queued_dispatcher,
 };

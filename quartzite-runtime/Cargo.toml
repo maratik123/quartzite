@@ -2,9 +2,17 @@
 name = "quartzite-runtime"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Application runtime, event loop, and object tree for quartzite"
 
 [dependencies]
 quartzite-core = { path = "../quartzite-core" }
 slotmap = "1"
 
 [dev-dependencies]
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]
