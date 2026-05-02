@@ -122,3 +122,11 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** Run `cargo fmt --all` (and re-check with `cargo fmt --all -- --check`) after *every* code change — including fixes made after self-review. The verify step (Step 9) is not a one-time gate; it must be re-run after any subsequent edit before committing. Never commit without a clean `cargo fmt --all -- --check` immediately before the commit.
 
 **Escalated?** hook
+
+### 2026-05-02 — process — verify relative markdown links before committing
+
+**What happened:** Files generated in `ai-docs/deferred/` used `../../plans/done/` as the relative path to `ai-docs/plans/done/`. The correct path is `../plans/done/` — one level up from `ai-docs/deferred/` reaches `ai-docs/`, then `plans/done/` is a sibling of `deferred/`. GitHub rendered the broken paths as `/plans/done/` (repo root), which does not exist.
+
+**Rule:** After generating files with relative links, verify at least one link manually: trace the path on disk (`realpath` or mental directory traversal) before committing. From `ai-docs/deferred/file.md`, one `..` reaches `ai-docs/`; two `../..` reaches the repo root.
+
+**Escalated?** no
