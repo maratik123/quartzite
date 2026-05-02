@@ -1,6 +1,7 @@
+//! Fixed-size worker thread pool for background task execution.
 use std::{
-    sync::Mutex,
     sync::mpsc::{self, Receiver, Sender},
+    sync::Mutex,
     thread::{self, JoinHandle},
 };
 
@@ -17,6 +18,20 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
+    /// Create a pool with `size` worker threads.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `size` is 0.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ThreadPool;
+    ///
+    /// let pool = ThreadPool::new(4);
+    /// pool.spawn(|| println!("hello from worker"));
+    /// ```
     pub fn new(size: usize) -> Self {
         assert!(size > 0, "thread pool size must be at least 1");
         let (sender, receiver) = mpsc::channel::<Task>();
@@ -42,6 +57,15 @@ impl ThreadPool {
     }
 
     /// Submit a task. Returns immediately; the task runs on a worker thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ThreadPool;
+    ///
+    /// let pool = ThreadPool::new(2);
+    /// pool.spawn(|| println!("running on a worker thread"));
+    /// ```
     pub fn spawn(&self, f: impl FnOnce() + Send + 'static) {
         if let Some(s) = &self.sender {
             s.send(Box::new(f)).ok();

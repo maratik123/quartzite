@@ -39,6 +39,7 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 - Strict clippy (enforced).
 - Prefer Rust idioms over literal C++ ports. When in doubt, ask.
 - Let chains (`if let A = x && let B = y { ... }`) are valid in this codebase (edition 2024). Do not avoid them. Always format via `cargo fmt`, never `rustfmt <file>` directly.
+- **Documentation:** Every crate must have `#![deny(missing_docs)]` in its `lib.rs`. Every public item must have at least a one-line `///` doc comment. Every new public item with only a single-line doc must include a `# Examples` block. Proc-macro examples use `no_run`; runtime items needing an event loop use `no_run`; pure library types use compiling doctests.
 
 ## Workflow
 

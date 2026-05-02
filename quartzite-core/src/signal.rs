@@ -1,3 +1,4 @@
+//! Typed signals with multiple connection modes (`Direct`, `SingleShot`, `Queued`, `Auto`).
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 #[cfg(feature = "std")]
@@ -14,8 +15,29 @@ use crate::receiver_guard::ReceiverGuard;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConnectionType {
     /// Invoke the slot immediately in the emitting call stack.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect_typed(|args| println!("direct: {}", args.0), ConnectionType::Direct);
+    /// sig.emit(&(42,));
+    /// ```
     Direct,
     /// Invoke the slot exactly once, then automatically disconnect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect_typed(|_| {}, ConnectionType::SingleShot);
+    /// sig.emit(&(1,)); // fires once
+    /// sig.emit(&(2,)); // slot already disconnected; no-op
+    /// ```
     SingleShot,
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
     #[cfg(feature = "std")]
@@ -45,6 +67,7 @@ struct SlotEntry<Args: 'static> {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub trait QueuedDispatcher: Send + Sync {
+    /// Post a closure to be executed on the event-loop thread.
     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
 }
 
@@ -60,6 +83,16 @@ pub struct DispatcherAlreadySet;
 
 /// Register the process-wide queued dispatcher. Called by `Application::new()`.
 /// Returns `Ok(())` on the first call; `Err(DispatcherAlreadySet)` on subsequent calls.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::Arc;
+/// use quartzite_core::signal::{QueuedDispatcher, set_queued_dispatcher};
+///
+/// // Normally called by Application::new(); shown here for illustration.
+/// // set_queued_dispatcher(Arc::new(my_dispatcher));
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), DispatcherAlreadySet> {
@@ -68,6 +101,16 @@ pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), Dispatc
 
 /// Returns a reference to the registered dispatcher, or `None` before
 /// `Application` has been created.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_core::signal::queued_dispatcher;
+///
+/// if let Some(d) = queued_dispatcher() {
+///     d.post(Box::new(|| println!("posted to event loop")));
+/// }
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn queued_dispatcher() -> Option<&'static Arc<dyn QueuedDispatcher>> {
@@ -173,6 +216,16 @@ impl<Args: 'static> Default for Signal<Args> {
 }
 
 impl<Args: 'static> Signal<Args> {
+    /// Create a new signal with no slots connected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect(|args| println!("received {}", args.0));
+    /// ```
     pub fn new() -> Self {
         Signal {
             slots: Vec::new(),
@@ -185,6 +238,16 @@ impl<Args: 'static> Signal<Args> {
 
     /// Connect a `Direct` slot. Returns the `ConnectionId` that can be used to
     /// disconnect later.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let id = sig.connect(|args| println!("value = {}", args.0));
+    /// sig.disconnect(id);
+    /// ```
     pub fn connect<F: Fn(&Args) + Send + 'static>(&mut self, f: F) -> ConnectionId {
         self.connect_typed(f, ConnectionType::Direct)
     }
@@ -194,6 +257,17 @@ impl<Args: 'static> Signal<Args> {
     /// Only `Direct` and `SingleShot` are valid here. Use [`connect_queued`](Self::connect_queued)
     /// for `Queued` and [`connect_auto`](Self::connect_auto) for `Auto` — both require additional
     /// parameters (`ReceiverGuard` / `ThreadId`) that this method cannot accept.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let id = sig.connect_typed(|args| println!("{}", args.0), ConnectionType::SingleShot);
+    /// sig.emit(&(1,)); // fires once, then disconnects
+    /// sig.disconnect(id); // safe to call even after auto-disconnect
+    /// ```
     pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
         &mut self,
         f: F,
@@ -218,6 +292,17 @@ impl<Args: 'static> Signal<Args> {
     /// The receiver guard is checked before posting: if the guard has expired
     /// (receiver destroyed), the closure is silently discarded. Requires
     /// `Args: Clone + Send` so the arguments can be moved across threads.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::{receiver_guard::ReceiverGuard, signal::Signal};
+    ///
+    /// let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let _id = sig.connect_queued(|args: (i32,)| println!("queued: {}", args.0), guard_weak);
+    /// drop(guard_arc); // receiver destroyed; subsequent emits silently skip this slot
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_queued<F>(&mut self, f: F, guard: std::sync::Weak<ReceiverGuard>) -> ConnectionId
@@ -248,6 +333,18 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// The `receiver_thread_id` is captured at connect time and is not updated
     /// if the receiver migrates to a different thread later.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::thread;
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// // Connect with the current thread's id; same-thread emits call directly.
+    /// let _id = sig.connect_auto(thread::current().id(), |args: (i32,)| println!("auto: {}", args.0));
+    /// sig.emit(&(99,)); // same thread → Direct delivery
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_auto<F>(
@@ -269,6 +366,17 @@ impl<Args: 'static> Signal<Args> {
     }
 
     /// Remove the slot identified by `id`. No-op if `id` is not found.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<()> = Signal::new();
+    /// let id = sig.connect(|_| {});
+    /// sig.disconnect(id);
+    /// sig.emit(&()); // slot no longer called
+    /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
         self.slots.retain(|s| s.id != id);
         #[cfg(feature = "std")]
@@ -287,6 +395,18 @@ impl<Args: 'static> Signal<Args> {
     /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
     /// or `emit` on the *same* signal instance during emission — the borrow checker
     /// prevents it. Cross-signal mutation from within a slot is fine.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let mut received = 0i32;
+    /// // Note: closures that capture by &mut can't be used with Signal; use Arc/Mutex for shared state.
+    /// sig.connect(|_| {});
+    /// sig.emit(&(42,));
+    /// ```
     pub fn emit(&mut self, args: &Args) {
         let mut i = 0;
         while i < self.slots.len() {
@@ -317,8 +437,8 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::sync::{
-        Arc, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
+        Arc, Mutex, OnceLock,
     };
 
     // ---------------------------------------------------------------------------

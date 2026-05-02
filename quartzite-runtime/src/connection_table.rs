@@ -1,3 +1,4 @@
+//! Process-wide store of active signal–slot connections.
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock, Weak},
@@ -16,10 +17,15 @@ type SignalIndex = usize;
 
 /// Record of a single active signal → slot connection.
 pub struct ConnectionRecord {
+    /// `ObjectId` of the object that owns the signal.
     pub sender_id: ObjectId,
+    /// Index of the signal in the sender's `MetaObject::signals` slice.
     pub signal_index: SignalIndex,
+    /// `ObjectId` of the object that owns the slot.
     pub receiver_id: ObjectId,
+    /// Weak reference to the receiver's lifetime token; used to detect receiver destruction.
     pub receiver_guard: Weak<ReceiverGuard>,
+    /// The callable slot, discriminated by delivery mode.
     pub slot: SlotKind,
 }
 
@@ -27,6 +33,7 @@ type DirectCallback = Box<dyn Fn(&[quartzite_core::Value]) + Send + Sync>;
 
 /// The callable part of a connection, discriminated by delivery mode.
 pub enum SlotKind {
+    /// Invoke the callback directly on the emitting thread.
     Direct(DirectCallback),
 }
 
@@ -42,6 +49,20 @@ pub struct ConnectionTable {
 }
 
 impl ConnectionTable {
+    /// Create a new, empty `ConnectionTable` backed by `event_loop` for queued dispatch.
+    ///
+    /// Returns an `Arc` because `ConnectionTable` is shared between the application and
+    /// the `QueuedDispatcher` registration.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    ///
+    /// let event_loop = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(event_loop);
+    /// ```
     pub fn new(event_loop: Arc<EventLoop>) -> Arc<Self> {
         Arc::new(Self {
             connections: RwLock::new(HashMap::new()),
@@ -53,12 +74,38 @@ impl ConnectionTable {
 
     /// Register this table as the process-wide `QueuedDispatcher`.
     /// Returns `Err(DispatcherAlreadySet)` if a dispatcher is already registered.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(el);
+    /// table.install_as_dispatcher().expect("no dispatcher registered yet");
+    /// ```
     pub fn install_as_dispatcher(self: &Arc<Self>) -> Result<(), DispatcherAlreadySet> {
         set_queued_dispatcher(Arc::clone(self) as Arc<dyn QueuedDispatcher>)
     }
 
     /// Register a new connection. Captures `receiver_guard` from the receiver's
     /// `ObjectBase` at call time.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::connection_table::SlotKind;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(el);
+    /// let (_, guard_weak) = ReceiverGuard::new_pair();
+    /// let _id = table.register(ObjectId::new(), 0, ObjectId::new(), guard_weak,
+    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// ```
     pub fn register(
         &self,
         sender_id: ObjectId,
@@ -92,6 +139,22 @@ impl ConnectionTable {
     }
 
     /// Remove a connection by id.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::connection_table::SlotKind;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(el);
+    /// let (_, guard_weak) = ReceiverGuard::new_pair();
+    /// let id = table.register(ObjectId::new(), 0, ObjectId::new(), guard_weak,
+    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// table.remove(id);
+    /// ```
     pub fn remove(&self, id: ConnectionId) {
         if let Some(record) = self.connections.write().unwrap().remove(&id) {
             if let Some(v) = self
@@ -114,6 +177,23 @@ impl ConnectionTable {
     }
 
     /// Remove all connections where `id` is the receiver (called on object destroy).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::connection_table::SlotKind;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(el);
+    /// let receiver_id = ObjectId::new();
+    /// let (_, guard_weak) = ReceiverGuard::new_pair();
+    /// table.register(ObjectId::new(), 0, receiver_id, guard_weak,
+    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// table.remove_by_receiver(receiver_id); // removes all slots for this receiver
+    /// ```
     pub fn remove_by_receiver(&self, id: ObjectId) {
         let ids: Vec<ConnectionId> = self
             .by_receiver
@@ -133,6 +213,19 @@ impl ConnectionTable {
     }
 
     /// Returns connection ids for a given (sender, signal) pair.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let table = ConnectionTable::new(el);
+    /// let ids = table.receivers_for_signal(ObjectId::new(), 0);
+    /// assert!(ids.is_empty());
+    /// ```
     pub fn receivers_for_signal(
         &self,
         sender_id: ObjectId,

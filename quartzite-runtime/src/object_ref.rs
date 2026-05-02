@@ -1,3 +1,4 @@
+//! Typed handles to runtime objects: `ObjectRef<T>` (live) and `WeakRef<T>` (unvalidated).
 use std::marker::PhantomData;
 
 use quartzite_core::ObjectId;
@@ -16,6 +17,21 @@ pub struct ObjectRef<T> {
 }
 
 impl<T> ObjectRef<T> {
+    /// Wrap `id` in a typed `ObjectRef`.
+    ///
+    /// No liveness check is performed here; the caller must ensure the object
+    /// exists in the tree.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::ObjectRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let r: ObjectRef<()> = ObjectRef::new(id);
+    /// assert_eq!(r.id(), id);
+    /// ```
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,
@@ -23,10 +39,35 @@ impl<T> ObjectRef<T> {
         }
     }
 
+    /// Returns the underlying `ObjectId`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::ObjectRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let r: ObjectRef<()> = ObjectRef::new(id);
+    /// assert_eq!(r.id(), id);
+    /// ```
     pub fn id(&self) -> ObjectId {
         self.id
     }
 
+    /// Convert this `ObjectRef` into a `WeakRef` with no liveness guarantee.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::ObjectRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let r: ObjectRef<()> = ObjectRef::new(id);
+    /// let w = r.downgrade();
+    /// assert_eq!(w.id(), id);
+    /// ```
     pub fn downgrade(self) -> WeakRef<T> {
         WeakRef {
             id: self.id,
@@ -66,6 +107,21 @@ pub struct WeakRef<T> {
 }
 
 impl<T> WeakRef<T> {
+    /// Wrap `id` in a typed `WeakRef`.
+    ///
+    /// No liveness check is performed here. Use [`is_valid`](Self::is_valid) before
+    /// accessing the object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::WeakRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let w: WeakRef<()> = WeakRef::new(id);
+    /// assert_eq!(w.id(), id);
+    /// ```
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,
@@ -73,10 +129,35 @@ impl<T> WeakRef<T> {
         }
     }
 
+    /// Returns the underlying `ObjectId`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::WeakRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let w: WeakRef<()> = WeakRef::new(id);
+    /// assert_eq!(w.id(), id);
+    /// ```
     pub fn id(&self) -> ObjectId {
         self.id
     }
 
+    /// Returns `true` if the referenced object is still present in `tree`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::{ObjectTree, WeakRef};
+    ///
+    /// let tree = ObjectTree::new();
+    /// let id = ObjectId::new();
+    /// let w: WeakRef<()> = WeakRef::new(id);
+    /// assert!(!w.is_valid(&tree)); // id was never inserted
+    /// ```
     pub fn is_valid(&self, tree: &ObjectTree) -> bool {
         tree.contains(self.id)
     }

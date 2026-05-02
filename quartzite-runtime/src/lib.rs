@@ -1,3 +1,10 @@
+//! Runtime layer for quartzite: event loop, object tree, connection table, timers, and threads.
+//!
+//! Entry point is [`Application::new`](application::Application::new), which initialises the
+//! singleton and installs the queued dispatcher. Call [`Application::exec`](application::Application::exec)
+//! on the main thread to run the event loop.
+#![deny(missing_docs)]
+
 pub mod application;
 pub mod connection_table;
 pub mod event_loop;

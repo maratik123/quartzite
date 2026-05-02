@@ -1,5 +1,11 @@
+//! Core object model, signal/slot system, and reflection metadata for quartzite.
+//!
+//! This crate is `no_std`-compatible when the `std` feature is disabled (requires `alloc`).
+//! All runtime-specific functionality (event loops, timers, thread pools) lives in
+//! `quartzite-runtime`.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![deny(missing_docs)]
 #![doc = document_features::document_features!()]
 
 #[cfg(not(feature = "std"))]

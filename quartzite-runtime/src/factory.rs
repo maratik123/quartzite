@@ -1,3 +1,4 @@
+//! Object factory: creates objects by class name for scripting and serialization.
 use std::collections::HashMap;
 
 use quartzite_core::traits::Object;
@@ -10,6 +11,16 @@ pub struct ObjectFactory {
 }
 
 impl ObjectFactory {
+    /// Create an empty `ObjectFactory` with no registered constructors.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// let factory = ObjectFactory::new();
+    /// assert!(factory.create("Unknown").is_none());
+    /// ```
     pub fn new() -> Self {
         Self {
             registry: HashMap::new(),
@@ -17,6 +28,15 @@ impl ObjectFactory {
     }
 
     /// Register a constructor for `class_name`. Overwrites any existing entry.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// let mut factory = ObjectFactory::new();
+    /// // factory.register("MyObject", || Box::new(MyObject::new()));
+    /// ```
     pub fn register<F>(&mut self, class_name: impl Into<String>, ctor: F)
     where
         F: Fn() -> Box<dyn Object> + Send + Sync + 'static,
@@ -25,6 +45,15 @@ impl ObjectFactory {
     }
 
     /// Create an instance of `class_name`. Returns `None` if not registered.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// let factory = ObjectFactory::new();
+    /// assert!(factory.create("Unknown").is_none());
+    /// ```
     pub fn create(&self, class_name: &str) -> Option<Box<dyn Object>> {
         self.registry.get(class_name).map(|ctor| ctor())
     }

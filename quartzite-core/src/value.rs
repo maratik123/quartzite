@@ -1,3 +1,4 @@
+//! Dynamic value type and type-conversion traits.
 #[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 #[cfg(feature = "std")]
@@ -20,8 +21,11 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 /// }
 /// ```
 pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
+    /// Returns a static string identifying the concrete type (e.g. `"MyVal"`).
     fn type_name(&self) -> &'static str;
+    /// Clone this value into a new `Box<dyn CustomValue>`.
     fn clone_box(&self) -> Box<dyn CustomValue>;
+    /// Upcast to `&dyn Any` for checked downcasting.
     fn as_any(&self) -> &dyn core::any::Any;
 }
 
@@ -45,16 +49,26 @@ pub struct WeakObjectRef(pub u64);
 /// `Value::Null` is the default.
 #[derive(Clone, Debug, Default)]
 pub enum Value {
+    /// Absence of a value; the default variant.
     #[default]
     Null,
+    /// A boolean value.
     Bool(bool),
+    /// A 64-bit signed integer.
     Int(i64),
+    /// A 64-bit floating-point number.
     Float(f64),
+    /// A UTF-8 string.
     String(String),
+    /// An ordered list of values.
     List(Vec<Value>),
+    /// A string-keyed map of values (ordered by key).
     Map(BTreeMap<String, Value>),
+    /// Raw byte sequence.
     Bytes(Vec<u8>),
+    /// An arbitrary user-defined value implementing [`CustomValue`].
     Custom(Arc<dyn CustomValue>),
+    /// A weak reference to a runtime object (see [`WeakObjectRef`]).
     Object(WeakObjectRef),
 }
 
@@ -81,6 +95,16 @@ impl PartialEq for Value {
 
 impl Value {
     /// Returns a static string naming the active variant (for use in error messages).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::Value;
+    ///
+    /// assert_eq!(Value::Int(42).type_name(), "Int");
+    /// assert_eq!(Value::Null.type_name(), "Null");
+    /// assert_eq!(Value::Bool(true).type_name(), "Bool");
+    /// ```
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Null => "Null",
@@ -100,7 +124,9 @@ impl Value {
 /// Error returned when a `FromValue` conversion fails due to a type mismatch.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeError {
+    /// The type name that was expected (e.g. `"Int"`).
     pub expected: &'static str,
+    /// The type name that was actually found (e.g. `"String"`).
     pub got: &'static str,
 }
 
@@ -114,13 +140,51 @@ impl core::fmt::Display for TypeError {
     }
 }
 
-/// Convert a `Value` into a concrete Rust type.
+/// Convert a [`Value`] into a concrete Rust type.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::{FromValue, Value};
+///
+/// assert_eq!(i64::from_value(Value::Int(7)), Ok(7i64));
+/// assert!(bool::from_value(Value::Int(0)).is_err());
+/// ```
 pub trait FromValue: Sized {
+    /// Attempt to convert `val` into `Self`.
+    ///
+    /// Returns `Err(TypeError)` when `val` is not the expected variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::{FromValue, Value};
+    ///
+    /// assert_eq!(i64::from_value(Value::Int(42)), Ok(42i64));
+    /// ```
     fn from_value(val: Value) -> Result<Self, TypeError>;
 }
 
-/// Convert a concrete Rust type into a `Value`.
+/// Convert a concrete Rust type into a [`Value`].
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::{IntoValue, Value};
+///
+/// assert_eq!(true.into_value(), Value::Bool(true));
+/// assert_eq!(3.14f64.into_value(), Value::Float(3.14));
+/// ```
 pub trait IntoValue {
+    /// Wrap `self` in the appropriate `Value` variant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::{IntoValue, Value};
+    ///
+    /// assert_eq!(42i64.into_value(), Value::Int(42));
+    /// ```
     fn into_value(self) -> Value;
 }
 
