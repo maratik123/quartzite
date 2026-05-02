@@ -83,6 +83,33 @@ Task(subagent_type="general-purpose", prompt="
 
 Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 
+### Design Amendment (re-entrant — triggered from Step 8 or Step 11)
+
+If implementation (Step 8) reveals a necessary deviation from the design, **or** a self-review
+finding (Step 11) requires a design change rather than a code fix:
+
+1. **Stop** the current step immediately. Do not silently continue with the deviated approach.
+2. **Surface to user:** describe what changed and why the design must be updated. Wait for approval.
+3. Update `ai-docs/plans/YYYY-MM-DD-name.design.md` to reflect the new approach.
+4. Re-run design review — same as Step 7 (max 3 rounds total across all design-review runs):
+   ```
+   Task(subagent_type="general-purpose", prompt="
+     Read .claude/agents/design-review.md and follow it.
+     Design: ai-docs/plans/YYYY-MM-DD-name.design.md
+     Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
+     Context: design was amended during implementation / self-review — describe what changed.
+   ")
+   ```
+5. **On GO** → resume from the step that triggered the amendment:
+   - Triggered from Step 8 → resume Step 8 (continue the remaining subtasks)
+   - Triggered from Step 11 → mark the finding `✅ Fixed (design amended)`, then return to Step 10
+6. **On ITERATE** → fix the design and re-run design review (counts against the 3-round limit).
+7. **On STOP** → surface to user; do not proceed until the design issue is resolved.
+
+> Silently implementing a deviation without triggering Design Amendment — FORBIDDEN.
+
+---
+
 ### Step 8: Implementation
 
 > First action: verify both spec and design (with GO verdict) exist. Missing = previous steps incomplete.
@@ -106,6 +133,7 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
   5. If N=3 of M≥5 → handoff via Task (see `/context-reset`)
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
+- Implementation reveals design must change → trigger **Design Amendment** above, then resume here.
 
 ### Step 9: Verify
 
@@ -165,6 +193,7 @@ Task(subagent_type="general-purpose", prompt="
 For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file:
 
 - **Fix it** → mark `✅ Fixed` in the progress file, implement the change.
+- **Requires a design change** → trigger **Design Amendment** above (user approval required); on return mark `✅ Fixed (design amended)`.
 - **Object to it** (finding is wrong or intentionally out of scope):
   - `nit` / `minor`: agent may object autonomously — write reason, mark `⚠️ Objected: <reason>`.
   - `major` / `blocker`: **surface to user first** before objecting. User must approve the objection.
@@ -195,7 +224,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - **Test plan** (checklist: one line per AC, plus clippy/build)
 7. Post the PR URL to the user.
 
-**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch
+**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
 ## Gate checklist
 
@@ -211,5 +240,6 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
 | Step 9.5 | INDEX.md updated? spec/design moved to done/? context.md + README.md current? |
 | Step 10 | Self-review APPROVE before deleting progress file? |
-| Step 11 | `major`/`blocker` objections confirmed by user? |
+| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
+| Design Amendment | User approved the amendment? Design review returned GO before resuming? |
 | Step 12 | Branch ≠ master? `Cargo.lock` refreshed? `Closes #N` in body? PR created and URL posted? |
