@@ -163,12 +163,16 @@ trait DynAutoSlot<Args: 'static>: Send + Sync {
 #[cfg(feature = "std")]
 struct AutoSlotInner<Args: Clone + Send + 'static> {
     receiver_thread_id: std::thread::ThreadId,
+    guard: std::sync::Weak<ReceiverGuard>,
     callback: Arc<dyn Fn(Args) + Send + Sync>,
 }
 
 #[cfg(feature = "std")]
 impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
     fn dispatch(&self, emit_thread_id: std::thread::ThreadId, args: &Args) {
+        if self.guard.upgrade().is_none() {
+            return;
+        }
         if emit_thread_id == self.receiver_thread_id {
             (self.callback)(args.clone());
         } else if let Some(dispatcher) = queued_dispatcher() {
@@ -328,6 +332,11 @@ impl<Args: 'static> Signal<Args> {
     /// the active `QueuedDispatcher`; if none is installed the invocation is
     /// silently dropped.
     ///
+    /// The `guard` is checked before every invocation. If the `Weak` cannot be
+    /// upgraded (receiver has been destroyed), the slot is silently skipped on
+    /// both the same-thread and cross-thread paths. Pass
+    /// `Arc::downgrade(base.receiver_guard())` from the receiver's `ObjectBase`.
+    ///
     /// `Args` must implement `Clone + Send + 'static` because the cross-thread
     /// path moves a clone of the args into a `'static` closure. Use
     /// [`connect`](Self::connect) for zero-copy same-thread-only dispatch.
@@ -338,19 +347,19 @@ impl<Args: 'static> Signal<Args> {
     /// # Examples
     ///
     /// ```
-    /// use std::thread;
+    /// use std::{sync::Weak, thread};
     /// use quartzite_core::signal::Signal;
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
-    /// // Connect with the current thread's id; same-thread emits call directly.
-    /// let _id = sig.connect_auto(thread::current().id(), |args: (i32,)| println!("auto: {}", args.0));
-    /// sig.emit(&(99,)); // same thread → Direct delivery
+    /// // Weak::new() stands in for a real receiver guard here.
+    /// let _id = sig.connect_auto(thread::current().id(), Weak::new(), |args: (i32,)| println!("auto: {}", args.0));
     /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_auto<F>(
         &mut self,
         receiver_thread_id: std::thread::ThreadId,
+        guard: std::sync::Weak<ReceiverGuard>,
         f: F,
     ) -> ConnectionId
     where
@@ -362,6 +371,7 @@ impl<Args: 'static> Signal<Args> {
             id,
             Box::new(AutoSlotInner {
                 receiver_thread_id,
+                guard,
                 callback: Arc::new(f),
             }),
         );
@@ -721,16 +731,20 @@ mod tests {
     #[cfg(feature = "std")]
     #[serial]
     fn auto_same_thread_calls_slot_synchronously() {
+        use crate::receiver_guard::ReceiverGuard;
+
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
 
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<(i32,)> = Signal::new();
-        sig.connect_auto(std::thread::current().id(), move |_| {
+        sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
+        let _guard = guard_arc;
 
         sig.emit(&(1,));
 
@@ -753,6 +767,8 @@ mod tests {
     #[cfg(feature = "std")]
     #[serial]
     fn auto_cross_thread_posts_to_dispatcher() {
+        use crate::receiver_guard::ReceiverGuard;
+
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
 
@@ -761,10 +777,12 @@ mod tests {
 
         let foreign_id = other_thread_id();
 
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<(i32,)> = Signal::new();
-        sig.connect_auto(foreign_id, move |_| {
+        sig.connect_auto(foreign_id, guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
+        let _guard = guard_arc;
 
         sig.emit(&(42,));
 
@@ -793,16 +811,20 @@ mod tests {
     #[cfg(feature = "std")]
     #[serial]
     fn auto_thread_id_same_thread_calls_directly() {
+        use crate::receiver_guard::ReceiverGuard;
+
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
 
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(std::thread::current().id(), move |_| {
+        sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
+        let _guard = guard_arc;
 
         sig.emit(&());
 
@@ -825,6 +847,8 @@ mod tests {
     #[cfg(feature = "std")]
     #[serial]
     fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
+        use crate::receiver_guard::ReceiverGuard;
+
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
 
@@ -833,10 +857,12 @@ mod tests {
 
         let foreign_id = other_thread_id();
 
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(foreign_id, move |_| {
+        sig.connect_auto(foreign_id, guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
+        let _guard = guard_arc;
 
         sig.emit(&());
 
@@ -872,9 +898,13 @@ mod tests {
         let called2 = Arc::clone(&called);
 
         let mut sig: Signal<()> = Signal::new();
-        let id = sig.connect_auto(std::thread::current().id(), move |_| {
-            called2.store(true, Ordering::SeqCst);
-        });
+        let id = sig.connect_auto(
+            std::thread::current().id(),
+            std::sync::Weak::new(),
+            move |_| {
+                called2.store(true, Ordering::SeqCst);
+            },
+        );
 
         sig.disconnect(id);
         sig.emit(&());
@@ -905,7 +935,11 @@ mod tests {
         let pre_len = dispatcher.posted.lock().unwrap().len();
 
         let mut sig: Signal<(i32,)> = Signal::new();
-        sig.connect_auto(std::thread::current().id(), move |_| {});
+        sig.connect_auto(
+            std::thread::current().id(),
+            std::sync::Weak::new(),
+            move |_| {},
+        );
         sig.emit(&(1,));
 
         // Queue must not grow — the foreign entry is still there, but our emit
@@ -914,6 +948,75 @@ mod tests {
             dispatcher.posted.lock().unwrap().len(),
             pre_len,
             "same-thread auto emit must not grow the dispatcher queue"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC1: same-thread Auto slot not called after receiver destroyed
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    #[serial]
+    fn auto_same_thread_slot_not_called_after_receiver_destroyed() {
+        use crate::receiver_guard::ReceiverGuard;
+
+        let dispatcher = install_test_dispatcher();
+        let pre_len = dispatcher.posted.lock().unwrap().len();
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        drop(guard_arc); // receiver destroyed
+
+        sig.emit(&(1,));
+
+        assert!(
+            !called.load(Ordering::SeqCst),
+            "same-thread Auto slot must not be called after receiver is destroyed"
+        );
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
+            "no post must occur after receiver is destroyed"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC2: cross-thread Auto slot not posted after receiver destroyed
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    #[serial]
+    fn auto_cross_thread_slot_not_posted_after_receiver_destroyed() {
+        use crate::receiver_guard::ReceiverGuard;
+
+        let dispatcher = install_test_dispatcher();
+        let pre_len = dispatcher.posted.lock().unwrap().len();
+
+        let foreign_id = other_thread_id();
+
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_auto(foreign_id, guard_weak, |_| {
+            panic!("slot must not be invoked after receiver is destroyed");
+        });
+
+        drop(guard_arc); // receiver destroyed
+
+        sig.emit(&(99,));
+
+        assert_eq!(
+            dispatcher.posted.lock().unwrap().len(),
+            pre_len,
+            "no closure must be posted after receiver is destroyed"
         );
     }
 

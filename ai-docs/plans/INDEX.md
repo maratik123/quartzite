@@ -18,6 +18,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [inline-simple-fns](done/2026-05-02-inline-simple-fns.spec.md) | all crates | ✅ implemented (8 new tests) | — |
 | [examples-crate](done/2026-05-02-examples-crate.spec.md) | `quartzite-examples` `quartzite` | ✅ implemented (0 new tests; 4 runnable examples) | — |
 | [signals-blocked](done/2026-05-02-signals-blocked.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (13 new tests) | — |
+| [receiver-guard-auto](done/2026-05-03-receiver-guard-auto.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (4 new tests) | — |
 
 ## Deferred plans
 
@@ -47,6 +48,7 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 ## Suggested next steps
 
 1. **Start** geometry-events (no blockers, unblocks widgets and paint-style)
+2. **Consider** `connect_<signal>_queued` codegen wrappers — natural follow-up to `connect_<signal>_auto` (#50 landed), tracked in #66
 2. **Expand** `quartzite` facade prelude as new crates are implemented
 3. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
 4. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
