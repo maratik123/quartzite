@@ -169,7 +169,6 @@ name = "quartzite-examples"
 version = "0.1.0"
 dependencies = [
  "quartzite",
- "quartzite-core",
 ]
 
 [[package]]
@@ -178,7 +177,7 @@ version = "0.1.0"
 dependencies = [
  "heck",
  "proc-macro2",
- "quartzite-core",
+ "quartzite",
  "quote",
  "syn",
 ]
