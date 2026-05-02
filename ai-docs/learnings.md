@@ -32,6 +32,18 @@
 
 **Escalated?** no
 
+### 2026-05-02 — process — never use git reset --hard; use soft reset, stash, cherry-pick, or backup branch
+
+**What happened:** `git reset --hard origin/master` was used to move commits off local master to a feature branch. This discarded uncommitted changes to `ai-docs/learnings.md` that had not been staged.
+
+**Rule:** Never use `git reset --hard`. Use one of these instead:
+- `git reset --soft HEAD~N` — moves commits back to staged, preserves working tree
+- `git stash` — saves uncommitted changes before switching branches
+- `git cherry-pick` — moves specific commits to another branch
+- Backup branch — `git checkout -b backup/...` before any destructive operation
+
+**Escalated?** no
+
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
 **What happened:** When the user said "submit PR", commits were already on local master. Instead of creating a feature branch first, `git push` was run directly against master — pushing the commits to origin/master. `master` is branch-protected (no force push), so the commits could not be removed after the fact and a proper PR became impossible.
