@@ -48,7 +48,7 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 ## Suggested next steps
 
 1. **Start** geometry-events (no blockers, unblocks widgets and paint-style)
-2. **Consider** `connect_<signal>_queued` codegen wrappers — natural follow-up to `connect_<signal>_auto` (#50 landed)
+2. **Consider** `connect_<signal>_queued` codegen wrappers — natural follow-up to `connect_<signal>_auto` (#50 landed), tracked in #66
 2. **Expand** `quartzite` facade prelude as new crates are implemented
 3. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
 4. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
