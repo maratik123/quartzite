@@ -9,24 +9,59 @@ use crate::{
     value::Value,
 };
 
+/// Core data carried by every object in the quartzite object tree.
+///
+/// `ObjectBase` provides identity ([`ObjectId`]), optional name, thread-affinity
+/// tracking, a lifetime token for safe signal delivery ([`ReceiverGuard`]), and
+/// storage for dynamic properties and outgoing connection bookkeeping.
+///
+/// Objects are typically created through a higher-level type that includes an
+/// `ObjectBase` field and derives [`Extend`](quartzite_macros::Extend).
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::ObjectBase;
+///
+/// let base = ObjectBase::named("my-button");
+/// assert_eq!(base.name, "my-button");
+/// assert!(!base.signals_blocked);
+/// ```
 pub struct ObjectBase {
     /// Private: uniqueness invariant — must never be overwritten after construction.
     id: ObjectId,
+    /// Human-readable name used for debugging and lookup in the object tree.
     pub name: String,
     /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
     /// all `Weak<ReceiverGuard>` held by queued connections.
     receiver_guard: Arc<ReceiverGuard>,
-    /// Reserved for use by `quartzite-runtime` to track outgoing signal connections.
-    /// `ObjectBase` itself does not populate this field.
+    /// Tracks outgoing signal connections; populated and managed by `quartzite-runtime`.
+    ///
+    /// `ObjectBase` itself does not modify this field.
     pub outgoing_connections: Vec<ConnectionId>,
+    /// Runtime property bag for properties added outside the compile-time schema.
     pub dynamic_properties: BTreeMap<String, Value>,
+    /// When `true`, emitting any signal on this object is a no-op.
     pub signals_blocked: bool,
+    /// The thread on which this object was created; used by `connect_auto` to decide
+    /// between direct and queued delivery.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub thread_id: std::thread::ThreadId,
 }
 
 impl ObjectBase {
+    /// Creates an anonymous `ObjectBase` with a freshly allocated [`ObjectId`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::new();
+    /// assert!(base.name.is_empty());
+    /// assert!(!base.signals_blocked);
+    /// ```
     pub fn new() -> Self {
         let (guard, _) = ReceiverGuard::new_pair();
         Self {
@@ -41,6 +76,16 @@ impl ObjectBase {
         }
     }
 
+    /// Creates an `ObjectBase` with the given name and a freshly allocated [`ObjectId`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::named("sensor-1");
+    /// assert_eq!(base.name, "sensor-1");
+    /// ```
     pub fn named(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -58,6 +103,18 @@ impl ObjectBase {
         &self.receiver_guard
     }
 
+    /// Returns `true` if this object was created on the calling thread.
+    ///
+    /// Used by `connect_auto` to decide between direct and queued signal delivery.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::new();
+    /// assert!(base.is_on_current_thread());
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn is_on_current_thread(&self) -> bool {

@@ -1,15 +1,52 @@
 use core::sync::atomic::{AtomicU64, Ordering};
 
+/// Process-unique identifier for an object in the quartzite object tree.
+///
+/// Each [`ObjectBase`](crate::ObjectBase) allocates one `ObjectId` at construction.
+/// IDs are monotonically increasing within a process and are never reused.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::ObjectId;
+///
+/// let a = ObjectId::new();
+/// let b = ObjectId::new();
+/// assert_ne!(a, b);
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ObjectId(u64);
 
 impl ObjectId {
+    /// Allocates a fresh, process-unique `ObjectId`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    ///
+    /// let id = ObjectId::new();
+    /// assert_ne!(id.raw(), 0);
+    /// ```
     // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// Returns the underlying `u64` discriminant.
+    ///
+    /// Useful for serialisation or logging. The value is stable for the lifetime of
+    /// the process but should not be persisted across restarts.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    ///
+    /// let id = ObjectId::new();
+    /// assert!(id.raw() > 0);
+    /// ```
     pub fn raw(self) -> u64 {
         self.0
     }
@@ -21,16 +58,53 @@ impl Default for ObjectId {
     }
 }
 
+/// Process-unique identifier for a signal-slot connection.
+///
+/// Returned by `Signal::connect*` methods and used to [`disconnect`](crate::Signal::disconnect)
+/// a specific slot. IDs are monotonically increasing within a process and are never reused.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::ConnectionId;
+///
+/// let a = ConnectionId::new();
+/// let b = ConnectionId::new();
+/// assert_ne!(a, b);
+/// ```
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct ConnectionId(u64);
 
 impl ConnectionId {
+    /// Allocates a fresh, process-unique `ConnectionId`.
+    ///
+    /// Normally called internally by `Signal::connect*`. Exposed publicly so that
+    /// runtimes can create synthetic connection records.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ConnectionId;
+    ///
+    /// let id = ConnectionId::new();
+    /// assert_ne!(id.raw(), 0);
+    /// ```
     // Relaxed is enough: we only need uniqueness, not cross-thread ordering.
     pub fn new() -> Self {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
         Self(COUNTER.fetch_add(1, Ordering::Relaxed))
     }
 
+    /// Returns the underlying `u64` discriminant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ConnectionId;
+    ///
+    /// let id = ConnectionId::new();
+    /// assert!(id.raw() > 0);
+    /// ```
     pub fn raw(self) -> u64 {
         self.0
     }
