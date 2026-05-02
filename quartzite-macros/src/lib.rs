@@ -6,6 +6,7 @@
 //!   enabling type-safe single-inheritance hierarchies.
 //! - [`MetaEnum`](derive_meta_enum): generate `IntoValue`/`FromValue` and `EnumMeta` for
 //!   C-like enums.
+#![deny(missing_docs)]
 
 use proc_macro::TokenStream;
 

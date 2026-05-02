@@ -1,4 +1,5 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![deny(missing_docs)]
 #![doc = document_features::document_features!()]
 //!
 //! ## Getting started
