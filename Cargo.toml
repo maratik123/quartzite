@@ -10,7 +10,7 @@ resolver = "2"
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
+rust-version = "1.95"
 authors = ["Marat Bukharov <marat.buharov@gmail.com>"]
 license = "LGPL-3.0-or-later"
 repository = "https://github.com/maratik123/quartzite"

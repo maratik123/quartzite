@@ -20,7 +20,7 @@ Early development. Core crates are implemented; widget and painting layers are n
 
 ## Prerequisites
 
-- Rust stable (≥ 1.85, for edition 2024 support)
+- Rust stable (≥ 1.95)
 - Cargo (comes with Rust)
 
 ## Build
