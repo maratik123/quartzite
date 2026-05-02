@@ -436,6 +436,8 @@ impl<Args: 'static> Signal<Args> {
 mod tests {
     use super::*;
     #[cfg(feature = "std")]
+    use serial_test::serial;
+    #[cfg(feature = "std")]
     use std::sync::{
         Arc, Mutex, OnceLock,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
@@ -685,6 +687,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn queued_slot_not_posted_after_receiver_destroyed() {
         use crate::receiver_guard::ReceiverGuard;
 
@@ -716,6 +719,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_same_thread_calls_slot_synchronously() {
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
@@ -747,6 +751,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_cross_thread_posts_to_dispatcher() {
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
@@ -786,6 +791,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_thread_id_same_thread_calls_directly() {
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
@@ -817,6 +823,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
@@ -856,6 +863,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_disconnect_removes_slot() {
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().unwrap().len();
@@ -888,6 +896,7 @@ mod tests {
 
     #[test]
     #[cfg(feature = "std")]
+    #[serial]
     fn auto_same_thread_does_not_grow_dispatcher_queue_when_foreign_entry_exists() {
         let dispatcher = install_test_dispatcher();
 

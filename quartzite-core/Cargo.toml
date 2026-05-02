@@ -21,6 +21,7 @@ hashbrown = { version = "0.15", default-features = false }
 
 [dev-dependencies]
 rstest = "0.26.1"
+serial_test = "3"
 
 [package.metadata.docs.rs]
 features = ["std"]
