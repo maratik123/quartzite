@@ -36,13 +36,13 @@ jobs:
         run: cargo fmt -- --check
 
       - name: Build
-        run: cargo build
+        run: cargo build --workspace
 
       - name: Test
-        run: cargo test
+        run: cargo test --workspace
 
       - name: Clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --workspace -- -D warnings
 
       - name: Docs
         run: cargo doc --no-deps --workspace
