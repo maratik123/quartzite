@@ -54,7 +54,19 @@
     "deny": [
       "Read(.idea/**)",
       "Edit(.idea/**)",
-      "Write(.idea/**)"
+      "Write(.idea/**)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Write(**/.env)",
+      "Write(**/.env.*)",
+      "Read(**/secrets*)",
+      "Read(**/.secrets*)",
+      "Edit(**/secrets*)",
+      "Edit(**/.secrets*)",
+      "Write(**/secrets*)",
+      "Write(**/.secrets*)"
     ]
   }
 }
