@@ -50,6 +50,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - `#[allow(clippy::...)]` / `#[allow(dead_code)]` without a justification comment?
 - Public items undocumented (`///` missing on `pub` functions/types)?
 - Dead code that clippy does not catch?
+- Simple non-generic functions missing `#[inline]`? "Simple" = no branches or loops, at most one function call. Exclude generic functions and blanket-impl trait methods (monomorphized). Also check codegen files: simple generated `fn`s must emit `#[inline]`.
 
 ## What you do NOT check
 

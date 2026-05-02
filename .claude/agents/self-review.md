@@ -55,6 +55,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 ### 5. Style (AGENTS.md rules)
 - All new source files in Rust (`.rs`)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
+- Every simple, non-generic function added by this diff has `#[inline]`? "Simple" = no branches or loops, at most one function call. Exclude generic functions and blanket-impl trait methods (monomorphized). Also check codegen: new simple generated `fn`s must emit `#[inline]`.
 
 ### 6. Documentation
 
