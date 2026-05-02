@@ -162,7 +162,25 @@ Verdict: GO / ITERATE / STOP. On ITERATE → back to Step 6 (max 3 rounds).
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-5. On ALL PASS → proceed to Step 10
+5. On ALL PASS → proceed to Step 9.5
+
+### Step 9.5: Update documentation
+
+Update the following files to reflect the completed implementation:
+
+1. **`ai-docs/plans/INDEX.md`**
+   - Change the plan row status to `✅ implemented (N tests)`
+   - Move spec/design files to `ai-docs/plans/done/` (`git mv`)
+   - Update dependency tree and **Suggested next steps**
+
+2. **`ai-docs/context.md`** — update any section touched by this task:
+   - Resolve open questions that were answered during implementation
+   - Update the Plans list (add ✅ to implemented crates)
+   - Add new architectural decisions to the Key Decisions table
+
+3. **`README.md`** — update the status table if a new crate was implemented
+
+Then proceed to Step 10.
 
 ### Step 10: Self-review loop (max 3 rounds)
 
@@ -214,5 +232,6 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 8 start | `base_commit` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
+| Step 9.5 | INDEX.md updated? spec/design moved to done/? context.md + README.md current? |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? |
