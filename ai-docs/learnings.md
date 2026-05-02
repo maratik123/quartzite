@@ -62,6 +62,14 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Escalated?** AGENTS.md
 
+### 2026-05-02 — process — create feature branch before committing at the start of Step 8
+
+**What happened:** The auto-connection task completed all implementation steps on the working tree without ever committing. Only after the user asked "why didn't you create a PR?" was the branch created. The changes had to be recovered by checking out a feature branch from the unstaged state.
+
+**Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
+
+**Escalated?** no
+
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
 **What happened:** Three codegen files (`object/codegen.rs`, `object_impl/codegen.rs`, `meta_enum/codegen.rs`) were written without `#[cfg(test)]` modules. Gaps were caught in review and by the user. The original rule was codegen-specific, but the user generalised it: any file with substantial logic needs tests.
