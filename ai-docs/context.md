@@ -102,6 +102,7 @@ AsObject        AsWidget        AsWidget (generated)
 | Crate naming | `quartzite-*` |
 | Python interop | Deferred; reflection layer designed to enable it later |
 | Object ownership | Arena/SlotMap — `ObjectTree` + `ObjectId` + `Mutex<ObjectTree>` in Application |
+| `ConnectionType::Auto` | Same-thread → Direct (sync call, args cloned); cross-thread → Queued (post to dispatcher). `ThreadId` captured at connect time; requires `Args: Clone + Send + 'static`. Gated on `feature = "std"`. |
 
 ## Plans (Implementation Order)
 

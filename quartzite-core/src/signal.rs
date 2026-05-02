@@ -9,8 +9,8 @@ use crate::receiver_guard::ReceiverGuard;
 
 /// Determines how a slot is invoked when a signal is emitted.
 ///
-/// `Queued` (cross-thread delivery) requires the `std` feature and an active
-/// `QueuedDispatcher` registered via `set_queued_dispatcher`.
+/// `Queued` and `Auto` (cross-thread delivery) require the `std` feature and an
+/// active `QueuedDispatcher` registered via `set_queued_dispatcher`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConnectionType {
     /// Invoke the slot immediately in the emitting call stack.
@@ -20,6 +20,13 @@ pub enum ConnectionType {
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
     #[cfg(feature = "std")]
     Queued,
+    /// Same-thread → `Direct`; cross-thread → `Queued`. Requires `std`.
+    ///
+    /// The receiver's thread identity is captured at connect time via
+    /// [`Signal::connect_auto`]. Changing the receiver's thread affinity after
+    /// connecting does not update the stored `ThreadId` (see AC5).
+    #[cfg(feature = "std")]
+    Auto,
 }
 
 /// Internal slot record stored inside a `Signal`.
@@ -35,7 +42,7 @@ struct SlotEntry<Args: 'static> {
 /// the event-loop thread. Implemented by `ConnectionTable` in `quartzite-runtime`.
 #[cfg(feature = "std")]
 pub trait QueuedDispatcher: Send + Sync {
-    fn post(&self, f: Box<dyn FnOnce() + Send>);
+    fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
 }
 
 #[cfg(feature = "std")]
@@ -95,6 +102,43 @@ impl<Args: Clone + Send + 'static> DynQueuedSlot<Args> for QueuedSlotInner<Args>
     }
 }
 
+/// Object-safe interface for an `Auto`-connection slot stored inside a `Signal<Args>`.
+#[cfg(feature = "std")]
+trait DynAutoSlot<Args: 'static>: Send + Sync {
+    fn id(&self) -> ConnectionId;
+    /// Dispatches the slot: same-thread → direct call; cross-thread → post to dispatcher.
+    fn dispatch(&self, emit_thread_id: std::thread::ThreadId, args: &Args);
+}
+
+/// Concrete `Auto`-connection slot entry.
+///
+/// `Args: Clone + Send + 'static` is required: the cross-thread path clones args
+/// and moves them into a `'static` closure posted to the dispatcher.
+#[cfg(feature = "std")]
+struct AutoSlotInner<Args: Clone + Send + 'static> {
+    id: ConnectionId,
+    receiver_thread_id: std::thread::ThreadId,
+    callback: Arc<dyn Fn(Args) + Send + Sync>,
+}
+
+#[cfg(feature = "std")]
+impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
+    fn id(&self) -> ConnectionId {
+        self.id
+    }
+
+    fn dispatch(&self, emit_thread_id: std::thread::ThreadId, args: &Args) {
+        if emit_thread_id == self.receiver_thread_id {
+            (self.callback)(args.clone());
+        } else if let Some(dispatcher) = queued_dispatcher() {
+            let args_owned = args.clone();
+            let cb = Arc::clone(&self.callback);
+            dispatcher.post(Box::new(move || cb(args_owned)));
+        }
+        // No dispatcher installed → silent drop (AC3).
+    }
+}
+
 /// A typed signal that can have multiple slots connected.
 ///
 /// `Args` is typically a tuple (e.g. `Signal<(i32, bool)>`). Slots receive a
@@ -112,6 +156,8 @@ pub struct Signal<Args: 'static> {
     slots: Vec<SlotEntry<Args>>,
     #[cfg(feature = "std")]
     queued_slots: Vec<Box<dyn DynQueuedSlot<Args>>>,
+    #[cfg(feature = "std")]
+    auto_slots: Vec<Box<dyn DynAutoSlot<Args>>>,
 }
 
 impl<Args: 'static> Default for Signal<Args> {
@@ -126,6 +172,8 @@ impl<Args: 'static> Signal<Args> {
             slots: Vec::new(),
             #[cfg(feature = "std")]
             queued_slots: Vec::new(),
+            #[cfg(feature = "std")]
+            auto_slots: Vec::new(),
         }
     }
 
@@ -136,11 +184,20 @@ impl<Args: 'static> Signal<Args> {
     }
 
     /// Connect a slot with an explicit `ConnectionType`.
+    ///
+    /// Only `Direct` and `SingleShot` are valid here. Use [`connect_queued`](Self::connect_queued)
+    /// for `Queued` and [`connect_auto`](Self::connect_auto) for `Auto` — both require additional
+    /// parameters (`ReceiverGuard` / `ThreadId`) that this method cannot accept.
     pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
         &mut self,
         f: F,
         ct: ConnectionType,
     ) -> ConnectionId {
+        #[cfg(feature = "std")]
+        debug_assert!(
+            ct != ConnectionType::Queued && ct != ConnectionType::Auto,
+            "connect_typed does not support Queued or Auto; use connect_queued / connect_auto"
+        );
         let id = ConnectionId::new();
         self.slots.push(SlotEntry {
             id,
@@ -170,11 +227,46 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
+    /// Connect an `Auto` slot.
+    ///
+    /// At emit time the emitting thread's id is compared against
+    /// `receiver_thread_id` (captured here). If they match the slot is called
+    /// synchronously (`Direct` semantics). Otherwise the invocation is posted to
+    /// the active `QueuedDispatcher`; if none is installed the invocation is
+    /// silently dropped.
+    ///
+    /// `Args` must implement `Clone + Send + 'static` because the cross-thread
+    /// path moves a clone of the args into a `'static` closure. Use
+    /// [`connect`](Self::connect) for zero-copy same-thread-only dispatch.
+    ///
+    /// The `receiver_thread_id` is captured at connect time and is not updated
+    /// if the receiver migrates to a different thread later.
+    #[cfg(feature = "std")]
+    pub fn connect_auto<F>(
+        &mut self,
+        receiver_thread_id: std::thread::ThreadId,
+        f: F,
+    ) -> ConnectionId
+    where
+        F: Fn(Args) + Send + Sync + 'static,
+        Args: Clone + Send,
+    {
+        let id = ConnectionId::new();
+        self.auto_slots.push(Box::new(AutoSlotInner {
+            id,
+            receiver_thread_id,
+            callback: Arc::new(f),
+        }));
+        id
+    }
+
     /// Remove the slot identified by `id`. No-op if `id` is not found.
     pub fn disconnect(&mut self, id: ConnectionId) {
         self.slots.retain(|s| s.id != id);
         #[cfg(feature = "std")]
         self.queued_slots.retain(|s| s.id() != id);
+        #[cfg(feature = "std")]
+        self.auto_slots.retain(|s| s.id() != id);
     }
 
     /// Invoke all connected slots with `args`.
@@ -182,6 +274,8 @@ impl<Args: 'static> Signal<Args> {
     /// `SingleShot` slots are called once and then removed in-place.
     /// `Queued` slots are posted to the event-loop thread via the registered
     /// `QueuedDispatcher` (if any).
+    /// `Auto` slots inspect the emitting thread: same-thread → direct call;
+    /// cross-thread → posted to the dispatcher (silently dropped if none installed).
     /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
     /// or `emit` on the *same* signal instance during emission — the borrow checker
     /// prevents it. Cross-signal mutation from within a slot is fine.
@@ -196,8 +290,16 @@ impl<Args: 'static> Signal<Args> {
             }
         }
         #[cfg(feature = "std")]
-        for slot in &self.queued_slots {
-            slot.post_if_alive(args);
+        {
+            for slot in &self.queued_slots {
+                slot.post_if_alive(args);
+            }
+            if !self.auto_slots.is_empty() {
+                let emit_thread_id = std::thread::current().id();
+                for slot in &self.auto_slots {
+                    slot.dispatch(emit_thread_id, args);
+                }
+            }
         }
     }
 }
@@ -207,11 +309,63 @@ mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use std::sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
+        Arc, Mutex, OnceLock,
     };
 
-    // --- AC4: emit calls all connected Direct slots ---
+    // ---------------------------------------------------------------------------
+    // Shared test infrastructure for QUEUED_DISPATCHER
+    // ---------------------------------------------------------------------------
+
+    /// A `QueuedDispatcher` stub that stores posted closures for inspection.
+    /// All auto/queued tests that need a dispatcher call `install_test_dispatcher()`.
+    #[cfg(feature = "std")]
+    struct TestDispatcher {
+        posted: Mutex<Vec<Box<dyn FnOnce() + Send + 'static>>>,
+    }
+
+    #[cfg(feature = "std")]
+    impl QueuedDispatcher for TestDispatcher {
+        fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) {
+            self.posted.lock().unwrap().push(f);
+        }
+    }
+
+    /// Process-wide singleton. Set exactly once; reused by all tests in this binary.
+    #[cfg(feature = "std")]
+    static TEST_DISPATCHER: OnceLock<Arc<TestDispatcher>> = OnceLock::new();
+
+    /// Install the shared `TestDispatcher` as the process-wide `QueuedDispatcher`.
+    /// Safe to call from multiple tests in the same binary: only the first call
+    /// registers the dispatcher; subsequent calls are no-ops.
+    /// Returns the shared `Arc<TestDispatcher>` so callers can drain `posted`.
+    #[cfg(feature = "std")]
+    fn install_test_dispatcher() -> Arc<TestDispatcher> {
+        Arc::clone(TEST_DISPATCHER.get_or_init(|| {
+            let d = Arc::new(TestDispatcher {
+                posted: Mutex::new(vec![]),
+            });
+            let _ = set_queued_dispatcher(Arc::clone(&d) as Arc<dyn QueuedDispatcher>);
+            d
+        }))
+    }
+
+    /// Spawn a helper thread, capture its `ThreadId`, join, and return it.
+    /// Guaranteed to differ from `thread::current().id()`.
+    #[cfg(feature = "std")]
+    fn other_thread_id() -> std::thread::ThreadId {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            tx.send(std::thread::current().id()).unwrap();
+        })
+        .join()
+        .unwrap();
+        rx.recv().unwrap()
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC4 (core-types): emit calls all connected Direct slots
+    // ---------------------------------------------------------------------------
 
     #[test]
     #[cfg(feature = "std")]
@@ -232,7 +386,9 @@ mod tests {
         assert_eq!(b.load(Ordering::Relaxed), 42);
     }
 
-    // --- AC5: disconnect removes slot ---
+    // ---------------------------------------------------------------------------
+    // AC5 (core-types): disconnect removes slot
+    // ---------------------------------------------------------------------------
 
     #[test]
     #[cfg(feature = "std")]
@@ -251,7 +407,9 @@ mod tests {
         );
     }
 
-    // --- AC6: SingleShot called exactly once ---
+    // ---------------------------------------------------------------------------
+    // AC6 (core-types): SingleShot called exactly once
+    // ---------------------------------------------------------------------------
 
     #[test]
     #[cfg(feature = "std")]
@@ -324,28 +482,18 @@ mod tests {
         sig.emit(&()); // must not panic
     }
 
-    // --- Queued slot: guard check ---
+    // ---------------------------------------------------------------------------
+    // Queued slot: guard check (uses shared TestDispatcher)
+    // ---------------------------------------------------------------------------
 
     #[test]
     #[cfg(feature = "std")]
     fn queued_slot_not_posted_after_receiver_destroyed() {
         use crate::receiver_guard::ReceiverGuard;
 
-        struct MockDispatcher {
-            call_count: Mutex<usize>,
-        }
-        impl QueuedDispatcher for MockDispatcher {
-            fn post(&self, f: Box<dyn FnOnce() + Send>) {
-                *self.call_count.lock().unwrap() += 1;
-                f();
-            }
-        }
-
-        let mock = Arc::new(MockDispatcher {
-            call_count: Mutex::new(0),
-        });
-        // Only set if not already set (other tests may have set it).
-        let _ = QUEUED_DISPATCHER.set(Arc::clone(&mock) as Arc<dyn QueuedDispatcher>);
+        let dispatcher = install_test_dispatcher();
+        // Drain any closures left by previous tests so our count is clean.
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
 
@@ -358,16 +506,185 @@ mod tests {
         drop(guard_arc);
 
         // Emit after receiver is destroyed — must NOT post.
-        let count_before = *mock.call_count.lock().unwrap();
         sig.emit(&99);
-        let count_after = *mock.call_count.lock().unwrap();
-        assert_eq!(
-            count_before, count_after,
+        let posted = dispatcher.posted.lock().unwrap();
+        assert!(
+            posted.is_empty(),
             "no post must occur after receiver is destroyed"
         );
     }
 
-    // --- WeakObjectRef tests ---
+    // ---------------------------------------------------------------------------
+    // AC1: Auto same-thread → slot called synchronously
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_same_thread_calls_slot_synchronously() {
+        let dispatcher = install_test_dispatcher();
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_auto(std::thread::current().id(), move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        sig.emit(&(1,));
+
+        assert!(
+            called.load(Ordering::SeqCst),
+            "Auto same-thread slot must be called synchronously before emit returns"
+        );
+        assert!(
+            dispatcher.posted.lock().unwrap().is_empty(),
+            "Auto same-thread must not post to dispatcher"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC2: Auto cross-thread → posts to dispatcher, not called directly
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_cross_thread_posts_to_dispatcher() {
+        let dispatcher = install_test_dispatcher();
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let foreign_id = other_thread_id();
+
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_auto(foreign_id, move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        sig.emit(&(42,));
+
+        // Slot must NOT have been called directly during emit.
+        assert!(
+            !called.load(Ordering::SeqCst),
+            "Auto cross-thread slot must NOT be called directly during emit"
+        );
+
+        // Execute the posted closure; only then does the slot run.
+        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+        assert_eq!(posted.len(), 1, "exactly one closure must be posted");
+        posted.into_iter().for_each(|f| f());
+
+        assert!(
+            called.load(Ordering::SeqCst),
+            "slot must run when the posted closure is executed"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC5 Scenario A: thread_id captured at connect; same-thread path calls directly
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_thread_id_same_thread_calls_directly() {
+        let dispatcher = install_test_dispatcher();
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let mut sig: Signal<()> = Signal::new();
+        sig.connect_auto(std::thread::current().id(), move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        sig.emit(&());
+
+        assert!(
+            called.load(Ordering::SeqCst),
+            "same-thread Auto slot must be called directly"
+        );
+        assert!(
+            dispatcher.posted.lock().unwrap().is_empty(),
+            "no closure must be posted for same-thread Auto"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // AC5 Scenario B: foreign thread_id → always posts, even from the connect thread
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
+        let dispatcher = install_test_dispatcher();
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let foreign_id = other_thread_id();
+
+        let mut sig: Signal<()> = Signal::new();
+        sig.connect_auto(foreign_id, move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        sig.emit(&());
+
+        // Dispatch is governed by the foreign receiver_thread_id, not the emitting thread.
+        assert!(
+            !called.load(Ordering::SeqCst),
+            "foreign-thread-id Auto slot must NOT be called directly"
+        );
+
+        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+        assert_eq!(posted.len(), 1, "exactly one closure must be posted");
+        posted.into_iter().for_each(|f| f());
+
+        assert!(
+            called.load(Ordering::SeqCst),
+            "slot must run when the posted closure is executed"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // Auto slot disconnect
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn auto_disconnect_removes_slot() {
+        let dispatcher = install_test_dispatcher();
+        dispatcher.posted.lock().unwrap().drain(..).for_each(drop);
+
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+
+        let mut sig: Signal<()> = Signal::new();
+        let id = sig.connect_auto(std::thread::current().id(), move |_| {
+            called2.store(true, Ordering::SeqCst);
+        });
+
+        sig.disconnect(id);
+        sig.emit(&());
+
+        assert!(
+            !called.load(Ordering::SeqCst),
+            "disconnected Auto slot must not be called"
+        );
+        assert!(
+            dispatcher.posted.lock().unwrap().is_empty(),
+            "disconnected Auto slot must not post to dispatcher"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // WeakObjectRef tests (unrelated to Auto — kept for regression)
+    // ---------------------------------------------------------------------------
 
     #[test]
     fn weak_object_ref_wraps_u64() {
