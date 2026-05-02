@@ -18,7 +18,7 @@
 | `quartzite-paint` | Painter, Color, Font, Pen, Brush, Image, Path |
 | `quartzite-style` | Style trait, Palette, StyleRegistry |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout, Button, Label, LineEdit, … |
-| `quartzite` (workspace root + facade) | Re-exports sub-crates as `quartzite::core`, `quartzite::macros` (optional; `derive` feature, on by default), `quartzite::runtime`; curated `prelude` module ✅ |
+| `quartzite` (workspace root + facade) | Re-exports sub-crates as `quartzite::core`, `quartzite::macros` (optional; `derive` feature, on by default), `quartzite::runtime`; curated `prelude` module; `examples/` at workspace root ✅ |
 
 Python interop (`quartzite-python` via PyO3) is **deferred** — the reflection layer must not block it.
 
@@ -118,7 +118,7 @@ Crate-level plans:
 2. `quartzite-macros` — Extend + Object + object_impl derive macros ✅
 3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
 4. `quartzite` (facade) — prelude re-exports, sub-crate re-exports, Cargo metadata, docs.rs config ✅
-5. `quartzite-examples` — runnable API examples (hello_object, signals_slots, object_tree, timer) ✅
+5. `examples/` — runnable API examples at workspace root (hello_object, signals_slots, object_tree, timer) ✅
 6. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
 7. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 8. `quartzite-paint` + `quartzite-style` — painter + theming

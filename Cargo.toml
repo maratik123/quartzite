@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "quartzite-core",
-    "quartzite-examples",
     "quartzite-macros",
     "quartzite-runtime",
 ]
@@ -39,6 +38,22 @@ quartzite-core    = { path = "quartzite-core", default-features = false }
 quartzite-macros  = { path = "quartzite-macros", optional = true }
 quartzite-runtime = { path = "quartzite-runtime" }
 document-features = "~0.2"
+
+[[example]]
+name = "hello_object"
+required-features = ["derive"]
+
+[[example]]
+name = "signals_slots"
+required-features = ["derive"]
+
+[[example]]
+name = "object_tree"
+required-features = ["derive"]
+
+[[example]]
+name = "timer"
+required-features = ["std", "derive"]
 
 [package.metadata.docs.rs]
 features = ["std", "derive"]
