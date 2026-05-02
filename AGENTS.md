@@ -49,6 +49,8 @@ Search: `rg <pattern> --type rust [-l | -C 3]`
 - **Never commit to local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any commits. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
   - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
+- Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files). The diff stat in PR 1–3 was cleanly scoped because every file was named.
+- **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files.
 - `.gitignore` (not `.arcignore`).
@@ -80,7 +82,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 > `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (AGENTS.md / skill / agent / hook / settings). `settings.local` does NOT count as project-level.
 ```
 
-Categories: `code-style` | `process` | `architecture` | `testing` | `search` | `other`
+Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
 Run `/improve` when ≥3 unescalated entries accumulate.
 
