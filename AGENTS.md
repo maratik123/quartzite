@@ -28,6 +28,7 @@ cargo test -- --nocapture             # show stdout
 cargo clippy -- -D warnings           # lint (strict)
 cargo fmt                             # fix formatting
 cargo fmt -- --check                  # check only
+RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace   # doc gate (matches CI)
 ```
 
 Search: `rg <pattern> --type rust [-l | -C 3]`
