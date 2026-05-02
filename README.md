@@ -41,6 +41,19 @@ cargo test
 cargo clippy -- -D warnings
 ```
 
+## Format
+
+```bash
+cargo fmt              # apply
+cargo fmt -- --check   # verify (CI gate)
+```
+
+## Docs
+
+```bash
+RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace
+```
+
 ## License
 
 Licensed under the GNU Lesser General Public License v3.0 — see [LICENSE](LICENSE) for details.
