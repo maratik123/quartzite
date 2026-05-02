@@ -21,6 +21,17 @@ impl<T> ObjectRef<T> {
     ///
     /// No liveness check is performed here; the caller must ensure the object
     /// exists in the tree.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::ObjectRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let r: ObjectRef<()> = ObjectRef::new(id);
+    /// assert_eq!(r.id(), id);
+    /// ```
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,
@@ -100,6 +111,17 @@ impl<T> WeakRef<T> {
     ///
     /// No liveness check is performed here. Use [`is_valid`](Self::is_valid) before
     /// accessing the object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::WeakRef;
+    ///
+    /// let id = ObjectId::new();
+    /// let w: WeakRef<()> = WeakRef::new(id);
+    /// assert_eq!(w.id(), id);
+    /// ```
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,

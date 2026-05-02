@@ -135,6 +135,19 @@ impl Timer {
     /// Stop the timer and join the background thread.
     ///
     /// No-op if the timer is not running. Blocks until the background thread exits.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::{EventLoop, Timer};
+    ///
+    /// let el = EventLoop::new();
+    /// let mut timer = Timer::new(Duration::from_millis(100));
+    /// timer.start(el.sender());
+    /// timer.stop();
+    /// assert!(!timer.is_running());
+    /// ```
     pub fn stop(&mut self) {
         self.running.store(false, Ordering::SeqCst);
         if let Some(h) = self.handle.take() {

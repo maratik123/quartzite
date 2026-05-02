@@ -257,6 +257,17 @@ impl<Args: 'static> Signal<Args> {
     /// Only `Direct` and `SingleShot` are valid here. Use [`connect_queued`](Self::connect_queued)
     /// for `Queued` and [`connect_auto`](Self::connect_auto) for `Auto` — both require additional
     /// parameters (`ReceiverGuard` / `ThreadId`) that this method cannot accept.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::{ConnectionType, Signal};
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let id = sig.connect_typed(|args| println!("{}", args.0), ConnectionType::SingleShot);
+    /// sig.emit(&(1,)); // fires once, then disconnects
+    /// sig.disconnect(id); // safe to call even after auto-disconnect
+    /// ```
     pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
         &mut self,
         f: F,
@@ -281,6 +292,17 @@ impl<Args: 'static> Signal<Args> {
     /// The receiver guard is checked before posting: if the guard has expired
     /// (receiver destroyed), the closure is silently discarded. Requires
     /// `Args: Clone + Send` so the arguments can be moved across threads.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::{receiver_guard::ReceiverGuard, signal::Signal};
+    ///
+    /// let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// let _id = sig.connect_queued(|args: (i32,)| println!("queued: {}", args.0), guard_weak);
+    /// drop(guard_arc); // receiver destroyed; subsequent emits silently skip this slot
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_queued<F>(&mut self, f: F, guard: std::sync::Weak<ReceiverGuard>) -> ConnectionId
@@ -311,6 +333,18 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// The `receiver_thread_id` is captured at connect time and is not updated
     /// if the receiver migrates to a different thread later.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::thread;
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// // Connect with the current thread's id; same-thread emits call directly.
+    /// let _id = sig.connect_auto(thread::current().id(), |args: (i32,)| println!("auto: {}", args.0));
+    /// sig.emit(&(99,)); // same thread → Direct delivery
+    /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub fn connect_auto<F>(

@@ -134,6 +134,15 @@ impl Application {
     /// Returns a reference to the process-wide object tree.
     ///
     /// Lock the mutex before accessing the tree from any thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// let _tree = app.object_tree().lock().unwrap();
+    /// ```
     pub fn object_tree(&self) -> &Mutex<ObjectTree> {
         &self.0.object_tree
     }
