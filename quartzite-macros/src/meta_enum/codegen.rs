@@ -7,6 +7,16 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
     let type_ident = &ir.ident;
     let enum_static_name =
         proc_macro2::Ident::new(&format!("__ENUM_{type_ident}"), type_ident.span());
+    let lookup_by_name_fn = proc_macro2::Ident::new(
+        &format!("__lookup_entry_by_name_{type_ident}"),
+        type_ident.span(),
+    );
+    let lookup_by_value_fn = proc_macro2::Ident::new(
+        &format!("__lookup_entry_by_value_{type_ident}"),
+        type_ident.span(),
+    );
+    let entries_static_name =
+        proc_macro2::Ident::new(&format!("__ENTRIES_{type_ident}"), type_ident.span());
     let type_name_str = type_ident.to_string();
 
     let entries = ir.variants.iter().map(|v| {
@@ -14,6 +24,22 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         let value = v.value;
         quote! {
             ::quartzite_core::EnumEntry::new(#name, #value)
+        }
+    });
+
+    let by_name_arms = ir.variants.iter().enumerate().map(|(idx, v)| {
+        let name = v.ident.to_string();
+        let idx_lit = syn::Index::from(idx);
+        quote! {
+            #name => ::core::option::Option::Some(#entries_static_name[#idx_lit])
+        }
+    });
+
+    let by_value_arms = ir.variants.iter().enumerate().map(|(idx, v)| {
+        let value = v.value;
+        let idx_lit = syn::Index::from(idx);
+        quote! {
+            #value => ::core::option::Option::Some(#entries_static_name[#idx_lit])
         }
     });
 
@@ -25,10 +51,34 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
 
     quote! {
         #[allow(non_upper_case_globals)]
-        static #enum_static_name: ::quartzite_core::EnumMeta = ::quartzite_core::EnumMeta {
-            name: #type_name_str,
-            entries: &[#(#entries),*],
-        };
+        static #entries_static_name: &[::quartzite_core::EnumEntry] =
+            &[#(#entries),*];
+
+        #[allow(non_snake_case)]
+        fn #lookup_by_name_fn(name: &str) -> ::core::option::Option<::quartzite_core::EnumEntry> {
+            match name {
+                #(#by_name_arms,)*
+                _ => ::core::option::Option::None,
+            }
+        }
+
+        #[allow(non_snake_case)]
+        fn #lookup_by_value_fn(
+            value: i64,
+        ) -> ::core::option::Option<::quartzite_core::EnumEntry> {
+            match value {
+                #(#by_value_arms,)*
+                _ => ::core::option::Option::None,
+            }
+        }
+
+        #[allow(non_upper_case_globals)]
+        static #enum_static_name: ::quartzite_core::EnumMeta = ::quartzite_core::EnumMeta::new(
+            #type_name_str,
+            #entries_static_name,
+            #lookup_by_name_fn,
+            #lookup_by_value_fn,
+        );
 
         impl ::quartzite_core::IntoValue for #type_ident {
             fn into_value(self) -> ::quartzite_core::Value {
@@ -74,10 +124,23 @@ mod tests {
     fn enum_static_emits_name_and_entries() {
         let out = emit(quote! { enum Color { Red, Green, Blue } });
         assert!(out.contains("__ENUM_Color"), "missing static name: {out}");
-        assert!(out.contains("name : \"Color\""), "missing type name: {out}");
+        // New API uses EnumMeta::new("Color", ...) instead of struct literal
+        assert!(
+            out.contains("EnumMeta :: new (\"Color\""),
+            "missing type name: {out}"
+        );
         assert!(out.contains("\"Red\""), "missing Red entry: {out}");
         assert!(out.contains("\"Green\""), "missing Green entry: {out}");
         assert!(out.contains("\"Blue\""), "missing Blue entry: {out}");
+        // Lookup functions are emitted
+        assert!(
+            out.contains("__lookup_entry_by_name_Color"),
+            "missing by-name lookup: {out}"
+        );
+        assert!(
+            out.contains("__lookup_entry_by_value_Color"),
+            "missing by-value lookup: {out}"
+        );
     }
 
     // EnumEntry values follow auto-increment from 0.
@@ -162,13 +225,23 @@ mod tests {
         );
     }
 
-    // Empty enum: static has empty entries slice, match has no arms (only wildcard).
+    // Empty enum: entries static is empty, match functions have only wildcard arms.
     #[test]
     fn empty_enum_emits_empty_entries() {
         let out = emit(quote! { enum Empty {} });
+        // Entries static contains an empty slice
         assert!(
-            out.contains("entries : & []"),
+            out.contains("__ENTRIES_Empty : & [:: quartzite_core :: EnumEntry] = & []"),
             "expected empty entries: {out}"
+        );
+        // Lookup functions are emitted even for an empty enum
+        assert!(
+            out.contains("__lookup_entry_by_name_Empty"),
+            "missing by-name lookup: {out}"
+        );
+        assert!(
+            out.contains("__lookup_entry_by_value_Empty"),
+            "missing by-value lookup: {out}"
         );
     }
 }

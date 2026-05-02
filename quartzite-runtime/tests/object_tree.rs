@@ -37,7 +37,17 @@ impl AsObject for Stub {
     }
 }
 
-static STUB_META: MetaObject = MetaObject::new("Stub", &[], &[], &[], &[]);
+static STUB_META: MetaObject = MetaObject::new(
+    "Stub",
+    &[],
+    &[],
+    &[],
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    quartzite_core::meta::noop_lookup_method,
+    quartzite_core::meta::noop_lookup_enum,
+);
 
 impl Object for Stub {
     fn meta_object(&self) -> &'static MetaObject {
@@ -93,7 +103,17 @@ impl AsObject for LogObj {
     }
 }
 
-static LOG_META: MetaObject = MetaObject::new("LogObj", &[], &[], &[], &[]);
+static LOG_META: MetaObject = MetaObject::new(
+    "LogObj",
+    &[],
+    &[],
+    &[],
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    quartzite_core::meta::noop_lookup_method,
+    quartzite_core::meta::noop_lookup_enum,
+);
 
 impl Object for LogObj {
     fn meta_object(&self) -> &'static MetaObject {

@@ -11,11 +11,11 @@
 |---|------|--------|
 | 1 | Add `indexmap` dep to `quartzite-core/Cargo.toml` | ✅ |
 | 2 | IndexMap in `signal.rs` | ✅ |
-| 3a | fn-pointer fields on `MetaObject` | ⬜ |
-| 3b | fn-pointer fields on `EnumMeta` + no-op helpers | ⬜ |
-| 3c | Update hand-written `MetaObject::new` / `EnumMeta::new` call sites | ⬜ |
-| 3d | Emit match lookups from `#[object_impl]` | ⬜ |
-| 3e | Emit match lookups from `#[meta_enum]` | ⬜ |
+| 3a | fn-pointer fields on `MetaObject` | ✅ |
+| 3b | fn-pointer fields on `EnumMeta` + no-op helpers | ✅ |
+| 3c | Update hand-written `MetaObject::new` / `EnumMeta::new` call sites | ✅ |
+| 3d | Emit match lookups from `#[object_impl]` | ✅ |
+| 3e | Emit match lookups from `#[meta_enum]` | ✅ |
 | 4a | `ObjectBase::name` → `Option<String>`; remove `set_name` | ⬜ |
 | 4b | `by_name` index in `ObjectTree` | ⬜ |
 | 4c | `rename` / `clear_name` / `find_by_name` return `&[ObjectId]` | ⬜ |
@@ -47,4 +47,4 @@ purely additive):
 
 ## Next action
 
-Continue with task 3a: fn-pointer fields on `MetaObject` in `quartzite-core/src/meta.rs`.
+Continue with task 4a: `ObjectBase::name` → `Option<String>` in `quartzite-core/src/object_base.rs`.

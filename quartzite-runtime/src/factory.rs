@@ -103,7 +103,17 @@ mod tests {
         }
     }
 
-    static TEST_META: MetaObject = MetaObject::new("TestObj", &[], &[], &[], &[]);
+    static TEST_META: MetaObject = MetaObject::new(
+        "TestObj",
+        &[],
+        &[],
+        &[],
+        &[],
+        quartzite_core::meta::noop_lookup_property,
+        quartzite_core::meta::noop_lookup_signal,
+        quartzite_core::meta::noop_lookup_method,
+        quartzite_core::meta::noop_lookup_enum,
+    );
 
     impl Object for TestObj {
         fn meta_object(&self) -> &'static MetaObject {

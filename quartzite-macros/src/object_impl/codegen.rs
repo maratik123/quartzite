@@ -13,6 +13,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
 
     let methods_static = emit_methods_static(type_ident, &ir.methods);
     let invoke_fn = emit_invoke_method(type_ident, &ir.methods);
+    let lookup_fns = emit_lookup_fns(type_ident, &mod_ident, &ir.methods);
     let meta_static = emit_meta_static(type_ident, &mod_ident);
     let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident);
 
@@ -23,6 +24,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
 
         #methods_static
         #invoke_fn
+        #lookup_fns
         #meta_static
         #object_impl
     }
@@ -119,12 +121,67 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
     }
 }
 
+fn emit_lookup_fns(type_ident: &Ident, mod_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+    let lookup_prop_fn = Ident::new(
+        &format!("__lookup_property_{type_ident}"),
+        type_ident.span(),
+    );
+    let lookup_sig_fn = Ident::new(&format!("__lookup_signal_{type_ident}"), type_ident.span());
+    let lookup_method_fn = Ident::new(&format!("__lookup_method_{type_ident}"), type_ident.span());
+    let lookup_enum_fn = Ident::new(&format!("__lookup_enum_{type_ident}"), type_ident.span());
+
+    let props_name = Ident::new(&format!("__PROPS__{type_ident}"), type_ident.span());
+    let signals_name = Ident::new(&format!("__SIGNALS__{type_ident}"), type_ident.span());
+    let methods_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
+
+    // Each arm indexes into the 'static __METHODS__ slice — no temporaries.
+    let method_arms = methods.iter().enumerate().map(|(idx, m)| {
+        let name = m.ident.to_string();
+        let idx_lit = syn::Index::from(idx);
+        quote! {
+            #name => ::core::option::Option::Some(#methods_name[#idx_lit])
+        }
+    });
+
+    quote! {
+        #[allow(non_snake_case)]
+        fn #lookup_prop_fn(name: &str) -> ::core::option::Option<::quartzite_core::PropertyMeta> {
+            #mod_ident::#props_name.iter().find(|p| p.name == name).copied()
+        }
+
+        #[allow(non_snake_case)]
+        fn #lookup_sig_fn(name: &str) -> ::core::option::Option<::quartzite_core::SignalMeta> {
+            #mod_ident::#signals_name.iter().find(|s| s.name == name).copied()
+        }
+
+        #[allow(non_snake_case)]
+        fn #lookup_method_fn(name: &str) -> ::core::option::Option<::quartzite_core::MethodMeta> {
+            match name {
+                #(#method_arms,)*
+                _ => ::core::option::Option::None,
+            }
+        }
+
+        #[allow(non_snake_case)]
+        fn #lookup_enum_fn(_name: &str) -> ::core::option::Option<::quartzite_core::EnumMeta> {
+            ::core::option::Option::None
+        }
+    }
+}
+
 fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
     let meta_static_name = Ident::new(&format!("META_{type_ident}"), type_ident.span());
     let meta_init_fn = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     let props_name = Ident::new(&format!("__PROPS__{type_ident}"), type_ident.span());
     let signals_name = Ident::new(&format!("__SIGNALS__{type_ident}"), type_ident.span());
     let methods_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
+    let lookup_prop_fn = Ident::new(
+        &format!("__lookup_property_{type_ident}"),
+        type_ident.span(),
+    );
+    let lookup_sig_fn = Ident::new(&format!("__lookup_signal_{type_ident}"), type_ident.span());
+    let lookup_method_fn = Ident::new(&format!("__lookup_method_{type_ident}"), type_ident.span());
+    let lookup_enum_fn = Ident::new(&format!("__lookup_enum_{type_ident}"), type_ident.span());
     // MetaObject::new is const fn and all its arguments are const — no OnceLock needed.
     quote! {
         #[allow(non_upper_case_globals)]
@@ -135,6 +192,10 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
                 #mod_ident::#signals_name,
                 #methods_name,
                 &[],
+                #lookup_prop_fn,
+                #lookup_sig_fn,
+                #lookup_method_fn,
+                #lookup_enum_fn,
             );
 
         #[allow(non_snake_case)]
@@ -331,6 +392,74 @@ mod tests {
         assert!(out.contains("__PROPS__Foo"), "missing props ref: {out}");
         assert!(out.contains("__SIGNALS__Foo"), "missing signals ref: {out}");
         assert!(out.contains("__METHODS__Foo"), "missing methods ref: {out}");
+        // Lookup fns are passed to MetaObject::new
+        assert!(
+            out.contains("__lookup_property_Foo"),
+            "missing lookup_property_Foo: {out}"
+        );
+        assert!(
+            out.contains("__lookup_signal_Foo"),
+            "missing lookup_signal_Foo: {out}"
+        );
+        assert!(
+            out.contains("__lookup_method_Foo"),
+            "missing lookup_method_Foo: {out}"
+        );
+        assert!(
+            out.contains("__lookup_enum_Foo"),
+            "missing lookup_enum_Foo: {out}"
+        );
+    }
+
+    // Lookup fns are emitted as top-level fns.
+    #[test]
+    fn lookup_fns_are_emitted() {
+        let out = emit(quote! {
+            impl Foo {
+                #[slot]
+                fn reset(&mut self) {}
+                #[invokable]
+                fn doubled(&self) -> i32 { 0 }
+            }
+        });
+        assert!(
+            out.contains("fn __lookup_property_Foo"),
+            "missing lookup_property fn: {out}"
+        );
+        assert!(
+            out.contains("fn __lookup_signal_Foo"),
+            "missing lookup_signal fn: {out}"
+        );
+        assert!(
+            out.contains("fn __lookup_method_Foo"),
+            "missing lookup_method fn: {out}"
+        );
+        assert!(
+            out.contains("fn __lookup_enum_Foo"),
+            "missing lookup_enum fn: {out}"
+        );
+    }
+
+    // Lookup method fn contains correct match arms for each registered method.
+    #[test]
+    fn lookup_method_fn_has_correct_arms() {
+        let out = emit(quote! {
+            impl Foo {
+                #[slot]
+                fn reset(&mut self) {}
+                #[invokable]
+                fn doubled(&self) -> i32 { 0 }
+            }
+        });
+        // Arms should match on method names and index into __METHODS__ static
+        assert!(
+            out.contains("\"reset\" => :: core :: option :: Option :: Some (__METHODS__Foo [0])"),
+            "missing reset arm: {out}"
+        );
+        assert!(
+            out.contains("\"doubled\" => :: core :: option :: Option :: Some (__METHODS__Foo [1])"),
+            "missing doubled arm: {out}"
+        );
     }
 
     // impl Object: all five trait method delegations are present.

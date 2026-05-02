@@ -287,7 +287,17 @@ mod tests {
         }
     }
 
-    static STUB_META: MetaObject = MetaObject::new("StubObject", &[], &[], &[], &[]);
+    static STUB_META: MetaObject = MetaObject::new(
+        "StubObject",
+        &[],
+        &[],
+        &[],
+        &[],
+        quartzite_core::meta::noop_lookup_property,
+        quartzite_core::meta::noop_lookup_signal,
+        quartzite_core::meta::noop_lookup_method,
+        quartzite_core::meta::noop_lookup_enum,
+    );
 
     impl Object for StubObject {
         fn meta_object(&self) -> &'static MetaObject {

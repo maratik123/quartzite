@@ -268,7 +268,17 @@ mod tests {
         }
     }
 
-    static DUMMY_META: MetaObject = MetaObject::new("DummyObject", &[], &[], &[], &[]);
+    static DUMMY_META: MetaObject = MetaObject::new(
+        "DummyObject",
+        &[],
+        &[],
+        &[],
+        &[],
+        crate::meta::noop_lookup_property,
+        crate::meta::noop_lookup_signal,
+        crate::meta::noop_lookup_method,
+        crate::meta::noop_lookup_enum,
+    );
 
     impl Object for DummyObject {
         fn meta_object(&self) -> &'static MetaObject {
