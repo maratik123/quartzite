@@ -97,8 +97,8 @@ impl ObjectBase {
 
     /// Returns the name of this object, or `None` if it is anonymous.
     ///
-    /// To rename or clear the name at runtime, use [`ObjectTree::rename`] or
-    /// [`ObjectTree::clear_name`].
+    /// To rename or clear the name at runtime, use `ObjectTree::rename` or
+    /// `ObjectTree::clear_name` (from `quartzite-runtime`).
     ///
     /// # Examples
     ///

@@ -1,7 +1,7 @@
 //! Fixed-size worker thread pool for background task execution.
 use std::{
-    sync::mpsc::{self, Receiver, Sender},
     sync::Mutex,
+    sync::mpsc::{self, Receiver, Sender},
     thread::{self, JoinHandle},
 };
 
