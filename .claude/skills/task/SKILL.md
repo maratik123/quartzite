@@ -1,12 +1,16 @@
 ---
 name: task
-description: "Full task workflow from user description: interview → spec → design → design-review → impl → verify → self-review. Use when the user describes a task directly (no GitHub issue). Steps are strictly ordered and cannot be skipped."
+description: "Full task workflow from a user description OR a GitHub issue number: interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
-argument-hint: "[short task description]"
-allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh pr create *) Bash(gh pr view *)
+argument-hint: "[issue-number | task description]"
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh issue create *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
-Full workflow for a user-described task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
+Full workflow for a task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
+
+The task may originate from either:
+- a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — Step 1 reads the issue
+- a **user description** (e.g. `/task add foo to bar`) or empty (interview the user)
 
 ## ⚡ First: check for active task
 
@@ -36,17 +40,27 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
    ```
 3. Update `ai-docs/plans/INDEX.md`: move the plan row from the **Deferred plans** table to the **Active plans** table and mark its status as `🟢 ready` (or `🟡 spec-only` if no design).
 4. Tell the user: "Activated plan [name] — moved spec (and design) to `ai-docs/plans/`."
-5. If a `.progress.md` was moved: treat it as an active task — read it and resume from `## Next action` (same as the RESUME path above).
-6. Otherwise (no progress file): skip Steps 1–7 and jump directly to Step 8 (spec + design already exist).
+5. **Verify the spec carries `**Tracked in:**`** — if missing, run Step 5a (find or create tracking issue) and add it to the spec header before continuing.
+6. If a `.progress.md` was moved: treat it as an active task — read it and resume from `## Next action` (same as the RESUME path above).
+7. Otherwise (no progress file): skip Steps 1–7 and jump directly to Step 8 (spec + design already exist).
 
 ---
 
-### Step 1: Get the task description
+### Step 1: Get the task input
 
-If `$ARGUMENTS` is provided — use it as the initial task description.
-Otherwise — ask the user: "What do you want to implement or change?"
+Detect entry mode from `$ARGUMENTS`:
 
-Read the description carefully. If it references code, grep the codebase to understand context before proceeding.
+- **Issue ref** — matches `^#?\d+$` (e.g. `42` or `#42`):
+  ```bash
+  gh issue view <N>          # read description, comments, linked issues — read EVERYTHING
+  ```
+  Use the issue body as the task description. Record `tracking_issue = <N>` for Step 5a.
+
+- **Free text** — anything else non-empty: use as the task description.
+
+- **Empty** — ask the user: "What do you want to implement or change?"
+
+If the description references code, grep the codebase to understand context before proceeding.
 
 ### Step 2: Extract scope
 
@@ -58,15 +72,38 @@ Show scope list. For each item: in scope / out of scope / deferred. Max 3 questi
 
 ### Step 4: Confirm key decisions
 
-Any ambiguity or approach choice → ask the user. **Silently substituting your own decision — FORBIDDEN.**
+Any ambiguity or approach choice → ask the user (or, for issue-ref mode, the product owner). **Silently substituting your own decision — FORBIDDEN.**
 
 Red flags (STOP and ask):
 - Interpreting ambiguity two different ways
 - Choosing between technically equivalent approaches
-- Adding something not in the description
+- Adding something not in the input
 - Treating an item as "unimportant"
 
 ### Step 5: Save spec + acceptance criteria
+
+#### Step 5a: Tracking issue
+
+Every spec **must** carry a `**Tracked in:**` field referencing an open GitHub issue (`#N` shorthand).
+
+- **Entered via issue ref** (Step 1 set `tracking_issue`): use that issue. Skip the search below.
+- **Entered via free text / interview**:
+  1. Search existing open issues for matches:
+     ```bash
+     gh issue list --state open --search "<keyword>"
+     ```
+     Use 1–3 keywords from the task scope (crate names, feature names, key types).
+  2. **If a candidate exists** → present to the user: "I found #N: '<title>' — should this PR be tracked there?"
+     - User confirms → use that issue.
+     - User says no → continue to step 3.
+  3. **No suitable issue** → propose a new one:
+     - Title: matches the planned spec name (e.g. `feat(<crate>): <short description>`)
+     - Body: brief background + scope items distilled from Step 2/3
+     - Show the proposed title and body, ask user to confirm before running `gh issue create ...`
+
+> **Skip Step 5a only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`).
+
+#### Step 5b: Write the spec
 
 Create `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `## Acceptance Criteria` (required).
 
@@ -75,8 +112,9 @@ Spec format:
 ```markdown
 # [Task name]
 
-**Source:** user description
+**Source:** user description | issue #<N>
 **Date:** [YYYY-MM-DD]
+**Tracked in:** #<N>
 
 ## Scope
 ## Out of scope
@@ -96,6 +134,8 @@ Spec format:
 
 ## Open questions
 ```
+
+`**Source:**` is `issue #<N>` for issue-ref mode, `user description` otherwise. `**Tracked in:**` always uses the `#<N>` shorthand (no full URL).
 
 AC rules:
 - ✅ "Function returns `Err` if input is empty"
@@ -274,6 +314,10 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 6. `git push -u origin <branch>`
 7. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
+   - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
+     - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
+     - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
+     - Spec was written with `Tracked in: none` → omit this section
    - **Test plan** (checklist: one line per AC, plus clippy/build)
 8. Post the PR URL to the user.
 
@@ -283,9 +327,11 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 
 | Before | Check |
 |---|---|
-| Step 3 | All description items extracted? |
+| Step 1 | Entry mode detected (issue ref vs free text vs empty)? Issue body read in full if issue ref? |
+| Step 3 | All input items extracted? |
 | Step 4 | Scope confirmed? |
-| Step 5 | All decisions confirmed? Every AC verifiable? |
+| Step 5a | Tracking issue identified or created? Issue number captured? |
+| Step 5b | All decisions confirmed? Every AC verifiable? Spec includes `**Tracked in:** #N`? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
@@ -295,4 +341,4 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
