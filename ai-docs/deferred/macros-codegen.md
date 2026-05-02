@@ -14,7 +14,6 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Item | Source | Status |
 |------|--------|--------|
 | Runtime-specific code in macros (macros emit code that calls quartzite-core APIs) | [macros spec](../plans/done/2026-05-01-macros.spec.md) | ✅ done |
-| Python-specific code generation (deferred) | [macros spec](../plans/done/2026-05-01-macros.spec.md) | |
 | `#[derive(Extend)]` on enums or tuple structs (named fields only) | [macros spec](../plans/done/2026-05-01-macros.spec.md) | |
 | Generic functions and blanket-impl trait methods (`ObjectRef<T>`, `WeakRef<T>`, `Signal<Args>`, `ObjectExt` default methods) — monomorphized, no cross-crate inlining benefit | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) | |
 | Test-only `AsObject` impls inside `#[cfg(test)]` modules | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) | |
