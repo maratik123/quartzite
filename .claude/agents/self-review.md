@@ -54,7 +54,6 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 5. Style (AGENTS.md rules)
 - All new source files in Rust (`.rs`)?
-- `cargo fmt` applied (no formatting drift)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
 
 ### 6. Objection quality (round > 1 only)
@@ -67,7 +66,9 @@ For each `⚠️ Objected` item in the progress file:
 
 ## What you do NOT check
 
-- Formatting — that's `cargo fmt`; if CI is green, skip
+- `cargo fmt` / formatting drift — already mandated after every subtask in the Implementation step; guaranteed clean before self-review runs
+- `cargo clippy` — same; already enforced during Implementation
+- `cargo build` / `cargo check` / `cargo test` — same; all enforced during Implementation and Verify steps
 - Subjective preferences — only objective violations
 
 ## Findings format (written to progress file)

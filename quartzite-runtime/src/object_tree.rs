@@ -91,14 +91,18 @@ impl ObjectTree {
 
     /// Move `id` to a new parent. If `new_parent` is `None`, `id` becomes a root.
     pub fn reparent(&mut self, id: ObjectId, new_parent: Option<ObjectId>) {
+        self.detach_from_parent(id);
+        if let Some(pid) = new_parent {
+            self.parent_map.insert(id, pid);
+            self.children_map.entry(pid).or_default().push(id);
+        }
+    }
+
+    fn detach_from_parent(&mut self, id: ObjectId) {
         if let Some(old_parent) = self.parent_map.remove(&id)
             && let Some(siblings) = self.children_map.get_mut(&old_parent)
         {
             siblings.retain(|&c| c != id);
-        }
-        if let Some(pid) = new_parent {
-            self.parent_map.insert(id, pid);
-            self.children_map.entry(pid).or_default().push(id);
         }
     }
 
@@ -139,11 +143,7 @@ impl ObjectTree {
             self.store.remove(slot.0);
             self.reverse.remove(&slot);
         }
-        if let Some(parent_id) = self.parent_map.remove(&id)
-            && let Some(siblings) = self.children_map.get_mut(&parent_id)
-        {
-            siblings.retain(|&c| c != id);
-        }
+        self.detach_from_parent(id);
         self.children_map.remove(&id);
     }
 }

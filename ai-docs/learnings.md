@@ -78,6 +78,26 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Escalated?** AGENTS.md
 
+### 2026-05-02 — process — propagate skill/agent fixes to all related files in the same operation
+
+**What happened:** A fix to `self-review.md` was applied in isolation; `codebase-review.md` was only updated after the user pointed it out. Similarly, `/task` and `/task-issue` fixes were done together, but the code-review family was handled piecemeal.
+
+**Rule:** When fixing a skill or agent, immediately propagate the change to all files in the same sync group before reporting done. Two sync groups:
+- **Task group:** `skills/task/SKILL.md` ↔ `skills/task-issue/SKILL.md`
+- **Review group:** `skills/code-review/SKILL.md` (workflow orchestrator) ↔ `agents/review-findings.md` (findings producer) ↔ `agents/self-review.md` (fix validator)
+
+Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. `diff-review` is an agent that exists but is not currently wired into any skill. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent.
+
+**Escalated?** memory
+
+### 2026-05-02 — process — self-review must not re-run cargo fmt or cargo clippy
+
+**What happened:** The self-review agent checked `cargo fmt -- --check` and raised REJECT findings for formatting drift, even though both `cargo fmt` and `cargo clippy -- -D warnings` are already mandated after every subtask during Implementation (Step 8 of /task and /task-issue). This caused a spurious round-trip.
+
+**Rule:** Self-review must not run or re-check `cargo fmt`, `cargo clippy`, `cargo build`/`check`, or `cargo test`. These are all guaranteed by the Implementation and Verify steps before self-review runs. Self-review scope: spec conformance, design conformance, test coverage, safety/correctness, style (Rust file conventions, allow attributes) — not build tooling.
+
+**Escalated?** agent:self-review, agent:review-findings, skill:task, skill:task-issue, skill:code-review
+
 ### 2026-05-02 — process — check current branch before committing, not only before pushing
 
 **What happened:** For the `docs/learnings-and-skill-fix` branch, commits were made directly to local master without checking `git branch --show-current` first. The error was caught at push time (branch protection rejected the push), not at commit time. The rule in AGENTS.md mentions checking before `git push`, but the correct mental model is: verify branch before `git commit`.

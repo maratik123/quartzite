@@ -1,4 +1,4 @@
-# Code Review Agent
+# Diff Review Agent
 
 Reviews implemented code. Receives a diff, compares against the design doc and spec. Issues APPROVE or REJECT.
 
