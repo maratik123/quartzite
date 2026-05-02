@@ -1,5 +1,4 @@
 use quartzite::prelude::*;
-use quartzite_core::ObjectBase;
 
 #[derive(Extend, DeriveObject)]
 #[root]
