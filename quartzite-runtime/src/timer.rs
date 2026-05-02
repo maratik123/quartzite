@@ -8,7 +8,7 @@ use std::{
     time::Duration,
 };
 
-use quartzite_core::{ConnectionId, object_base::ObjectBase, signal::Signal};
+use quartzite_core::{ConnectionId, signal::Signal};
 
 /// Fires its `timeout` signal at a given interval via the event loop.
 ///
@@ -16,8 +16,6 @@ use quartzite_core::{ConnectionId, object_base::ObjectBase, signal::Signal};
 /// `Signal` is not `Sync`, so the signal is wrapped in `Arc<Mutex<>>` to allow
 /// the background thread to capture and emit it on the event-loop thread.
 pub struct Timer {
-    /// Base object state (id, name, thread affinity).
-    pub base: ObjectBase,
     /// Duration between `timeout` signal emissions.
     pub interval: Duration,
     /// When `true` the timer fires once and then stops automatically.
@@ -45,7 +43,6 @@ impl Timer {
     /// ```
     pub fn new(interval: Duration) -> Self {
         Self {
-            base: ObjectBase::new(),
             interval,
             single_shot: false,
             running: Arc::new(AtomicBool::new(false)),

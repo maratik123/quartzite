@@ -1,12 +1,11 @@
 //! Process-wide store of active signal–slot connections.
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock, Weak},
+    sync::{Arc, RwLock},
 };
 
 use quartzite_core::{
     ConnectionId, ObjectId,
-    receiver_guard::ReceiverGuard,
     signal::{DispatcherAlreadySet, QueuedDispatcher, set_queued_dispatcher},
 };
 
@@ -23,18 +22,6 @@ pub struct ConnectionRecord {
     pub signal_index: SignalIndex,
     /// `ObjectId` of the object that owns the slot.
     pub receiver_id: ObjectId,
-    /// Weak reference to the receiver's lifetime token; used to detect receiver destruction.
-    pub receiver_guard: Weak<ReceiverGuard>,
-    /// The callable slot, discriminated by delivery mode.
-    pub slot: SlotKind,
-}
-
-type DirectCallback = Box<dyn Fn(&[quartzite_core::Value]) + Send + Sync>;
-
-/// The callable part of a connection, discriminated by delivery mode.
-pub enum SlotKind {
-    /// Invoke the callback directly on the emitting thread.
-    Direct(DirectCallback),
 }
 
 /// Process-wide store of active connections.
@@ -89,38 +76,30 @@ impl ConnectionTable {
         set_queued_dispatcher(Arc::clone(self) as Arc<dyn QueuedDispatcher>)
     }
 
-    /// Register a new connection. Captures `receiver_guard` from the receiver's
-    /// `ObjectBase` at call time.
+    /// Register a new connection.
     ///
     /// # Examples
     ///
     /// ```no_run
     /// use std::sync::Arc;
-    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_core::ObjectId;
     /// use quartzite_runtime::{ConnectionTable, EventLoop};
-    /// use quartzite_runtime::connection_table::SlotKind;
     ///
     /// let el = Arc::new(EventLoop::new());
     /// let table = ConnectionTable::new(el);
-    /// let (_, guard_weak) = ReceiverGuard::new_pair();
-    /// let _id = table.register(ObjectId::new(), 0, ObjectId::new(), guard_weak,
-    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// let _id = table.register(ObjectId::new(), 0, ObjectId::new());
     /// ```
     pub fn register(
         &self,
         sender_id: ObjectId,
         signal_index: SignalIndex,
         receiver_id: ObjectId,
-        receiver_guard: Weak<ReceiverGuard>,
-        slot: SlotKind,
     ) -> ConnectionId {
         let id = ConnectionId::new();
         let record = ConnectionRecord {
             sender_id,
             signal_index,
             receiver_id,
-            receiver_guard,
-            slot,
         };
         self.connections.write().unwrap().insert(id, record);
         self.by_receiver
@@ -144,15 +123,12 @@ impl ConnectionTable {
     ///
     /// ```no_run
     /// use std::sync::Arc;
-    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_core::ObjectId;
     /// use quartzite_runtime::{ConnectionTable, EventLoop};
-    /// use quartzite_runtime::connection_table::SlotKind;
     ///
     /// let el = Arc::new(EventLoop::new());
     /// let table = ConnectionTable::new(el);
-    /// let (_, guard_weak) = ReceiverGuard::new_pair();
-    /// let id = table.register(ObjectId::new(), 0, ObjectId::new(), guard_weak,
-    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// let id = table.register(ObjectId::new(), 0, ObjectId::new());
     /// table.remove(id);
     /// ```
     pub fn remove(&self, id: ConnectionId) {
@@ -182,16 +158,13 @@ impl ConnectionTable {
     ///
     /// ```no_run
     /// use std::sync::Arc;
-    /// use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    /// use quartzite_core::ObjectId;
     /// use quartzite_runtime::{ConnectionTable, EventLoop};
-    /// use quartzite_runtime::connection_table::SlotKind;
     ///
     /// let el = Arc::new(EventLoop::new());
     /// let table = ConnectionTable::new(el);
     /// let receiver_id = ObjectId::new();
-    /// let (_, guard_weak) = ReceiverGuard::new_pair();
-    /// table.register(ObjectId::new(), 0, receiver_id, guard_weak,
-    ///     SlotKind::Direct(Box::new(|_| {})));
+    /// table.register(ObjectId::new(), 0, receiver_id);
     /// table.remove_by_receiver(receiver_id); // removes all slots for this receiver
     /// ```
     pub fn remove_by_receiver(&self, id: ObjectId) {
@@ -249,7 +222,7 @@ impl QueuedDispatcher for ConnectionTable {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quartzite_core::{ObjectId, receiver_guard::ReceiverGuard};
+    use quartzite_core::ObjectId;
 
     fn make_table() -> Arc<ConnectionTable> {
         let el = Arc::new(EventLoop::new());
@@ -261,20 +234,12 @@ mod tests {
         let table = make_table();
         let sender = ObjectId::new();
         let receiver = ObjectId::new();
-        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
 
-        let id = table.register(
-            sender,
-            0,
-            receiver,
-            guard_weak,
-            SlotKind::Direct(Box::new(|_| {})),
-        );
+        let id = table.register(sender, 0, receiver);
 
         assert!(table.receivers_for_signal(sender, 0).contains(&id));
         table.remove(id);
         assert!(!table.receivers_for_signal(sender, 0).contains(&id));
-        drop(guard_arc);
     }
 
     #[test]
@@ -282,18 +247,10 @@ mod tests {
         let table = make_table();
         let sender = ObjectId::new();
         let receiver = ObjectId::new();
-        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
 
-        table.register(
-            sender,
-            0,
-            receiver,
-            guard_weak,
-            SlotKind::Direct(Box::new(|_| {})),
-        );
+        table.register(sender, 0, receiver);
 
         table.remove_by_receiver(receiver);
         assert!(table.receivers_for_signal(sender, 0).is_empty());
-        drop(guard_arc);
     }
 }

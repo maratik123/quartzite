@@ -1,20 +1,15 @@
 //! Base state shared by every quartzite object.
 #[cfg(not(feature = "std"))]
-use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use alloc::{string::String, sync::Arc};
 #[cfg(feature = "std")]
-use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use std::{string::String, sync::Arc};
 
-use crate::{
-    id::{ConnectionId, ObjectId},
-    receiver_guard::ReceiverGuard,
-    value::Value,
-};
+use crate::{id::ObjectId, receiver_guard::ReceiverGuard};
 
 /// Core data carried by every object in the quartzite object tree.
 ///
 /// `ObjectBase` provides identity ([`ObjectId`]), optional name, thread-affinity
-/// tracking, a lifetime token for safe signal delivery ([`ReceiverGuard`]), and
-/// storage for dynamic properties and outgoing connection bookkeeping.
+/// tracking, and a lifetime token for safe signal delivery ([`ReceiverGuard`]).
 ///
 /// Objects are typically created through a higher-level type that includes an
 /// `ObjectBase` field and derives `Extend` (from `quartzite-macros`).
@@ -26,7 +21,6 @@ use crate::{
 ///
 /// let base = ObjectBase::named("my-button");
 /// assert_eq!(base.name(), Some("my-button"));
-/// assert!(!base.signals_blocked);
 /// ```
 pub struct ObjectBase {
     /// Private: uniqueness invariant — must never be overwritten after construction.
@@ -37,14 +31,6 @@ pub struct ObjectBase {
     /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
     /// all `Weak<ReceiverGuard>` held by queued connections.
     receiver_guard: Arc<ReceiverGuard>,
-    /// Tracks outgoing signal connections; populated and managed by `quartzite-runtime`.
-    ///
-    /// `ObjectBase` itself does not modify this field.
-    pub outgoing_connections: Vec<ConnectionId>,
-    /// Runtime property bag for properties added outside the compile-time schema.
-    pub dynamic_properties: BTreeMap<String, Value>,
-    /// When `true`, emitting any signal on this object is a no-op.
-    pub signals_blocked: bool,
     /// The thread on which this object was created; used by `connect_auto` to decide
     /// between direct and queued delivery.
     #[cfg(feature = "std")]
@@ -62,7 +48,6 @@ impl ObjectBase {
     ///
     /// let base = ObjectBase::new();
     /// assert!(base.name().is_none());
-    /// assert!(!base.signals_blocked);
     /// ```
     pub fn new() -> Self {
         let (guard, _) = ReceiverGuard::new_pair();
@@ -70,9 +55,6 @@ impl ObjectBase {
             id: ObjectId::new(),
             name: None,
             receiver_guard: guard,
-            outgoing_connections: Vec::new(),
-            dynamic_properties: BTreeMap::new(),
-            signals_blocked: false,
             #[cfg(feature = "std")]
             thread_id: std::thread::current().id(),
         }
@@ -201,18 +183,6 @@ mod tests {
     fn new_records_thread_id() {
         let base = ObjectBase::new();
         assert!(base.is_on_current_thread());
-    }
-
-    #[test]
-    fn signals_blocked_default_false() {
-        let base = ObjectBase::new();
-        assert!(!base.signals_blocked);
-    }
-
-    #[test]
-    fn dynamic_properties_empty_on_new() {
-        let base = ObjectBase::new();
-        assert!(base.dynamic_properties.is_empty());
     }
 
     #[test]
