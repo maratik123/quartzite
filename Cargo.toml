@@ -2,6 +2,7 @@
 members = [
     "quartzite",
     "quartzite-core",
+    "quartzite-examples",
     "quartzite-macros",
     "quartzite-runtime",
 ]

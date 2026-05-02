@@ -115,15 +115,17 @@ Crate-level plans:
 1. `quartzite-core` — core types + traits + signal + value ✅
 2. `quartzite-macros` — Extend + Object + object_impl derive macros ✅
 3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
-4. `quartzite` (facade) — prelude re-exports, Cargo metadata, docs.rs config ✅
-5. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
-6. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
-7. `quartzite-paint` + `quartzite-style` — painter + theming
+4. `quartzite` (facade) — prelude re-exports, sub-crate re-exports, Cargo metadata, docs.rs config ✅
+5. `quartzite-examples` — runnable API examples (hello_object, signals_slots, object_tree, timer) ✅
+6. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
+7. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
+8. `quartzite-paint` + `quartzite-style` — painter + theming
 
-Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns).
+Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples).
 
 ## Open Questions
 
 - Async/await integration strategy
 - Accessibility (a11y) support
 - No-std support scope (core only, or further?)
+- **`proc_macro_crate` ergonomics:** `quartzite-macros` codegen emits `::quartzite_core::` absolute paths, requiring `quartzite-core` as a direct dep in any crate that uses the macros — even if the user already depends on the `quartzite` facade. Using `proc_macro_crate` at expansion time to detect whether the user has `quartzite` or `quartzite_core` (or both) would allow true single-dep usage. Deferred; non-trivial to implement.

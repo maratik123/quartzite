@@ -16,6 +16,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [public-api-docs](done/2026-05-02-public-api-docs.spec.md) | all crates | ✅ implemented (47 new doctests) | — |
 | [lookup-perf](done/2026-05-02-lookup-perf.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (21 new tests) | — |
 | [inline-simple-fns](done/2026-05-02-inline-simple-fns.spec.md) | all crates | ✅ implemented (8 new tests) | — |
+| [examples-crate](done/2026-05-02-examples-crate.spec.md) | `quartzite-examples` `quartzite` | ✅ implemented (0 new tests; 4 runnable examples) | — |
 
 ## Deferred plans
 
@@ -49,3 +50,4 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 3. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
 4. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
 5. `#[inline]` rule is enforced by AGENTS.md and review agents; new simple non-generic functions must carry the attribute
+6. `proc_macro_crate` ergonomics: macro users currently need both `quartzite` and `quartzite-core` as direct deps; using `proc_macro_crate` in `quartzite-macros` would enable true single-dep usage
