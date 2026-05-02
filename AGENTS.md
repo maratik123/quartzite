@@ -74,7 +74,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 **Rule:** [what to do instead, or what to keep doing]
 **Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | memory (comma-separate multiple)
 
-> `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (skill/hook/AGENTS.md).
+> `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (AGENTS.md / skill / agent / hook / settings). `settings.local` does NOT count as project-level.
 ```
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `search` | `other`

@@ -18,15 +18,17 @@ Read:
 Go through `ai-docs/learnings.md` and group entries:
 - By category (`code-style`, `process`, `architecture`, `testing`, `search`, `other`)
 - By recurrence (how many times the same mistake)
-- By escalation status: treat `no` and `memory` as **unescalated** (memory is global, not project-level); treat `AGENTS.md`, `skill`, `hook`, `settings`, `agent` as escalated
+- By escalation status:
+  - **Unescalated** (`no`, `memory`): `memory` is global cross-project only — not a project-level fix
+  - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`): rule is in project instructions; `settings.local` does NOT count (user-local, not project)
 
 ### Step 2: Determine actions
 
 | Occurrences | Current status | Action |
 |---|---|---|
 | 1 | no / memory | Nothing — wait for recurrence |
-| ≥2 | no / memory | Update `AGENTS.md` or skill/agent file — add/strengthen rule |
-| ≥2 | AGENTS.md/skill | Rule exists but isn't working → move closer to the point of execution |
+| ≥2 | no / memory | Update `AGENTS.md` or skill/agent/settings file — add/strengthen rule |
+| ≥2 | AGENTS.md / skill / agent / settings | Rule exists but isn't working → move closer to the point of execution |
 | ≥3 | rule in place | Propose a hook in `.claude/settings.json` |
 
 **Routing — which file to update:**
