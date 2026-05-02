@@ -14,7 +14,7 @@ Early development. Core crates are implemented; widget and painting layers are n
 | `quartzite-core` | ✅ implemented |
 | `quartzite-macros` | ✅ implemented |
 | `quartzite-runtime` | ✅ implemented |
-| `quartzite-examples` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
+| `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
 | `quartzite-geometry` / `quartzite-events` | planned |
 | `quartzite-widgets` | planned |
 | `quartzite-paint` / `quartzite-style` | planned |
@@ -54,26 +54,26 @@ quartzite = { git = "...", default-features = false, features = ["std"] }
 ## Build
 
 ```bash
-cargo build
+cargo build --workspace
 ```
 
 ## Test
 
 ```bash
-cargo test
+cargo test --workspace
 ```
 
 ## Lint
 
 ```bash
-cargo clippy -- -D warnings
+cargo clippy --workspace -- -D warnings
 ```
 
 ## Format
 
 ```bash
-cargo fmt              # apply
-cargo fmt -- --check   # verify (CI gate)
+cargo fmt --all              # apply
+cargo fmt --all -- --check   # verify (CI gate)
 ```
 
 ## Docs
