@@ -152,19 +152,14 @@ finding (Step 11) requires a design change rather than a code fix:
 
 ### Step 9.5: Update documentation
 
-Update the following files to reflect the completed implementation:
+Update content files only — **do not move spec/design to `done/` yet** (that happens at Step 12):
 
-1. **`ai-docs/plans/INDEX.md`**
-   - Change the plan row status to `✅ implemented (N tests)`
-   - Move spec/design files to `ai-docs/plans/done/` (`git mv`)
-   - Update dependency tree and **Suggested next steps**
-
-2. **`ai-docs/context.md`** — update any section touched by this task:
+1. **`ai-docs/context.md`** — update any section touched by this task:
    - Resolve open questions that were answered during implementation
    - Update the Plans list (add ✅ to implemented crates)
    - Add new architectural decisions to the Key Decisions table
 
-3. **`README.md`** — update the status table if a new crate was implemented
+2. **`README.md`** — update the status table if a new crate was implemented
 
 Then proceed to Step 10.
 
@@ -205,24 +200,28 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 4. Update `.progress.md`
 5. Return to Step 10.
 
-### Step 12: Create PR
+### Step 12: Finalise docs, commit, and create PR
 
 1. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
-2. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-3. Stage all changed files: implementation files from `## Files touched` in the progress file, plus doc files updated in Step 9.5 (`INDEX.md`, `context.md`, `README.md`, spec/design in `done/`).
-4. Commit:
+2. **Finalise INDEX.md and move plan files:**
+   - Change the plan row status to `✅ implemented (N tests)`
+   - Move spec/design files to `ai-docs/plans/done/`
+   - Update dependency tree and **Suggested next steps**
+3. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+4. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, updated `INDEX.md`, and spec/design now in `done/`.
+5. Commit:
    ```
    feat(<crate>): <short imperative description>
 
    <1-3 lines: what changed and why; key ACs covered>
    N new tests; all M tests green.
    ```
-5. `git push -u origin <branch>`
-6. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+6. `git push -u origin <branch>`
+7. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
    - `Closes #<issue-number>` to auto-close the issue on merge
    - **Test plan** (checklist: one line per AC, plus clippy/build)
-7. Post the PR URL to the user.
+8. Post the PR URL to the user.
 
 **FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
@@ -238,8 +237,8 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 8 start | Feature branch created (`git branch --show-current` ≠ master)? `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo test` green? clippy clean? All ACs covered? |
-| Step 9.5 | INDEX.md updated? spec/design moved to done/? context.md + README.md current? |
+| Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? `Cargo.lock` refreshed? `Closes #N` in body? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? `Closes #N` in body? PR created and URL posted? |
