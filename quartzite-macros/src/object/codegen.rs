@@ -699,7 +699,9 @@ mod tests {
                 pub ticked: Signal<(i32,)>,
             }
         });
-        let mod_start = out.find("mod __quartzite_Foo").expect("hidden mod not found");
+        let mod_start = out
+            .find("mod __quartzite_Foo")
+            .expect("hidden mod not found");
         let impl_start = out.find("impl Foo").expect("outer impl block not found");
         // The outer impl block must follow the hidden mod.
         assert!(
