@@ -208,7 +208,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
 3. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-4. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, updated `INDEX.md`, and spec/design now in `done/`.
+4. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
 5. Commit:
    ```
    feat(<crate>): <short imperative description>
