@@ -18,7 +18,7 @@
 | `quartzite-paint` | Painter, Color, Font, Pen, Brush, Image, Path |
 | `quartzite-style` | Style trait, Palette, StyleRegistry |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout, Button, Label, LineEdit, … |
-| `quartzite` (facade) | Re-exports all crates; curated `prelude` module ✅ |
+| `quartzite` (workspace root + facade) | Re-exports sub-crates as `quartzite::core`, `quartzite::macros` (optional; `derive` feature, on by default), `quartzite::runtime`; curated `prelude` module ✅ |
 
 Python interop (`quartzite-python` via PyO3) is **deferred** — the reflection layer must not block it.
 
@@ -99,8 +99,10 @@ AsObject        AsWidget        AsWidget (generated)
 | Hierarchy root marker | `#[root]` explicit attribute |
 | Multiple bases | One `#[base]` + N `#[mixin]`; two `#[base]` → compile error |
 | `AsObject` vs `Object` | Separate: `AsObject` = pure accessor; `Object` = meta-system |
-| Crate naming | `quartzite-*` |
+| Crate naming | `quartzite-*`; workspace root doubles as the `quartzite` facade crate (no `quartzite/` subdirectory) |
 | Python interop | Deferred; reflection layer designed to enable it later |
+| Macro codegen paths | Proc macros emit `::quartzite::core::` absolute paths — consumers only need `quartzite` as a direct dep; no separate `quartzite-core` dep required |
+| `derive` feature | `quartzite-macros` is an optional dep gated on the `derive` feature (on by default); disable to skip proc-macro compilation in macro-free or `no_std` builds |
 | Object ownership | Arena/SlotMap — `ObjectTree` + `ObjectId` + `Mutex<ObjectTree>` in Application |
 | `ConnectionType::Auto` | Same-thread → Direct (sync call, args cloned); cross-thread → Queued (post to dispatcher). `ThreadId` captured at connect time; requires `Args: Clone + Send + 'static`. Gated on `feature = "std"`. |
 | Signal slot storage | `IndexMap<ConnectionId, …>` — insertion-order preserved; O(1) disconnect via `shift_remove`. `std` feature propagates to `indexmap/std`; `no_std` uses `hashbrown::DefaultHashBuilder` type alias. |
@@ -128,4 +130,3 @@ Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extensi
 - Async/await integration strategy
 - Accessibility (a11y) support
 - No-std support scope (core only, or further?)
-- **`proc_macro_crate` ergonomics:** `quartzite-macros` codegen emits `::quartzite_core::` absolute paths, requiring `quartzite-core` as a direct dep in any crate that uses the macros — even if the user already depends on the `quartzite` facade. Using `proc_macro_crate` at expansion time to detect whether the user has `quartzite` or `quartzite_core` (or both) would allow true single-dep usage. Deferred; non-trivial to implement.
