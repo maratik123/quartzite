@@ -1,11 +1,11 @@
 //! Base state shared by every quartzite object.
 #[cfg(not(feature = "std"))]
-use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, string::String, sync::Arc};
 #[cfg(feature = "std")]
-use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
+use std::{collections::BTreeMap, string::String, sync::Arc};
 
 use crate::{
-    id::{ConnectionId, ObjectId},
+    id::ObjectId,
     receiver_guard::ReceiverGuard,
     value::Value,
 };
@@ -14,7 +14,7 @@ use crate::{
 ///
 /// `ObjectBase` provides identity ([`ObjectId`]), optional name, thread-affinity
 /// tracking, a lifetime token for safe signal delivery ([`ReceiverGuard`]), and
-/// storage for dynamic properties and outgoing connection bookkeeping.
+/// storage for dynamic properties.
 ///
 /// Objects are typically created through a higher-level type that includes an
 /// `ObjectBase` field and derives `Extend` (from `quartzite-macros`).
@@ -37,10 +37,6 @@ pub struct ObjectBase {
     /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
     /// all `Weak<ReceiverGuard>` held by queued connections.
     receiver_guard: Arc<ReceiverGuard>,
-    /// Tracks outgoing signal connections; populated and managed by `quartzite-runtime`.
-    ///
-    /// `ObjectBase` itself does not modify this field.
-    pub outgoing_connections: Vec<ConnectionId>,
     /// Runtime property bag for properties added outside the compile-time schema.
     pub dynamic_properties: BTreeMap<String, Value>,
     /// When `true`, emitting any signal on this object is a no-op.
@@ -70,7 +66,6 @@ impl ObjectBase {
             id: ObjectId::new(),
             name: None,
             receiver_guard: guard,
-            outgoing_connections: Vec::new(),
             dynamic_properties: BTreeMap::new(),
             signals_blocked: false,
             #[cfg(feature = "std")]
