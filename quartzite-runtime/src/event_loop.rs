@@ -1,9 +1,9 @@
 //! Single-threaded event loop for posting and executing closures.
 use std::{
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver, Sender},
+        Arc,
     },
     time::Duration,
 };
@@ -41,17 +41,48 @@ impl EventLoop {
 
     /// Post a closure to be executed on the event-loop thread. Callable from
     /// any thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = EventLoop::new();
+    /// el.post(Box::new(|| println!("on loop thread")));
+    /// ```
     pub fn post(&self, f: Box<dyn FnOnce() + Send>) {
         let _ = self.sender.send(f);
     }
 
     /// Clone the sender so callers can post without holding a reference to the
     /// loop itself.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = EventLoop::new();
+    /// let tx = el.sender();
+    /// tx.send(Box::new(|| println!("posted"))).ok();
+    /// ```
     pub fn sender(&self) -> Sender<Box<dyn FnOnce() + Send>> {
         self.sender.clone()
     }
 
     /// Run the event loop on the calling thread. Blocks until `stop()` is called.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// let el2 = Arc::clone(&el);
+    /// std::thread::spawn(move || { std::thread::sleep(std::time::Duration::from_millis(10)); el2.stop(); });
+    /// el.run(); // blocks until stop() is called above
+    /// ```
     pub fn run(&self) {
         self.running.store(true, Ordering::SeqCst);
         let receiver = self.receiver.lock().unwrap();
@@ -72,6 +103,15 @@ impl EventLoop {
     }
 
     /// Signal the event loop to stop. May be called from any thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = EventLoop::new();
+    /// el.stop();
+    /// ```
     pub fn stop(&self) {
         self.running.store(false, Ordering::SeqCst);
         // Wake the loop by posting a no-op.
@@ -79,6 +119,15 @@ impl EventLoop {
     }
 
     /// Returns `true` while the loop is running.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = EventLoop::new();
+    /// assert!(!el.is_running());
+    /// ```
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
     }

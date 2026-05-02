@@ -28,6 +28,16 @@ pub struct ObjectTree {
 
 impl ObjectTree {
     /// Create an empty `ObjectTree`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_runtime::ObjectTree;
+    ///
+    /// let tree = ObjectTree::new();
+    /// assert!(!tree.contains(ObjectId::new()));
+    /// ```
     pub fn new() -> Self {
         Self {
             store: SlotMap::new(),

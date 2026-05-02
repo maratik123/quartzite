@@ -88,6 +88,19 @@ impl Timer {
     }
 
     /// Start the timer. `post` must be a `Sender` cloned from the active `EventLoop`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_runtime::{EventLoop, Timer};
+    ///
+    /// let el = EventLoop::new();
+    /// let mut timer = Timer::new(Duration::from_millis(100));
+    /// timer.start(el.sender());
+    /// assert!(timer.is_running());
+    /// timer.stop();
+    /// ```
     pub fn start(&mut self, post: std::sync::mpsc::Sender<Box<dyn FnOnce() + Send>>) {
         if self.running.load(Ordering::SeqCst) {
             return;

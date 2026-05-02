@@ -140,7 +140,16 @@ impl core::fmt::Display for TypeError {
     }
 }
 
-/// Convert a `Value` into a concrete Rust type.
+/// Convert a [`Value`] into a concrete Rust type.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::{FromValue, Value};
+///
+/// assert_eq!(i64::from_value(Value::Int(7)), Ok(7i64));
+/// assert!(bool::from_value(Value::Int(0)).is_err());
+/// ```
 pub trait FromValue: Sized {
     /// Attempt to convert `val` into `Self`.
     ///
@@ -156,7 +165,16 @@ pub trait FromValue: Sized {
     fn from_value(val: Value) -> Result<Self, TypeError>;
 }
 
-/// Convert a concrete Rust type into a `Value`.
+/// Convert a concrete Rust type into a [`Value`].
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::{IntoValue, Value};
+///
+/// assert_eq!(true.into_value(), Value::Bool(true));
+/// assert_eq!(3.14f64.into_value(), Value::Float(3.14));
+/// ```
 pub trait IntoValue {
     /// Wrap `self` in the appropriate `Value` variant.
     ///

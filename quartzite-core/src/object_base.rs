@@ -95,11 +95,30 @@ impl ObjectBase {
     }
 
     /// Returns the unique identifier for this object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::new();
+    /// assert!(base.id().raw() > 0);
+    /// ```
     pub fn id(&self) -> ObjectId {
         self.id
     }
 
     /// Returns a reference to the receiver guard (lifetime token for signal delivery).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::new();
+    /// let guard = base.receiver_guard();
+    /// assert_eq!(std::sync::Arc::strong_count(guard), 1);
+    /// ```
     pub fn receiver_guard(&self) -> &Arc<ReceiverGuard> {
         &self.receiver_guard
     }

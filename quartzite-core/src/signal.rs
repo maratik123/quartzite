@@ -83,6 +83,16 @@ pub struct DispatcherAlreadySet;
 
 /// Register the process-wide queued dispatcher. Called by `Application::new()`.
 /// Returns `Ok(())` on the first call; `Err(DispatcherAlreadySet)` on subsequent calls.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::Arc;
+/// use quartzite_core::signal::{QueuedDispatcher, set_queued_dispatcher};
+///
+/// // Normally called by Application::new(); shown here for illustration.
+/// // set_queued_dispatcher(Arc::new(my_dispatcher));
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), DispatcherAlreadySet> {
@@ -91,6 +101,16 @@ pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), Dispatc
 
 /// Returns a reference to the registered dispatcher, or `None` before
 /// `Application` has been created.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_core::signal::queued_dispatcher;
+///
+/// if let Some(d) = queued_dispatcher() {
+///     d.post(Box::new(|| println!("posted to event loop")));
+/// }
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub fn queued_dispatcher() -> Option<&'static Arc<dyn QueuedDispatcher>> {
