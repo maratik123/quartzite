@@ -114,3 +114,11 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** Run `git branch --show-current` and confirm it is **not** `master` before any `git commit` that is intended for a PR. A pre-push check is a last resort, not the primary safeguard. The commit should never happen on master — the push check only exists as a final gate.
 
 **Escalated?** hook, skill:task, skill:task-issue
+
+### 2026-05-02 — process — run cargo fmt --all after every code change, including post-self-review fixes
+
+**What happened:** `cargo fmt --all -- --check` was run once during Step 9 (Verify). A self-review finding then triggered a code fix (Step 11). The fix was committed and pushed without re-running `cargo fmt --all`. CI failed on the formatting drift introduced by that fix.
+
+**Rule:** Run `cargo fmt --all` (and re-check with `cargo fmt --all -- --check`) after *every* code change — including fixes made after self-review. The verify step (Step 9) is not a one-time gate; it must be re-run after any subsequent edit before committing. Never commit without a clean `cargo fmt --all -- --check` immediately before the commit.
+
+**Escalated?** hook

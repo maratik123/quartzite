@@ -31,6 +31,9 @@ pub struct ObjectBase {
     /// Private: lifetime token — Arc is dropped when the object is dropped, invalidating
     /// all `Weak<ReceiverGuard>` held by queued connections.
     receiver_guard: Arc<ReceiverGuard>,
+    /// When `true`, all signal emissions on this object are suppressed.
+    /// Set via [`ObjectBase::block_signals`]; cleared via [`ObjectBase::unblock_signals`].
+    signals_blocked: bool,
     /// The thread on which this object was created; used by `connect_auto` to decide
     /// between direct and queued delivery.
     #[cfg(feature = "std")]
@@ -55,6 +58,7 @@ impl ObjectBase {
             id: ObjectId::new(),
             name: None,
             receiver_guard: guard,
+            signals_blocked: false,
             #[cfg(feature = "std")]
             thread_id: std::thread::current().id(),
         }
@@ -147,6 +151,59 @@ impl ObjectBase {
         &self.receiver_guard
     }
 
+    /// Suppresses all signal emissions on this object until [`unblock_signals`](ObjectBase::unblock_signals) is called.
+    ///
+    /// While blocked, calls to generated `emit_<signal>` wrappers and property-change
+    /// notify emissions return immediately without invoking any slots.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let mut base = ObjectBase::new();
+    /// base.block_signals();
+    /// assert!(base.signals_blocked());
+    /// ```
+    #[inline]
+    pub fn block_signals(&mut self) {
+        self.signals_blocked = true;
+    }
+
+    /// Re-enables signal emissions after a previous [`block_signals`](ObjectBase::block_signals) call.
+    ///
+    /// Calling this when signals are already unblocked is a no-op.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let mut base = ObjectBase::new();
+    /// base.block_signals();
+    /// base.unblock_signals();
+    /// assert!(!base.signals_blocked());
+    /// ```
+    #[inline]
+    pub fn unblock_signals(&mut self) {
+        self.signals_blocked = false;
+    }
+
+    /// Returns `true` if signal emissions are currently blocked on this object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectBase;
+    ///
+    /// let base = ObjectBase::new();
+    /// assert!(!base.signals_blocked());
+    /// ```
+    #[inline]
+    pub fn signals_blocked(&self) -> bool {
+        self.signals_blocked
+    }
+
     /// Returns `true` if this object was created on the calling thread.
     ///
     /// Used by `connect_auto` to decide between direct and queued signal delivery.
@@ -202,5 +259,32 @@ mod tests {
         let a = ObjectBase::new();
         let b = ObjectBase::new();
         assert_ne!(a.id(), b.id());
+    }
+
+    #[test]
+    fn signals_blocked_false_by_default() {
+        assert!(!ObjectBase::new().signals_blocked());
+    }
+
+    #[test]
+    fn block_signals_sets_flag() {
+        let mut base = ObjectBase::new();
+        base.block_signals();
+        assert!(base.signals_blocked());
+    }
+
+    #[test]
+    fn unblock_signals_clears_flag() {
+        let mut base = ObjectBase::new();
+        base.block_signals();
+        base.unblock_signals();
+        assert!(!base.signals_blocked());
+    }
+
+    #[test]
+    fn unblock_when_not_blocked_is_noop() {
+        let mut base = ObjectBase::new();
+        base.unblock_signals();
+        assert!(!base.signals_blocked());
     }
 }
