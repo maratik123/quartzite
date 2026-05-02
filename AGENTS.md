@@ -10,11 +10,21 @@
 
 ## Permissions
 
-Enforced by `settings.json`. Intent:
+Enforced by `settings.json`:
 
-**ALLOW:** project files, `git`, `cargo`, `gh`, `~/.claude`
-**DENY:** `.env`, `secrets*`, `git push --force`, files outside project
-**ASK:** any tool not listed above; if access denied — suggest an alternative
+- **ALLOW:** Edit/Write under project root, `~/.claude`, `.claude`; `Bash(cargo *)`, `Bash(git *)`, `Bash(gh *)`
+- **DENY (machine-blocked):** `.idea/**`; `.env` and `.env.*` (any depth); `secrets*` and `.secrets*` (any depth) — read/edit/write all blocked
+
+Enforced server-side:
+
+- **DENY:** `git push --force` to `master` — branch protection on `origin`
+
+Honor-system (no machine check; rule still binding):
+
+- **DENY:** `git push --force` to feature branches — prefer `--force-with-lease` and only after explicit user approval
+- **DENY:** files outside project root
+
+**ASK:** any tool not listed above; if access denied — suggest an alternative.
 
 On session start: read `.gitignore`, treat matched paths as a read blacklist.
 
