@@ -36,7 +36,7 @@ the receiver's `thread_id` (captured at connect time). If same thread → behave
 | API surface | `ConnectionType::Auto` variant, not a separate `connect_auto()` method |
 | Same-thread behavior | Direct — slot called synchronously with `&Args` |
 | Cross-thread behavior | Queued — `Args` cloned, posted to `QueuedDispatcher` |
-| No dispatcher | Silent drop — Qt-compatible, consistent with existing `Queued` behavior |
+| No dispatcher | Silent drop — consistent with existing `Queued` behavior |
 | `thread_id` timing | Captured at connect time from `receiver.object_base().thread_id` |
 | `no_std` policy | Compile error — `Auto` variant `#[cfg(feature = "std")]` only |
 

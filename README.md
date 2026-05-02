@@ -1,8 +1,8 @@
 # quartzite
 
-A GUI and object framework for Rust. Inspired by the design principles of Qt — signals/slots,
-a rich object model, and a declarative UI layer — but implemented as idiomatic Rust with no C++
-dependency, no foreign ABI, and no code generation outside of proc macros.
+A GUI and object framework for Rust built around signals/slots,
+a rich object model, and a declarative UI layer — implemented as idiomatic Rust with no native
+dependencies, no foreign ABI, and no code generation outside of proc macros.
 
 ## Status
 
