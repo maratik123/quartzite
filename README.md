@@ -6,8 +6,16 @@ dependency, no foreign ABI, and no code generation outside of proc macros.
 
 ## Status
 
-Early development. The foundational `quartzite-core` crate is implemented; higher-level crates
-(macros, runtime, widgets) are in design.
+Early development. Core crates are implemented; widget and painting layers are next.
+
+| Crate | Status |
+|---|---|
+| `quartzite-core` | ✅ implemented |
+| `quartzite-macros` | ✅ implemented |
+| `quartzite-runtime` | ✅ implemented |
+| `quartzite-geometry` / `quartzite-events` | planned |
+| `quartzite-widgets` | planned |
+| `quartzite-paint` / `quartzite-style` | planned |
 
 ## Prerequisites
 
