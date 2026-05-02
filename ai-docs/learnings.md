@@ -87,7 +87,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 - **Task group:** `skills/task/SKILL.md` ↔ `skills/task-issue/SKILL.md`
 - **Review group:** `skills/code-review/SKILL.md` (workflow orchestrator) ↔ `agents/review-findings.md` (findings producer) ↔ `agents/self-review.md` (fix validator)
 
-Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. `diff-review` is an agent that exists but is not currently wired into any skill. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent.
+Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent. (A `diff-review` agent existed historically but was removed as orphan; do not reintroduce it without wiring it into a skill.)
 
 **Escalated?** memory
 
