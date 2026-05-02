@@ -67,7 +67,7 @@ After applying changes — answer:
 - How to reproduce the original error?
 - What does the output look like if the fix worked?
 
-Run the scenario via Task subagent in a clean context.
+Run the scenario via an `Agent` subagent in a clean context.
 
 **PASS criterion:** the problematic pattern is gone.
 **FAIL criterion:** same error → rule not strong enough → go back to Step 3, strengthen it.

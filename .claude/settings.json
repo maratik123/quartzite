@@ -31,8 +31,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f && [[ \"$f\" == *.rs ]] && rustfmt \"$f\"; } || true",
-            "timeout": 30,
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f && [[ \"$f\" == *.rs ]] && cargo fmt --quiet --manifest-path \"$CLAUDE_PROJECT_DIR/Cargo.toml\"; } || true",
+            "timeout": 60,
             "statusMessage": "Formatting Rust..."
           }
         ]
