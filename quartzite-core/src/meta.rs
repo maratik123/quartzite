@@ -1,12 +1,25 @@
+//! Static reflection metadata types for the quartzite object system.
+//!
+//! These types are emitted by `#[derive(Object)]` / `#[object_impl]` and
+//! stored as `'static` values. They can also be constructed manually for
+//! types that do not use the derive macros.
+
 /// Flags describing how a property can be accessed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PropertyFlags {
+    /// Property value can be read via `read_property`.
     pub readable: bool,
+    /// Property value can be written via `write_property`.
     pub writable: bool,
+    /// A change notification signal exists for this property.
     pub notify: bool,
+    /// Property value is saved when the object is serialized.
     pub stored: bool,
+    /// Property is visible in design tools.
     pub designable: bool,
+    /// Property is intended for direct user interaction (e.g., a form field).
     pub user: bool,
+    /// Property value never changes after construction; implies not writable.
     pub constant: bool,
 }
 
@@ -60,12 +73,25 @@ impl Default for PropertyFlags {
 /// Static metadata for a single property.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PropertyMeta {
+    /// The property name as it appears in the meta-system (e.g. `"count"`).
     pub name: &'static str,
+    /// Rust type name of the property value (e.g. `"i64"`).
     pub type_name: &'static str,
+    /// Access flags for this property.
     pub flags: PropertyFlags,
 }
 
 impl PropertyMeta {
+    /// Construct a new `PropertyMeta` from its components.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{PropertyFlags, PropertyMeta};
+    ///
+    /// let meta = PropertyMeta::new("count", "i64", PropertyFlags::read_write());
+    /// assert_eq!(meta.name, "count");
+    /// ```
     pub const fn new(name: &'static str, type_name: &'static str, flags: PropertyFlags) -> Self {
         Self {
             name,
@@ -78,11 +104,24 @@ impl PropertyMeta {
 /// Static metadata for a single parameter (used in signals and methods).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ParamMeta {
+    /// Parameter name (e.g. `"value"`).
     pub name: &'static str,
+    /// Rust type name of the parameter (e.g. `"i64"`).
     pub type_name: &'static str,
 }
 
 impl ParamMeta {
+    /// Construct a new `ParamMeta`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::ParamMeta;
+    ///
+    /// let p = ParamMeta::new("value", "i64");
+    /// assert_eq!(p.name, "value");
+    /// assert_eq!(p.type_name, "i64");
+    /// ```
     pub const fn new(name: &'static str, type_name: &'static str) -> Self {
         Self { name, type_name }
     }
@@ -91,11 +130,24 @@ impl ParamMeta {
 /// Static metadata for a signal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SignalMeta {
+    /// Signal name as it appears in the meta-system (e.g. `"clicked"`).
     pub name: &'static str,
+    /// Ordered list of parameter descriptors for this signal.
     pub params: &'static [ParamMeta],
 }
 
 impl SignalMeta {
+    /// Construct a new `SignalMeta`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::SignalMeta;
+    ///
+    /// let s = SignalMeta::new("clicked", &[]);
+    /// assert_eq!(s.name, "clicked");
+    /// assert!(s.params.is_empty());
+    /// ```
     pub const fn new(name: &'static str, params: &'static [ParamMeta]) -> Self {
         Self { name, params }
     }
@@ -104,12 +156,26 @@ impl SignalMeta {
 /// Static metadata for a callable method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MethodMeta {
+    /// Method name as it appears in the meta-system (e.g. `"click"`).
     pub name: &'static str,
+    /// Ordered list of parameter descriptors for this method.
     pub params: &'static [ParamMeta],
+    /// Rust type name of the return value (e.g. `"()"` or `"i64"`).
     pub return_type: &'static str,
 }
 
 impl MethodMeta {
+    /// Construct a new `MethodMeta`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::MethodMeta;
+    ///
+    /// let m = MethodMeta::new("click", &[], "()");
+    /// assert_eq!(m.name, "click");
+    /// assert_eq!(m.return_type, "()");
+    /// ```
     pub const fn new(
         name: &'static str,
         params: &'static [ParamMeta],
@@ -126,11 +192,24 @@ impl MethodMeta {
 /// A single enumerator entry: a name paired with an integer value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EnumEntry {
+    /// Enumerator name as a string (e.g. `"Alpha"`).
     pub name: &'static str,
+    /// Integer value of this enumerator.
     pub value: i64,
 }
 
 impl EnumEntry {
+    /// Construct a new `EnumEntry`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::EnumEntry;
+    ///
+    /// let e = EnumEntry::new("Alpha", 0);
+    /// assert_eq!(e.name, "Alpha");
+    /// assert_eq!(e.value, 0);
+    /// ```
     pub const fn new(name: &'static str, value: i64) -> Self {
         Self { name, value }
     }
@@ -139,11 +218,25 @@ impl EnumEntry {
 /// Static metadata for an enumeration type exposed via the meta-system.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EnumMeta {
+    /// Enum type name (e.g. `"State"`).
     pub name: &'static str,
+    /// All enumerator entries for this enum.
     pub entries: &'static [EnumEntry],
 }
 
 impl EnumMeta {
+    /// Construct a new `EnumMeta`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::{EnumEntry, EnumMeta};
+    ///
+    /// static ENTRIES: &[EnumEntry] = &[EnumEntry::new("On", 1), EnumEntry::new("Off", 0)];
+    /// let em = EnumMeta::new("State", ENTRIES);
+    /// assert_eq!(em.name, "State");
+    /// assert_eq!(em.entries.len(), 2);
+    /// ```
     pub const fn new(name: &'static str, entries: &'static [EnumEntry]) -> Self {
         Self { name, entries }
     }
@@ -165,14 +258,31 @@ impl EnumMeta {
 /// All slices are `'static` so that the whole struct can be stored in a `static`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MetaObject {
+    /// The Rust type name of the described class (e.g. `"Button"`).
     pub class_name: &'static str,
+    /// All properties exposed by this type.
     pub properties: &'static [PropertyMeta],
+    /// All signals declared on this type.
     pub signals: &'static [SignalMeta],
+    /// All invokable methods declared on this type.
     pub methods: &'static [MethodMeta],
+    /// All enumerations declared on this type.
     pub enums: &'static [EnumMeta],
 }
 
 impl MetaObject {
+    /// Construct a new `MetaObject` from its static components.
+    ///
+    /// Typically called once inside a `static` initializer generated by `#[derive(Object)]`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::meta::MetaObject;
+    ///
+    /// static META: MetaObject = MetaObject::new("MyType", &[], &[], &[], &[]);
+    /// assert_eq!(META.class_name, "MyType");
+    /// ```
     pub const fn new(
         class_name: &'static str,
         properties: &'static [PropertyMeta],

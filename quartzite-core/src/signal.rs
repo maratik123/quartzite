@@ -1,3 +1,4 @@
+//! Typed signals with multiple connection modes (`Direct`, `SingleShot`, `Queued`, `Auto`).
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 #[cfg(feature = "std")]
@@ -45,6 +46,7 @@ struct SlotEntry<Args: 'static> {
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub trait QueuedDispatcher: Send + Sync {
+    /// Post a closure to be executed on the event-loop thread.
     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
 }
 
@@ -173,6 +175,16 @@ impl<Args: 'static> Default for Signal<Args> {
 }
 
 impl<Args: 'static> Signal<Args> {
+    /// Create a new signal with no slots connected.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect(|args| println!("received {}", args.0));
+    /// ```
     pub fn new() -> Self {
         Signal {
             slots: Vec::new(),

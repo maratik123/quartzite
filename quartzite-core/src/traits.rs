@@ -1,3 +1,4 @@
+//! Core object traits: `AsObject`, `Object`, `ObjectExt`, and `SignalCallback`.
 #[cfg(not(feature = "std"))]
 use alloc::string::String;
 #[cfg(feature = "std")]
@@ -21,9 +22,13 @@ pub type SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>;
 ///
 /// This trait is deliberately minimal so that `Box<dyn AsObject>` remains valid.
 pub trait AsObject {
+    /// Returns a shared reference to this object's `ObjectBase`.
     fn object_base(&self) -> &ObjectBase;
+    /// Returns a mutable reference to this object's `ObjectBase`.
     fn object_base_mut(&mut self) -> &mut ObjectBase;
+    /// Upcast to `&dyn Any` to enable checked downcasting via `downcast_ref`.
     fn as_any(&self) -> &dyn core::any::Any;
+    /// Upcast to `&mut dyn Any` to enable checked downcasting via `downcast_mut`.
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
@@ -31,6 +36,7 @@ pub trait AsObject {
 /// and signal connection. Also, object-safe: all methods use `&str`, `&[Value]`, and
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject + Send {
+    /// Returns the static `MetaObject` descriptor for this type.
     fn meta_object(&self) -> &'static MetaObject;
 
     /// Returns the current value of `name`, or `None` if `name` is not a known property.

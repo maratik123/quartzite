@@ -1,3 +1,4 @@
+//! Lifetime token used to cancel queued slot invocations when a receiver is dropped.
 #[cfg(not(feature = "std"))]
 use alloc::sync::{Arc, Weak};
 #[cfg(feature = "std")]
@@ -10,6 +11,23 @@ use std::sync::{Arc, Weak};
 pub struct ReceiverGuard;
 
 impl ReceiverGuard {
+    /// Create a linked `(Arc<ReceiverGuard>, Weak<ReceiverGuard>)` pair.
+    ///
+    /// The `Arc` is stored in `ObjectBase` (owner side). Every queued slot
+    /// connection stores the `Weak`. When the object is dropped the `Arc`
+    /// count reaches zero; subsequent `Weak::upgrade()` calls return `None`
+    /// and the pending slot invocations are silently discarded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::receiver_guard::ReceiverGuard;
+    ///
+    /// let (arc, weak) = ReceiverGuard::new_pair();
+    /// assert!(weak.upgrade().is_some());
+    /// drop(arc);
+    /// assert!(weak.upgrade().is_none());
+    /// ```
     pub fn new_pair() -> (Arc<Self>, Weak<Self>) {
         let arc = Arc::new(ReceiverGuard);
         let weak = Arc::downgrade(&arc);

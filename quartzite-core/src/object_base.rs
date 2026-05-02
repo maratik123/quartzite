@@ -1,3 +1,4 @@
+//! Base state shared by every quartzite object.
 #[cfg(not(feature = "std"))]
 use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 #[cfg(feature = "std")]

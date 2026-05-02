@@ -1,3 +1,4 @@
+//! Unique identifier types for objects and signal connections.
 use core::sync::atomic::{AtomicU64, Ordering};
 
 /// Process-unique identifier for an object in the quartzite object tree.
