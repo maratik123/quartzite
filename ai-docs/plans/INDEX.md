@@ -13,6 +13,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [auto-connection](done/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | ✅ implemented (6 tests) | — |
 | [code-quality-cleanup](done/2026-05-02-code-quality-cleanup.spec.md) | `quartzite-macros` `quartzite-runtime` `quartzite-core` | ✅ implemented (0 new tests) | — |
 | [docs-and-facade](done/2026-05-02-docs-and-facade.spec.md) | all crates + `quartzite` | ✅ implemented (1 new test) | — |
+| [public-api-docs](done/2026-05-02-public-api-docs.spec.md) | all crates | ✅ implemented (47 new doctests) | — |
 
 ## Deferred plans
 
@@ -41,3 +42,4 @@ core-types ✅
 
 1. **Start** geometry-events (no blockers, unblocks widgets and paint-style)
 2. **Expand** `quartzite` facade prelude as new crates are implemented
+3. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
