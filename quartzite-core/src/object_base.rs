@@ -179,6 +179,7 @@ impl ObjectBase {
     /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    #[inline]
     pub fn is_on_current_thread(&self) -> bool {
         self.thread_id == std::thread::current().id()
     }

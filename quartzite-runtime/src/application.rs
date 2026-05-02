@@ -82,6 +82,7 @@ impl Application {
     ///     app.quit();
     /// }
     /// ```
+    #[inline]
     pub fn global() -> Option<Application> {
         APP.get().map(|inner| Application(Arc::clone(inner)))
     }
@@ -96,6 +97,7 @@ impl Application {
     /// let app = Application::new().unwrap();
     /// app.post_event(Box::new(|| println!("on event-loop thread")));
     /// ```
+    #[inline]
     pub fn post_event(&self, f: Box<dyn FnOnce() + Send>) {
         self.0.event_loop.post(f);
     }
@@ -113,6 +115,7 @@ impl Application {
     /// app.post_event(Box::new(move || app2.quit()));
     /// app.exec();
     /// ```
+    #[inline]
     pub fn exec(&self) {
         self.0.event_loop.run();
     }
@@ -127,6 +130,7 @@ impl Application {
     /// let app = Application::new().unwrap();
     /// app.quit();
     /// ```
+    #[inline]
     pub fn quit(&self) {
         self.0.event_loop.stop();
     }
@@ -143,6 +147,7 @@ impl Application {
     /// let app = Application::new().unwrap();
     /// let _tree = app.object_tree().lock().unwrap();
     /// ```
+    #[inline]
     pub fn object_tree(&self) -> &Mutex<ObjectTree> {
         &self.0.object_tree
     }
@@ -157,6 +162,7 @@ impl Application {
     /// let app = Application::new().unwrap();
     /// let _table = app.connection_table();
     /// ```
+    #[inline]
     pub fn connection_table(&self) -> &Arc<ConnectionTable> {
         &self.0.connection_table
     }
@@ -171,6 +177,7 @@ impl Application {
     /// let app = Application::new().unwrap();
     /// let _el = app.event_loop();
     /// ```
+    #[inline]
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
     }

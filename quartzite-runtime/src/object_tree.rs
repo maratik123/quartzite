@@ -87,6 +87,7 @@ impl ObjectTree {
     /// assert!(!tree.contains(id));
     /// # }
     /// ```
+    #[inline]
     pub fn contains(&self, id: ObjectId) -> bool {
         self.forward.contains_key(&id)
     }
@@ -142,6 +143,7 @@ impl ObjectTree {
     /// }
     /// # }
     /// ```
+    #[inline]
     pub fn parent_of(&self, id: ObjectId) -> Option<ObjectId> {
         self.parent_map.get(&id).copied()
     }
@@ -156,6 +158,7 @@ impl ObjectTree {
     /// let children: &[quartzite_core::ObjectId] = tree.children_of(parent_id);
     /// # }
     /// ```
+    #[inline]
     pub fn children_of(&self, id: ObjectId) -> &[ObjectId] {
         self.children_map
             .get(&id)
@@ -200,6 +203,7 @@ impl ObjectTree {
     /// let ids: &[quartzite_core::ObjectId] = tree.find_by_name("my-button");
     /// # }
     /// ```
+    #[inline]
     pub fn find_by_name(&self, name: &str) -> &[ObjectId] {
         self.by_name
             .get(name)

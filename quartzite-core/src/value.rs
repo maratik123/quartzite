@@ -10,15 +10,22 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 /// `Debug` formatting (required as a supertrait so that `Box<dyn CustomValue>`
 /// and `Arc<dyn CustomValue>` are automatically `Debug`).
 ///
-/// # Example
-/// ```ignore
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::CustomValue;
+///
 /// #[derive(Debug, Clone)]
 /// struct MyVal(i32);
+///
 /// impl CustomValue for MyVal {
 ///     fn type_name(&self) -> &'static str { "MyVal" }
 ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
 ///     fn as_any(&self) -> &dyn core::any::Any { self }
 /// }
+///
+/// let v: Box<dyn CustomValue> = Box::new(MyVal(42));
+/// assert_eq!(v.type_name(), "MyVal");
 /// ```
 pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// Returns a static string identifying the concrete type (e.g. `"MyVal"`).
