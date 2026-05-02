@@ -68,7 +68,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
@@ -77,3 +77,11 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 **Rule:** Any file with ~50+ lines of non-trivial code must have a `#[cfg(test)] mod tests` block. This applies equally to codegen, parse, util, and any other module — not just files named `codegen.rs`.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-02 — process — check current branch before committing, not only before pushing
+
+**What happened:** For the `docs/learnings-and-skill-fix` branch, commits were made directly to local master without checking `git branch --show-current` first. The error was caught at push time (branch protection rejected the push), not at commit time. The rule in AGENTS.md mentions checking before `git push`, but the correct mental model is: verify branch before `git commit`.
+
+**Rule:** Run `git branch --show-current` and confirm it is **not** `master` before any `git commit` that is intended for a PR. A pre-push check is a last resort, not the primary safeguard. The commit should never happen on master — the push check only exists as a final gate.
+
+**Escalated?** hook
