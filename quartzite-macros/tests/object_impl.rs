@@ -1,4 +1,4 @@
-use quartzite_core::{Object, ObjectBase, Signal, Value};
+use quartzite::core::{Object, ObjectBase, Signal, Value};
 use quartzite_macros::{Extend, Object as ObjectDerive, object_impl};
 
 #[derive(Extend, ObjectDerive)]

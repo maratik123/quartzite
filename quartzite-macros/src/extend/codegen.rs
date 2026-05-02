@@ -54,7 +54,7 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
 
     let supertrait = ir.base_field.as_ref().and_then(|b| {
         if b.ty_ident == "ObjectBase" {
-            Some(quote! { : ::quartzite_core::AsObject })
+            Some(quote! { : ::quartzite::core::AsObject })
         } else {
             as_trait_name(&b.ty_ident).map(|parent_trait| quote! { : #parent_trait })
         }
@@ -102,13 +102,13 @@ fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
         )
     };
     quote! {
-        impl ::quartzite_core::AsObject for #self_ident {
+        impl ::quartzite::core::AsObject for #self_ident {
             #[inline]
-            fn object_base(&self) -> &::quartzite_core::ObjectBase {
+            fn object_base(&self) -> &::quartzite::core::ObjectBase {
                 #object_base_expr
             }
             #[inline]
-            fn object_base_mut(&mut self) -> &mut ::quartzite_core::ObjectBase {
+            fn object_base_mut(&mut self) -> &mut ::quartzite::core::ObjectBase {
                 #object_base_mut_expr
             }
             #[inline]

@@ -61,10 +61,10 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         let user = p.user;
         let constant = p.constant;
         quote! {
-            ::quartzite_core::PropertyMeta::new(
+            ::quartzite::core::PropertyMeta::new(
                 #name,
                 ::core::stringify!(#ty),
-                ::quartzite_core::PropertyFlags {
+                ::quartzite::core::PropertyFlags {
                     readable: #readable,
                     writable: #writable,
                     notify: #notify,
@@ -77,7 +77,7 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         }
     });
     quote! {
-        pub const #static_name: &[::quartzite_core::PropertyMeta] = &[
+        pub const #static_name: &[::quartzite::core::PropertyMeta] = &[
             #(#entries),*
         ];
     }
@@ -93,16 +93,16 @@ fn emit_signals_static(type_ident: &Ident, signals: &[SignalField]) -> TokenStre
             .map(|(i, ty)| {
                 let param_name = format!("arg{i}");
                 quote! {
-                    ::quartzite_core::ParamMeta::new(#param_name, ::core::stringify!(#ty))
+                    ::quartzite::core::ParamMeta::new(#param_name, ::core::stringify!(#ty))
                 }
             })
             .collect();
         quote! {
-            ::quartzite_core::SignalMeta::new(#name, &[#(#params),*])
+            ::quartzite::core::SignalMeta::new(#name, &[#(#params),*])
         }
     });
     quote! {
-        pub const #static_name: &[::quartzite_core::SignalMeta] = &[
+        pub const #static_name: &[::quartzite::core::SignalMeta] = &[
             #(#entries),*
         ];
     }
@@ -122,7 +122,7 @@ fn emit_lookup_prop_fn(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         }
     });
     quote! {
-        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite_core::PropertyMeta> {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite::core::PropertyMeta> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -142,7 +142,7 @@ fn emit_lookup_signal_fn(type_ident: &Ident, signals: &[SignalField]) -> TokenSt
         }
     });
     quote! {
-        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite_core::SignalMeta> {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite::core::SignalMeta> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -158,7 +158,7 @@ fn emit_read_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         let field = &p.ident;
         quote! {
             #name => ::core::option::Option::Some(
-                ::quartzite_core::IntoValue::into_value(this.#field.clone())
+                ::quartzite::core::IntoValue::into_value(this.#field.clone())
             )
         }
     });
@@ -166,7 +166,7 @@ fn emit_read_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         pub fn #fn_name(
             this: &super::#type_ident,
             name: &str,
-        ) -> ::core::option::Option<::quartzite_core::Value> {
+        ) -> ::core::option::Option<::quartzite::core::Value> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -192,7 +192,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
                 }
             });
             quote! {
-                #name => match ::quartzite_core::FromValue::from_value(val) {
+                #name => match ::quartzite::core::FromValue::from_value(val) {
                     ::core::result::Result::Ok(v) => {
                         this.#field = v;
                         #notify_emit
@@ -207,7 +207,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         pub fn #fn_name(
             this: &mut super::#type_ident,
             name: &str,
-            val: ::quartzite_core::Value,
+            val: ::quartzite::core::Value,
         ) -> bool {
             match name {
                 #(#arms,)*
@@ -232,13 +232,13 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             .map(|(i, _ty)| {
                 let idx = Index::from(i);
                 quote! {
-                    ::quartzite_core::IntoValue::into_value(args.#idx.clone())
+                    ::quartzite::core::IntoValue::into_value(args.#idx.clone())
                 }
             })
             .collect();
         quote! {
             #name => {
-                let cb = ::quartzite_core::__macro::Arc::clone(&cb);
+                let cb = ::quartzite::core::__macro::Arc::clone(&cb);
                 ::core::option::Option::Some(this.#field.connect(move |args: &#args_ty| {
                     (*cb)(&[#(#conversions),*])
                 }))
@@ -249,11 +249,11 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
         pub fn #fn_name(
             this: &mut super::#type_ident,
             name: &str,
-            cb: ::quartzite_core::SignalCallback,
-        ) -> ::core::option::Option<::quartzite_core::ConnectionId> {
-            let cb: ::quartzite_core::__macro::Arc<
-                dyn ::core::ops::Fn(&[::quartzite_core::Value]) + Send + Sync,
-            > = ::quartzite_core::__macro::Arc::from(cb);
+            cb: ::quartzite::core::SignalCallback,
+        ) -> ::core::option::Option<::quartzite::core::ConnectionId> {
+            let cb: ::quartzite::core::__macro::Arc<
+                dyn ::core::ops::Fn(&[::quartzite::core::Value]) + Send + Sync,
+            > = ::quartzite::core::__macro::Arc::from(cb);
             match name {
                 #(#arms)*
                 _ => ::core::option::Option::None,

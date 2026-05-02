@@ -13,13 +13,19 @@
 //! The `quartzite-macros` crate also exports `MetaEnum` for enum reflection; it
 //! is available directly from `quartzite_macros::MetaEnum` for users who need it.
 
-/// Re-export of [`quartzite_core`] for direct access to core types and as a
-/// migration target when switching from this facade to the sub-crate directly.
-pub use quartzite_core;
+/// Core object model, signals, and reflection types — re-exported from [`quartzite_core`].
+///
+/// Prefer `use quartzite::core::Foo` over adding a direct `quartzite-core` dependency.
+pub mod core {
+    pub use quartzite_core::*;
+}
 
-/// Re-export of [`quartzite_runtime`] for direct access to runtime types and
-/// as a migration target when switching from this facade to the sub-crate directly.
-pub use quartzite_runtime;
+/// Application runtime, event loop, and object tree — re-exported from [`quartzite_runtime`].
+///
+/// Prefer `use quartzite::runtime::Foo` over adding a direct `quartzite-runtime` dependency.
+pub mod runtime {
+    pub use quartzite_runtime::*;
+}
 
 /// Curated set of types needed for typical usage — one glob covers a working import.
 ///

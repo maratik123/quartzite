@@ -23,7 +23,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         let name = v.ident.to_string();
         let value = v.value;
         quote! {
-            ::quartzite_core::EnumEntry::new(#name, #value)
+            ::quartzite::core::EnumEntry::new(#name, #value)
         }
     });
 
@@ -51,11 +51,11 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
 
     quote! {
         #[allow(non_upper_case_globals)]
-        static #entries_static_name: &[::quartzite_core::EnumEntry] =
+        static #entries_static_name: &[::quartzite::core::EnumEntry] =
             &[#(#entries),*];
 
         #[allow(non_snake_case)]
-        fn #lookup_by_name_fn(name: &str) -> ::core::option::Option<::quartzite_core::EnumEntry> {
+        fn #lookup_by_name_fn(name: &str) -> ::core::option::Option<::quartzite::core::EnumEntry> {
             match name {
                 #(#by_name_arms,)*
                 _ => ::core::option::Option::None,
@@ -65,7 +65,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         #[allow(non_snake_case)]
         fn #lookup_by_value_fn(
             value: i64,
-        ) -> ::core::option::Option<::quartzite_core::EnumEntry> {
+        ) -> ::core::option::Option<::quartzite::core::EnumEntry> {
             match value {
                 #(#by_value_arms,)*
                 _ => ::core::option::Option::None,
@@ -73,34 +73,34 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         }
 
         #[allow(non_upper_case_globals)]
-        static #enum_static_name: ::quartzite_core::EnumMeta = ::quartzite_core::EnumMeta::new(
+        static #enum_static_name: ::quartzite::core::EnumMeta = ::quartzite::core::EnumMeta::new(
             #type_name_str,
             #entries_static_name,
             #lookup_by_name_fn,
             #lookup_by_value_fn,
         );
 
-        impl ::quartzite_core::IntoValue for #type_ident {
+        impl ::quartzite::core::IntoValue for #type_ident {
             #[inline]
-            fn into_value(self) -> ::quartzite_core::Value {
-                ::quartzite_core::Value::Int(self as i64)
+            fn into_value(self) -> ::quartzite::core::Value {
+                ::quartzite::core::Value::Int(self as i64)
             }
         }
 
-        impl ::quartzite_core::FromValue for #type_ident {
+        impl ::quartzite::core::FromValue for #type_ident {
             fn from_value(
-                val: ::quartzite_core::Value,
-            ) -> ::core::result::Result<Self, ::quartzite_core::TypeError> {
-                if let ::quartzite_core::Value::Int(n) = val {
+                val: ::quartzite::core::Value,
+            ) -> ::core::result::Result<Self, ::quartzite::core::TypeError> {
+                if let ::quartzite::core::Value::Int(n) = val {
                     match n {
                         #(#from_int_arms,)*
-                        _ => ::core::result::Result::Err(::quartzite_core::TypeError {
+                        _ => ::core::result::Result::Err(::quartzite::core::TypeError {
                             expected: #type_name_str,
                             got: "Int",
                         }),
                     }
                 } else {
-                    ::core::result::Result::Err(::quartzite_core::TypeError {
+                    ::core::result::Result::Err(::quartzite::core::TypeError {
                         expected: #type_name_str,
                         got: val.type_name(),
                     })
@@ -181,7 +181,7 @@ mod tests {
     fn into_value_impl_emits_cast_to_int() {
         let out = emit(quote! { enum Color { Red } });
         assert!(
-            out.contains("impl :: quartzite_core :: IntoValue for Color"),
+            out.contains("impl :: quartzite :: core :: IntoValue for Color"),
             "missing impl: {out}"
         );
         assert!(
@@ -195,7 +195,7 @@ mod tests {
     fn from_value_impl_has_match_arms() {
         let out = emit(quote! { enum Color { Red, Green } });
         assert!(
-            out.contains("impl :: quartzite_core :: FromValue for Color"),
+            out.contains("impl :: quartzite :: core :: FromValue for Color"),
             "missing impl: {out}"
         );
         assert!(
@@ -232,7 +232,7 @@ mod tests {
         let out = emit(quote! { enum Empty {} });
         // Entries static contains an empty slice
         assert!(
-            out.contains("__ENTRIES_Empty : & [:: quartzite_core :: EnumEntry] = & []"),
+            out.contains("__ENTRIES_Empty : & [:: quartzite :: core :: EnumEntry] = & []"),
             "expected empty entries: {out}"
         );
         // Lookup functions are emitted even for an empty enum
