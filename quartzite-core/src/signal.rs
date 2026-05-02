@@ -205,6 +205,7 @@ pub struct Signal<Args: 'static> {
 }
 
 impl<Args: 'static> Default for Signal<Args> {
+    #[inline]
     fn default() -> Self {
         Self::new()
     }
@@ -243,6 +244,7 @@ impl<Args: 'static> Signal<Args> {
     /// let id = sig.connect(|args| println!("value = {}", args.0));
     /// sig.disconnect(id);
     /// ```
+    #[inline]
     pub fn connect<F: Fn(&Args) + Send + 'static>(&mut self, f: F) -> ConnectionId {
         self.connect_typed(f, ConnectionType::Direct)
     }
