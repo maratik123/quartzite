@@ -1,5 +1,15 @@
 # Learnings
 
+### 2026-05-03 — process — /interview has no "too small for a spec" off-ramp; flag and ask instead of silently switching to implementation
+
+**What happened:** `/interview errors should iml Error` was started. Mid-interview the user redirected: "ok, add the two impl blocks under the same cfg." Instead of completing the interview (producing a spec) or explicitly flagging the pivot, execution switched silently to direct implementation. The `/interview` skill produced code changes rather than a spec.
+
+**Rule:** When a task arrives via `/interview` (or `/task`) but turns out to be trivially small during the interview, do not silently abandon the spec and implement. Flag explicitly: "This is small enough to implement directly — want me to skip the spec and just make the change?" Wait for the user to confirm the mode switch before writing any code.
+
+**How to apply:** If the interview answers reveal the entire change is < ~20 lines with no design decisions, pause and offer to skip the spec rather than silently pivoting. The user stays in control of when the workflow gets bypassed.
+
+**Escalated?** skill:interview
+
 ### 2026-05-03 — process — commit and push without waiting for explicit approval when inside a /task workflow
 
 **What happened:** All rename changes were complete, verified, and ready to push, but no commit or push was made until the user explicitly asked. The stated reason was the global system instruction "only create commits when requested." The user clarified that this instruction does not override the /task workflow, which already authorizes commits at Steps 8 and 12.

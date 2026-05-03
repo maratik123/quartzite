@@ -123,3 +123,4 @@ This closes the loop: the spec references the issue via `**Tracked in:**`, and t
 - Forgetting to save the spec before moving to design
 - Saving the spec without `**Tracked in:**` (unless user explicitly opted out)
 - Skipping the cross-link comment on the tracking issue
+- **Silently switching to implementation mid-interview.** If the interview reveals the task is trivially small (< ~20 lines, no design decisions), pause and offer: "This is small enough to implement directly — want me to skip the spec and just make the change?" Do not write code until the user confirms the mode switch.
