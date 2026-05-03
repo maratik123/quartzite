@@ -120,6 +120,17 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 ///
 /// The struct must already derive both [`Extend`] and [`Object`].
 ///
+/// ## Multi-block mode: `partial` and `final`
+///
+/// When the impl is split across multiple blocks, annotate every block but the last with
+/// `#[object_impl(partial)]` and the last with `#[object_impl(final)]`
+/// (or use [`#[object_meta]`](macro@object_meta) instead of a `final` block).
+///
+/// **A terminal block is required.** If all blocks use `partial` and no `final` /
+/// `#[object_meta]` is ever written, the accumulated methods are silently discarded and
+/// the type will not implement `Object`.  The resulting compile error
+/// ("the trait `Object` is not implemented for `T`") will not mention the missing terminal.
+///
 /// # Examples
 ///
 /// ```ignore
