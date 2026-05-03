@@ -4,48 +4,70 @@
 //! stored as `'static` values. They can also be constructed manually for
 //! types that do not use the derive macros.
 
-/// Flags describing how a property can be accessed.
+use enumflags2::{BitFlags, bitflags};
+
+/// A single property-access capability. Combine with `|` to form [`PropertyFlags`].
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::{PropertyFlag, PropertyFlags};
+///
+/// let f: PropertyFlags = PropertyFlag::Readable | PropertyFlag::Writable;
+/// assert!(f.contains(PropertyFlag::Readable));
+/// assert!(!f.contains(PropertyFlag::Notify));
+/// ```
+#[bitflags(default = Readable | Writable | Stored | Designable)]
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PropertyFlags {
+pub enum PropertyFlag {
     /// Property value can be read via `read_property`.
-    pub readable: bool,
+    Readable = 0b0000_0001,
     /// Property value can be written via `write_property`.
-    pub writable: bool,
+    Writable = 0b0000_0010,
     /// A change notification signal exists for this property.
-    pub notify: bool,
+    Notify = 0b0000_0100,
     /// Property value is saved when the object is serialized.
-    pub stored: bool,
+    Stored = 0b0000_1000,
     /// Property is visible in design tools.
-    pub designable: bool,
+    Designable = 0b0001_0000,
     /// Property is intended for direct user interaction (e.g., a form field).
-    pub user: bool,
+    User = 0b0010_0000,
     /// Property value never changes after construction; implies not writable.
-    pub constant: bool,
+    Constant = 0b0100_0000,
 }
 
-impl PropertyFlags {
-    /// All flags false — useful as a starting point before enabling specific flags.
+/// A set of [`PropertyFlag`] values describing how a property can be accessed.
+///
+/// Construct with the named helpers on [`PropertyFlag`], or combine flags directly with `|`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::{PropertyFlag, PropertyFlags};
+///
+/// let f = PropertyFlag::read_write();
+/// assert!(f.contains(PropertyFlag::Readable));
+/// assert!(f.contains(PropertyFlag::Writable));
+/// assert!(!f.contains(PropertyFlag::Constant));
+/// ```
+pub type PropertyFlags = BitFlags<PropertyFlag>;
+
+impl PropertyFlag {
+    /// All flags unset — useful as a starting point before enabling specific flags.
     ///
     /// # Examples
     ///
     /// ```
-    /// use quartzite_core::meta::PropertyFlags;
+    /// use quartzite_core::meta::{PropertyFlag, PropertyFlags};
     ///
-    /// let f = PropertyFlags::none();
-    /// assert!(!f.readable);
-    /// assert!(!f.writable);
+    /// let f = PropertyFlag::none();
+    /// assert!(!f.contains(PropertyFlag::Readable));
+    /// assert!(!f.contains(PropertyFlag::Writable));
     /// ```
     #[inline]
-    pub const fn none() -> Self {
-        Self {
-            readable: false,
-            writable: false,
-            notify: false,
-            stored: false,
-            designable: false,
-            user: false,
-            constant: false,
-        }
+    pub const fn none() -> PropertyFlags {
+        BitFlags::EMPTY
     }
 
     /// The most common combination: readable + writable + stored + designable.
@@ -53,24 +75,16 @@ impl PropertyFlags {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_core::meta::PropertyFlags;
+    /// use quartzite_core::meta::{PropertyFlag, PropertyFlags};
     ///
-    /// let f = PropertyFlags::read_write();
-    /// assert!(f.readable);
-    /// assert!(f.writable);
-    /// assert!(!f.constant);
+    /// let f = PropertyFlag::read_write();
+    /// assert!(f.contains(PropertyFlag::Readable));
+    /// assert!(f.contains(PropertyFlag::Writable));
+    /// assert!(!f.contains(PropertyFlag::Constant));
     /// ```
     #[inline]
-    pub const fn read_write() -> Self {
-        Self {
-            readable: true,
-            writable: true,
-            notify: false,
-            stored: true,
-            designable: true,
-            user: false,
-            constant: false,
-        }
+    pub const fn read_write() -> PropertyFlags {
+        enumflags2::make_bitflags!(PropertyFlag::{Readable | Writable | Stored | Designable})
     }
 
     /// Readable, stored, designable, constant (not writable).
@@ -78,31 +92,16 @@ impl PropertyFlags {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_core::meta::PropertyFlags;
+    /// use quartzite_core::meta::{PropertyFlag, PropertyFlags};
     ///
-    /// let f = PropertyFlags::read_only();
-    /// assert!(f.readable);
-    /// assert!(!f.writable);
-    /// assert!(f.constant);
+    /// let f = PropertyFlag::read_only();
+    /// assert!(f.contains(PropertyFlag::Readable));
+    /// assert!(!f.contains(PropertyFlag::Writable));
+    /// assert!(f.contains(PropertyFlag::Constant));
     /// ```
     #[inline]
-    pub const fn read_only() -> Self {
-        Self {
-            readable: true,
-            writable: false,
-            notify: false,
-            stored: true,
-            designable: true,
-            user: false,
-            constant: true,
-        }
-    }
-}
-
-impl Default for PropertyFlags {
-    #[inline]
-    fn default() -> Self {
-        Self::read_write()
+    pub const fn read_only() -> PropertyFlags {
+        enumflags2::make_bitflags!(PropertyFlag::{Readable | Stored | Designable | Constant})
     }
 }
 
@@ -123,9 +122,9 @@ impl PropertyMeta {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_core::meta::{PropertyFlags, PropertyMeta};
+    /// use quartzite_core::meta::{PropertyFlag, PropertyMeta};
     ///
-    /// let meta = PropertyMeta::new("count", "i64", PropertyFlags::read_write());
+    /// let meta = PropertyMeta::new("count", "i64", PropertyFlag::read_write());
     /// assert_eq!(meta.name, "count");
     /// ```
     #[inline]
@@ -494,11 +493,11 @@ impl MetaObject {
     ///
     /// ```
     /// use quartzite_core::meta::{
-    ///     MetaObject, PropertyFlags, PropertyMeta,
+    ///     MetaObject, PropertyFlag, PropertyMeta,
     ///     noop_lookup_signal, noop_lookup_method, noop_lookup_enum,
     /// };
     ///
-    /// static PROP: PropertyMeta = PropertyMeta::new("count", "i64", PropertyFlags::read_write());
+    /// static PROP: PropertyMeta = PropertyMeta::new("count", "i64", PropertyFlag::read_write());
     /// static PROPS: &[PropertyMeta] = &[PROP];
     ///
     /// fn lookup_prop(name: &str) -> Option<PropertyMeta> {
@@ -676,20 +675,64 @@ mod tests {
 
     #[test]
     fn property_meta_flags_readable_writable() {
-        let flags = PropertyFlags::read_write();
+        let flags = PropertyFlag::read_write();
         let prop = PropertyMeta::new("count", "i64", flags);
-        assert!(prop.flags.readable);
-        assert!(prop.flags.writable);
-        assert!(!prop.flags.constant);
+        assert!(prop.flags.contains(PropertyFlag::Readable));
+        assert!(prop.flags.contains(PropertyFlag::Writable));
+        assert!(!prop.flags.contains(PropertyFlag::Constant));
     }
 
     #[test]
     fn property_meta_flags_read_only_constant() {
-        let flags = PropertyFlags::read_only();
+        let flags = PropertyFlag::read_only();
         let prop = PropertyMeta::new("version", "i64", flags);
-        assert!(prop.flags.readable);
-        assert!(!prop.flags.writable);
-        assert!(prop.flags.constant);
+        assert!(prop.flags.contains(PropertyFlag::Readable));
+        assert!(!prop.flags.contains(PropertyFlag::Writable));
+        assert!(prop.flags.contains(PropertyFlag::Constant));
+    }
+
+    #[test]
+    fn property_flag_none_is_empty() {
+        assert!(PropertyFlag::none().is_empty());
+    }
+
+    #[test]
+    fn property_flag_read_write_contains() {
+        let f = PropertyFlag::read_write();
+        assert!(f.contains(PropertyFlag::Readable));
+        assert!(f.contains(PropertyFlag::Writable));
+        assert!(f.contains(PropertyFlag::Stored));
+        assert!(f.contains(PropertyFlag::Designable));
+        assert!(!f.contains(PropertyFlag::Notify));
+        assert!(!f.contains(PropertyFlag::User));
+        assert!(!f.contains(PropertyFlag::Constant));
+    }
+
+    #[test]
+    fn property_flag_read_only_contains() {
+        let f = PropertyFlag::read_only();
+        assert!(f.contains(PropertyFlag::Readable));
+        assert!(!f.contains(PropertyFlag::Writable));
+        assert!(f.contains(PropertyFlag::Stored));
+        assert!(f.contains(PropertyFlag::Designable));
+        assert!(f.contains(PropertyFlag::Constant));
+        assert!(!f.contains(PropertyFlag::Notify));
+        assert!(!f.contains(PropertyFlag::User));
+    }
+
+    #[test]
+    fn property_flags_default_is_read_write() {
+        assert_eq!(PropertyFlags::default(), PropertyFlag::read_write());
+    }
+
+    #[test]
+    fn property_flag_const_constructors() {
+        const NONE: PropertyFlags = PropertyFlag::none();
+        const RW: PropertyFlags = PropertyFlag::read_write();
+        const RO: PropertyFlags = PropertyFlag::read_only();
+        assert!(NONE.is_empty());
+        assert!(RW.contains(PropertyFlag::Writable));
+        assert!(RO.contains(PropertyFlag::Constant));
     }
 
     #[test]
@@ -707,7 +750,7 @@ mod tests {
         static PROPS: &[PropertyMeta] = &[PropertyMeta::new(
             "name",
             "String",
-            PropertyFlags::read_write(),
+            PropertyFlag::read_write(),
         )];
         let m = meta("Widget", PROPS, &[], &[], &[]);
         // noop lookup returns None even for known properties
@@ -747,7 +790,7 @@ mod tests {
 
     #[test]
     fn meta_object_property_lookup_via_fn_pointer() {
-        static PROP: PropertyMeta = PropertyMeta::new("count", "i64", PropertyFlags::read_write());
+        static PROP: PropertyMeta = PropertyMeta::new("count", "i64", PropertyFlag::read_write());
         static PROPS: &[PropertyMeta] = &[PROP];
 
         fn lookup_prop(name: &str) -> Option<PropertyMeta> {

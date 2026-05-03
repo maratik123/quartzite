@@ -24,6 +24,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
         #[doc(hidden)]
         #[allow(non_snake_case, non_upper_case_globals)]
         mod #mod_ident {
+            use ::quartzite::core::PropertyFlag;
             #props_static
             #signals_static
             #read_fn
@@ -67,19 +68,25 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         let designable = p.designable;
         let user = p.user;
         let constant = p.constant;
+        // Build variant list at proc-macro time; make_bitflags! takes a bare ident (not a
+        // qualified path), so PropertyFlag must be in scope via `use` in the hidden module.
+        let flag_variants: Vec<TokenStream> = [
+            (readable, quote!(Readable)),
+            (writable, quote!(Writable)),
+            (notify, quote!(Notify)),
+            (stored, quote!(Stored)),
+            (designable, quote!(Designable)),
+            (user, quote!(User)),
+            (constant, quote!(Constant)),
+        ]
+        .into_iter()
+        .filter_map(|(active, tok)| active.then_some(tok))
+        .collect();
         quote! {
             ::quartzite::core::PropertyMeta::new(
                 #name,
                 ::core::stringify!(#ty),
-                ::quartzite::core::PropertyFlags {
-                    readable: #readable,
-                    writable: #writable,
-                    notify: #notify,
-                    stored: #stored,
-                    designable: #designable,
-                    user: #user,
-                    constant: #constant,
-                },
+                ::quartzite::core::enumflags2::make_bitflags!(PropertyFlag::{#(#flag_variants)|*}),
             )
         }
     });
@@ -457,9 +464,17 @@ mod tests {
                 pub count: i32,
             }
         });
-        assert!(out.contains("readable : true"), "missing readable: {out}");
-        assert!(out.contains("writable : true"), "missing writable: {out}");
-        assert!(out.contains("notify : false"), "unexpected notify: {out}");
+        assert!(
+            out.contains("make_bitflags"),
+            "missing make_bitflags: {out}"
+        );
+        assert!(
+            out.contains("use :: quartzite :: core :: PropertyFlag"),
+            "missing PropertyFlag use import: {out}"
+        );
+        assert!(out.contains("Readable"), "missing Readable flag: {out}");
+        assert!(out.contains("Writable"), "missing Writable flag: {out}");
+        assert!(!out.contains("Notify"), "unexpected Notify flag: {out}");
     }
 
     #[test]
@@ -471,9 +486,10 @@ mod tests {
             }
         });
         assert!(
-            out.contains("writable : false"),
-            "expected writable false: {out}"
+            out.contains("make_bitflags"),
+            "missing make_bitflags: {out}"
         );
+        assert!(!out.contains("Writable"), "expected Writable absent: {out}");
     }
 
     #[test]
@@ -485,10 +501,11 @@ mod tests {
             }
         });
         assert!(
-            out.contains("writable : false"),
-            "expected writable false: {out}"
+            out.contains("make_bitflags"),
+            "missing make_bitflags: {out}"
         );
-        assert!(out.contains("constant : true"), "missing constant: {out}");
+        assert!(!out.contains("Writable"), "expected Writable absent: {out}");
+        assert!(out.contains("Constant"), "missing Constant flag: {out}");
     }
 
     #[test]
@@ -501,7 +518,11 @@ mod tests {
                 pub changed: Signal<(i32,)>,
             }
         });
-        assert!(out.contains("notify : true"), "missing notify flag: {out}");
+        assert!(
+            out.contains("make_bitflags"),
+            "missing make_bitflags: {out}"
+        );
+        assert!(out.contains("Notify"), "missing Notify flag: {out}");
     }
 
     // Signals static: name, auto-named params (arg0, arg1…), type stringify.

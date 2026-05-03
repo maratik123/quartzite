@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use quartzite::core::{AsObject, FromValue, Object, ObjectBase, Signal, Value};
+use quartzite::core::{AsObject, FromValue, Object, ObjectBase, PropertyFlag, Signal, Value};
 use quartzite_macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
@@ -153,6 +153,24 @@ fn write_property_notify_fires_when_unblocked() {
     c.write_property("count", Value::Int(5));
 
     assert!(*notified.lock().unwrap(), "notify must fire when unblocked");
+}
+
+// Property flag values: readable/writable/notify/constant from generated metadata.
+#[test]
+fn property_flags_in_generated_meta() {
+    let c = make_counter();
+    let meta = c.meta_object();
+
+    let count_flags = meta.property("count").expect("count property").flags;
+    assert!(count_flags.contains(PropertyFlag::Readable));
+    assert!(count_flags.contains(PropertyFlag::Writable));
+    assert!(count_flags.contains(PropertyFlag::Notify));
+    assert!(!count_flags.contains(PropertyFlag::Constant));
+
+    let version_flags = meta.property("version").expect("version property").flags;
+    assert!(version_flags.contains(PropertyFlag::Readable));
+    assert!(!version_flags.contains(PropertyFlag::Writable));
+    assert!(!version_flags.contains(PropertyFlag::Notify));
 }
 
 // AC1+AC3: unblock_signals restores delivery after block.
