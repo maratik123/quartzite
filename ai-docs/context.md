@@ -11,7 +11,7 @@
 | Crate | Purpose |
 |---|---|
 | `quartzite-core` | ObjectBase, AsObject, Object, ObjectExt, Value, Signal, MetaObject — no_std compatible |
-| `quartzite-macros` | Proc-macro crate: `#[derive(Extend)]`, `#[derive(Object)]`, `#[object_impl]` |
+| `quartzite-macros` | Proc-macro crate: `#[derive(Extend)]`, `#[derive(Object)]`, `#[object_part]`, `#[object_impl]` |
 | `quartzite-runtime` | Application, EventLoop, ObjectTree, ObjectRef, Timer |
 | `quartzite-geometry` | Point/PointF, Size/SizeF, Rect/RectF, Margins — no_std, no alloc |
 | `quartzite-events` | Event\<T\>, MouseEvent, KeyEvent, EventFilter\<T\>, ResizeEvent, CloseEvent, TimerEvent — no_std + alloc |
@@ -75,8 +75,8 @@ AsObject        AsWidget        AsWidget (generated)
 |---|---|---|
 | `#[derive(Extend)]` | struct with `#[root]`/`#[base]`/`#[mixin]` | `As{TypeName}` trait, delegation impls |
 | `#[derive(Object)]` | struct with `#[prop]`, `#[signal]` fields | property + signal metadata arrays, partial `impl Object` |
-| `#[object_impl]` | impl block with `#[slot]`/`#[invokable]` methods (inherent or trait impl); supports `(partial)` and `(final)` modes for multi-block accumulation | method metadata, final `MetaObject` static, complete `impl Object` (or partial impl block for `partial` mode) |
-| `#[object_meta]` | empty `impl Type {}` block after all `#[object_impl(partial)]` blocks | drains accumulated methods, generates `MetaObject` static + `impl Object` |
+| `#[object_part]` | impl block with `#[slot]`/`#[invokable]` methods (inherent or trait impl); for multi-block accumulation | accumulates methods into thread-local; emits only the cleaned impl block |
+| `#[object_impl]` | impl block with `#[slot]`/`#[invokable]` methods; no flags | auto-detects mode: empty accumulator → sole (full output); non-empty → terminal (drain + merge + full output) |
 
 ### Ownership Model
 
@@ -116,7 +116,7 @@ AsObject        AsWidget        AsWidget (generated)
 | `ObjectBase::signals_blocked` | Private `bool` field; toggled via `block_signals()` / `unblock_signals()`. Generated `emit_<signal>` wrappers and property notify emissions call `Signal::emit_unless_blocked(signals_blocked(), args)` — suppressed when blocked. `Signal::emit` is the low-level unconditional primitive that intentionally bypasses the check. |
 | `emit_<signal>` codegen | `#[derive(Object)]` generates `pub fn emit_<signal>(&mut self, arg0: T0, ...)` methods (flattened tuple args) on the struct. Guard uses `AsObject::object_base(self).signals_blocked()` — works for root and derived types alike. |
 | `connect_<signal>_auto` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_auto(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `receiver.thread_id` and `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_auto`. |
-| Multi-block `#[object_impl]` | `#[object_impl(partial)]` accumulates into `thread_local!` HashMap keyed by `(CARGO_PKG_NAME, type_name)`; `#[object_impl(final)]` or `#[object_meta]` drains + merges + emits full output. Explicit `partial`/`final` annotation required — no auto-detection. |
+| Multi-block `#[object_impl]` | `#[object_part]` accumulates into `thread_local!` HashMap keyed by `(CARGO_PKG_NAME, type_name)` as span-free `StoredMethod` strings (spans are only valid within one macro invocation); `#[object_impl]` auto-detects terminal mode via `accumulator::peek` and drains + merges on non-empty. No explicit flags needed. |
 | Generic `#[derive(Extend)]` | Non-root generic structs supported via `split_for_impl()` with minimal bounds (no bounds propagated from struct definition). Root + generic rejected at parse time (trait return type would be ill-formed). |
 | `connect_<signal>_queued` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_queued(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_queued(f, guard)` (`f` first — opposite order from `connect_auto`). No `thread_id` argument needed. |
 | `quartzite-geometry` no_std | Pure `no_std` with no alloc — all types are `Copy` stack values. `f32::round()` unavailable in no_std; `libm::roundf` is used instead (always-on dep, no opt-out). `PointF → Point` rounds half-away-from-zero. |
