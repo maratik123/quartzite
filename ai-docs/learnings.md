@@ -206,6 +206,16 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** skill:task
 
+### 2026-05-03 — process — do not ask about backward compatibility; AGENTS.md already prohibits compat shims
+
+**What happened:** During an interview, asked "should `#[object_meta]` be kept as a deprecated no-op alias (soft removal) or fully deleted?" — despite AGENTS.md explicitly stating "The project has not yet been published to crates.io and has no downstream clients. Public API may be freely renamed, removed, or restructured without backward-compat shims or deprecation layers." The same lesson was already in learnings.md (2026-05-03 "breaking public API changes are allowed") and escalated to AGENTS.md.
+
+**Rule:** Never ask the user about backward compatibility, deprecation layers, or keeping old names for compatibility. Read AGENTS.md before formulating interview questions. If a rule is already documented there, apply it silently — do not re-ask.
+
+**How to apply:** Before asking any interview question, check whether AGENTS.md already answers it. Questions about API stability, compat shims, deprecation, and release timing are all answered there.
+
+**Escalated?** no
+
 ### 2026-05-02 — process — verify relative markdown links before committing
 
 **What happened:** Files generated in `ai-docs/deferred/` used `../../plans/done/` as the relative path to `ai-docs/plans/done/`. The correct path is `../plans/done/` — one level up from `ai-docs/deferred/` reaches `ai-docs/`, then `plans/done/` is a sibling of `deferred/`. GitHub rendered the broken paths as `/plans/done/` (repo root), which does not exist.

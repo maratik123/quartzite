@@ -19,6 +19,7 @@ fn make_key(type_name: &str) -> String {
 ///
 /// Returns a `TokenStream` of `compile_error!` tokens for any duplicate method names;
 /// returns an empty `TokenStream` when all methods are new.
+#[allow(dead_code)]
 pub(crate) fn push(type_name: &str, methods: Vec<MethodItem>) -> TokenStream {
     let key = make_key(type_name);
     ACCUMULATOR.with(|cell| {
@@ -42,6 +43,13 @@ pub(crate) fn push(type_name: &str, methods: Vec<MethodItem>) -> TokenStream {
     })
 }
 
+/// Returns `true` if there are accumulated methods for `type_name` without consuming them.
+#[inline]
+pub(crate) fn peek(type_name: &str) -> bool {
+    let key = make_key(type_name);
+    ACCUMULATOR.with(|cell| cell.borrow().get(&key).is_some_and(|v| !v.is_empty()))
+}
+
 /// Drains all accumulated methods for `type_name` and returns them.
 pub(crate) fn drain(type_name: &str) -> Vec<MethodItem> {
     let key = make_key(type_name);
@@ -63,6 +71,36 @@ mod tests {
             params: vec![],
             ret_ty: syn::ReturnType::Default,
         }
+    }
+
+    #[test]
+    fn peek_empty_returns_false() {
+        assert!(!peek("__test_peek_empty__"));
+    }
+
+    #[test]
+    fn peek_after_push_returns_true() {
+        let type_name = "__test_peek_after_push__";
+        push(type_name, vec![make_method("foo")]);
+        assert!(peek(type_name));
+        drain(type_name);
+    }
+
+    #[test]
+    fn peek_does_not_consume() {
+        let type_name = "__test_peek_no_consume__";
+        push(type_name, vec![make_method("foo")]);
+        let _ = peek(type_name);
+        let drained = drain(type_name);
+        assert_eq!(drained.len(), 1, "peek must not consume methods");
+    }
+
+    #[test]
+    fn peek_after_drain_returns_false() {
+        let type_name = "__test_peek_after_drain__";
+        push(type_name, vec![make_method("foo")]);
+        drain(type_name);
+        assert!(!peek(type_name));
     }
 
     #[test]

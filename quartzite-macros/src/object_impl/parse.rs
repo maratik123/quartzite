@@ -2,19 +2,11 @@ use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spann
 
 use crate::util::extract_attr;
 
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) enum MethodKind {
-    Sole,
-    Partial,
-    Final,
-}
-
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ObjectImplInput {
     pub self_ty: Type,
     pub self_ty_ident: Ident,
     pub trait_path: Option<syn::Path>,
-    pub kind: MethodKind,
     pub methods: Vec<MethodItem>,
     pub other_items: Vec<ImplItem>,
 }
@@ -38,7 +30,12 @@ pub(crate) fn parse(
     attr: proc_macro2::TokenStream,
     input: proc_macro2::TokenStream,
 ) -> syn::Result<ObjectImplInput> {
-    let kind = parse_kind(attr)?;
+    if !attr.is_empty() {
+        return Err(syn::Error::new_spanned(
+            attr,
+            "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
+        ));
+    }
     let mut item: ItemImpl = parse2(input)?;
 
     let trait_path = item.trait_.as_ref().map(|(_, path, _)| path.clone());
@@ -77,26 +74,9 @@ pub(crate) fn parse(
         self_ty,
         self_ty_ident,
         trait_path,
-        kind,
         methods,
         other_items,
     })
-}
-
-fn parse_kind(attr: proc_macro2::TokenStream) -> syn::Result<MethodKind> {
-    let s = attr.to_string();
-    match s.trim() {
-        "" => Ok(MethodKind::Sole),
-        "partial" => Ok(MethodKind::Partial),
-        "final" => Ok(MethodKind::Final),
-        other => Err(syn::Error::new(
-            proc_macro2::Span::call_site(),
-            format!(
-                "#[object_impl] flag must be `partial` or `final`, got `{}`",
-                other.trim()
-            ),
-        )),
-    }
 }
 
 /// Extracts the last path-segment ident from the impl's self type.
@@ -119,7 +99,7 @@ fn extract_self_ty_ident(self_ty: &Type) -> syn::Result<Ident> {
 }
 
 /// Extracts `(ident, type)` pairs from fn inputs, skipping the receiver.
-fn extract_params(
+pub(crate) fn extract_params(
     inputs: &syn::punctuated::Punctuated<FnArg, syn::Token![,]>,
 ) -> syn::Result<Vec<ParamMeta>> {
     let mut params = Vec::new();
@@ -251,32 +231,13 @@ mod tests {
     }
 
     #[test]
-    fn kind_sole_when_no_attr() {
-        let ir = parse(quote! {}, quote! { impl Foo {} }).expect("parse ok");
-        assert_eq!(ir.kind, MethodKind::Sole);
-    }
-
-    #[test]
-    fn kind_partial_when_partial_attr() {
-        let ir = parse(quote! { partial }, quote! { impl Foo {} }).expect("parse ok");
-        assert_eq!(ir.kind, MethodKind::Partial);
-    }
-
-    #[test]
-    fn kind_final_when_final_attr() {
-        let attr: proc_macro2::TokenStream = "final".parse().unwrap();
-        let ir = parse(attr, quote! { impl Foo {} }).expect("parse ok");
-        assert_eq!(ir.kind, MethodKind::Final);
-    }
-
-    #[test]
-    fn invalid_kind_errors() {
-        let err = parse(quote! { unknown }, quote! { impl Foo {} })
+    fn non_empty_attr_errors_with_object_part_hint() {
+        let err = parse(quote! { partial }, quote! { impl Foo {} })
             .unwrap_err()
             .to_string();
         assert!(
-            err.contains("partial") || err.contains("final"),
-            "unexpected error: {err}"
+            err.contains("#[object_part]"),
+            "error should mention #[object_part], got: {err}"
         );
     }
 

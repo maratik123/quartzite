@@ -30,14 +30,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     }
 }
 
-/// Emits only the cleaned impl block — no metadata statics or `impl Object`.
-/// Used for `#[object_impl(partial)]` blocks.
-#[inline]
-pub(crate) fn codegen_partial(ir: ObjectImplInput) -> TokenStream {
-    emit_impl_block(&ir.trait_path, &ir.self_ty, &ir.other_items)
-}
-
-fn emit_impl_block(
+pub(crate) fn emit_impl_block(
     trait_path: &Option<syn::Path>,
     self_ty: &syn::Type,
     other_items: &[syn::ImplItem],
@@ -517,36 +510,6 @@ mod tests {
         assert!(
             out.contains("fn connect_signal"),
             "missing connect_signal: {out}"
-        );
-    }
-
-    // codegen_partial emits only the impl block — no MetaObject static, no impl Object.
-    #[test]
-    fn codegen_partial_emits_only_impl_block() {
-        let ir = crate::object_impl::parse::parse(
-            quote! { partial },
-            quote! {
-                impl Foo {
-                    #[slot]
-                    fn reset(&mut self) {}
-                }
-            },
-        )
-        .expect("parse ok");
-        let out = super::codegen_partial(ir).to_string();
-        assert!(out.contains("impl Foo"), "missing impl block: {out}");
-        assert!(out.contains("fn reset"), "missing slot fn: {out}");
-        assert!(
-            !out.contains("META_Foo"),
-            "unexpected MetaObject static: {out}"
-        );
-        assert!(
-            !out.contains("impl :: quartzite :: core :: Object for Foo"),
-            "unexpected Object impl: {out}"
-        );
-        assert!(
-            !out.contains("__METHODS__Foo"),
-            "unexpected methods static: {out}"
         );
     }
 

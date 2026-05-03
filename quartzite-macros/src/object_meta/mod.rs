@@ -15,17 +15,19 @@ pub(crate) fn expand(item: proc_macro2::TokenStream) -> proc_macro2::TokenStream
 mod tests {
     use quote::quote;
 
-    // Full path: partial block accumulates, then #[object_meta] drains and emits MetaObject.
+    // Full path: object_part-style accumulation, then #[object_meta] drains and emits MetaObject.
     #[test]
     fn object_meta_emits_accumulated_methods() {
-        crate::object_impl::expand(
-            quote! { partial },
-            quote! {
-                impl __TestOMeta {
-                    #[slot]
-                    fn reset(&mut self) {}
-                }
-            },
+        use crate::object_impl::parse::MethodItem;
+        use proc_macro2::Span;
+        use syn::Ident;
+        crate::object_impl::accumulator::push(
+            "__TestOMeta",
+            vec![MethodItem {
+                ident: Ident::new("reset", Span::call_site()),
+                params: vec![],
+                ret_ty: syn::ReturnType::Default,
+            }],
         );
         let out = super::expand(quote! { impl __TestOMeta {} });
         let s = out.to_string();
