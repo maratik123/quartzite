@@ -158,10 +158,15 @@ pub fn object_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Attribute macro that finalises the `Object` implementation after multiple
 /// `#[object_impl(partial)]` blocks.
 ///
-/// Place `#[object_meta]` on an empty `impl Counter {}` block after all
-/// `#[object_impl(partial)]` blocks for the same type.  It reads the
-/// accumulated `#[slot]`/`#[invokable]` methods, generates the `MetaObject`
-/// static and the full `impl Object`, then discards the empty impl block.
+/// Place `#[object_meta]` on an empty `impl Counter {}` block **after all**
+/// `#[object_impl(partial)]` blocks for the same type — ordering matters.
+/// Proc-macros expand in source order: an `#[object_meta]` that appears
+/// before any `#[object_impl(partial)]` block drains an empty accumulator and
+/// produces a `MetaObject` with no methods.
+///
+/// It reads the accumulated `#[slot]`/`#[invokable]` methods, generates the
+/// `MetaObject` static and the full `impl Object`, then discards the empty
+/// impl block.
 ///
 /// # Examples
 ///

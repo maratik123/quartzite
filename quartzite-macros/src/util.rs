@@ -57,7 +57,7 @@ pub(crate) fn emit_compile_error(span: Span, msg: &str) -> TokenStream {
 
 /// Returns the leading path fragment for all `::quartzite::core::*` references in generated code.
 ///
-/// Resolution order (facade-first, Bevy pattern):
+/// Resolution order (facade-first):
 /// 1. `quartzite` facade found → `::name::core` (Name) or absolute path via pkg name (Itself)
 /// 2. `quartzite-core` found → `::name` (Name) or absolute path via pkg name (Itself)
 /// 3. Neither found → silent fallback to `::quartzite_core`
