@@ -11,8 +11,8 @@ Full workflow for a task. Steps execute **strictly in sequence** — proceeding 
 > **Commit authorization.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. Commits at Step 8 (per subtask) and the commit + `git push` + `gh pr create` at Step 12 are pre-authorized by `/task` itself — perform them without an extra prompt. Pause to confirm only if the situation is ambiguous beyond the prescribed step (e.g., commits would touch master, files outside the task scope, or sensitive paths).
 
 The task may originate from either:
-- a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — Step 1 reads the issue
-- a **user description** (e.g. `/task add foo to bar`) or empty (interview the user)
+- a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — `/interview` reads the issue body during Steps 1–5
+- a **user description** (e.g. `/task add foo to bar`) or empty (`/interview` interviews the user)
 
 ## ⚡ First: check for active task
 
@@ -42,120 +42,30 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
    ```
 3. Update `ai-docs/plans/INDEX.md`: move the plan row from the **Deferred plans** table to the **Active plans** table and mark its status as `🟢 ready` (or `🟡 spec-only` if no design).
 4. Tell the user: "Activated plan [name] — moved spec (and design) to `ai-docs/plans/`."
-5. **Verify the spec carries `**Tracked in:**`** — if missing, run Step 5a (find or create tracking issue) and add it to the spec header before continuing.
+5. **Verify the spec carries `**Tracked in:**`** — if missing, run `/interview`'s tracking-issue resolution to find or create one and add it to the spec header before continuing.
 6. If a `.progress.md` was moved: treat it as an active task — read it and resume from `## Next action` (same as the RESUME path above).
 7. Otherwise (no progress file): skip Steps 1–7 and jump directly to Step 8 (spec + design already exist).
 
 ---
 
-### Step 1: Get the task input
+### Steps 1–5: Spec creation (delegated to `/interview`)
 
-Detect entry mode from `$ARGUMENTS`:
+`/task` does not duplicate the interview workflow. Scope extraction, key-decision confirmation, tracking-issue resolution, spec writing, and the cross-link comment are owned by `/interview` (`.claude/skills/interview/SKILL.md`). Treat these five steps as a single delegated phase.
 
-- **Issue ref** — matches `^#?\d+$` (e.g. `42` or `#42`):
-  ```bash
-  gh issue view <N>          # read description, comments, linked issues — read EVERYTHING
-  ```
-  Use the issue body as the task description. Record `tracking_issue = <N>` for Step 5a.
+**Already have a spec?** If a saved spec for this task already exists under `ai-docs/plans/` (e.g. the user previously ran `/interview` to draft the spec without implementing), confirm with the user that this is the spec to implement, then **skip to Step 6** — do not re-run the interview.
 
-- **Free text** — anything else non-empty: use as the task description.
+**Otherwise, run the interview:** read `.claude/skills/interview/SKILL.md` and follow it end-to-end with `$ARGUMENTS`. The interview will:
 
-- **Empty** — ask the user: "What do you want to implement or change?"
+- detect entry mode (issue ref / free text / empty) and load the issue body if applicable
+- extract and confirm scope (in / out / deferred)
+- ask any clarifying questions (max 4 rounds, max 3 questions per round)
+- resolve or create the tracking GitHub issue
+- save the spec at `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `**Tracked in:** #N` and an `## Acceptance Criteria` table
+- post a cross-link comment on the tracking issue (unless `Tracked in: none`)
 
-If the description references code, grep the codebase to understand context before proceeding.
+**Spec-only run.** If the user wants to stop after the interview ("just draft the spec, defer the implementation"), move the spec to `ai-docs/plans/deferred/`, update `INDEX.md` (move the row to **Deferred plans**, status `🟡 spec-only`), and **do not proceed to Step 6**. The spec can be picked up later via the deferred-plan-activation preamble above.
 
-### Step 2: Extract scope
-
-Every requirement = a separate numbered item. **Dropping an item without confirmation — FORBIDDEN.**
-
-### Step 3: Confirm scope
-
-Show scope list. For each item: in scope / out of scope / deferred. Max 3 questions at once.
-
-### Step 4: Confirm key decisions
-
-Any ambiguity or approach choice → ask the user (or, for issue-ref mode, the product owner). **Silently substituting your own decision — FORBIDDEN.**
-
-Red flags (STOP and ask):
-- Interpreting ambiguity two different ways
-- Choosing between technically equivalent approaches
-- Adding something not in the input
-- Treating an item as "unimportant"
-
-### Step 5: Save spec + acceptance criteria
-
-#### Step 5a: Tracking issue
-
-Every spec **must** carry a `**Tracked in:**` field referencing an open GitHub issue (`#N` shorthand).
-
-- **Entered via issue ref** (Step 1 set `tracking_issue`): use that issue. Skip the search below.
-- **Entered via free text / interview**:
-  1. Search existing open issues for matches:
-     ```bash
-     gh issue list --state open --search "<keyword>"
-     ```
-     Use 1–3 keywords from the task scope (crate names, feature names, key types).
-  2. **If a candidate exists** → present to the user: "I found #N: '<title>' — should this PR be tracked there?"
-     - User confirms → use that issue.
-     - User says no → continue to step 3.
-  3. **No suitable issue** → propose a new one:
-     - Title: matches the planned spec name (e.g. `feat(<crate>): <short description>`)
-     - Body: brief background + scope items distilled from Step 2/3
-     - Show the proposed title and body, ask user to confirm before running `gh issue create ...`
-
-> **Skip Step 5a only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`).
-
-#### Step 5b: Write the spec
-
-Create `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `## Acceptance Criteria` (required).
-
-Spec format:
-
-```markdown
-# [Task name]
-
-**Source:** user description | issue #<N>
-**Date:** [YYYY-MM-DD]
-**Tracked in:** #<N>
-
-## Scope
-## Out of scope
-## Deferred
-- what | why
-
-## Key decisions
-| Question | Decision |
-|---|---|
-
-## Technical constraints
-
-## Acceptance Criteria
-| # | Criterion |
-|---|-----------|
-| AC1 | [specific, verifiable condition] |
-
-## Open questions
-```
-
-`**Source:**` is `issue #<N>` for issue-ref mode, `user description` otherwise. `**Tracked in:**` always uses the `#<N>` shorthand (no full URL).
-
-AC rules:
-- ✅ "Function returns `Err` if input is empty"
-- ✅ "Event is emitted when state transitions to Ready"
-- ❌ "Test `foo_test` exists"
-- ❌ "`cargo test` passes green"
-
-One business requirement = ONE AC. Show to user for confirmation.
-
-#### Step 5c: Cross-link the issue
-
-Post a comment on the tracking issue pointing to the spec path:
-
-```bash
-gh issue comment <N> --body "Spec: \`ai-docs/plans/YYYY-MM-DD-name.spec.md\`"
-```
-
-This closes the loop: the spec references the issue via `**Tracked in:**`, and the issue references the spec file via the comment. Skip only if Step 5a was skipped (`**Tracked in:** none`).
+**Before Step 6:** confirm `ai-docs/plans/YYYY-MM-DD-name.spec.md` exists and the user has approved its `## Acceptance Criteria`.
 
 ### Step 6: Design agent
 
@@ -342,13 +252,8 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 
 | Before | Check |
 |---|---|
-| Step 1 | Entry mode detected (issue ref vs free text vs empty)? Issue body read in full if issue ref? |
-| Step 3 | All input items extracted? |
-| Step 4 | Scope confirmed? |
-| Step 5a | Tracking issue identified or created? Issue number captured? |
-| Step 5b | All decisions confirmed? Every AC verifiable? Spec includes `**Tracked in:** #N`? |
-| Step 5c | `gh issue comment` posted with spec path (unless Step 5a was skipped)? |
-| Step 6 | Spec saved? ACs confirmed? |
+| Steps 1–5 | Spec saved at `ai-docs/plans/YYYY-MM-DD-name.spec.md`? `**Tracked in:** #N` present (or `none` with reason)? Cross-link comment posted on the tracking issue (unless tracking skipped)? ACs confirmed by user and verifiable? See `/interview` gate checklist for the full per-step list. |
+| Step 6 | Spec exists? ACs confirmed? Not a "spec-only / defer" run? |
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
