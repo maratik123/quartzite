@@ -6,6 +6,7 @@ use quartzite_core::traits::Object;
 type Constructor = Box<dyn Fn() -> Box<dyn Object> + Send + Sync>;
 
 /// Creates objects by class name string — used by scripting and serialization.
+#[derive(Default)]
 pub struct ObjectFactory {
     registry: HashMap<String, Constructor>,
 }
@@ -21,10 +22,9 @@ impl ObjectFactory {
     /// let factory = ObjectFactory::new();
     /// assert!(factory.create("Unknown").is_none());
     /// ```
+    #[inline]
     pub fn new() -> Self {
-        Self {
-            registry: HashMap::new(),
-        }
+        Self::default()
     }
 
     /// Register a constructor for `class_name`. Overwrites any existing entry.
@@ -56,13 +56,6 @@ impl ObjectFactory {
     /// ```
     pub fn create(&self, class_name: &str) -> Option<Box<dyn Object>> {
         self.registry.get(class_name).map(|ctor| ctor())
-    }
-}
-
-impl Default for ObjectFactory {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
     }
 }
 

@@ -14,6 +14,7 @@ use crate::object_id::SlotKey;
 ///
 /// `ObjectTree: Send` follows automatically from `Object: Send`. Callers
 /// requiring shared access should wrap the tree in `Mutex<ObjectTree>`.
+#[derive(Default)]
 pub struct ObjectTree {
     store: SlotMap<DefaultKey, Box<dyn Object>>,
     /// ObjectId → arena slot (forward index)
@@ -40,15 +41,9 @@ impl ObjectTree {
     /// let tree = ObjectTree::new();
     /// assert!(!tree.contains(ObjectId::new()));
     /// ```
+    #[inline]
     pub fn new() -> Self {
-        Self {
-            store: SlotMap::new(),
-            forward: HashMap::new(),
-            reverse: HashMap::new(),
-            parent_map: HashMap::new(),
-            children_map: HashMap::new(),
-            by_name: HashMap::new(),
-        }
+        Self::default()
     }
 
     /// Insert `obj` into the tree, optionally under `parent_id`.
@@ -320,13 +315,6 @@ impl ObjectTree {
                 by_name.remove(name);
             }
         }
-    }
-}
-
-impl Default for ObjectTree {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
     }
 }
 
