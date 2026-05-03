@@ -147,6 +147,14 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+### 2026-05-03 — process — delete progress file immediately on self-review APPROVE, before Step 12
+
+**What happened:** Self-review Round 2 returned APPROVE. Proceeded directly to Step 12 (finalize INDEX.md, commit, PR) without deleting the progress file first. The file was left as an untracked artifact after the PR was created.
+
+**Rule:** On self-review APPROVE, delete `.progress.md` as the *first action* before starting Step 12. The task skill is explicit: "On APPROVE: delete `.progress.md` → proceed to Step 12." The file is transient handoff state; it must not outlive the task.
+
+**Escalated?** skill:task
+
 ### 2026-05-02 — process — verify relative markdown links before committing
 
 **What happened:** Files generated in `ai-docs/deferred/` used `../../plans/done/` as the relative path to `ai-docs/plans/done/`. The correct path is `../plans/done/` — one level up from `ai-docs/deferred/` reaches `ai-docs/`, then `plans/done/` is a sibling of `deferred/`. GitHub rendered the broken paths as `/plans/done/` (repo root), which does not exist.
