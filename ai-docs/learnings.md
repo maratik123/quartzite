@@ -30,14 +30,6 @@
 
 **Escalated?** skill:task
 
-### 2026-05-03 — code-style — `_unchecked`/`_checked` violations in Signal API corrected: emit / emit_unless_blocked
-
-**What happened:** The first implementation named `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked`. Both are safe fns; neither violates memory safety. `_unchecked` implies `unsafe`; `_checked` implies `Result`/`Option` return — both names were wrong per project naming rules. Fix: restore `Signal::emit` as the unconditional primitive; rename `emit_checked` to `emit_unless_blocked` (descriptive of what it does).
-
-**Rule:** For safe "with/without runtime behavior X" variants where neither panics nor involves UB, pick a descriptive name that says what each variant *does* — do not co-opt `_unchecked` or `_checked`. The unsuffixed name goes to the most common/ergonomic variant.
-
-**Escalated?** AGENTS.md
-
 ### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
 
 **What happened:** Renamed `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked` (which consults the `blocked` flag). Neither function is `unsafe`. This conflicts with `std` ecosystem convention: `_unchecked` is reserved for `unsafe` fns whose invariants the caller must uphold to avoid UB (e.g. `slice::get_unchecked`, `str::from_utf8_unchecked`). The natural unsuffixed name should be the safe, ergonomic default — using `_unchecked` for "skips an unrelated runtime check" misleads readers and reviewers and removes the ergonomic reward for the safe path.

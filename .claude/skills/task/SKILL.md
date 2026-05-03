@@ -224,11 +224,11 @@ finding (Step 11) requires a design change rather than a code fix:
   Use the same date-name as the spec file. Record the branch name in the progress file.
 - **Before every `git commit` in this step:** run `git branch --show-current` and confirm it is NOT `master`. If it is — stop immediately, do not commit, apply the recovery procedure in AGENTS.md.
 - **Before every `git commit` in this step:** check `git status` for `ai-docs/learnings.md`. If modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
-- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start (see `/context-reset` for format)
-- **Record base commit** in the progress file immediately:
+- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start using the canonical format in `/context-reset` — required fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. For `/task` flows also include `**Issue:**` and `**Spec:**`.
+- **Record base commit and branch** in the progress file header immediately:
   ```
-  base_commit: <output of `git rev-parse HEAD`>
-  branch: feat/YYYY-MM-DD-name
+  **Branch:** feat/YYYY-MM-DD-name
+  **base_commit:** <output of `git rev-parse HEAD`>
   ```
 - After each subtask:
   1. `cargo build` — must compile

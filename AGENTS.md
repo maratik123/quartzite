@@ -10,21 +10,13 @@
 
 ## Permissions
 
-Enforced by `settings.json`:
+Machine-enforced rules live in `.claude/settings.json` (allow/deny entries) and on `origin` (branch protection). Read those files for the authoritative list — duplicating them here lets the two sources drift.
 
-- **ALLOW:** Edit/Write under project root, `~/.claude`, `.claude`; `Bash(cargo *)`, `Bash(git *)`, `Bash(gh *)`
-- **DENY (machine-blocked):** `.idea/**`; `.env` and `.env.*` (any depth); `secrets*` and `.secrets*` (any depth) — read/edit/write all blocked
+Honor-system rules (no machine check; still binding):
 
-Enforced server-side:
-
-- **DENY:** `git push --force` to `master` — branch protection on `origin`
-
-Honor-system (no machine check; rule still binding):
-
-- **DENY:** `git push --force` to feature branches — prefer `--force-with-lease` and only after explicit user approval
-- **DENY:** files outside project root
-
-**ASK:** any tool not listed above; if access denied — suggest an alternative.
+- **DENY:** `git push --force` to feature branches — prefer `--force-with-lease`, and only after explicit user approval. Force-pushing to `master` is server-blocked regardless.
+- **DENY:** files outside project root.
+- **ASK:** any tool not allow-listed in `settings.json`; if denied — suggest an alternative.
 
 On session start: read `.gitignore`, treat matched paths as a read blacklist.
 
@@ -83,7 +75,7 @@ When adding or editing dependencies in `Cargo.toml`:
 - **Never commit to local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any commits. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
   - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
-- Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files). The diff stat in PR 1–3 was cleanly scoped because every file was named.
+- Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
 - **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
 - **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
 - **Never** use `git reset --hard` — it silently discards uncommitted work (working-tree changes, untracked files). Use one of these instead:

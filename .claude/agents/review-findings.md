@@ -38,7 +38,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Naming (see AGENTS.md "API Naming"): is every `_unchecked` fn `unsafe` with a `# Safety` doc section? Is the unsuffixed name the safe/ergonomic default? Any safe fn carrying `_unchecked` (or `_checked` used for non-safety variants) → finding.
 
 ### 3. Test coverage
-- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `quartzite-examples/examples/` are runnable demos — no test block required)
+- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `examples/` are runnable demos — no test block required)
 - Tests cover edge cases and error paths, not just the happy path?
 - Any test that would pass even if the production code were deleted (cosmetic test)?
 - Integration tests for public-facing macro output?
@@ -63,7 +63,9 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 
 ## Progress file format
 
-Write the progress file at the path given in the prompt. Use exactly this structure:
+Use the canonical `.progress.md` format defined in `.claude/skills/context-reset/SKILL.md`. Required header fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. Omit the `**Issue:**` / `**Spec:**` fields — this is review-driven, not spec-driven.
+
+Code-review-specific shape:
 
 ```markdown
 # Progress: Codebase review [branch] — ACTIVE
@@ -77,7 +79,7 @@ _Updated: YYYY-MM-DD_
 
 ## Next action
 
-**Do this immediately:** begin Step 11 fix loop — work through findings top-to-bottom.
+**Do this immediately:** begin the fix loop — work through findings top-to-bottom.
 
 ## Subtasks
 
