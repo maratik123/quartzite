@@ -1,4 +1,4 @@
-# Signal emit_checked / emit_unchecked split
+# Signal emit / emit_unless_blocked split
 
 **Source:** issue #38
 **Date:** 2026-05-03
@@ -26,9 +26,9 @@
 
 | Question | Decision |
 |---|---|
-| Return type of `emit_checked` | `()` — consistent with `emit_unchecked`; callers don't need a "did it fire" signal |
+| Return type of `emit_unless_blocked` | `()` — callers don't need a "did it fire" signal |
 | Name for raw method | `emit` — the safe, unconditional primitive; `_unchecked` is reserved for `unsafe` fns per project naming rules |
-| Where checked logic lives | Inside `Signal::emit_checked`, not in generated wrapper — keeps codegen clean |
+| Where blocked-aware logic lives | Inside `Signal::emit_unless_blocked`, not in generated wrapper — keeps codegen clean |
 
 ## Technical constraints
 
