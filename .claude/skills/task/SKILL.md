@@ -54,7 +54,13 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 
 **Already have a spec?** If a saved spec for this task already exists under `ai-docs/plans/` (e.g. the user previously ran `/interview` to draft the spec without implementing), confirm with the user that this is the spec to implement, then **skip to Step 6** — do not re-run the interview.
 
-**Otherwise, run the interview:** read `.claude/skills/interview/SKILL.md` and follow it end-to-end with `$ARGUMENTS`. The interview will:
+**Otherwise, run the interview** by invoking the `interview` skill via the Skill tool, passing the original `$ARGUMENTS` through:
+
+```
+Skill(skill="interview", args="$ARGUMENTS")
+```
+
+The interview will:
 
 - detect entry mode (issue ref / free text / empty) and load the issue body if applicable
 - extract and confirm scope (in / out / deferred)
@@ -62,6 +68,8 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 - resolve or create the tracking GitHub issue
 - save the spec at `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `**Tracked in:** #N` and an `## Acceptance Criteria` table
 - post a cross-link comment on the tracking issue (unless `Tracked in: none`)
+
+When the Skill call returns, `/interview`'s instructions and the saved spec are both in conversation context. Resume with the next paragraph of `/task` (the spec-only check, then Step 6).
 
 **Spec-only run.** If the user wants to stop after the interview ("just draft the spec, defer the implementation"), move the spec to `ai-docs/plans/deferred/`, update `INDEX.md` (move the row to **Deferred plans**, status `🟡 spec-only`), and **do not proceed to Step 6**. The spec can be picked up later via the deferred-plan-activation preamble above.
 
