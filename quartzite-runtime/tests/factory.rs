@@ -5,7 +5,7 @@ use quartzite_core::{
     traits::{AsObject, Object, SignalCallback},
     value::Value,
 };
-use quartzite_runtime::ObjectFactory;
+use quartzite_runtime::{FactoryAlreadySet, ObjectFactory};
 
 struct FooObj {
     base: ObjectBase,
@@ -100,4 +100,64 @@ fn multiple_classes_independent() {
     assert!(factory.create("A").is_some());
     assert!(factory.create("B").is_some());
     assert!(factory.create("C").is_none());
+}
+
+// --- Singleton tests ---
+//
+// OnceLock is irrevocable per process. We coordinate with a helper that calls
+// install exactly once per binary, regardless of test execution order.
+
+static FIRST_INSTALL: std::sync::OnceLock<Result<(), FactoryAlreadySet>> =
+    std::sync::OnceLock::new();
+
+fn install_once() -> &'static Result<(), FactoryAlreadySet> {
+    FIRST_INSTALL.get_or_init(|| ObjectFactory::install(ObjectFactory::new()))
+}
+
+#[test]
+fn first_install_returns_ok() {
+    assert_eq!(install_once(), &Ok(()));
+}
+
+#[test]
+fn install_second_call_returns_factory_already_set() {
+    install_once();
+    let result = ObjectFactory::install(ObjectFactory::new());
+    assert_eq!(result, Err(FactoryAlreadySet));
+}
+
+#[test]
+fn global_returns_some_after_install() {
+    install_once();
+    assert!(ObjectFactory::global().is_some());
+}
+
+#[test]
+fn create_through_global_unregistered_returns_none() {
+    install_once();
+    let factory = ObjectFactory::global().expect("factory not installed");
+    assert!(
+        factory
+            .read()
+            .expect("lock poisoned")
+            .create("NoSuchClass")
+            .is_none()
+    );
+}
+
+#[test]
+fn register_and_create_through_global() {
+    install_once();
+    let factory = ObjectFactory::global().expect("factory not installed");
+    factory
+        .write()
+        .expect("lock poisoned")
+        .register("GlobalFoo", FooObj::new_boxed);
+    assert!(
+        factory
+            .read()
+            .expect("lock poisoned")
+            .create("GlobalFoo")
+            .is_some()
+    );
 }

@@ -224,6 +224,9 @@ impl ObjectTree {
         // Remove from old name bucket.
         if let Some(old_name) = self.with(id, |obj| obj.object_base().name().map(str::to_owned)) {
             if let Some(old_name) = old_name {
+                if old_name == new_name {
+                    return; // no-op: name unchanged
+                }
                 Self::remove_from_by_name(&mut self.by_name, &old_name, id);
             }
         } else {
@@ -508,6 +511,77 @@ mod tests {
         let id = tree.insert(StubObject::named("alpha"), None);
         tree.rename(id, "beta");
         assert!(!tree.find_by_name("alpha").contains(&id));
+    }
+
+    #[test]
+    fn rename_same_name_is_noop_object_still_found() {
+        let mut tree = ObjectTree::new();
+        let id = tree.insert(StubObject::named("same"), None);
+        tree.rename(id, "same");
+        assert_eq!(tree.find_by_name("same"), &[id]);
+    }
+
+    #[test]
+    fn rename_same_name_does_not_duplicate_index_entry() {
+        let mut tree = ObjectTree::new();
+        let id = tree.insert(StubObject::named("dup-check"), None);
+        tree.rename(id, "dup-check");
+        tree.rename(id, "dup-check");
+        assert_eq!(tree.find_by_name("dup-check").len(), 1);
+    }
+
+    #[test]
+    fn rename_empty_string_to_same_empty_string_is_noop() {
+        // Object with name Some("") renamed to "" must be a no-op.
+        // Distinct from anonymous (name = None) renamed to "" which is a real rename.
+        let mut tree = ObjectTree::new();
+        let id = tree.insert(StubObject::named(""), None);
+        tree.rename(id, "");
+        assert_eq!(tree.find_by_name("").len(), 1);
+        assert_eq!(tree.find_by_name(""), &[id]);
+    }
+
+    #[test]
+    fn rename_anonymous_to_empty_string_is_real_rename() {
+        // name = None → "" is not a no-op.
+        let mut tree = ObjectTree::new();
+        let id = tree.insert(new_unnamed(), None);
+        tree.rename(id, "");
+        assert_eq!(tree.find_by_name(""), &[id]);
+    }
+
+    #[test]
+    fn rename_same_name_preserves_shared_bucket_order() {
+        // Without the no-op guard, rename(id1, "shared") would remove id1 from the
+        // bucket then re-append it, producing [id2, id1] instead of [id1, id2].
+        let mut tree = ObjectTree::new();
+        let id1 = tree.insert(StubObject::named("shared"), None);
+        let id2 = tree.insert(StubObject::named("shared"), None);
+        tree.rename(id1, "shared"); // no-op
+        let ids = tree.find_by_name("shared");
+        assert_eq!(
+            ids,
+            &[id1, id2],
+            "insertion order must not change on no-op rename"
+        );
+    }
+
+    #[test]
+    fn rename_different_name_still_works_after_noop_guard() {
+        let mut tree = ObjectTree::new();
+        let id = tree.insert(StubObject::named("before"), None);
+        tree.rename(id, "before"); // no-op
+        tree.rename(id, "after");
+        assert!(tree.find_by_name("before").is_empty());
+        assert_eq!(tree.find_by_name("after"), &[id]);
+    }
+
+    #[test]
+    fn rename_unknown_id_is_noop() {
+        let mut tree = ObjectTree::new();
+        let unknown = ObjectId::new();
+        tree.rename(unknown, "ghost"); // must not panic
+        assert!(tree.find_by_name("ghost").is_empty());
     }
 
     #[test]

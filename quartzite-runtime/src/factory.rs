@@ -1,9 +1,27 @@
 //! Object factory: creates objects by class name for scripting and serialization.
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock, RwLock},
+};
 
 use quartzite_core::traits::Object;
 
 type Constructor = Box<dyn Fn() -> Box<dyn Object> + Send + Sync>;
+
+static FACTORY: OnceLock<Arc<RwLock<ObjectFactory>>> = OnceLock::new();
+
+/// Error returned by [`ObjectFactory::install`] when a factory is already registered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FactoryAlreadySet;
+
+impl std::fmt::Display for FactoryAlreadySet {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ObjectFactory is already installed")
+    }
+}
+
+impl std::error::Error for FactoryAlreadySet {}
 
 /// Creates objects by class name string — used by scripting and serialization.
 #[derive(Default)]
@@ -25,6 +43,46 @@ impl ObjectFactory {
     #[inline]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Install `factory` as the process-wide singleton.
+    ///
+    /// Returns `Ok(())` on the first call; `Err(FactoryAlreadySet)` on subsequent calls.
+    /// Called by [`Application::new`](crate::Application::new) automatically — explicit
+    /// calls are needed only when using the factory without an `Application`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// ObjectFactory::install(ObjectFactory::new()).expect("factory already set");
+    /// ```
+    pub fn install(factory: ObjectFactory) -> Result<(), FactoryAlreadySet> {
+        FACTORY
+            .set(Arc::new(RwLock::new(factory)))
+            .map_err(|_| FactoryAlreadySet)
+    }
+
+    /// Returns a reference-counted handle to the process-wide factory, or `None` if
+    /// [`install`](ObjectFactory::install) has not been called yet.
+    ///
+    /// Callers must lock the returned `RwLock` to read or mutate the factory:
+    /// - `global().unwrap().read().expect("poisoned").create("Foo")`
+    /// - `global().unwrap().write().expect("poisoned").register("Foo", ctor)`
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::ObjectFactory;
+    ///
+    /// if let Some(factory) = ObjectFactory::global() {
+    ///     let _obj = factory.read().expect("poisoned").create("MyClass");
+    /// }
+    /// ```
+    #[inline]
+    pub fn global() -> Option<Arc<RwLock<ObjectFactory>>> {
+        FACTORY.get().cloned()
     }
 
     /// Register a constructor for `class_name`. Overwrites any existing entry.
