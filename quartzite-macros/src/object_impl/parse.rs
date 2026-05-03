@@ -6,10 +6,12 @@ use crate::util::extract_attr;
 pub(crate) struct ObjectImplInput {
     pub self_ty: Type,
     pub self_ty_ident: Ident,
+    pub trait_path: Option<syn::Path>,
     pub methods: Vec<MethodItem>,
     pub other_items: Vec<ImplItem>,
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MethodItem {
     pub ident: Ident,
@@ -17,22 +19,26 @@ pub(crate) struct MethodItem {
     pub ret_ty: ReturnType,
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ParamMeta {
     pub ident: Ident,
     pub ty: Type,
 }
 
-pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplInput> {
-    let mut item: ItemImpl = parse2(input)?;
-
-    if item.trait_.is_some() {
-        return Err(syn::Error::new(
-            item.self_ty.span(),
-            "#[object_impl] cannot be applied to a trait impl",
+pub(crate) fn parse(
+    attr: proc_macro2::TokenStream,
+    input: proc_macro2::TokenStream,
+) -> syn::Result<ObjectImplInput> {
+    if !attr.is_empty() {
+        return Err(syn::Error::new_spanned(
+            attr,
+            "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
         ));
     }
+    let mut item: ItemImpl = parse2(input)?;
 
+    let trait_path = item.trait_.as_ref().map(|(_, path, _)| path.clone());
     let self_ty = *item.self_ty;
     let self_ty_ident = extract_self_ty_ident(&self_ty)?;
 
@@ -67,6 +73,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplIn
     Ok(ObjectImplInput {
         self_ty,
         self_ty_ident,
+        trait_path,
         methods,
         other_items,
     })
@@ -92,7 +99,7 @@ fn extract_self_ty_ident(self_ty: &Type) -> syn::Result<Ident> {
 }
 
 /// Extracts `(ident, type)` pairs from fn inputs, skipping the receiver.
-fn extract_params(
+pub(crate) fn extract_params(
     inputs: &syn::punctuated::Punctuated<FnArg, syn::Token![,]>,
 ) -> syn::Result<Vec<ParamMeta>> {
     let mut params = Vec::new();
@@ -126,11 +133,7 @@ mod tests {
     use quote::quote;
 
     fn parse_ok(ts: TokenStream) -> ObjectImplInput {
-        parse(ts).expect("should parse successfully")
-    }
-
-    fn parse_err(ts: TokenStream) -> String {
-        parse(ts).unwrap_err().to_string()
+        parse(quote! {}, ts).expect("should parse successfully")
     }
 
     #[test]
@@ -196,13 +199,46 @@ mod tests {
     }
 
     #[test]
-    fn trait_impl_errors() {
-        let err = parse_err(quote! {
+    fn trait_impl_accepted() {
+        let ir = parse_ok(quote! {
             impl MyTrait for Foo {
                 fn foo(&self) {}
             }
         });
-        assert!(err.contains("trait impl"), "unexpected: {err}");
+        assert_eq!(ir.self_ty_ident, "Foo");
+        assert!(ir.trait_path.is_some(), "trait_path should be set");
+    }
+
+    #[test]
+    fn trait_impl_stores_trait_path() {
+        let ir = parse_ok(quote! {
+            impl MyTrait for Foo {
+                #[slot]
+                fn on_event(&mut self) {}
+            }
+        });
+        let trait_path = ir.trait_path.expect("trait_path should be set");
+        let path_str = quote! { #trait_path }.to_string();
+        assert!(path_str.contains("MyTrait"), "unexpected path: {path_str}");
+    }
+
+    #[test]
+    fn inherent_impl_trait_path_is_none() {
+        let ir = parse_ok(quote! {
+            impl Foo { fn bar(&self) {} }
+        });
+        assert!(ir.trait_path.is_none());
+    }
+
+    #[test]
+    fn non_empty_attr_errors_with_object_part_hint() {
+        let err = parse(quote! { partial }, quote! { impl Foo {} })
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("#[object_part]"),
+            "error should mention #[object_part], got: {err}"
+        );
     }
 
     #[test]

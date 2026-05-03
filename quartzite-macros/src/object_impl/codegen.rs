@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Ident, Index, ReturnType};
 
 use super::parse::{MethodItem, ObjectImplInput};
-use crate::util::hidden_mod_ident;
+use crate::util::{crate_root, hidden_mod_ident};
 
 pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
@@ -17,10 +17,10 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let meta_static = emit_meta_static(type_ident, &mod_ident);
     let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident);
 
+    let impl_block = emit_impl_block(&ir.trait_path, self_ty, other_items);
+
     quote! {
-        impl #self_ty {
-            #(#other_items)*
-        }
+        #impl_block
 
         #methods_static
         #invoke_fn
@@ -30,7 +30,20 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     }
 }
 
-fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+pub(crate) fn emit_impl_block(
+    trait_path: &Option<syn::Path>,
+    self_ty: &syn::Type,
+    other_items: &[syn::ImplItem],
+) -> TokenStream {
+    if let Some(tp) = trait_path {
+        quote! { impl #tp for #self_ty { #(#other_items)* } }
+    } else {
+        quote! { impl #self_ty { #(#other_items)* } }
+    }
+}
+
+pub(crate) fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+    let cr = crate_root();
     let static_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
     let entries = methods.iter().map(|m| {
         let name = m.ident.to_string();
@@ -41,7 +54,7 @@ fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStrea
                 let param_name = p.ident.to_string();
                 let ty = &p.ty;
                 quote! {
-                    ::quartzite::core::ParamMeta::new(#param_name, ::core::stringify!(#ty))
+                    #cr::ParamMeta::new(#param_name, ::core::stringify!(#ty))
                 }
             })
             .collect();
@@ -50,18 +63,19 @@ fn emit_methods_static(type_ident: &Ident, methods: &[MethodItem]) -> TokenStrea
             ReturnType::Type(_, ty) => quote! { ::core::stringify!(#ty) },
         };
         quote! {
-            ::quartzite::core::MethodMeta::new(#name, &[#(#params),*], #ret_str)
+            #cr::MethodMeta::new(#name, &[#(#params),*], #ret_str)
         }
     });
     quote! {
         #[allow(non_upper_case_globals)]
-        const #static_name: &[::quartzite::core::MethodMeta] = &[
+        const #static_name: &[#cr::MethodMeta] = &[
             #(#entries),*
         ];
     }
 }
 
-fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+pub(crate) fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
     let arms = methods.iter().map(|m| {
         let name = m.ident.to_string();
@@ -75,7 +89,7 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
                 let idx = Index::from(i);
                 let binding = Ident::new(&format!("__arg{i}"), method_ident.span());
                 quote! {
-                    let #binding = match ::quartzite::core::FromValue::from_value(args[#idx].clone()) {
+                    let #binding = match #cr::FromValue::from_value(args[#idx].clone()) {
                         ::core::result::Result::Ok(v) => v,
                         ::core::result::Result::Err(_) => return ::core::option::Option::None,
                     };
@@ -88,11 +102,11 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
         let call_and_return = match &m.ret_ty {
             ReturnType::Default => quote! {
                 this.#method_ident(#(#arg_idents),*);
-                ::core::option::Option::Some(::quartzite::core::Value::Null)
+                ::core::option::Option::Some(#cr::Value::Null)
             },
             ReturnType::Type(_, _) => quote! {
                 ::core::option::Option::Some(
-                    ::quartzite::core::IntoValue::into_value(this.#method_ident(#(#arg_idents),*))
+                    #cr::IntoValue::into_value(this.#method_ident(#(#arg_idents),*))
                 )
             },
         };
@@ -111,8 +125,8 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
         fn #fn_name(
             this: &mut #type_ident,
             name: &str,
-            args: &[::quartzite::core::Value],
-        ) -> ::core::option::Option<::quartzite::core::Value> {
+            args: &[#cr::Value],
+        ) -> ::core::option::Option<#cr::Value> {
             match name {
                 #(#arms)*
                 _ => ::core::option::Option::None,
@@ -121,7 +135,8 @@ fn emit_invoke_method(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream
     }
 }
 
-fn emit_lookup_fns(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+pub(crate) fn emit_lookup_fns(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
+    let cr = crate_root();
     let lookup_method_fn = Ident::new(&format!("__lookup_method_{type_ident}"), type_ident.span());
     let lookup_enum_fn = Ident::new(&format!("__lookup_enum_{type_ident}"), type_ident.span());
     let methods_name = Ident::new(&format!("__METHODS__{type_ident}"), type_ident.span());
@@ -138,7 +153,7 @@ fn emit_lookup_fns(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
 
     quote! {
         #[allow(non_snake_case)]
-        fn #lookup_method_fn(name: &str) -> ::core::option::Option<::quartzite::core::MethodMeta> {
+        fn #lookup_method_fn(name: &str) -> ::core::option::Option<#cr::MethodMeta> {
             match name {
                 #(#method_arms,)*
                 _ => ::core::option::Option::None,
@@ -146,13 +161,14 @@ fn emit_lookup_fns(type_ident: &Ident, methods: &[MethodItem]) -> TokenStream {
         }
 
         #[allow(non_snake_case)]
-        fn #lookup_enum_fn(_name: &str) -> ::core::option::Option<::quartzite::core::EnumMeta> {
+        fn #lookup_enum_fn(_name: &str) -> ::core::option::Option<#cr::EnumMeta> {
             ::core::option::Option::None
         }
     }
 }
 
-fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
+pub(crate) fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
+    let cr = crate_root();
     let meta_static_name = Ident::new(&format!("META_{type_ident}"), type_ident.span());
     let meta_init_fn = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     let props_name = Ident::new(&format!("__PROPS__{type_ident}"), type_ident.span());
@@ -169,8 +185,8 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
     // Property and signal lookup fns live in the hidden mod (generated by #[derive(Object)]).
     quote! {
         #[allow(non_upper_case_globals)]
-        static #meta_static_name: ::quartzite::core::MetaObject =
-            ::quartzite::core::MetaObject::new(
+        static #meta_static_name: #cr::MetaObject =
+            #cr::MetaObject::new(
                 ::core::stringify!(#type_ident),
                 #mod_ident::#props_name,
                 #mod_ident::#signals_name,
@@ -184,13 +200,18 @@ fn emit_meta_static(type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
 
         #[allow(non_snake_case)]
         #[inline]
-        fn #meta_init_fn() -> &'static ::quartzite::core::MetaObject {
+        fn #meta_init_fn() -> &'static #cr::MetaObject {
             &#meta_static_name
         }
     }
 }
 
-fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) -> TokenStream {
+pub(crate) fn emit_object_impl(
+    self_ty: &syn::Type,
+    type_ident: &Ident,
+    mod_ident: &Ident,
+) -> TokenStream {
+    let cr = crate_root();
     let read_fn = Ident::new(&format!("__read_property_{type_ident}"), type_ident.span());
     let write_fn = Ident::new(&format!("__write_property_{type_ident}"), type_ident.span());
     let connect_fn = Ident::new(
@@ -200,33 +221,33 @@ fn emit_object_impl(self_ty: &syn::Type, type_ident: &Ident, mod_ident: &Ident) 
     let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     quote! {
-        impl ::quartzite::core::Object for #self_ty {
+        impl #cr::Object for #self_ty {
             #[inline]
-            fn meta_object(&self) -> &'static ::quartzite::core::MetaObject {
+            fn meta_object(&self) -> &'static #cr::MetaObject {
                 #meta_init()
             }
             #[inline]
-            fn read_property(&self, name: &str) -> ::core::option::Option<::quartzite::core::Value> {
+            fn read_property(&self, name: &str) -> ::core::option::Option<#cr::Value> {
                 #mod_ident::#read_fn(self, name)
             }
             #[inline]
-            fn write_property(&mut self, name: &str, val: ::quartzite::core::Value) -> bool {
+            fn write_property(&mut self, name: &str, val: #cr::Value) -> bool {
                 #mod_ident::#write_fn(self, name, val)
             }
             #[inline]
             fn invoke_method(
                 &mut self,
                 name: &str,
-                args: &[::quartzite::core::Value],
-            ) -> ::core::option::Option<::quartzite::core::Value> {
+                args: &[#cr::Value],
+            ) -> ::core::option::Option<#cr::Value> {
                 #invoke_fn(self, name, args)
             }
             #[inline]
             fn connect_signal(
                 &mut self,
                 signal: &str,
-                callback: ::quartzite::core::SignalCallback,
-            ) -> ::core::option::Option<::quartzite::core::ConnectionId> {
+                callback: #cr::SignalCallback,
+            ) -> ::core::option::Option<#cr::ConnectionId> {
                 #mod_ident::#connect_fn(self, signal, callback)
             }
         }
@@ -239,7 +260,7 @@ mod tests {
     use quote::quote;
 
     fn emit(ts: TokenStream) -> String {
-        let ir = crate::object_impl::parse::parse(ts).expect("parse ok");
+        let ir = crate::object_impl::parse::parse(quote! {}, ts).expect("parse ok");
         super::codegen(ir).to_string()
     }
 
@@ -489,6 +510,45 @@ mod tests {
         assert!(
             out.contains("fn connect_signal"),
             "missing connect_signal: {out}"
+        );
+    }
+
+    // Trait impl block is re-emitted with `impl Trait for Type { … }` header.
+    #[test]
+    fn trait_impl_reemitted_with_correct_header() {
+        let out = emit(quote! {
+            impl MyTrait for Foo {
+                fn foo(&self) {}
+            }
+        });
+        assert!(
+            out.contains("impl MyTrait for Foo"),
+            "missing trait impl header: {out}"
+        );
+        assert!(out.contains("fn foo"), "missing trait method: {out}");
+    }
+
+    // Multiple methods (simulating Final merge) all appear in the codegen output.
+    #[test]
+    fn multiple_methods_all_in_output() {
+        let out = emit(quote! {
+            impl Foo {
+                #[slot]
+                fn reset(&mut self) {}
+                #[invokable]
+                fn doubled(&self) -> i32 { 0 }
+            }
+        });
+        assert!(out.contains("\"reset\""), "missing reset in output: {out}");
+        assert!(
+            out.contains("\"doubled\""),
+            "missing doubled in output: {out}"
+        );
+        assert!(out.contains("__METHODS__Foo [0]"), "missing index 0: {out}");
+        assert!(out.contains("__METHODS__Foo [1]"), "missing index 1: {out}");
+        assert!(
+            out.contains("impl :: quartzite :: core :: Object for Foo"),
+            "missing Object impl: {out}"
         );
     }
 

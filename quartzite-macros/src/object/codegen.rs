@@ -3,9 +3,10 @@ use quote::quote;
 use syn::{Ident, Index, Type};
 
 use super::parse::{ObjectInput, PropField, SignalField};
-use crate::util::hidden_mod_ident;
+use crate::util::{crate_root, hidden_mod_ident};
 
 pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
+    let cr = crate_root();
     let type_ident = &ir.ident;
     let mod_ident = hidden_mod_ident(type_ident);
 
@@ -24,7 +25,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
         #[doc(hidden)]
         #[allow(non_snake_case, non_upper_case_globals)]
         mod #mod_ident {
-            use ::quartzite::core::PropertyFlag;
+            use #cr::PropertyFlag;
             #props_static
             #signals_static
             #read_fn
@@ -57,6 +58,7 @@ fn tuple_elems(ty: &Type) -> Vec<&Type> {
 }
 
 fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
+    let cr = crate_root();
     let static_name = props_static_ident(type_ident);
     let entries = props.iter().map(|p| {
         let name = p.ident.to_string();
@@ -83,21 +85,22 @@ fn emit_props_static(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         .filter_map(|(active, tok)| active.then_some(tok))
         .collect();
         quote! {
-            ::quartzite::core::PropertyMeta::new(
+            #cr::PropertyMeta::new(
                 #name,
                 ::core::stringify!(#ty),
-                ::quartzite::core::enumflags2::make_bitflags!(PropertyFlag::{#(#flag_variants)|*}),
+                #cr::enumflags2::make_bitflags!(PropertyFlag::{#(#flag_variants)|*}),
             )
         }
     });
     quote! {
-        pub const #static_name: &[::quartzite::core::PropertyMeta] = &[
+        pub const #static_name: &[#cr::PropertyMeta] = &[
             #(#entries),*
         ];
     }
 }
 
 fn emit_signals_static(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     let static_name = signals_static_ident(type_ident);
     let entries = signals.iter().map(|s| {
         let name = s.ident.to_string();
@@ -107,22 +110,23 @@ fn emit_signals_static(type_ident: &Ident, signals: &[SignalField]) -> TokenStre
             .map(|(i, ty)| {
                 let param_name = format!("arg{i}");
                 quote! {
-                    ::quartzite::core::ParamMeta::new(#param_name, ::core::stringify!(#ty))
+                    #cr::ParamMeta::new(#param_name, ::core::stringify!(#ty))
                 }
             })
             .collect();
         quote! {
-            ::quartzite::core::SignalMeta::new(#name, &[#(#params),*])
+            #cr::SignalMeta::new(#name, &[#(#params),*])
         }
     });
     quote! {
-        pub const #static_name: &[::quartzite::core::SignalMeta] = &[
+        pub const #static_name: &[#cr::SignalMeta] = &[
             #(#entries),*
         ];
     }
 }
 
 fn emit_lookup_prop_fn(type_ident: &Ident, props: &[PropField]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(
         &format!("__lookup_property_{type_ident}"),
         type_ident.span(),
@@ -136,7 +140,7 @@ fn emit_lookup_prop_fn(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         }
     });
     quote! {
-        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite::core::PropertyMeta> {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<#cr::PropertyMeta> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -146,6 +150,7 @@ fn emit_lookup_prop_fn(type_ident: &Ident, props: &[PropField]) -> TokenStream {
 }
 
 fn emit_lookup_signal_fn(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(&format!("__lookup_signal_{type_ident}"), type_ident.span());
     let static_name = signals_static_ident(type_ident);
     let arms = signals.iter().enumerate().map(|(idx, s)| {
@@ -156,7 +161,7 @@ fn emit_lookup_signal_fn(type_ident: &Ident, signals: &[SignalField]) -> TokenSt
         }
     });
     quote! {
-        pub fn #fn_name(name: &str) -> ::core::option::Option<::quartzite::core::SignalMeta> {
+        pub fn #fn_name(name: &str) -> ::core::option::Option<#cr::SignalMeta> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -166,13 +171,14 @@ fn emit_lookup_signal_fn(type_ident: &Ident, signals: &[SignalField]) -> TokenSt
 }
 
 fn emit_read_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(&format!("__read_property_{type_ident}"), type_ident.span());
     let arms = props.iter().map(|p| {
         let name = p.ident.to_string();
         let field = &p.ident;
         quote! {
             #name => ::core::option::Option::Some(
-                ::quartzite::core::IntoValue::into_value(this.#field.clone())
+                #cr::IntoValue::into_value(this.#field.clone())
             )
         }
     });
@@ -180,7 +186,7 @@ fn emit_read_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         pub fn #fn_name(
             this: &super::#type_ident,
             name: &str,
-        ) -> ::core::option::Option<::quartzite::core::Value> {
+        ) -> ::core::option::Option<#cr::Value> {
             match name {
                 #(#arms,)*
                 _ => ::core::option::Option::None,
@@ -190,6 +196,7 @@ fn emit_read_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
 }
 
 fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(&format!("__write_property_{type_ident}"), type_ident.span());
     let arms = props.iter().map(|p| {
         let name = p.ident.to_string();
@@ -203,13 +210,13 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
                 quote! {
                     let __notify_val = v.clone();
                     this.#sig_ident.emit_unless_blocked(
-                        ::quartzite::core::AsObject::object_base(this).signals_blocked(),
+                        #cr::AsObject::object_base(this).signals_blocked(),
                         &(__notify_val,),
                     );
                 }
             });
             quote! {
-                #name => match ::quartzite::core::FromValue::from_value(val) {
+                #name => match #cr::FromValue::from_value(val) {
                     ::core::result::Result::Ok(v) => {
                         this.#field = v;
                         #notify_emit
@@ -224,7 +231,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
         pub fn #fn_name(
             this: &mut super::#type_ident,
             name: &str,
-            val: ::quartzite::core::Value,
+            val: #cr::Value,
         ) -> bool {
             match name {
                 #(#arms,)*
@@ -235,6 +242,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
 }
 
 fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     let fn_name = Ident::new(
         &format!("__connect_signal_dynamic_{type_ident}"),
         type_ident.span(),
@@ -249,13 +257,13 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             .map(|(i, _ty)| {
                 let idx = Index::from(i);
                 quote! {
-                    ::quartzite::core::IntoValue::into_value(args.#idx.clone())
+                    #cr::IntoValue::into_value(args.#idx.clone())
                 }
             })
             .collect();
         quote! {
             #name => {
-                let cb = ::quartzite::core::__macro::Arc::clone(&cb);
+                let cb = #cr::__macro::Arc::clone(&cb);
                 ::core::option::Option::Some(this.#field.connect(move |args: &#args_ty| {
                     (*cb)(&[#(#conversions),*])
                 }))
@@ -266,11 +274,11 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
         pub fn #fn_name(
             this: &mut super::#type_ident,
             name: &str,
-            cb: ::quartzite::core::SignalCallback,
-        ) -> ::core::option::Option<::quartzite::core::ConnectionId> {
-            let cb: ::quartzite::core::__macro::Arc<
-                dyn ::core::ops::Fn(&[::quartzite::core::Value]) + Send + Sync,
-            > = ::quartzite::core::__macro::Arc::from(cb);
+            cb: #cr::SignalCallback,
+        ) -> ::core::option::Option<#cr::ConnectionId> {
+            let cb: #cr::__macro::Arc<
+                dyn ::core::ops::Fn(&[#cr::Value]) + Send + Sync,
+            > = #cr::__macro::Arc::from(cb);
             match name {
                 #(#arms)*
                 _ => ::core::option::Option::None,
@@ -280,6 +288,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
 }
 
 fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     if signals.is_empty() {
         return quote! {};
     }
@@ -307,7 +316,7 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
             #[inline]
             pub fn #fn_name(&mut self, #(#params),*) {
                 self.#field.emit_unless_blocked(
-                    ::quartzite::core::AsObject::object_base(self).signals_blocked(),
+                    #cr::AsObject::object_base(self).signals_blocked(),
                     &(#(#arg_idents,)*),
                 );
             }
@@ -321,6 +330,7 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
 }
 
 fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     if signals.is_empty() {
         return quote! {};
     }
@@ -338,9 +348,9 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
             #[inline]
             pub fn #fn_name<F>(
                 &mut self,
-                receiver: &::quartzite::core::ObjectBase,
+                receiver: &#cr::ObjectBase,
                 f: F,
-            ) -> ::quartzite::core::ConnectionId
+            ) -> #cr::ConnectionId
             where
                 F: ::core::ops::Fn(#args_ty) + ::core::marker::Send + ::core::marker::Sync + 'static,
             {
@@ -364,6 +374,7 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
 }
 
 fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
     if signals.is_empty() {
         return quote! {};
     }
@@ -387,9 +398,9 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
             #[inline]
             pub fn #fn_name<F>(
                 &mut self,
-                receiver: &::quartzite::core::ObjectBase,
+                receiver: &#cr::ObjectBase,
                 f: F,
-            ) -> ::quartzite::core::ConnectionId
+            ) -> #cr::ConnectionId
             where
                 F: ::core::ops::Fn(#args_ty) + ::core::marker::Send + ::core::marker::Sync + 'static,
             {

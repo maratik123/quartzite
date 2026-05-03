@@ -29,6 +29,8 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [enumflags2-property-flags](done/2026-05-03-enumflags2-property-flags.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (6 new tests) | — |
 | [signal-emit-checked](done/2026-05-03-signal-emit-checked.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (3 new tests) | — |
 | [objectbase-debug-rename-factory](done/2026-05-03-objectbase-debug-rename-factory.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (16 new tests) | — |
+| [macro-codegen-improvements](done/2026-05-03-macro-codegen-improvements.spec.md) | `quartzite-macros` | ✅ implemented (30 new tests) | — |
+| [object-part-redesign](done/2026-05-03-object-part-redesign.spec.md) | `quartzite-macros` `quartzite` | ✅ implemented (27 new tests) | — |
 
 ## Deferred plans
 
@@ -58,13 +60,13 @@ graphics-stack (ready — no blocker)
 └── quartzite-renderer     (depends on quartzite-paint-api; vello+wgpu+winit)
 ```
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked. These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
 1. **Start** graphics-stack (unblocked — geometry-events done; needs `quartzite-paint-api` thin crate then `quartzite-renderer`)
 2. **Start** widgets (unblocked — geometry-events done; needs `WidgetBase`, layouts, basic widgets)
-3. **Pick up** remaining small design issues: #55 (parent/children accessors), #57 (proc_macro_crate single-dep)
+3. **Pick up** remaining small design issues: #55 (parent/children accessors)
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
