@@ -126,7 +126,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
 
-**Escalated?** skill:task, skill:task-issue, hook (PreToolUse on `git commit` blocks master)
+**Escalated?** skill:task, hook (PreToolUse on `git commit` blocks master)
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
@@ -154,7 +154,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Self-review must not run or re-check `cargo fmt`, `cargo clippy`, `cargo build`/`check`, or `cargo test`. These are all guaranteed by the Implementation and Verify steps before self-review runs. Self-review scope: spec conformance, design conformance, test coverage, safety/correctness, style (Rust file conventions, allow attributes) — not build tooling.
 
-**Escalated?** agent:self-review, agent:review-findings, skill:task, skill:task-issue, skill:code-review
+**Escalated?** agent:self-review, agent:review-findings
 
 ### 2026-05-02 — process — propagate rule exemptions to agent/skill files in same task
 
@@ -170,7 +170,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Run `git branch --show-current` and confirm it is **not** `master` before any `git commit` that is intended for a PR. A pre-push check is a last resort, not the primary safeguard. The commit should never happen on master — the push check only exists as a final gate.
 
-**Escalated?** hook, skill:task, skill:task-issue
+**Escalated?** hook, skill:task
 
 ### 2026-05-02 — process — run cargo fmt --all after every code change, including post-self-review fixes
 
