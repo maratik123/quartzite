@@ -8,7 +8,7 @@
 
 **How to apply:** If currently executing a `/task` (progress file exists or task was just completed), follow the step instructions for committing and pushing. Only pause to ask if something is ambiguous or risky beyond what the task step covers.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-03 — process — include ai-docs/learnings.md in the PR commit when it changes during the task
 
@@ -18,7 +18,7 @@
 
 **How to apply:** Before any `git commit` during a PR task, check `git diff --name-only ai-docs/learnings.md`. If it shows changes, include the file in the commit being staged.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — process — update PR title and body after commits that change public API or scope
 
@@ -28,7 +28,7 @@
 
 **How to apply:** At the end of Step 12 (or any follow-up push), check whether the PR title/body mentions any symbol, AC, or scope item that the new commits changed. If yes, run `gh pr edit --title "..." --body "..."` before posting the PR URL to the user.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-03 — code-style — `_unchecked`/`_checked` violations in Signal API corrected: emit / emit_unless_blocked
 
@@ -99,7 +99,7 @@
 - `git cherry-pick` — moves specific commits to another branch
 - Backup branch — `git checkout -b backup/...` before any destructive operation
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
@@ -146,7 +146,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent. (A `diff-review` agent existed historically but was removed as orphan; do not reintroduce it without wiring it into a skill.)
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — self-review must not re-run cargo fmt or cargo clippy
 
@@ -162,7 +162,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** When a rule exemption is added to `AGENTS.md`, immediately propagate it to every agent/skill/settings file that enforces that rule. Check with `grep` across `.claude/agents/` and `.claude/skills/` before closing the task.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — check current branch before committing, not only before pushing
 
@@ -186,7 +186,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Use `.min()`, `.max()`, `.clamp()`, and other stdlib methods instead of `if`/`match` branching for simple value comparisons. This applies equally to all numeric types (`i32`, `f32`, etc.). Explicit branches are harder to read and error-prone.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — architecture — do not reference other frameworks as justification for design choices
 
@@ -194,7 +194,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Never cite other frameworks (Qt, GTK, WinForms, etc.) as justification for design choices. Design based on Rust idioms, crate ecosystem norms, and explicit reasoning about the problem. "Other library does X" is not a valid argument.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — process — delete progress file immediately on self-review APPROVE, before Step 12
 
@@ -210,4 +210,4 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** After generating files with relative links, verify at least one link manually: trace the path on disk (`realpath` or mental directory traversal) before committing. From `ai-docs/deferred/file.md`, one `..` reaches `ai-docs/`; two `../..` reaches the repo root.
 
-**Escalated?** no
+**Escalated?** AGENTS.md

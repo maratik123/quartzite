@@ -62,10 +62,11 @@ Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic
 - **All source files must be Rust (`.rs`).** No other languages in `src/`.
 - Max line: 100 (rustfmt default).
 - Strict clippy (enforced).
-- Prefer Rust idioms over literal ports from other languages. When in doubt, ask.
+- Prefer Rust idioms over literal ports from other languages. When in doubt, ask. **Never cite other GUI/UI frameworks (Qt, GTK, WinForms, SwiftUI, etc.) as justification for design choices** in specs, designs, commit messages, or PR bodies. Justify decisions from Rust idioms, the crate ecosystem, and explicit reasoning about the problem.
 - Let chains (`if let A = x && let B = y { ... }`) are valid in this codebase (edition 2024). Do not avoid them. Always format via `cargo fmt`, never `rustfmt <file>` directly.
 - **Documentation:** Every crate must have `#![deny(missing_docs)]` in its `lib.rs`. Every public item must have at least a one-line `///` doc comment. Every new public item with only a single-line doc must include a `# Examples` block. Proc-macro examples use `no_run`; runtime items needing an event loop use `no_run`; pure library types use compiling doctests.
 - **`#[inline]`:** Add `#[inline]` to every simple, non-generic function: no branches or loops, at most one function call, no binary bloat. Typical targets: field getters (`self.field`), trivial wrappers (`.as_deref()`, single delegation call), `Default::default()` that calls `Self::new()`, `const fn` struct-literal constructors. **Exclude** generic functions and blanket-impl trait methods — the compiler already has their bodies via monomorphization. Apply the same rule in proc-macro codegen: emit `#[inline]` before each simple generated `fn`.
+- **Comparison helpers.** Use `.min()`, `.max()`, `.clamp()`, `Option::or` / `Option::filter`, etc. instead of explicit `if`/`match` for simple value selection. Applies to all numeric types and any `Ord`/`PartialOrd` types. Reach for the stdlib method first; fall back to branching only when the comparison logic is genuinely non-trivial.
 
 ## Dependency Versions
 
@@ -83,10 +84,32 @@ When adding or editing dependencies in `Cargo.toml`:
   - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
 - Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files). The diff stat in PR 1–3 was cleanly scoped because every file was named.
+- **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
 - **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
+- **Never** use `git reset --hard` — it silently discards uncommitted work (working-tree changes, untracked files). Use one of these instead:
+  - `git reset --soft HEAD~N` — preserves working tree; commits become staged
+  - `git stash` — saves uncommitted changes before switching branches
+  - `git cherry-pick` — moves specific commits to another branch
+  - Backup branch — `git checkout -b backup/...` before any destructive operation
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exception:** files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
 - `.gitignore` (not `.arcignore`).
+- After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
+
+## Propagation Rule
+
+When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
+
+**Sync groups (canonical):**
+- **Task group:** `.claude/skills/task/SKILL.md` ↔ `.claude/skills/task-issue/SKILL.md` (when present)
+- **Review group:** `.claude/skills/code-review/SKILL.md` (workflow) ↔ `.claude/agents/review-findings.md` (findings producer) ↔ `.claude/agents/self-review.md` (fix validator)
+
+**Procedure:**
+1. Before closing the edit, `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` for any file that references the same rule, exemption, or terminology.
+2. Apply the same change (or the corresponding enforcement adjustment) in every match.
+3. AGENTS.md rule exemptions especially must propagate to agent checklists that enforce the rule (`self-review.md`, `review-findings.md`).
+
+Do not refer to a skill as an "agent" or vice versa — the distinction matters for spawning. (`code-review` is a skill; `review-findings` and `self-review` are agents spawned by it.)
 
 ## Communication
 

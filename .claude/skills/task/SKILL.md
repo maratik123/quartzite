@@ -8,6 +8,8 @@ allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(ca
 
 Full workflow for a task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
 
+> **Commit authorization.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. Commits at Step 8 (per subtask) and the commit + `git push` + `gh pr create` at Step 12 are pre-authorized by `/task` itself — perform them without an extra prompt. Pause to confirm only if the situation is ambiguous beyond the prescribed step (e.g., commits would touch master, files outside the task scope, or sensitive paths).
+
 The task may originate from either:
 - a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — Step 1 reads the issue
 - a **user description** (e.g. `/task add foo to bar`) or empty (interview the user)
@@ -282,7 +284,7 @@ Agent(subagent_type="general-purpose", prompt="
 ")
 ```
 
-**On APPROVE:** delete `.progress.md` → proceed to Step 12.
+**On APPROVE — first action, before anything else:** `rm ai-docs/plans/YYYY-MM-DD-name.progress.md`. Confirm the file is gone (`ls`) before starting Step 12. The progress file is transient handoff state and must not survive the task.
 
 **On REJECT:** proceed to Step 11. After Step 11, loop back here.
 
@@ -303,33 +305,35 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. Update `.progress.md`
-5. Return to Step 10.
+5. **If the fixes changed any public API name, scope, or AC referenced in the PR title/body** (and the PR is already open), run `gh pr edit --title "..." --body "..."` to bring the PR description in sync before pushing. Check by re-reading the current PR with `gh pr view` and comparing against the new commits.
+6. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
 
-1. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
-2. **Finalise INDEX.md and move plan files:**
+1. **First, confirm `.progress.md` is already deleted** (Step 10 APPROVE handler). If it still exists — stop, delete it, then continue.
+2. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
+3. **Finalise INDEX.md and move plan files:**
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-3. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-4. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
-5. Commit:
+4. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+5. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
+6. Commit:
    ```
    feat(<crate>): <short imperative description>
 
    <1-3 lines: what changed and why; key ACs covered>
    N new tests; all M tests green.
    ```
-6. `git push -u origin <branch>`
-7. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+7. `git push -u origin <branch>`
+8. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
    - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
      - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
      - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
      - Spec was written with `Tracked in: none` → omit this section
    - **Test plan** (checklist: one line per AC, plus clippy/build)
-8. Post the PR URL to the user.
+9. Post the PR URL to the user.
 
 **FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
@@ -350,6 +354,6 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
-| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
+| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? PR title/body updated via `gh pr edit` if commits changed public-facing names/scope? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
 | Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
