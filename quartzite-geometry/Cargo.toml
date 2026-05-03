@@ -1,0 +1,19 @@
+[package]
+name = "quartzite-geometry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Geometry primitives (Point, Size, Rect, Margins) for quartzite"
+
+# No [features] — always no_std; all types are Copy + stack-only (no alloc needed)
+
+[dev-dependencies]
+rstest = "0.26"
+pretty_assertions = "1"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

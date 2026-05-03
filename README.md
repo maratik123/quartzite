@@ -15,7 +15,7 @@ Early development. Core crates are implemented; widget and painting layers are n
 | `quartzite-macros` | ✅ implemented |
 | `quartzite-runtime` | ✅ implemented |
 | `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
-| `quartzite-geometry` / `quartzite-events` | planned |
+| `quartzite-geometry` / `quartzite-events` | ✅ implemented |
 | `quartzite-widgets` | planned |
 | `quartzite-paint` / `quartzite-style` | planned |
 

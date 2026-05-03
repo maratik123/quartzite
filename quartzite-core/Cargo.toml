@@ -18,7 +18,7 @@ std = ["indexmap/std"]
 document-features = "0.2"
 enumflags2 = "0.7"
 indexmap = { version = "2", default-features = false }
-hashbrown = { version = "0.17", default-features = false }
+hashbrown = { version = "0.17", default-features = false, features = ["default-hasher"] }
 
 [dev-dependencies]
 rstest = "0.26"
