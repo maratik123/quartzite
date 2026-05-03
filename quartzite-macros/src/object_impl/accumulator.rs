@@ -1,13 +1,75 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream};
+use quote::quote;
 
-use super::parse::MethodItem;
+use super::parse::{MethodItem, ParamMeta};
 use crate::util::emit_compile_error;
 
+/// Span-free representation stored across proc-macro invocation boundaries.
+///
+/// `proc_macro::Span` objects are only valid for the lifetime of one macro invocation.
+/// Storing them across invocations (in a thread-local shared between `#[object_part]`
+/// and `#[object_impl]`) causes use-after-free. This struct serialises method info
+/// into plain strings; `from_stored` rebuilds `MethodItem` with fresh call-site spans
+/// when `drain` is called from the second invocation.
+struct StoredMethod {
+    name: String,
+    params: Vec<(String, String)>,
+    ret_ty: Option<String>,
+}
+
+fn to_stored(method: MethodItem) -> StoredMethod {
+    StoredMethod {
+        name: method.ident.to_string(),
+        params: method
+            .params
+            .into_iter()
+            .map(|p| {
+                let ty = &p.ty;
+                (p.ident.to_string(), quote! { #ty }.to_string())
+            })
+            .collect(),
+        ret_ty: match method.ret_ty {
+            syn::ReturnType::Default => None,
+            syn::ReturnType::Type(_, ty) => Some(quote! { #ty }.to_string()),
+        },
+    }
+}
+
+fn from_stored(stored: StoredMethod) -> MethodItem {
+    let cs = Span::call_site();
+    let params = stored
+        .params
+        .into_iter()
+        .map(|(name, ty_str)| {
+            let ty: syn::Type =
+                syn::parse_str(&ty_str).expect("stored type string should be parseable");
+            ParamMeta {
+                ident: Ident::new(&name, cs),
+                ty,
+            }
+        })
+        .collect();
+    let ret_ty = match stored.ret_ty {
+        None => syn::ReturnType::Default,
+        Some(ty_str) => {
+            let ty: syn::Type =
+                syn::parse_str(&ty_str).expect("stored return type string should be parseable");
+            syn::ReturnType::Type(syn::token::RArrow { spans: [cs, cs] }, Box::new(ty))
+        }
+    };
+    MethodItem {
+        ident: Ident::new(&stored.name, cs),
+        params,
+        ret_ty,
+    }
+}
+
 thread_local! {
-    static ACCUMULATOR: RefCell<HashMap<String, Vec<MethodItem>>> = RefCell::new(HashMap::new());
+    static ACCUMULATOR: RefCell<HashMap<String, Vec<StoredMethod>>> =
+        RefCell::new(HashMap::new());
 }
 
 fn make_key(type_name: &str) -> String {
@@ -19,7 +81,6 @@ fn make_key(type_name: &str) -> String {
 ///
 /// Returns a `TokenStream` of `compile_error!` tokens for any duplicate method names;
 /// returns an empty `TokenStream` when all methods are new.
-#[allow(dead_code)]
 pub(crate) fn push(type_name: &str, methods: Vec<MethodItem>) -> TokenStream {
     let key = make_key(type_name);
     ACCUMULATOR.with(|cell| {
@@ -27,16 +88,16 @@ pub(crate) fn push(type_name: &str, methods: Vec<MethodItem>) -> TokenStream {
         let acc = map.entry(key).or_default();
         let mut errors = TokenStream::new();
         for method in methods {
-            if let Some(existing) = acc.iter().find(|m| m.ident == method.ident) {
+            if let Some(existing) = acc.iter().find(|m| method.ident == m.name) {
                 errors.extend(emit_compile_error(
                     method.ident.span(),
                     &format!(
-                        "duplicate method `{}` across `#[object_impl(partial)]` blocks",
-                        existing.ident
+                        "duplicate method `{}` across `#[object_part]` blocks",
+                        existing.name
                     ),
                 ));
             } else {
-                acc.push(method);
+                acc.push(to_stored(method));
             }
         }
         errors
@@ -55,15 +116,17 @@ pub(crate) fn drain(type_name: &str) -> Vec<MethodItem> {
     let key = make_key(type_name);
     ACCUMULATOR.with(|cell| {
         let mut map = cell.borrow_mut();
-        map.remove(&key).unwrap_or_default()
+        map.remove(&key)
+            .unwrap_or_default()
+            .into_iter()
+            .map(from_stored)
+            .collect()
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use proc_macro2::Span;
-    use syn::Ident;
 
     fn make_method(name: &str) -> MethodItem {
         MethodItem {
@@ -124,13 +187,10 @@ mod tests {
     #[test]
     fn duplicate_method_produces_error_token() {
         let type_name = "__test_duplicate__";
-        // Push first batch
         let e1 = push(type_name, vec![make_method("reset")]);
         assert!(e1.is_empty());
-        // Push duplicate
         let e2 = push(type_name, vec![make_method("reset")]);
         assert!(!e2.is_empty(), "expected compile_error token");
-        // Clean up to avoid leaking into other tests
         drain(type_name);
     }
 
@@ -150,5 +210,36 @@ mod tests {
         drain(type_name);
         let after = drain(type_name);
         assert!(after.is_empty(), "accumulator not cleared after drain");
+    }
+
+    #[test]
+    fn round_trip_preserves_typed_param() {
+        let type_name = "__test_round_trip__";
+        let method = MethodItem {
+            ident: Ident::new("compute", Span::call_site()),
+            params: vec![ParamMeta {
+                ident: Ident::new("x", Span::call_site()),
+                ty: syn::parse_str("i32").expect("parse i32"),
+            }],
+            ret_ty: {
+                let ty: syn::Type = syn::parse_str("bool").expect("parse bool");
+                syn::ReturnType::Type(
+                    syn::token::RArrow {
+                        spans: [Span::call_site(), Span::call_site()],
+                    },
+                    Box::new(ty),
+                )
+            },
+        };
+        push(type_name, vec![method]);
+        let drained = drain(type_name);
+        assert_eq!(drained.len(), 1);
+        assert_eq!(drained[0].ident, "compute");
+        assert_eq!(drained[0].params.len(), 1);
+        assert_eq!(drained[0].params[0].ident, "x");
+        assert!(
+            matches!(drained[0].ret_ty, syn::ReturnType::Type(_, _)),
+            "expected typed return"
+        );
     }
 }

@@ -2,6 +2,8 @@
 //!
 //! - [`Object`](derive_object) / [`object_impl`]: generate `AsObject`/`Object` trait impls
 //!   with property access, method dispatch, and signal connection.
+//! - [`object_part`]: accumulate `#[slot]`/`#[invokable]` methods from one impl block
+//!   and emit the cleaned block, deferring `MetaObject` generation to [`object_impl`].
 //! - [`Extend`](derive_extend): generate `AsObject` delegation via a `#[base]` field,
 //!   enabling type-safe single-inheritance hierarchies.
 //! - [`MetaEnum`](derive_meta_enum): generate `IntoValue`/`FromValue` and `EnumMeta` for
@@ -28,7 +30,7 @@ mod extend;
 mod meta_enum;
 mod object;
 pub(crate) mod object_impl;
-mod object_meta;
+pub(crate) mod object_part;
 
 /// Derive macro that generates `As{TypeName}` trait impls and delegation chains for
 /// single-inheritance object hierarchies.
@@ -109,6 +111,47 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
     object::expand(input.into()).into()
 }
 
+/// Attribute macro applied to an `impl` block to accumulate `#[slot]`/`#[invokable]`
+/// methods and emit the cleaned impl block.
+///
+/// Use this when the `Object` implementation is split across multiple impl blocks.
+/// Place `#[object_part]` on every block except the last, then place [`#[object_impl]`](macro@object_impl)
+/// on the final block to emit the `MetaObject` static and complete `impl Object`.
+///
+/// `#[object_part]` accepts no arguments. Methods inside the block may be annotated with:
+///
+/// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
+/// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
+///   via `IntoValue`
+///
+/// Works on both inherent and trait impl blocks.
+///
+/// # Examples
+///
+/// ```ignore
+/// use quartzite_macros::{Extend, Object, object_part, object_impl};
+///
+/// #[derive(Extend, Object)]
+/// #[root]
+/// struct Counter { /* ... */ }
+///
+/// #[object_part]
+/// impl Counter {
+///     #[slot]
+///     fn reset(&mut self) { /* ... */ }
+/// }
+///
+/// #[object_impl]
+/// impl Counter {
+///     #[invokable]
+///     fn doubled(&self) -> i32 { /* ... */ }
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
+    object_part::expand(attr.into(), item.into()).into()
+}
+
 /// Attribute macro applied to an `impl` block that finalises the `Object` implementation.
 ///
 /// Generates the `MetaObject` static (class name, property list, signal list, method list)
@@ -120,16 +163,17 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 ///
 /// The struct must already derive both [`Extend`] and [`Object`].
 ///
-/// ## Multi-block mode: `partial` and `final`
+/// ## Auto-detection: sole vs terminal mode
 ///
-/// When the impl is split across multiple blocks, annotate every block but the last with
-/// `#[object_impl(partial)]` and the last with `#[object_impl(final)]`
-/// (or use [`#[object_meta]`](macro@object_meta) instead of a `final` block).
+/// `#[object_impl]` inspects the thread-local accumulator at expansion time:
 ///
-/// **A terminal block is required.** If all blocks use `partial` and no `final` /
-/// `#[object_meta]` is ever written, the accumulated methods are silently discarded and
-/// the type will not implement `Object`.  The resulting compile error
-/// ("the trait `Object` is not implemented for `T`") will not mention the missing terminal.
+/// - **Sole mode** (no prior `#[object_part]` blocks for this type): emits the cleaned
+///   impl block, `MetaObject` static, and `impl Object` — the single-block path.
+/// - **Terminal mode** (one or more `#[object_part]` blocks preceded this one): drains
+///   accumulated methods, merges them with the current block's methods, then emits the
+///   full output.
+///
+/// `#[object_impl]` accepts no arguments.
 ///
 /// # Examples
 ///
@@ -164,42 +208,6 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn object_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     object_impl::expand(attr.into(), item.into()).into()
-}
-
-/// Attribute macro that finalises the `Object` implementation after multiple
-/// `#[object_impl(partial)]` blocks.
-///
-/// Place `#[object_meta]` on an empty `impl Counter {}` block **after all**
-/// `#[object_impl(partial)]` blocks for the same type — ordering matters.
-/// Proc-macros expand in source order: an `#[object_meta]` that appears
-/// before any `#[object_impl(partial)]` block drains an empty accumulator and
-/// produces a `MetaObject` with no methods.
-///
-/// It reads the accumulated `#[slot]`/`#[invokable]` methods, generates the
-/// `MetaObject` static and the full `impl Object`, then discards the empty
-/// impl block.
-///
-/// # Examples
-///
-/// ```ignore
-/// use quartzite_macros::{Extend, Object, object_impl, object_meta};
-///
-/// #[derive(Extend, Object)]
-/// #[root]
-/// struct Counter { /* ... */ }
-///
-/// #[object_impl(partial)]
-/// impl Counter {
-///     #[slot]
-///     fn reset(&mut self) { /* ... */ }
-/// }
-///
-/// #[object_meta]
-/// impl Counter {}
-/// ```
-#[proc_macro_attribute]
-pub fn object_meta(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    object_meta::expand(item.into()).into()
 }
 
 /// Derive macro for C-like enums that generates `IntoValue` / `FromValue` conversions

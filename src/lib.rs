@@ -23,7 +23,7 @@ pub mod core {
 /// Derive macros and attribute macros — re-exported from [`quartzite_macros`].
 ///
 /// Prefer `use quartzite::macros::MetaEnum` over adding a direct `quartzite-macros` dependency.
-/// Most macros (`Extend`, `Object`, `object_impl`) are already included in [`prelude`].
+/// Most macros (`Extend`, `Object`, `object_impl`, `object_part`) are already included in [`prelude`].
 ///
 /// Requires the `derive` feature (enabled by default).
 #[cfg(feature = "derive")]
@@ -77,7 +77,7 @@ pub mod prelude {
     // `Object` is re-exported as `DeriveObject` to avoid shadowing the `Object` trait above.
     #[cfg(feature = "derive")]
     #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
-    pub use quartzite_macros::{Extend, Object as DeriveObject, object_impl};
+    pub use quartzite_macros::{Extend, Object as DeriveObject, object_impl, object_part};
 
     // quartzite-runtime
     pub use quartzite_runtime::{
