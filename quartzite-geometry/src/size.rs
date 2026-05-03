@@ -2,6 +2,40 @@ use core::ops::{Add, AddAssign, Mul, MulAssign};
 
 use crate::point::round_f32;
 
+macro_rules! impl_size_ops {
+    ($Size:ident, $scalar:ty) => {
+        impl Add for $Size {
+            type Output = Self;
+            #[inline]
+            fn add(self, rhs: Self) -> Self {
+                Self::new(self.width + rhs.width, self.height + rhs.height)
+            }
+        }
+
+        impl AddAssign for $Size {
+            #[inline]
+            fn add_assign(&mut self, rhs: Self) {
+                *self = *self + rhs;
+            }
+        }
+
+        impl Mul<$scalar> for $Size {
+            type Output = Self;
+            #[inline]
+            fn mul(self, scale: $scalar) -> Self {
+                Self::new(self.width * scale, self.height * scale)
+            }
+        }
+
+        impl MulAssign<$scalar> for $Size {
+            #[inline]
+            fn mul_assign(&mut self, scale: $scalar) {
+                *self = *self * scale;
+            }
+        }
+    };
+}
+
 /// A 2D size with non-negative integer (`i32`) width and height.
 ///
 /// # Examples
@@ -81,35 +115,7 @@ impl Size {
     }
 }
 
-impl Add for Size {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.width + rhs.width, self.height + rhs.height)
-    }
-}
-
-impl AddAssign for Size {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl Mul<i32> for Size {
-    type Output = Self;
-    #[inline]
-    fn mul(self, scale: i32) -> Self {
-        Self::new(self.width * scale, self.height * scale)
-    }
-}
-
-impl MulAssign<i32> for Size {
-    #[inline]
-    fn mul_assign(&mut self, scale: i32) {
-        *self = *self * scale;
-    }
-}
+impl_size_ops!(Size, i32);
 
 /// A 2D size with single-precision floating-point (`f32`) width and height.
 ///
@@ -188,35 +194,7 @@ impl SizeF {
     }
 }
 
-impl Add for SizeF {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.width + rhs.width, self.height + rhs.height)
-    }
-}
-
-impl AddAssign for SizeF {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl Mul<f32> for SizeF {
-    type Output = Self;
-    #[inline]
-    fn mul(self, scale: f32) -> Self {
-        Self::new(self.width * scale, self.height * scale)
-    }
-}
-
-impl MulAssign<f32> for SizeF {
-    #[inline]
-    fn mul_assign(&mut self, scale: f32) {
-        *self = *self * scale;
-    }
-}
+impl_size_ops!(SizeF, f32);
 
 /// Converts a [`SizeF`] to a [`Size`] by rounding each dimension to the nearest integer.
 ///

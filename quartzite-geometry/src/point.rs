@@ -13,6 +13,48 @@ pub(crate) fn round_f32(x: f32) -> i32 {
     }
 }
 
+macro_rules! impl_point_ops {
+    ($Point:ident, $scalar:ty) => {
+        impl Add for $Point {
+            type Output = Self;
+            #[inline]
+            fn add(self, rhs: Self) -> Self {
+                Self::new(self.x + rhs.x, self.y + rhs.y)
+            }
+        }
+
+        impl AddAssign for $Point {
+            #[inline]
+            fn add_assign(&mut self, rhs: Self) {
+                *self = *self + rhs;
+            }
+        }
+
+        impl Sub for $Point {
+            type Output = Self;
+            #[inline]
+            fn sub(self, rhs: Self) -> Self {
+                Self::new(self.x - rhs.x, self.y - rhs.y)
+            }
+        }
+
+        impl SubAssign for $Point {
+            #[inline]
+            fn sub_assign(&mut self, rhs: Self) {
+                *self = *self - rhs;
+            }
+        }
+
+        impl Neg for $Point {
+            type Output = Self;
+            #[inline]
+            fn neg(self) -> Self {
+                Self::new(-self.x, -self.y)
+            }
+        }
+    };
+}
+
 /// A point in 2D space with integer (`i32`) coordinates.
 ///
 /// # Examples
@@ -75,43 +117,7 @@ impl Point {
     }
 }
 
-impl Add for Point {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.x + rhs.x, self.y + rhs.y)
-    }
-}
-
-impl AddAssign for Point {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl Sub for Point {
-    type Output = Self;
-    #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        Self::new(self.x - rhs.x, self.y - rhs.y)
-    }
-}
-
-impl SubAssign for Point {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
-    }
-}
-
-impl Neg for Point {
-    type Output = Self;
-    #[inline]
-    fn neg(self) -> Self {
-        Self::new(-self.x, -self.y)
-    }
-}
+impl_point_ops!(Point, i32);
 
 /// A point in 2D space with single-precision floating-point (`f32`) coordinates.
 ///
@@ -177,43 +183,7 @@ impl PointF {
     }
 }
 
-impl Add for PointF {
-    type Output = Self;
-    #[inline]
-    fn add(self, rhs: Self) -> Self {
-        Self::new(self.x + rhs.x, self.y + rhs.y)
-    }
-}
-
-impl AddAssign for PointF {
-    #[inline]
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
-    }
-}
-
-impl Sub for PointF {
-    type Output = Self;
-    #[inline]
-    fn sub(self, rhs: Self) -> Self {
-        Self::new(self.x - rhs.x, self.y - rhs.y)
-    }
-}
-
-impl SubAssign for PointF {
-    #[inline]
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs;
-    }
-}
-
-impl Neg for PointF {
-    type Output = Self;
-    #[inline]
-    fn neg(self) -> Self {
-        Self::new(-self.x, -self.y)
-    }
-}
+impl_point_ops!(PointF, f32);
 
 /// Converts a [`PointF`] to a [`Point`] by rounding each coordinate to the nearest integer.
 ///
