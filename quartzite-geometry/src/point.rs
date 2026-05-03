@@ -1,7 +1,14 @@
 use core::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
-/// Rounds `x` to the nearest integer, half away from zero. Used in `no_std` where `f32::round()`
-/// is not available.
+/// Rounds `x` to the nearest integer, half away from zero.
+#[cfg(feature = "std")]
+#[inline]
+pub(crate) fn round_f32(x: f32) -> i32 {
+    x.round() as i32
+}
+
+/// Rounds `x` to the nearest integer, half away from zero (portable no_std fallback).
+#[cfg(not(feature = "std"))]
 #[inline]
 pub(crate) fn round_f32(x: f32) -> i32 {
     (x + if x >= 0.0 { 0.5 } else { -0.5 }) as i32

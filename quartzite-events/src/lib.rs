@@ -14,8 +14,8 @@ mod timer;
 mod window;
 
 pub use event::{Event, EventFilter, EventType, KeyEventKind, MouseEventKind};
-pub use keyboard::{Key, KeyEvent, KeyModifiers};
-pub use mouse::{MouseButton, MouseEvent};
+pub use keyboard::{Key, KeyEvent, KeyModifier, KeyModifiers};
+pub use mouse::{MouseButton, MouseButtons, MouseEvent};
 pub use timer::TimerEvent;
 pub use window::{CloseEvent, ResizeEvent};
 

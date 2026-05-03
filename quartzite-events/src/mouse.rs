@@ -1,3 +1,4 @@
+use enumflags2::{BitFlags, bitflags};
 use quartzite_geometry::Point;
 
 use crate::{
@@ -5,35 +6,50 @@ use crate::{
     keyboard::KeyModifiers,
 };
 
-bitflags::bitflags! {
-    /// A set of mouse buttons, usable as a single button or a pressed-buttons bitmask.
-    ///
-    /// Individual constants (`LEFT`, `RIGHT`, `MIDDLE`, `BACK`, `FORWARD`) are single-bit values.
-    /// The `buttons` field on [`MouseEvent`] combines multiple pressed buttons via bitwise OR.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_events::MouseButton;
-    ///
-    /// let combined = MouseButton::LEFT | MouseButton::RIGHT;
-    /// assert!(combined.contains(MouseButton::LEFT));
-    /// assert!(combined.contains(MouseButton::RIGHT));
-    /// ```
-    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
-    pub struct MouseButton: u8 {
-        /// The primary (left) mouse button.
-        const LEFT    = 0b0000_0001;
-        /// The secondary (right) mouse button.
-        const RIGHT   = 0b0000_0010;
-        /// The middle mouse button (scroll wheel click).
-        const MIDDLE  = 0b0000_0100;
-        /// The back side button.
-        const BACK    = 0b0000_1000;
-        /// The forward side button.
-        const FORWARD = 0b0001_0000;
-    }
+/// An individual mouse button.
+///
+/// Combine multiple buttons into a [`MouseButtons`] set with `|`.
+/// Use [`MouseButtons::empty()`] to represent no button (e.g. for move events).
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_events::{MouseButton, MouseButtons};
+///
+/// let pressed: MouseButtons = MouseButton::Left | MouseButton::Right;
+/// assert!(pressed.contains(MouseButton::Left));
+/// assert!(pressed.contains(MouseButton::Right));
+/// assert!(!pressed.contains(MouseButton::Middle));
+/// ```
+#[bitflags]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum MouseButton {
+    /// The primary (left) mouse button.
+    Left = 0b0000_0001,
+    /// The secondary (right) mouse button.
+    Right = 0b0000_0010,
+    /// The middle mouse button (scroll wheel click).
+    Middle = 0b0000_0100,
+    /// The back side button.
+    Back = 0b0000_1000,
+    /// The forward side button.
+    Forward = 0b0001_0000,
 }
+
+/// A set of mouse buttons.
+///
+/// Constructed by OR-ing [`MouseButton`] variants. Use [`BitFlags::empty()`] for no buttons.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_events::{MouseButton, MouseButtons};
+///
+/// let pressed: MouseButtons = MouseButton::Left | MouseButton::Right;
+/// assert!(pressed.contains(MouseButton::Left));
+/// ```
+pub type MouseButtons = BitFlags<MouseButton>;
 
 /// A mouse input event carrying position, button state, and keyboard modifiers.
 ///
@@ -46,19 +62,19 @@ bitflags::bitflags! {
 /// let e = MouseEvent::new(
 ///     Point::new(10, 20),
 ///     Point::new(110, 220),
-///     MouseButton::LEFT,
-///     MouseButton::LEFT,
+///     MouseButton::Left.into(),
+///     MouseButton::Left.into(),
 ///     Default::default(),
 ///     MouseEventKind::Press,
 /// );
-/// assert_eq!(e.button(), MouseButton::LEFT);
+/// assert!(e.button().contains(MouseButton::Left));
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MouseEvent {
     position: Point,
     global_position: Point,
-    button: MouseButton,
-    buttons: MouseButton,
+    button: MouseButtons,
+    buttons: MouseButtons,
     modifiers: KeyModifiers,
     kind: MouseEventKind,
 }
@@ -69,25 +85,25 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{MouseEvent, MouseButtons, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
     /// let e = MouseEvent::new(
     ///     Point::new(0, 0),
     ///     Point::new(0, 0),
-    ///     MouseButton::empty(),
-    ///     MouseButton::empty(),
+    ///     MouseButtons::empty(),
+    ///     MouseButtons::empty(),
     ///     Default::default(),
     ///     MouseEventKind::Move,
     /// );
     /// assert_eq!(e.kind(), MouseEventKind::Move);
     /// ```
     #[inline]
-    pub const fn new(
+    pub fn new(
         position: Point,
         global_position: Point,
-        button: MouseButton,
-        buttons: MouseButton,
+        button: MouseButtons,
+        buttons: MouseButtons,
         modifiers: KeyModifiers,
         kind: MouseEventKind,
     ) -> Self {
@@ -106,10 +122,10 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{MouseEvent, MouseButtons, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let e = MouseEvent::new(Point::new(5, 10), Point::new(0, 0), MouseButton::empty(), MouseButton::empty(), Default::default(), MouseEventKind::Move);
+    /// let e = MouseEvent::new(Point::new(5, 10), Point::new(0, 0), MouseButtons::empty(), MouseButtons::empty(), Default::default(), MouseEventKind::Move);
     /// assert_eq!(e.position(), Point::new(5, 10));
     /// ```
     #[inline]
@@ -122,10 +138,10 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{MouseEvent, MouseButtons, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(100, 200), MouseButton::empty(), MouseButton::empty(), Default::default(), MouseEventKind::Move);
+    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(100, 200), MouseButtons::empty(), MouseButtons::empty(), Default::default(), MouseEventKind::Move);
     /// assert_eq!(e.global_position(), Point::new(100, 200));
     /// ```
     #[inline]
@@ -133,7 +149,7 @@ impl MouseEvent {
         self.global_position
     }
 
-    /// Returns the button that triggered this event.
+    /// Returns the button that triggered this event, or empty for move events.
     ///
     /// # Examples
     ///
@@ -141,11 +157,11 @@ impl MouseEvent {
     /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::RIGHT, MouseButton::RIGHT, Default::default(), MouseEventKind::Press);
-    /// assert_eq!(e.button(), MouseButton::RIGHT);
+    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::Right.into(), MouseButton::Right.into(), Default::default(), MouseEventKind::Press);
+    /// assert!(e.button().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub const fn button(&self) -> MouseButton {
+    pub fn button(&self) -> MouseButtons {
         self.button
     }
 
@@ -154,15 +170,15 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{MouseButton, MouseButtons, MouseEvent, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let pressed = MouseButton::LEFT | MouseButton::RIGHT;
-    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::LEFT, pressed, Default::default(), MouseEventKind::Press);
-    /// assert!(e.buttons().contains(MouseButton::RIGHT));
+    /// let pressed: MouseButtons = MouseButton::Left | MouseButton::Right;
+    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::Left.into(), pressed, Default::default(), MouseEventKind::Press);
+    /// assert!(e.buttons().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub const fn buttons(&self) -> MouseButton {
+    pub fn buttons(&self) -> MouseButtons {
         self.buttons
     }
 
@@ -171,14 +187,14 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{KeyModifier, MouseEvent, MouseButtons, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::empty(), MouseButton::empty(), KeyModifiers::CTRL, MouseEventKind::Move);
-    /// assert!(e.modifiers().contains(KeyModifiers::CTRL));
+    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButtons::empty(), MouseButtons::empty(), KeyModifier::Ctrl.into(), MouseEventKind::Move);
+    /// assert!(e.modifiers().contains(KeyModifier::Ctrl));
     /// ```
     #[inline]
-    pub const fn modifiers(&self) -> KeyModifiers {
+    pub fn modifiers(&self) -> KeyModifiers {
         self.modifiers
     }
 
@@ -187,10 +203,10 @@ impl MouseEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{MouseButton, MouseEvent, MouseEventKind};
+    /// use quartzite_events::{MouseEvent, MouseButtons, MouseEventKind};
     /// use quartzite_geometry::Point;
     ///
-    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::empty(), MouseButton::empty(), Default::default(), MouseEventKind::Release);
+    /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButtons::empty(), MouseButtons::empty(), Default::default(), MouseEventKind::Release);
     /// assert_eq!(e.kind(), MouseEventKind::Release);
     /// ```
     #[inline]
@@ -210,7 +226,7 @@ impl<T: 'static + Send + Sync> Event<T> for MouseEvent {
 mod tests {
     use super::*;
 
-    fn make_event(kind: MouseEventKind, button: MouseButton) -> MouseEvent {
+    fn make_event(kind: MouseEventKind, button: MouseButtons) -> MouseEvent {
         MouseEvent::new(
             Point::new(10, 20),
             Point::new(110, 220),
@@ -223,13 +239,13 @@ mod tests {
 
     #[test]
     fn mouse_event_button_left() {
-        let e = make_event(MouseEventKind::Press, MouseButton::LEFT);
-        assert_eq!(e.button(), MouseButton::LEFT);
+        let e = make_event(MouseEventKind::Press, MouseButton::Left.into());
+        assert!(e.button().contains(MouseButton::Left));
     }
 
     #[test]
     fn mouse_event_event_type_press() {
-        let e = make_event(MouseEventKind::Press, MouseButton::LEFT);
+        let e = make_event(MouseEventKind::Press, MouseButton::Left.into());
         assert_eq!(
             e.event_type(),
             EventType::<()>::Mouse(MouseEventKind::Press)
@@ -238,29 +254,29 @@ mod tests {
 
     #[test]
     fn mouse_event_event_type_move() {
-        let e = make_event(MouseEventKind::Move, MouseButton::empty());
+        let e = make_event(MouseEventKind::Move, MouseButtons::empty());
         assert_eq!(e.event_type(), EventType::<()>::Mouse(MouseEventKind::Move));
     }
 
     #[test]
     fn mouse_button_bitmask() {
-        let combined = MouseButton::LEFT | MouseButton::RIGHT;
-        assert!(combined.contains(MouseButton::LEFT));
-        assert!(combined.contains(MouseButton::RIGHT));
-        assert!(!combined.contains(MouseButton::MIDDLE));
+        let combined: MouseButtons = MouseButton::Left | MouseButton::Right;
+        assert!(combined.contains(MouseButton::Left));
+        assert!(combined.contains(MouseButton::Right));
+        assert!(!combined.contains(MouseButton::Middle));
     }
 
     #[test]
     fn mouse_event_multi_button() {
-        let pressed = MouseButton::LEFT | MouseButton::RIGHT;
+        let pressed: MouseButtons = MouseButton::Left | MouseButton::Right;
         let e = MouseEvent::new(
             Point::new(0, 0),
             Point::new(0, 0),
-            MouseButton::LEFT,
+            MouseButton::Left.into(),
             pressed,
             KeyModifiers::empty(),
             MouseEventKind::Press,
         );
-        assert!(e.buttons().contains(MouseButton::RIGHT));
+        assert!(e.buttons().contains(MouseButton::Right));
     }
 }

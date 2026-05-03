@@ -8,7 +8,10 @@ license.workspace = true
 repository.workspace = true
 description = "Geometry primitives (Point, Size, Rect, Margins) for quartzite"
 
-# No [features] — always no_std; all types are Copy + stack-only (no alloc needed)
+[features]
+## Enable standard-library support. Uses `f32::round()` for float-to-integer conversions
+## instead of the portable no_std fallback.
+std = []
 
 [dev-dependencies]
 rstest = "0.26"

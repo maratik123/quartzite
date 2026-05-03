@@ -4,6 +4,9 @@
 //!
 //! All types are [`Copy`] and stack-allocated — no heap required.
 
+#[cfg(feature = "std")]
+extern crate std;
+
 mod margins;
 mod point;
 mod rect;

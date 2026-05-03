@@ -1,32 +1,50 @@
 use alloc::string::String;
 
+use enumflags2::{BitFlags, bitflags};
+
 use crate::event::{Event, EventType, KeyEventKind};
 
-bitflags::bitflags! {
-    /// Keyboard modifier keys active at the time of an event.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_events::KeyModifiers;
-    ///
-    /// let mods = KeyModifiers::CTRL | KeyModifiers::SHIFT;
-    /// assert!(mods.contains(KeyModifiers::CTRL));
-    /// assert!(mods.contains(KeyModifiers::SHIFT));
-    /// assert!(!mods.contains(KeyModifiers::ALT));
-    /// ```
-    #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, Hash)]
-    pub struct KeyModifiers: u8 {
-        /// The Shift key.
-        const SHIFT = 0b0000_0001;
-        /// The Ctrl key.
-        const CTRL  = 0b0000_0010;
-        /// The Alt / Option key.
-        const ALT   = 0b0000_0100;
-        /// The Meta / Super / Windows / Command key.
-        const META  = 0b0000_1000;
-    }
+/// A single keyboard modifier key.
+///
+/// Combine multiple modifiers into a [`KeyModifiers`] set with `|`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_events::{KeyModifier, KeyModifiers};
+///
+/// let mods: KeyModifiers = KeyModifier::Ctrl | KeyModifier::Shift;
+/// assert!(mods.contains(KeyModifier::Ctrl));
+/// assert!(mods.contains(KeyModifier::Shift));
+/// assert!(!mods.contains(KeyModifier::Alt));
+/// ```
+#[bitflags]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum KeyModifier {
+    /// The Shift key.
+    Shift = 0b0000_0001,
+    /// The Ctrl key.
+    Ctrl = 0b0000_0010,
+    /// The Alt / Option key.
+    Alt = 0b0000_0100,
+    /// The Meta / Super / Windows / Command key.
+    Meta = 0b0000_1000,
 }
+
+/// A set of active keyboard modifier keys.
+///
+/// Constructed by OR-ing [`KeyModifier`] variants. Use [`BitFlags::empty()`] for no modifiers.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_events::{KeyModifier, KeyModifiers};
+///
+/// let mods: KeyModifiers = KeyModifier::Ctrl | KeyModifier::Shift;
+/// assert!(mods.contains(KeyModifier::Ctrl));
+/// ```
+pub type KeyModifiers = BitFlags<KeyModifier>;
 
 /// A platform-independent key identifier.
 ///
@@ -177,9 +195,9 @@ pub enum Key {
 /// # Examples
 ///
 /// ```
-/// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+/// use quartzite_events::{Key, KeyEvent, KeyEventKind};
 ///
-/// let e = KeyEvent::new(Key::Return, String::from("\n"), KeyModifiers::empty(), false, KeyEventKind::Press);
+/// let e = KeyEvent::new(Key::Return, String::from("\n"), Default::default(), false, KeyEventKind::Press);
 /// assert_eq!(e.key(), Key::Return);
 /// assert!(!e.is_repeat());
 /// ```
@@ -198,9 +216,9 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind};
     ///
-    /// let e = KeyEvent::new(Key::A, String::from("a"), KeyModifiers::empty(), false, KeyEventKind::Press);
+    /// let e = KeyEvent::new(Key::A, String::from("a"), Default::default(), false, KeyEventKind::Press);
     /// assert_eq!(e.key(), Key::A);
     /// ```
     #[inline]
@@ -225,9 +243,9 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind};
     ///
-    /// let e = KeyEvent::new(Key::Escape, String::new(), KeyModifiers::empty(), false, KeyEventKind::Press);
+    /// let e = KeyEvent::new(Key::Escape, String::new(), Default::default(), false, KeyEventKind::Press);
     /// assert_eq!(e.key(), Key::Escape);
     /// ```
     #[inline]
@@ -240,9 +258,9 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind};
     ///
-    /// let e = KeyEvent::new(Key::A, String::from("a"), KeyModifiers::empty(), false, KeyEventKind::Press);
+    /// let e = KeyEvent::new(Key::A, String::from("a"), Default::default(), false, KeyEventKind::Press);
     /// assert_eq!(e.text(), "a");
     /// ```
     #[inline]
@@ -255,10 +273,10 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifier};
     ///
-    /// let e = KeyEvent::new(Key::A, String::from("A"), KeyModifiers::SHIFT, false, KeyEventKind::Press);
-    /// assert!(e.modifiers().contains(KeyModifiers::SHIFT));
+    /// let e = KeyEvent::new(Key::A, String::from("A"), KeyModifier::Shift.into(), false, KeyEventKind::Press);
+    /// assert!(e.modifiers().contains(KeyModifier::Shift));
     /// ```
     #[inline]
     pub fn modifiers(&self) -> KeyModifiers {
@@ -270,9 +288,9 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind};
     ///
-    /// let e = KeyEvent::new(Key::Space, String::from(" "), KeyModifiers::empty(), true, KeyEventKind::Press);
+    /// let e = KeyEvent::new(Key::Space, String::from(" "), Default::default(), true, KeyEventKind::Press);
     /// assert!(e.is_repeat());
     /// ```
     #[inline]
@@ -285,9 +303,9 @@ impl KeyEvent {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_events::{Key, KeyEvent, KeyEventKind, KeyModifiers};
+    /// use quartzite_events::{Key, KeyEvent, KeyEventKind};
     ///
-    /// let e = KeyEvent::new(Key::A, String::new(), KeyModifiers::empty(), false, KeyEventKind::Release);
+    /// let e = KeyEvent::new(Key::A, String::new(), Default::default(), false, KeyEventKind::Release);
     /// assert_eq!(e.kind(), KeyEventKind::Release);
     /// ```
     #[inline]
@@ -320,10 +338,10 @@ mod tests {
 
     #[test]
     fn key_modifiers_ctrl_shift() {
-        let mods = KeyModifiers::CTRL | KeyModifiers::SHIFT;
-        assert!(mods.contains(KeyModifiers::CTRL));
-        assert!(mods.contains(KeyModifiers::SHIFT));
-        assert!(!mods.contains(KeyModifiers::ALT));
+        let mods: KeyModifiers = KeyModifier::Ctrl | KeyModifier::Shift;
+        assert!(mods.contains(KeyModifier::Ctrl));
+        assert!(mods.contains(KeyModifier::Shift));
+        assert!(!mods.contains(KeyModifier::Alt));
     }
 
     #[test]

@@ -30,7 +30,7 @@ description = "A GUI and object framework for Rust"
 default = ["std", "derive"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
-std = ["quartzite-core/std"]
+std = ["quartzite-core/std", "quartzite-geometry/std"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]
