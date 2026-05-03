@@ -400,26 +400,10 @@ impl RectF {
     /// assert_eq!(u.size(), SizeF::new(8.0, 8.0));
     /// ```
     pub fn united(self, other: RectF) -> RectF {
-        let left = if self.left() < other.left() {
-            self.left()
-        } else {
-            other.left()
-        };
-        let top = if self.top() < other.top() {
-            self.top()
-        } else {
-            other.top()
-        };
-        let right = if self.right() > other.right() {
-            self.right()
-        } else {
-            other.right()
-        };
-        let bottom = if self.bottom() > other.bottom() {
-            self.bottom()
-        } else {
-            other.bottom()
-        };
+        let left = self.left().min(other.left());
+        let top = self.top().min(other.top());
+        let right = self.right().max(other.right());
+        let bottom = self.bottom().max(other.bottom());
         RectF::new(
             PointF::new(left, top),
             SizeF::new(right - left, bottom - top),
