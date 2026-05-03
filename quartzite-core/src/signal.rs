@@ -209,9 +209,14 @@ pub struct Signal<Args: 'static> {
 }
 
 impl<Args: 'static> Default for Signal<Args> {
-    #[inline]
     fn default() -> Self {
-        Self::new()
+        Signal {
+            slots: IndexMap::new(),
+            #[cfg(feature = "std")]
+            queued_slots: IndexMap::new(),
+            #[cfg(feature = "std")]
+            auto_slots: IndexMap::new(),
+        }
     }
 }
 
@@ -226,14 +231,9 @@ impl<Args: 'static> Signal<Args> {
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect(|args| println!("received {}", args.0));
     /// ```
+    #[inline]
     pub fn new() -> Self {
-        Signal {
-            slots: IndexMap::new(),
-            #[cfg(feature = "std")]
-            queued_slots: IndexMap::new(),
-            #[cfg(feature = "std")]
-            auto_slots: IndexMap::new(),
-        }
+        Self::default()
     }
 
     /// Connect a `Direct` slot. Returns the `ConnectionId` that can be used to
