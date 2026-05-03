@@ -37,7 +37,7 @@ derive = ["dep:quartzite-macros"]
 quartzite-core    = { path = "quartzite-core", default-features = false }
 quartzite-macros  = { path = "quartzite-macros", optional = true }
 quartzite-runtime = { path = "quartzite-runtime" }
-document-features = "~0.2"
+document-features = "0.2"
 
 [[example]]
 name = "hello_object"
