@@ -31,9 +31,13 @@ pub mod __macro {
 
 // --- Top-level re-exports ---
 
+/// Re-exported solely for use by quartzite proc-macro generated code; not part of the public API.
+#[doc(hidden)]
+pub use enumflags2;
 pub use id::{ConnectionId, ObjectId};
 pub use meta::{
-    EnumEntry, EnumMeta, MetaObject, MethodMeta, ParamMeta, PropertyFlags, PropertyMeta, SignalMeta,
+    EnumEntry, EnumMeta, MetaObject, MethodMeta, ParamMeta, PropertyFlag, PropertyFlags,
+    PropertyMeta, SignalMeta,
 };
 pub use object_base::ObjectBase;
 pub use receiver_guard::ReceiverGuard;

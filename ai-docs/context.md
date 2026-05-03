@@ -113,6 +113,7 @@ AsObject        AsWidget        AsWidget (generated)
 | `emit_<signal>` codegen | `#[derive(Object)]` generates `pub fn emit_<signal>(&mut self, arg0: T0, ...)` methods (flattened tuple args) on the struct. Guard uses `AsObject::object_base(self).signals_blocked()` — works for root and derived types alike. |
 | `connect_<signal>_auto` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_auto(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `receiver.thread_id` and `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_auto`. |
 | `connect_<signal>_queued` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_queued(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_queued(f, guard)` (`f` first — opposite order from `connect_auto`). No `thread_id` argument needed. |
+| `PropertyFlags` representation | `pub type PropertyFlags = BitFlags<PropertyFlag>` via `enumflags2`. `PropertyFlag` is a `#[bitflags(default = Readable \| Writable \| Stored \| Designable)] #[repr(u8)]` enum. Named constructors (`none`, `read_write`, `read_only`) are `const fn` on `impl PropertyFlag`. Proc-macro codegen uses `make_bitflags!(PropertyFlag::{…})` via a `use ::quartzite::core::PropertyFlag;` import inside the generated hidden module; `enumflags2` is `#[doc(hidden)]` re-exported from `quartzite-core` for that path. |
 
 ## Plans (Implementation Order)
 
@@ -127,7 +128,7 @@ Crate-level plans:
 7. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 8. `quartzite-paint` + `quartzite-style` — painter + theming
 
-Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen), connect-queued-codegen (`connect_<signal>_queued` typed wrappers).
+Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen), connect-queued-codegen (`connect_<signal>_queued` typed wrappers), enumflags2-property-flags (`PropertyFlags` replaced by `BitFlags<PropertyFlag>` backed by `u8` via `enumflags2`).
 
 ## Open Questions
 
