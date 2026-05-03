@@ -6,12 +6,12 @@
 
 ## Scope
 
-1. Rename `Signal::emit` → `Signal::emit_unchecked` (raw, fires unconditionally)
-2. Add `Signal::emit_checked(blocked: bool, args: &Args)` — returns early without firing when `blocked == true`; calls `emit_unchecked` otherwise
-3. Update generated `emit_<signal>` wrappers to call `self.field.emit_checked(base.signals_blocked(), &args)` and remove the external `if !signals_blocked()` guard
-4. Update generated `write_property` notify path to use `emit_checked` the same way
+1. Restore `Signal::emit` as the unconditional primitive (raw, fires unconditionally)
+2. Add `Signal::emit_unless_blocked(blocked: bool, args: &Args)` — returns early without firing when `blocked == true`; calls `emit` otherwise
+3. Update generated `emit_<signal>` wrappers to call `self.field.emit_unless_blocked(base.signals_blocked(), &args)` and remove the external `if !signals_blocked()` guard
+4. Update generated `write_property` notify path to use `emit_unless_blocked` the same way
 5. Add doc comments clarifying the contract of both methods
-6. Add tests for `emit_checked` (fires when unblocked, suppressed when blocked)
+6. Add tests for `emit_unless_blocked` (fires when unblocked, suppressed when blocked)
 
 ## Out of scope
 
@@ -27,7 +27,7 @@
 | Question | Decision |
 |---|---|
 | Return type of `emit_checked` | `()` — consistent with `emit_unchecked`; callers don't need a "did it fire" signal |
-| Name for raw method | `emit_unchecked` — mirrors std convention (`get_unchecked`, etc.), self-documents "you bypass the guard" |
+| Name for raw method | `emit` — the safe, unconditional primitive; `_unchecked` is reserved for `unsafe` fns per project naming rules |
 | Where checked logic lives | Inside `Signal::emit_checked`, not in generated wrapper — keeps codegen clean |
 
 ## Technical constraints
@@ -39,13 +39,11 @@
 
 | # | Criterion |
 |---|-----------|
-| AC1 | `Signal::emit_unchecked` exists and fires all connected slots unconditionally |
-| AC2 | `Signal::emit` no longer exists as a public method |
-| AC3 | `Signal::emit_checked(true, args)` does not invoke any connected slot |
-| AC4 | `Signal::emit_checked(false, args)` invokes all connected slots |
-| AC5 | Generated `emit_<signal>` wrappers call `emit_checked` (no external `if !signals_blocked` guard in generated output) |
-| AC6 | Generated `write_property` notify path calls `emit_checked` (no external `if !signals_blocked` guard) |
-| AC7 | All existing tests that called `Signal::emit` directly now call `Signal::emit_unchecked` |
+| AC1 | `Signal::emit` exists and fires all connected slots unconditionally |
+| AC2 | `Signal::emit_unless_blocked` exists; `Signal::emit_unless_blocked(true, args)` does not invoke any connected slot |
+| AC3 | `Signal::emit_unless_blocked(false, args)` invokes all connected slots |
+| AC4 | Generated `emit_<signal>` wrappers call `emit_unless_blocked` (no external `if !signals_blocked` guard in generated output) |
+| AC5 | Generated `write_property` notify path calls `emit_unless_blocked` (no external `if !signals_blocked` guard) |
 
 ## Open questions
 

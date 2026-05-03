@@ -1,5 +1,43 @@
 # Learnings
 
+### 2026-05-03 — process — commit and push without waiting for explicit approval when inside a /task workflow
+
+**What happened:** All rename changes were complete, verified, and ready to push, but no commit or push was made until the user explicitly asked. The stated reason was the global system instruction "only create commits when requested." The user clarified that this instruction does not override the /task workflow, which already authorizes commits at Steps 8 and 12.
+
+**Rule:** Within a `/task` workflow, committing after each subtask (Step 8) and committing + pushing at Step 12 are part of the authorized workflow — no additional user prompt is needed. The global "ask before committing" instruction applies to ad-hoc work outside a task, not to steps explicitly prescribed by the task skill.
+
+**How to apply:** If currently executing a `/task` (progress file exists or task was just completed), follow the step instructions for committing and pushing. Only pause to ask if something is ambiguous or risky beyond what the task step covers.
+
+**Escalated?** no
+
+### 2026-05-03 — process — include ai-docs/learnings.md in the PR commit when it changes during the task
+
+**What happened:** `ai-docs/learnings.md` was modified while working on a PR but not staged or committed — leaving learnings outside the PR diff and not reviewed alongside the code change that prompted them.
+
+**Rule:** If `ai-docs/learnings.md` is modified during work on a PR (Step 8–11 or a follow-up push), stage and commit it together with the related code changes. Learnings are part of the task deliverable and should be visible in the PR for review.
+
+**How to apply:** Before any `git commit` during a PR task, check `git diff --name-only ai-docs/learnings.md`. If it shows changes, include the file in the commit being staged.
+
+**Escalated?** no
+
+### 2026-05-03 — process — update PR title and body after commits that change public API or scope
+
+**What happened:** After renaming `emit_unchecked`/`emit_checked` → `emit`/`emit_unless_blocked`, the PR title and body still referenced the old names. The user had to prompt explicitly to update them.
+
+**Rule:** After any `git push` that changes public API names, scope, or acceptance criteria, immediately update the PR title and body with `gh pr edit` before reporting done. The PR description is part of the deliverable — it must stay in sync with the actual implementation.
+
+**How to apply:** At the end of Step 12 (or any follow-up push), check whether the PR title/body mentions any symbol, AC, or scope item that the new commits changed. If yes, run `gh pr edit --title "..." --body "..."` before posting the PR URL to the user.
+
+**Escalated?** no
+
+### 2026-05-03 — code-style — `_unchecked`/`_checked` violations in Signal API corrected: emit / emit_unless_blocked
+
+**What happened:** The first implementation named `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked`. Both are safe fns; neither violates memory safety. `_unchecked` implies `unsafe`; `_checked` implies `Result`/`Option` return — both names were wrong per project naming rules. Fix: restore `Signal::emit` as the unconditional primitive; rename `emit_checked` to `emit_unless_blocked` (descriptive of what it does).
+
+**Rule:** For safe "with/without runtime behavior X" variants where neither panics nor involves UB, pick a descriptive name that says what each variant *does* — do not co-opt `_unchecked` or `_checked`. The unsuffixed name goes to the most common/ergonomic variant.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
 
 **What happened:** Renamed `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked` (which consults the `blocked` flag). Neither function is `unsafe`. This conflicts with `std` ecosystem convention: `_unchecked` is reserved for `unsafe` fns whose invariants the caller must uphold to avoid UB (e.g. `slice::get_unchecked`, `str::from_utf8_unchecked`). The natural unsuffixed name should be the safe, ergonomic default — using `_unchecked` for "skips an unrelated runtime check" misleads readers and reviewers and removes the ergonomic reward for the safe path.
