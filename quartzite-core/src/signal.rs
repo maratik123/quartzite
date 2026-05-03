@@ -87,6 +87,17 @@ static QUEUED_DISPATCHER: std::sync::OnceLock<Arc<dyn QueuedDispatcher>> =
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DispatcherAlreadySet;
 
+#[cfg(feature = "std")]
+impl std::fmt::Display for DispatcherAlreadySet {
+    #[inline]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "queued dispatcher is already installed")
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DispatcherAlreadySet {}
+
 /// Register the process-wide queued dispatcher. Called by `Application::new()`.
 /// Returns `Ok(())` on the first call; `Err(DispatcherAlreadySet)` on subsequent calls.
 ///
