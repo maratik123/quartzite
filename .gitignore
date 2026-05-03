@@ -1,3 +1,5 @@
 /target
 /tmp/
 /.claude/settings.local.json
+rust_out
+librust_out.rlib

@@ -3,6 +3,8 @@ members = [
     "quartzite-core",
     "quartzite-macros",
     "quartzite-runtime",
+    "quartzite-geometry",
+    "quartzite-events",
 ]
 resolver = "2"
 
@@ -28,16 +30,18 @@ description = "A GUI and object framework for Rust"
 default = ["std", "derive"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
-std = ["quartzite-core/std"]
+std = ["quartzite-core/std", "quartzite-geometry/std"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]
 
 [dependencies]
-quartzite-core    = { path = "quartzite-core", default-features = false }
-quartzite-macros  = { path = "quartzite-macros", optional = true }
-quartzite-runtime = { path = "quartzite-runtime" }
-document-features = "0.2"
+quartzite-core     = { path = "quartzite-core", default-features = false }
+quartzite-macros   = { path = "quartzite-macros", optional = true }
+quartzite-runtime  = { path = "quartzite-runtime" }
+quartzite-geometry = { path = "quartzite-geometry", default-features = false }
+quartzite-events   = { path = "quartzite-events", default-features = false }
+document-features  = "0.2"
 
 [[example]]
 name = "hello_object"

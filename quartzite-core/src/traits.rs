@@ -1,5 +1,8 @@
 //! Core object traits: `AsObject`, `Object`, `ObjectExt`, and `SignalCallback`.
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use crate::{
     id::{ConnectionId, ObjectId},
     meta::MetaObject,

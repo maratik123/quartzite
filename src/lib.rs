@@ -39,6 +39,20 @@ pub mod runtime {
     pub use quartzite_runtime::*;
 }
 
+/// Geometry primitives — re-exported from [`quartzite_geometry`].
+///
+/// Provides integer (`Point`, `Size`, `Rect`, `Margins`) and float (`PointF`, `SizeF`, `RectF`) types.
+pub mod geometry {
+    pub use quartzite_geometry::*;
+}
+
+/// Event model — re-exported from [`quartzite_events`].
+///
+/// Provides `MouseEvent`, `KeyEvent`, `ResizeEvent`, `CloseEvent`, `TimerEvent`, `EventFilter`, and `EventType`.
+pub mod events {
+    pub use quartzite_events::*;
+}
+
 /// Curated set of types needed for typical usage — one glob covers a working import.
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive

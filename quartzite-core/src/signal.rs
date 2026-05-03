@@ -6,6 +6,9 @@ use indexmap::IndexMap;
 #[cfg(not(feature = "std"))]
 type IndexMap<K, V> = indexmap::IndexMap<K, V, hashbrown::DefaultHashBuilder>;
 
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
+
 use crate::id::ConnectionId;
 #[cfg(feature = "std")]
 use crate::receiver_guard::ReceiverGuard;
@@ -211,7 +214,10 @@ pub struct Signal<Args: 'static> {
 impl<Args: 'static> Default for Signal<Args> {
     fn default() -> Self {
         Signal {
+            #[cfg(feature = "std")]
             slots: IndexMap::new(),
+            #[cfg(not(feature = "std"))]
+            slots: indexmap::IndexMap::with_hasher(hashbrown::DefaultHashBuilder::default()),
             #[cfg(feature = "std")]
             queued_slots: IndexMap::new(),
             #[cfg(feature = "std")]

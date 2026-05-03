@@ -1,0 +1,25 @@
+[package]
+name = "quartzite-geometry"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Geometry primitives (Point, Size, Rect, Margins) for quartzite"
+
+[features]
+## Enable standard-library support. Uses `f32::round()` and other `f32` methods directly.
+## When disabled, [`libm`](https://docs.rs/libm) is used automatically.
+std = []
+
+[dependencies]
+libm = { version = "0.2", default-features = false }
+
+[dev-dependencies]
+rstest = "0.26"
+pretty_assertions = "1"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

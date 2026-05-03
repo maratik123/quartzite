@@ -13,8 +13,8 @@
 | `quartzite-core` | ObjectBase, AsObject, Object, ObjectExt, Value, Signal, MetaObject — no_std compatible |
 | `quartzite-macros` | Proc-macro crate: `#[derive(Extend)]`, `#[derive(Object)]`, `#[object_impl]` |
 | `quartzite-runtime` | Application, EventLoop, ObjectTree, ObjectRef, Timer |
-| `quartzite-geometry` | Point, Size, Rect, Margins |
-| `quartzite-events` | Event, MouseEvent, KeyEvent, EventFilter |
+| `quartzite-geometry` | Point/PointF, Size/SizeF, Rect/RectF, Margins — no_std, no alloc |
+| `quartzite-events` | Event\<T\>, MouseEvent, KeyEvent, EventFilter\<T\>, ResizeEvent, CloseEvent, TimerEvent — no_std + alloc |
 | `quartzite-paint` | Painter, Color, Font, Pen, Brush, Image, Path |
 | `quartzite-style` | Style trait, Palette, StyleRegistry |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout, Button, Label, LineEdit, … |
@@ -113,6 +113,9 @@ AsObject        AsWidget        AsWidget (generated)
 | `emit_<signal>` codegen | `#[derive(Object)]` generates `pub fn emit_<signal>(&mut self, arg0: T0, ...)` methods (flattened tuple args) on the struct. Guard uses `AsObject::object_base(self).signals_blocked()` — works for root and derived types alike. |
 | `connect_<signal>_auto` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_auto(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `receiver.thread_id` and `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_auto`. |
 | `connect_<signal>_queued` codegen | `#[derive(Object)]` generates `pub fn connect_<signal>_queued(&mut self, receiver: &ObjectBase, f: F)` methods (gated `#[cfg(feature = "std")]`, `#[inline]`) on the struct. Extracts `Arc::downgrade(receiver.receiver_guard())` internally; delegates to `Signal::connect_queued(f, guard)` (`f` first — opposite order from `connect_auto`). No `thread_id` argument needed. |
+| `quartzite-geometry` no_std | Pure `no_std` with no alloc — all types are `Copy` stack values. `f32::round()` unavailable in no_std; use `(x + if x >= 0.0 { 0.5 } else { -0.5 }) as i32`. `PointF → Point` rounds half-away-from-zero (matches Qt's `qRound()`). |
+| `quartzite-events` no_std | `no_std + alloc` — needs `String` for `KeyEvent::text`. `MouseButton` and `KeyModifiers` use `bitflags!` (u8). |
+| `EventType<T>` shape | Nested enums `Key(KeyEventKind)`, `Mouse(MouseEventKind)` — discriminate kind without downcasting. Generic `T: 'static + Send + Sync = ()` for `User(T)` payload (winit style; app commits to one type; zero allocation, zero downcast). `Event<T>` is object-safe for fixed `T`. |
 | `PropertyFlags` representation | `pub type PropertyFlags = BitFlags<PropertyFlag>` via `enumflags2`. `PropertyFlag` is a `#[bitflags(default = Readable \| Writable \| Stored \| Designable)] #[repr(u8)]` enum. Named constructors (`none`, `read_write`, `read_only`) are `const fn` on `impl PropertyFlag`. Proc-macro codegen uses `make_bitflags!(PropertyFlag::{…})` via a `use ::quartzite::core::PropertyFlag;` import inside the generated hidden module; `enumflags2` is `#[doc(hidden)]` re-exported from `quartzite-core` for that path. |
 
 ## Plans (Implementation Order)
@@ -124,14 +127,14 @@ Crate-level plans:
 3. `quartzite-runtime` — Application, EventLoop, ObjectTree ✅
 4. `quartzite` (facade) — prelude re-exports, sub-crate re-exports, Cargo metadata, docs.rs config ✅
 5. `examples/` — runnable API examples at workspace root (hello_object, signals_slots, object_tree, timer) ✅
-6. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model
+6. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model ✅
 7. `quartzite-widgets` — WidgetBase + concrete widgets + layouts
 8. `quartzite-paint` + `quartzite-style` — painter + theming
 
-Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen), connect-queued-codegen (`connect_<signal>_queued` typed wrappers), enumflags2-property-flags (`PropertyFlags` replaced by `BitFlags<PropertyFlag>` backed by `u8` via `enumflags2`).
+Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extension), code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf (O(1) signal disconnect, name index, match-based meta lookup), inline-simple-fns (`#[inline]` on simple non-generic fns), examples-crate (runnable API examples), signals-blocked (typed emit wrappers + `signals_blocked` guard), receiver-guard-auto (`Weak<ReceiverGuard>` for Auto connections + `connect_<signal>_auto` codegen), connect-queued-codegen (`connect_<signal>_queued` typed wrappers), enumflags2-property-flags (`PropertyFlags` replaced by `BitFlags<PropertyFlag>` backed by `u8` via `enumflags2`), geometry-events (quartzite-geometry + quartzite-events crates).
 
 ## Open Questions
 
 - Async/await integration strategy
 - Accessibility (a11y) support
-- No-std support scope (core only, or further?)
+- No-std support scope (core only, or further? — geometry + events are also no_std + alloc)

@@ -3,7 +3,7 @@ name: task
 description: "Full task workflow from a user description OR a GitHub issue number: interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[issue-number | task description]"
-allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh issue create *) Bash(gh pr create *) Bash(gh pr view *)
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh issue create *) Bash(gh issue comment *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
 Full workflow for a task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -144,6 +144,16 @@ AC rules:
 - ❌ "`cargo test` passes green"
 
 One business requirement = ONE AC. Show to user for confirmation.
+
+#### Step 5c: Cross-link the issue
+
+Post a comment on the tracking issue pointing to the spec path:
+
+```bash
+gh issue comment <N> --body "Spec: \`ai-docs/plans/YYYY-MM-DD-name.spec.md\`"
+```
+
+This closes the loop: the spec references the issue via `**Tracked in:**`, and the issue references the spec file via the comment. Skip only if Step 5a was skipped (`**Tracked in:** none`).
 
 ### Step 6: Design agent
 
@@ -332,6 +342,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 4 | Scope confirmed? |
 | Step 5a | Tracking issue identified or created? Issue number captured? |
 | Step 5b | All decisions confirmed? Every AC verifiable? Spec includes `**Tracked in:** #N`? |
+| Step 5c | `gh issue comment` posted with spec path (unless Step 5a was skipped)? |
 | Step 6 | Spec saved? ACs confirmed? |
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
