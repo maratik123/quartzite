@@ -39,7 +39,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 3. Test coverage
 - Every non-trivial function / branch has a test?
-- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `quartzite-examples/examples/` are runnable demos — no test block required)
+- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `examples/` are runnable demos — no test block required)
 - Tests verify invariants, not cosmetics?
   - Mental test: comment out the production fix → does the test fail? If not → cosmetic → **REJECT**
 - No `unwrap()` in tests without justification?
@@ -64,7 +64,7 @@ Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
-- Every crate that has new public items also has `#![deny(missing_docs)]` in its `lib.rs`? (Exception: `quartzite-examples` — examples-only crate with no public library items)
+- Every crate that has new public items also has `#![deny(missing_docs)]` in its `lib.rs`?
 - Every new public item with only a single-line doc has a `# Examples` block?
 
 On any error or warning → REJECT with the exact rustdoc message as the finding.
@@ -75,7 +75,7 @@ For each `⚠️ Objected` item in the progress file:
 - Read the stated reason.
 - `major` / `blocker`: is the reason specific, technically accurate, and traceable to a design decision or a Rust/language constraint? If not → re-open.
 - `nit` / `minor`: is any reason stated at all? If not → re-open.
-- An objection to a `major`/`blocker` finding that was not first confirmed by the user (as required by `/task` Step 11) is automatically invalid → re-open.
+- An objection to a `major`/`blocker` finding that was not first confirmed by the user (as required by the calling skill's fix-loop / objection rules) is automatically invalid → re-open.
 
 ## What you do NOT check
 

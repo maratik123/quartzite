@@ -21,7 +21,9 @@ When triggered (N=3, M>=5 OR compaction detected):
 - Each Agent = 1 subtask, ending with `cargo build`
 - Update progress.md after each Agent
 
-## `.progress.md` format
+## `.progress.md` format (canonical)
+
+This is the single source of truth for the progress-file format. `/task`, `/code-review`, and the `review-findings` / `self-review` agents all read and write it; the **required** fields below must be present in every progress file regardless of which workflow created it.
 
 ```markdown
 # Progress: [task name] — ACTIVE
@@ -29,9 +31,13 @@ _Updated: YYYY-MM-DD HH:MM_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
+**Branch:** [branch name]
+**base_commit:** [git rev-parse HEAD output]
+**Last build:** PASS / FAIL / not run
+
+<!-- Optional, /task only — omit for /code-review: -->
 **Issue:** [#number or URL]
 **Spec:** ai-docs/plans/YYYY-MM-DD-name.spec.md
-**Last build:** PASS / FAIL / not run
 
 ## Next action
 
@@ -58,6 +64,9 @@ _Updated: YYYY-MM-DD HH:MM_
 
 - `src/foo.rs` — what changed
 ```
+
+**Required fields** (read by `self-review` at handoff): `**Branch:**`, `**base_commit:**`, `**Last build:**`.
+**Optional fields** (added by `/task` only): `**Issue:**`, `**Spec:**`.
 
 ## Rules
 

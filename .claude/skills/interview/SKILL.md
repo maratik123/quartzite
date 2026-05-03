@@ -1,8 +1,7 @@
 ---
 name: interview
-description: "Requirements interview with the product owner. Output: spec saved to ai-docs/plans/, cross-linked with a tracking GitHub issue. Run before design or coding when task scope is unclear."
-disable-model-invocation: true
-argument-hint: "[issue-number]"
+description: "Requirements interview with the product owner. Output: spec saved to ai-docs/plans/, cross-linked with a tracking GitHub issue. Invoked by `/task` for Steps 1–5, or run standalone for spec-only work that defers implementation."
+argument-hint: "[issue-number | task description]"
 allowed-tools: Bash(gh issue view *) Bash(gh issue list *) Bash(gh issue create *) Bash(gh issue comment *)
 ---
 
@@ -10,7 +9,8 @@ Requirements interview with the product owner.
 Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`, bidirectionally linked with a tracking GitHub issue.
 
 > **MUST run before:** code investigation, design agent, or writing code.
-> For the full workflow use `/task` (accepts either a description or a GitHub issue number) — it includes interview as steps 2-4.
+> Run standalone when you want a spec without committing to implementation (defer it to `ai-docs/plans/deferred/` afterward).
+> For the full task workflow use `/task` — it delegates Steps 1–5 to this skill, then continues with design → implementation → PR.
 
 ## Rules
 

@@ -71,7 +71,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. `cargo fmt -- --check` — clean
-5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI / `/task` Step 9)
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI)
 6. Update progress file: `**Last build:** PASS`
 
 ### Step 5: Self-review loop (max 3 rounds)

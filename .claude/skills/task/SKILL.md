@@ -8,9 +8,11 @@ allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(ca
 
 Full workflow for a task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
 
+> **Commit authorization.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. Commits at Step 8 (per subtask) and the commit + `git push` + `gh pr create` at Step 12 are pre-authorized by `/task` itself — perform them without an extra prompt. Pause to confirm only if the situation is ambiguous beyond the prescribed step (e.g., commits would touch master, files outside the task scope, or sensitive paths).
+
 The task may originate from either:
-- a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — Step 1 reads the issue
-- a **user description** (e.g. `/task add foo to bar`) or empty (interview the user)
+- a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — `/interview` reads the issue body during Steps 1–5
+- a **user description** (e.g. `/task add foo to bar`) or empty (`/interview` interviews the user)
 
 ## ⚡ First: check for active task
 
@@ -40,120 +42,38 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
    ```
 3. Update `ai-docs/plans/INDEX.md`: move the plan row from the **Deferred plans** table to the **Active plans** table and mark its status as `🟢 ready` (or `🟡 spec-only` if no design).
 4. Tell the user: "Activated plan [name] — moved spec (and design) to `ai-docs/plans/`."
-5. **Verify the spec carries `**Tracked in:**`** — if missing, run Step 5a (find or create tracking issue) and add it to the spec header before continuing.
+5. **Verify the spec carries `**Tracked in:**`** — if missing, run `/interview`'s tracking-issue resolution to find or create one and add it to the spec header before continuing.
 6. If a `.progress.md` was moved: treat it as an active task — read it and resume from `## Next action` (same as the RESUME path above).
 7. Otherwise (no progress file): skip Steps 1–7 and jump directly to Step 8 (spec + design already exist).
 
 ---
 
-### Step 1: Get the task input
+### Steps 1–5: Spec creation (delegated to `/interview`)
 
-Detect entry mode from `$ARGUMENTS`:
+`/task` does not duplicate the interview workflow. Scope extraction, key-decision confirmation, tracking-issue resolution, spec writing, and the cross-link comment are owned by `/interview` (`.claude/skills/interview/SKILL.md`). Treat these five steps as a single delegated phase.
 
-- **Issue ref** — matches `^#?\d+$` (e.g. `42` or `#42`):
-  ```bash
-  gh issue view <N>          # read description, comments, linked issues — read EVERYTHING
-  ```
-  Use the issue body as the task description. Record `tracking_issue = <N>` for Step 5a.
+**Already have a spec?** If a saved spec for this task already exists under `ai-docs/plans/` (e.g. the user previously ran `/interview` to draft the spec without implementing), confirm with the user that this is the spec to implement, then **skip to Step 6** — do not re-run the interview.
 
-- **Free text** — anything else non-empty: use as the task description.
+**Otherwise, run the interview** by invoking the `interview` skill via the Skill tool, passing the original `$ARGUMENTS` through:
 
-- **Empty** — ask the user: "What do you want to implement or change?"
-
-If the description references code, grep the codebase to understand context before proceeding.
-
-### Step 2: Extract scope
-
-Every requirement = a separate numbered item. **Dropping an item without confirmation — FORBIDDEN.**
-
-### Step 3: Confirm scope
-
-Show scope list. For each item: in scope / out of scope / deferred. Max 3 questions at once.
-
-### Step 4: Confirm key decisions
-
-Any ambiguity or approach choice → ask the user (or, for issue-ref mode, the product owner). **Silently substituting your own decision — FORBIDDEN.**
-
-Red flags (STOP and ask):
-- Interpreting ambiguity two different ways
-- Choosing between technically equivalent approaches
-- Adding something not in the input
-- Treating an item as "unimportant"
-
-### Step 5: Save spec + acceptance criteria
-
-#### Step 5a: Tracking issue
-
-Every spec **must** carry a `**Tracked in:**` field referencing an open GitHub issue (`#N` shorthand).
-
-- **Entered via issue ref** (Step 1 set `tracking_issue`): use that issue. Skip the search below.
-- **Entered via free text / interview**:
-  1. Search existing open issues for matches:
-     ```bash
-     gh issue list --state open --search "<keyword>"
-     ```
-     Use 1–3 keywords from the task scope (crate names, feature names, key types).
-  2. **If a candidate exists** → present to the user: "I found #N: '<title>' — should this PR be tracked there?"
-     - User confirms → use that issue.
-     - User says no → continue to step 3.
-  3. **No suitable issue** → propose a new one:
-     - Title: matches the planned spec name (e.g. `feat(<crate>): <short description>`)
-     - Body: brief background + scope items distilled from Step 2/3
-     - Show the proposed title and body, ask user to confirm before running `gh issue create ...`
-
-> **Skip Step 5a only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`).
-
-#### Step 5b: Write the spec
-
-Create `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `## Acceptance Criteria` (required).
-
-Spec format:
-
-```markdown
-# [Task name]
-
-**Source:** user description | issue #<N>
-**Date:** [YYYY-MM-DD]
-**Tracked in:** #<N>
-
-## Scope
-## Out of scope
-## Deferred
-- what | why
-
-## Key decisions
-| Question | Decision |
-|---|---|
-
-## Technical constraints
-
-## Acceptance Criteria
-| # | Criterion |
-|---|-----------|
-| AC1 | [specific, verifiable condition] |
-
-## Open questions
+```
+Skill(skill="interview", args="$ARGUMENTS")
 ```
 
-`**Source:**` is `issue #<N>` for issue-ref mode, `user description` otherwise. `**Tracked in:**` always uses the `#<N>` shorthand (no full URL).
+The interview will:
 
-AC rules:
-- ✅ "Function returns `Err` if input is empty"
-- ✅ "Event is emitted when state transitions to Ready"
-- ❌ "Test `foo_test` exists"
-- ❌ "`cargo test` passes green"
+- detect entry mode (issue ref / free text / empty) and load the issue body if applicable
+- extract and confirm scope (in / out / deferred)
+- ask any clarifying questions (max 4 rounds, max 3 questions per round)
+- resolve or create the tracking GitHub issue
+- save the spec at `ai-docs/plans/YYYY-MM-DD-name.spec.md` with `**Tracked in:** #N` and an `## Acceptance Criteria` table
+- post a cross-link comment on the tracking issue (unless `Tracked in: none`)
 
-One business requirement = ONE AC. Show to user for confirmation.
+When the Skill call returns, `/interview`'s instructions and the saved spec are both in conversation context. Resume with the next paragraph of `/task` (the spec-only check, then Step 6).
 
-#### Step 5c: Cross-link the issue
+**Spec-only run.** If the user wants to stop after the interview ("just draft the spec, defer the implementation"), move the spec to `ai-docs/plans/deferred/`, update `INDEX.md` (move the row to **Deferred plans**, status `🟡 spec-only`), and **do not proceed to Step 6**. The spec can be picked up later via the deferred-plan-activation preamble above.
 
-Post a comment on the tracking issue pointing to the spec path:
-
-```bash
-gh issue comment <N> --body "Spec: \`ai-docs/plans/YYYY-MM-DD-name.spec.md\`"
-```
-
-This closes the loop: the spec references the issue via `**Tracked in:**`, and the issue references the spec file via the comment. Skip only if Step 5a was skipped (`**Tracked in:** none`).
+**Before Step 6:** confirm `ai-docs/plans/YYYY-MM-DD-name.spec.md` exists and the user has approved its `## Acceptance Criteria`.
 
 ### Step 6: Design agent
 
@@ -221,11 +141,12 @@ finding (Step 11) requires a design change rather than a code fix:
   ```
   Use the same date-name as the spec file. Record the branch name in the progress file.
 - **Before every `git commit` in this step:** run `git branch --show-current` and confirm it is NOT `master`. If it is — stop immediately, do not commit, apply the recovery procedure in AGENTS.md.
-- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start (see `/context-reset` for format)
-- **Record base commit** in the progress file immediately:
+- **Before every `git commit` in this step:** check `git status` for `ai-docs/learnings.md`. If modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
+- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start using the canonical format in `/context-reset` — required fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. For `/task` flows also include `**Issue:**` and `**Spec:**`.
+- **Record base commit and branch** in the progress file header immediately:
   ```
-  base_commit: <output of `git rev-parse HEAD`>
-  branch: feat/YYYY-MM-DD-name
+  **Branch:** feat/YYYY-MM-DD-name
+  **base_commit:** <output of `git rev-parse HEAD`>
   ```
 - After each subtask:
   1. `cargo build` — must compile
@@ -282,7 +203,7 @@ Agent(subagent_type="general-purpose", prompt="
 ")
 ```
 
-**On APPROVE:** delete `.progress.md` → proceed to Step 12.
+**On APPROVE — first action, before anything else:** `rm ai-docs/plans/YYYY-MM-DD-name.progress.md`. Confirm the file is gone (`ls`) before starting Step 12. The progress file is transient handoff state and must not survive the task.
 
 **On REJECT:** proceed to Step 11. After Step 11, loop back here.
 
@@ -303,33 +224,35 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. Update `.progress.md`
-5. Return to Step 10.
+5. **If the fixes changed any public API name, scope, or AC referenced in the PR title/body** (and the PR is already open), run `gh pr edit --title "..." --body "..."` to bring the PR description in sync before pushing. Check by re-reading the current PR with `gh pr view` and comparing against the new commits.
+6. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
 
-1. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
-2. **Finalise INDEX.md and move plan files:**
+1. **First, confirm `.progress.md` is already deleted** (Step 10 APPROVE handler). If it still exists — stop, delete it, then continue.
+2. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
+3. **Finalise INDEX.md and move plan files:**
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-3. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-4. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
-5. Commit:
+4. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+5. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
+6. Commit:
    ```
    feat(<crate>): <short imperative description>
 
    <1-3 lines: what changed and why; key ACs covered>
    N new tests; all M tests green.
    ```
-6. `git push -u origin <branch>`
-7. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+7. `git push -u origin <branch>`
+8. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
    - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
      - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
      - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
      - Spec was written with `Tracked in: none` → omit this section
    - **Test plan** (checklist: one line per AC, plus clippy/build)
-8. Post the PR URL to the user.
+9. Post the PR URL to the user.
 
 **FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
@@ -337,19 +260,14 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 
 | Before | Check |
 |---|---|
-| Step 1 | Entry mode detected (issue ref vs free text vs empty)? Issue body read in full if issue ref? |
-| Step 3 | All input items extracted? |
-| Step 4 | Scope confirmed? |
-| Step 5a | Tracking issue identified or created? Issue number captured? |
-| Step 5b | All decisions confirmed? Every AC verifiable? Spec includes `**Tracked in:** #N`? |
-| Step 5c | `gh issue comment` posted with spec path (unless Step 5a was skipped)? |
-| Step 6 | Spec saved? ACs confirmed? |
+| Steps 1–5 | Spec saved at `ai-docs/plans/YYYY-MM-DD-name.spec.md`? `**Tracked in:** #N` present (or `none` with reason)? Cross-link comment posted on the tracking issue (unless tracking skipped)? ACs confirmed by user and verifiable? See `/interview` gate checklist for the full per-step list. |
+| Step 6 | Spec exists? ACs confirmed? Not a "spec-only / defer" run? |
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
-| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? |
+| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? PR title/body updated via `gh pr edit` if commits changed public-facing names/scope? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
 | Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |

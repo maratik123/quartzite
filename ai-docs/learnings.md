@@ -8,7 +8,7 @@
 
 **How to apply:** If currently executing a `/task` (progress file exists or task was just completed), follow the step instructions for committing and pushing. Only pause to ask if something is ambiguous or risky beyond what the task step covers.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-03 — process — include ai-docs/learnings.md in the PR commit when it changes during the task
 
@@ -18,7 +18,7 @@
 
 **How to apply:** Before any `git commit` during a PR task, check `git diff --name-only ai-docs/learnings.md`. If it shows changes, include the file in the commit being staged.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — process — update PR title and body after commits that change public API or scope
 
@@ -28,15 +28,7 @@
 
 **How to apply:** At the end of Step 12 (or any follow-up push), check whether the PR title/body mentions any symbol, AC, or scope item that the new commits changed. If yes, run `gh pr edit --title "..." --body "..."` before posting the PR URL to the user.
 
-**Escalated?** no
-
-### 2026-05-03 — code-style — `_unchecked`/`_checked` violations in Signal API corrected: emit / emit_unless_blocked
-
-**What happened:** The first implementation named `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked`. Both are safe fns; neither violates memory safety. `_unchecked` implies `unsafe`; `_checked` implies `Result`/`Option` return — both names were wrong per project naming rules. Fix: restore `Signal::emit` as the unconditional primitive; rename `emit_checked` to `emit_unless_blocked` (descriptive of what it does).
-
-**Rule:** For safe "with/without runtime behavior X" variants where neither panics nor involves UB, pick a descriptive name that says what each variant *does* — do not co-opt `_unchecked` or `_checked`. The unsuffixed name goes to the most common/ergonomic variant.
-
-**Escalated?** AGENTS.md
+**Escalated?** skill:task
 
 ### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
 
@@ -99,7 +91,7 @@
 - `git cherry-pick` — moves specific commits to another branch
 - Backup branch — `git checkout -b backup/...` before any destructive operation
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
@@ -126,7 +118,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Rule:** At the start of Step 8 (Implementation), immediately create a feature branch (`git checkout -b feat/...`) before writing any code. Record the branch name in the progress file. Do not wait until after self-review to create the branch.
 
-**Escalated?** skill:task, skill:task-issue, hook (PreToolUse on `git commit` blocks master)
+**Escalated?** skill:task, hook (PreToolUse on `git commit` blocks master)
 
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
@@ -146,7 +138,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent. (A `diff-review` agent existed historically but was removed as orphan; do not reintroduce it without wiring it into a skill.)
 
-**Escalated?** memory
+**Escalated?** AGENTS.md, memory
 
 ### 2026-05-02 — process — self-review must not re-run cargo fmt or cargo clippy
 
@@ -154,7 +146,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Self-review must not run or re-check `cargo fmt`, `cargo clippy`, `cargo build`/`check`, or `cargo test`. These are all guaranteed by the Implementation and Verify steps before self-review runs. Self-review scope: spec conformance, design conformance, test coverage, safety/correctness, style (Rust file conventions, allow attributes) — not build tooling.
 
-**Escalated?** agent:self-review, agent:review-findings, skill:task, skill:task-issue, skill:code-review
+**Escalated?** agent:self-review, agent:review-findings
 
 ### 2026-05-02 — process — propagate rule exemptions to agent/skill files in same task
 
@@ -162,7 +154,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** When a rule exemption is added to `AGENTS.md`, immediately propagate it to every agent/skill/settings file that enforces that rule. Check with `grep` across `.claude/agents/` and `.claude/skills/` before closing the task.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — check current branch before committing, not only before pushing
 
@@ -170,7 +162,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Run `git branch --show-current` and confirm it is **not** `master` before any `git commit` that is intended for a PR. A pre-push check is a last resort, not the primary safeguard. The commit should never happen on master — the push check only exists as a final gate.
 
-**Escalated?** hook, skill:task, skill:task-issue
+**Escalated?** hook, skill:task
 
 ### 2026-05-02 — process — run cargo fmt --all after every code change, including post-self-review fixes
 
@@ -186,7 +178,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Use `.min()`, `.max()`, `.clamp()`, and other stdlib methods instead of `if`/`match` branching for simple value comparisons. This applies equally to all numeric types (`i32`, `f32`, etc.). Explicit branches are harder to read and error-prone.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — architecture — do not reference other frameworks as justification for design choices
 
@@ -194,7 +186,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** Never cite other frameworks (Qt, GTK, WinForms, etc.) as justification for design choices. Design based on Rust idioms, crate ecosystem norms, and explicit reasoning about the problem. "Other library does X" is not a valid argument.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-03 — process — delete progress file immediately on self-review APPROVE, before Step 12
 
@@ -210,4 +202,4 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Rule:** After generating files with relative links, verify at least one link manually: trace the path on disk (`realpath` or mental directory traversal) before committing. From `ai-docs/deferred/file.md`, one `..` reaches `ai-docs/`; two `../..` reaches the repo root.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
