@@ -22,6 +22,15 @@ use crate::{id::ObjectId, receiver_guard::ReceiverGuard};
 /// let base = ObjectBase::named("my-button");
 /// assert_eq!(base.name(), Some("my-button"));
 /// ```
+///
+/// ```no_run
+/// use quartzite_core::ObjectBase;
+///
+/// // Debug output includes id, name, and (on std) thread_id.
+/// let base = ObjectBase::named("btn");
+/// let _ = format!("{:?}", base);
+/// ```
+#[derive(Debug)]
 pub struct ObjectBase {
     /// Private: uniqueness invariant — must never be overwritten after construction.
     id: ObjectId,

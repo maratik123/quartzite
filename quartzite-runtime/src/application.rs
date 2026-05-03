@@ -66,6 +66,11 @@ impl Application {
             Arc::clone(&inner.connection_table) as Arc<dyn quartzite_core::QueuedDispatcher>
         );
 
+        // Install the process-wide factory. Ignore FactoryAlreadySet — same rationale
+        // as the dispatcher above. Subsequent Application::new() calls (if somehow
+        // possible) share the first factory via OnceLock semantics.
+        let _ = crate::factory::ObjectFactory::install(crate::factory::ObjectFactory::new());
+
         Ok(Application(inner))
     }
 

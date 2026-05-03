@@ -18,7 +18,7 @@ pub mod timer;
 pub use application::{Application, ApplicationError};
 pub use connection_table::ConnectionTable;
 pub use event_loop::EventLoop;
-pub use factory::ObjectFactory;
+pub use factory::{FactoryAlreadySet, ObjectFactory};
 pub use object_ref::{ObjectRef, WeakRef};
 pub use object_tree::ObjectTree;
 pub use thread_pool::ThreadPool;

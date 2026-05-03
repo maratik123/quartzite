@@ -7,7 +7,6 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
-
 ## Completed plans
 
 | Plan | Crate(s) | Status | Blocked by |
@@ -29,6 +28,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [connect-queued-codegen](done/2026-05-03-connect-queued-codegen.spec.md) | `quartzite-macros` | ✅ implemented (3 new tests) | — |
 | [enumflags2-property-flags](done/2026-05-03-enumflags2-property-flags.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (6 new tests) | — |
 | [signal-emit-checked](done/2026-05-03-signal-emit-checked.spec.md) | `quartzite-core` `quartzite-macros` | ✅ implemented (3 new tests) | — |
+| [objectbase-debug-rename-factory](done/2026-05-03-objectbase-debug-rename-factory.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (16 new tests) | — |
 
 ## Deferred plans
 
@@ -64,6 +64,7 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 
 1. **Start** graphics-stack (unblocked — geometry-events done; needs `quartzite-paint-api` thin crate then `quartzite-renderer`)
 2. **Start** widgets (unblocked — geometry-events done; needs `WidgetBase`, layouts, basic widgets)
+3. **Pick up** remaining small design issues: #55 (parent/children accessors), #57 (proc_macro_crate single-dep)
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land

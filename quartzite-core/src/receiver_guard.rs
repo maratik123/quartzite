@@ -8,6 +8,7 @@ use std::sync::{Arc, Weak};
 /// Incoming signal connections hold a `Weak<ReceiverGuard>`. When the object is
 /// dropped, the `Arc` drops and all `Weak::upgrade()` calls return `None`, causing
 /// queued slot calls targeting that object to be silently discarded.
+#[derive(Debug)]
 pub struct ReceiverGuard;
 
 impl ReceiverGuard {
