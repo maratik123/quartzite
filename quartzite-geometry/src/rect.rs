@@ -330,7 +330,7 @@ impl RectF {
     /// assert_eq!(RectF::new(PointF::new(2.0, 0.0), SizeF::new(5.0, 5.0)).right(), 7.0);
     /// ```
     #[inline]
-    pub fn right(self) -> f32 {
+    pub const fn right(self) -> f32 {
         self.origin.x() + self.size.width()
     }
 
@@ -344,8 +344,23 @@ impl RectF {
     /// assert_eq!(RectF::new(PointF::new(0.0, 3.0), SizeF::new(5.0, 5.0)).bottom(), 8.0);
     /// ```
     #[inline]
-    pub fn bottom(self) -> f32 {
+    pub const fn bottom(self) -> f32 {
         self.origin.y() + self.size.height()
+    }
+
+    /// Returns `true` if the size has a zero-area dimension.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_geometry::{PointF, RectF, SizeF};
+    ///
+    /// assert!(RectF::new(PointF::new(0.0, 0.0), SizeF::new(0.0, 5.0)).is_empty());
+    /// assert!(!RectF::new(PointF::new(0.0, 0.0), SizeF::new(1.0, 1.0)).is_empty());
+    /// ```
+    #[inline]
+    pub const fn is_empty(self) -> bool {
+        self.size.is_empty()
     }
 
     /// Returns `true` if `point` lies inside this rect (inclusive left/top, exclusive right/bottom).
@@ -360,7 +375,7 @@ impl RectF {
     /// assert!(!r.contains(PointF::new(1.0, 0.5)));
     /// ```
     #[inline]
-    pub fn contains(self, point: PointF) -> bool {
+    pub const fn contains(self, point: PointF) -> bool {
         point.x() >= self.left()
             && point.x() < self.right()
             && point.y() >= self.top()
@@ -379,7 +394,7 @@ impl RectF {
     /// assert!(!a.intersects(b));
     /// ```
     #[inline]
-    pub fn intersects(self, other: RectF) -> bool {
+    pub const fn intersects(self, other: RectF) -> bool {
         self.left() < other.right()
             && self.right() > other.left()
             && self.top() < other.bottom()
@@ -423,6 +438,31 @@ impl RectF {
     #[inline]
     pub fn translated(self, offset: PointF) -> RectF {
         RectF::new(self.origin + offset, self.size)
+    }
+
+    /// Returns a rect expanded by `dx` on each horizontal side and `dy` on each vertical side.
+    ///
+    /// Negative values shrink the rect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_geometry::{PointF, RectF, SizeF};
+    ///
+    /// let r = RectF::new(PointF::new(1.0, 1.0), SizeF::new(4.0, 4.0));
+    /// let adjusted = r.adjusted(-0.5, -0.5, 0.5, 0.5);
+    /// assert_eq!(adjusted.origin(), PointF::new(0.5, 0.5));
+    /// assert_eq!(adjusted.size(), SizeF::new(5.0, 5.0));
+    /// ```
+    pub fn adjusted(self, dx1: f32, dy1: f32, dx2: f32, dy2: f32) -> RectF {
+        let left = self.left() + dx1;
+        let top = self.top() + dy1;
+        let right = self.right() + dx2;
+        let bottom = self.bottom() + dy2;
+        RectF::new(
+            PointF::new(left, top),
+            SizeF::new(right - left, bottom - top),
+        )
     }
 }
 
@@ -553,6 +593,20 @@ mod tests {
         let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(1.0, 1.0));
         let b = RectF::new(PointF::new(2.0, 2.0), SizeF::new(1.0, 1.0));
         assert!(!a.intersects(b));
+    }
+
+    #[test]
+    fn rectf_is_empty() {
+        assert!(RectF::new(PointF::new(0.0, 0.0), SizeF::new(0.0, 5.0)).is_empty());
+        assert!(!RectF::new(PointF::new(0.0, 0.0), SizeF::new(1.0, 1.0)).is_empty());
+    }
+
+    #[test]
+    fn rectf_adjusted_expand() {
+        let r = RectF::new(PointF::new(1.0, 1.0), SizeF::new(4.0, 4.0));
+        let adj = r.adjusted(-0.5, -0.5, 0.5, 0.5);
+        assert_eq!(adj.origin(), PointF::new(0.5, 0.5));
+        assert_eq!(adj.size(), SizeF::new(5.0, 5.0));
     }
 
     #[test]

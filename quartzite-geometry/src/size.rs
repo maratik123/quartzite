@@ -183,7 +183,7 @@ impl SizeF {
     /// assert!(!SizeF::new(1.0, 1.0).is_empty());
     /// ```
     #[inline]
-    pub fn is_empty(self) -> bool {
+    pub const fn is_empty(self) -> bool {
         self.width == 0.0 || self.height == 0.0
     }
 }
