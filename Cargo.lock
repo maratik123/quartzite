@@ -314,6 +314,7 @@ name = "quartzite-macros"
 version = "0.1.0"
 dependencies = [
  "heck",
+ "proc-macro-crate",
  "proc-macro2",
  "quartzite",
  "quote",

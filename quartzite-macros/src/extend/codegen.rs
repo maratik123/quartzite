@@ -3,7 +3,7 @@ use quote::quote;
 use syn::Ident;
 
 use super::parse::{BaseField, ExtendInput, MixinField};
-use crate::util::{accessor_name, as_trait_name};
+use crate::util::{accessor_name, as_trait_name, crate_root};
 
 pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
@@ -20,12 +20,13 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
         (true, Some(base)) => {
             // Root with parent: trait + self-ref + direct parent-chain impls.
             out.extend(emit_root_trait_and_impl(&ir));
-            out.extend(emit_parent_chain_impls(&ir.ident, base));
+            // Root structs always have empty generics (enforced by parse).
+            out.extend(emit_parent_chain_impls(&ir.ident, base, &ir.generics));
         }
         (false, Some(base)) => {
             // Concrete type: parent delegation + AsObject delegation.
-            out.extend(emit_delegation_impl(&ir.ident, base));
-            out.extend(emit_as_object_impl(&ir.ident, base));
+            out.extend(emit_delegation_impl(&ir.ident, base, &ir.generics));
+            out.extend(emit_as_object_impl(&ir.ident, base, &ir.generics));
         }
         (false, None) => {
             // Standalone capabilities: only mixin leaf impls (validated: ≥1 mixin).
@@ -34,7 +35,7 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
 
     // Mixin leaf impls for every #[mixin] field.
     for mixin in &ir.mixin_fields {
-        out.extend(emit_mixin_impl(&ir.ident, mixin));
+        out.extend(emit_mixin_impl(&ir.ident, mixin, &ir.generics));
     }
 
     out
@@ -44,6 +45,7 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
 ///   - `As{Self}` trait (with supertrait if base exists)
 ///   - self-ref impl
 fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
+    let cr = crate_root();
     let self_ident = &ir.ident;
     let self_trait = match as_trait_name(self_ident) {
         Some(t) => t,
@@ -54,7 +56,7 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
 
     let supertrait = ir.base_field.as_ref().and_then(|b| {
         if b.ty_ident == "ObjectBase" {
-            Some(quote! { : ::quartzite::core::AsObject })
+            Some(quote! { : #cr::AsObject })
         } else {
             as_trait_name(&b.ty_ident).map(|parent_trait| quote! { : #parent_trait })
         }
@@ -75,20 +77,51 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     }
 }
 
+/// Returns a copy of `generics` with all per-param bounds, defaults, and the
+/// where-clause stripped — minimal-bounds policy for delegation impls.
+fn bare_generics(generics: &syn::Generics) -> syn::Generics {
+    let mut bare = generics.clone();
+    for param in &mut bare.params {
+        match param {
+            syn::GenericParam::Type(tp) => {
+                tp.bounds.clear();
+                tp.default = None;
+            }
+            syn::GenericParam::Lifetime(lp) => {
+                lp.bounds.clear();
+            }
+            syn::GenericParam::Const(cp) => {
+                cp.default = None;
+            }
+        }
+    }
+    bare.where_clause = None;
+    bare
+}
+
 /// Emits direct `impl As{Parent} for Self` + `impl AsObject for Self` for a root type.
 /// Uses direct field access for ObjectBase, delegation for higher-level parents.
-fn emit_parent_chain_impls(self_ident: &Ident, base: &BaseField) -> TokenStream {
-    let mut out = emit_as_object_impl(self_ident, base);
+fn emit_parent_chain_impls(
+    self_ident: &Ident,
+    base: &BaseField,
+    generics: &syn::Generics,
+) -> TokenStream {
+    let mut out = emit_as_object_impl(self_ident, base, generics);
     // For non-ObjectBase parents, also emit the intermediate delegation impl.
     if base.ty_ident != "ObjectBase" {
-        out.extend(emit_delegation_impl(self_ident, base));
+        out.extend(emit_delegation_impl(self_ident, base, generics));
     }
     out
 }
 
 /// Emits `impl AsObject for {Self}` — always delegates `object_base` through the base field.
 /// For a direct `ObjectBase` field, accesses it directly; otherwise delegates through the accessor.
-fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
+fn emit_as_object_impl(
+    self_ident: &Ident,
+    base: &BaseField,
+    generics: &syn::Generics,
+) -> TokenStream {
+    let cr = crate_root();
     let base_field = &base.ident;
     let (object_base_expr, object_base_mut_expr) = if base.ty_ident == "ObjectBase" {
         (
@@ -101,14 +134,16 @@ fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
             quote! { self.#base_field.object_base_mut() },
         )
     };
+    let bare = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare.split_for_impl();
     quote! {
-        impl ::quartzite::core::AsObject for #self_ident {
+        impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
             #[inline]
-            fn object_base(&self) -> &::quartzite::core::ObjectBase {
+            fn object_base(&self) -> &#cr::ObjectBase {
                 #object_base_expr
             }
             #[inline]
-            fn object_base_mut(&mut self) -> &mut ::quartzite::core::ObjectBase {
+            fn object_base_mut(&mut self) -> &mut #cr::ObjectBase {
                 #object_base_mut_expr
             }
             #[inline]
@@ -120,7 +155,11 @@ fn emit_as_object_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
 }
 
 /// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in AsObject).
-fn emit_delegation_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
+fn emit_delegation_impl(
+    self_ident: &Ident,
+    base: &BaseField,
+    generics: &syn::Generics,
+) -> TokenStream {
     let parent_trait = match as_trait_name(&base.ty_ident) {
         Some(t) => t,
         None => return emit_degenerate_error(&base.ty_ident),
@@ -133,9 +172,11 @@ fn emit_delegation_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
     let base_field_ident = &base.ident;
     let parent_acc = accessor_name(&base.ty_ident);
     let parent_acc_mut = acc_mut_ident(&parent_acc);
+    let bare = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare.split_for_impl();
 
     quote! {
-        impl #parent_trait for #self_ident {
+        impl #impl_generics #parent_trait for #self_ident #ty_generics {
             #[inline]
             fn #parent_acc(&self) -> &#parent_ty {
                 self.#base_field_ident.#parent_acc()
@@ -149,7 +190,11 @@ fn emit_delegation_impl(self_ident: &Ident, base: &BaseField) -> TokenStream {
 }
 
 /// Emits `impl As{Mixin} for {Self}` — leaf impl only.
-fn emit_mixin_impl(self_ident: &Ident, mixin: &MixinField) -> TokenStream {
+fn emit_mixin_impl(
+    self_ident: &Ident,
+    mixin: &MixinField,
+    generics: &syn::Generics,
+) -> TokenStream {
     let mixin_trait = match as_trait_name(&mixin.ty_ident) {
         Some(t) => t,
         None => return emit_degenerate_error(&mixin.ty_ident),
@@ -158,9 +203,11 @@ fn emit_mixin_impl(self_ident: &Ident, mixin: &MixinField) -> TokenStream {
     let mixin_field = &mixin.ident;
     let mixin_acc = accessor_name(&mixin.ty_ident);
     let mixin_acc_mut = acc_mut_ident(&mixin_acc);
+    let bare = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare.split_for_impl();
 
     quote! {
-        impl #mixin_trait for #self_ident {
+        impl #impl_generics #mixin_trait for #self_ident #ty_generics {
             #[inline]
             fn #mixin_acc(&self) -> &#mixin_ty { &self.#mixin_field }
             #[inline]
@@ -399,6 +446,60 @@ mod tests {
         assert!(
             out.contains("# [inline]"),
             "missing #[inline] on mixin accessor: {out}"
+        );
+    }
+
+    // AC7: generic non-root struct emits `impl<T> AsWidget for Foo<T>` (no where clause).
+    #[test]
+    fn generic_non_root_emits_impl_with_type_params() {
+        let out = emit(quote! {
+            struct Foo<T> {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            out.contains("impl < T > AsWidget for Foo < T >"),
+            "missing generic impl header: {out}"
+        );
+        assert!(out.contains("impl < T >"), "missing impl_generics: {out}");
+        assert!(!out.contains("where"), "unexpected where clause: {out}");
+    }
+
+    // AC7: generic with lifetime param emits correct impl header.
+    #[test]
+    fn generic_lifetime_emits_impl_with_lifetime() {
+        let out = emit(quote! {
+            struct Foo<'a> {
+                #[base]
+                widget: Widget,
+                data: &'a str,
+            }
+        });
+        assert!(
+            out.contains("impl < 'a > AsWidget for Foo < 'a >"),
+            "missing lifetime impl header: {out}"
+        );
+        assert!(!out.contains("where"), "unexpected where clause: {out}");
+    }
+
+    // AC7: non-generic struct output unchanged (regression).
+    #[test]
+    fn non_generic_regression_no_angle_brackets() {
+        let out = emit(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            out.contains("impl AsWidget for Button"),
+            "missing plain impl: {out}"
+        );
+        // No spurious angle brackets added.
+        assert!(
+            !out.contains("impl < >"),
+            "unexpected empty angle brackets: {out}"
         );
     }
 }

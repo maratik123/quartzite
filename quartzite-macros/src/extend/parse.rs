@@ -5,6 +5,7 @@ use crate::util::extract_attr;
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ExtendInput {
     pub ident: Ident,
+    pub generics: syn::Generics,
     pub is_root: bool,
     pub base_field: Option<BaseField>,
     pub mixin_fields: Vec<MixinField>,
@@ -60,16 +61,17 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         }
     };
 
-    // Reject generic type or lifetime parameters.
-    if !derive.generics.params.is_empty() {
-        return Err(syn::Error::new(
-            derive.generics.span(),
-            "generic structs not yet supported by #[derive(Extend)]",
-        ));
-    }
-
     // Check for #[root] on the struct itself; strip it.
     let is_root = extract_attr(&mut derive.attrs, "root");
+
+    // Root + generic is unsupported: the generated `As{Self}` trait's return type
+    // would reference the bare ident without type params, causing a type mismatch.
+    if is_root && !derive.generics.params.is_empty() {
+        return Err(syn::Error::new(
+            derive.generics.span(),
+            "#[derive(Extend)] with #[root] does not support generic structs",
+        ));
+    }
 
     // Classify fields.
     let mut base_fields: Vec<BaseField> = Vec::new();
@@ -115,6 +117,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
 
     Ok(ExtendInput {
         ident: derive.ident,
+        generics: derive.generics,
         is_root,
         base_field,
         mixin_fields,
@@ -203,11 +206,39 @@ mod tests {
     }
 
     #[test]
-    fn generic_struct_errors() {
+    fn generic_root_struct_errors() {
         let err = parse_err(quote! {
             #[root]
             struct Foo<T> { x: T }
         });
         assert!(err.contains("generic"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn generic_non_root_struct_parses_ok() {
+        let ir = parse_ok(quote! {
+            struct Foo<T> {
+                #[base]
+                widget: Widget,
+                data: T,
+            }
+        });
+        assert!(!ir.generics.params.is_empty(), "generics should be stored");
+        assert!(ir.base_field.is_some());
+    }
+
+    #[test]
+    fn generic_with_lifetime_parses_ok() {
+        let ir = parse_ok(quote! {
+            struct Foo<'a> {
+                #[base]
+                widget: Widget,
+                data: &'a str,
+            }
+        });
+        assert!(
+            !ir.generics.params.is_empty(),
+            "lifetime param should be stored"
+        );
     }
 }

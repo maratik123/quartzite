@@ -2,8 +2,10 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::parse::MetaEnumInput;
+use crate::util::crate_root;
 
 pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
+    let cr = crate_root();
     let type_ident = &ir.ident;
     let enum_static_name =
         proc_macro2::Ident::new(&format!("__ENUM_{type_ident}"), type_ident.span());
@@ -23,7 +25,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         let name = v.ident.to_string();
         let value = v.value;
         quote! {
-            ::quartzite::core::EnumEntry::new(#name, #value)
+            #cr::EnumEntry::new(#name, #value)
         }
     });
 
@@ -51,11 +53,11 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
 
     quote! {
         #[allow(non_upper_case_globals)]
-        static #entries_static_name: &[::quartzite::core::EnumEntry] =
+        static #entries_static_name: &[#cr::EnumEntry] =
             &[#(#entries),*];
 
         #[allow(non_snake_case)]
-        fn #lookup_by_name_fn(name: &str) -> ::core::option::Option<::quartzite::core::EnumEntry> {
+        fn #lookup_by_name_fn(name: &str) -> ::core::option::Option<#cr::EnumEntry> {
             match name {
                 #(#by_name_arms,)*
                 _ => ::core::option::Option::None,
@@ -65,7 +67,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         #[allow(non_snake_case)]
         fn #lookup_by_value_fn(
             value: i64,
-        ) -> ::core::option::Option<::quartzite::core::EnumEntry> {
+        ) -> ::core::option::Option<#cr::EnumEntry> {
             match value {
                 #(#by_value_arms,)*
                 _ => ::core::option::Option::None,
@@ -73,34 +75,34 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         }
 
         #[allow(non_upper_case_globals)]
-        static #enum_static_name: ::quartzite::core::EnumMeta = ::quartzite::core::EnumMeta::new(
+        static #enum_static_name: #cr::EnumMeta = #cr::EnumMeta::new(
             #type_name_str,
             #entries_static_name,
             #lookup_by_name_fn,
             #lookup_by_value_fn,
         );
 
-        impl ::quartzite::core::IntoValue for #type_ident {
+        impl #cr::IntoValue for #type_ident {
             #[inline]
-            fn into_value(self) -> ::quartzite::core::Value {
-                ::quartzite::core::Value::Int(self as i64)
+            fn into_value(self) -> #cr::Value {
+                #cr::Value::Int(self as i64)
             }
         }
 
-        impl ::quartzite::core::FromValue for #type_ident {
+        impl #cr::FromValue for #type_ident {
             fn from_value(
-                val: ::quartzite::core::Value,
-            ) -> ::core::result::Result<Self, ::quartzite::core::TypeError> {
-                if let ::quartzite::core::Value::Int(n) = val {
+                val: #cr::Value,
+            ) -> ::core::result::Result<Self, #cr::TypeError> {
+                if let #cr::Value::Int(n) = val {
                     match n {
                         #(#from_int_arms,)*
-                        _ => ::core::result::Result::Err(::quartzite::core::TypeError {
+                        _ => ::core::result::Result::Err(#cr::TypeError {
                             expected: #type_name_str,
                             got: "Int",
                         }),
                     }
                 } else {
-                    ::core::result::Result::Err(::quartzite::core::TypeError {
+                    ::core::result::Result::Err(#cr::TypeError {
                         expected: #type_name_str,
                         got: val.type_name(),
                     })

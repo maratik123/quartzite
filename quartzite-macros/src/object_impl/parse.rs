@@ -2,14 +2,24 @@ use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spann
 
 use crate::util::extract_attr;
 
+#[derive(Debug, PartialEq, Clone)]
+pub(crate) enum MethodKind {
+    Sole,
+    Partial,
+    Final,
+}
+
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ObjectImplInput {
     pub self_ty: Type,
     pub self_ty_ident: Ident,
+    pub trait_path: Option<syn::Path>,
+    pub kind: MethodKind,
     pub methods: Vec<MethodItem>,
     pub other_items: Vec<ImplItem>,
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MethodItem {
     pub ident: Ident,
@@ -17,22 +27,21 @@ pub(crate) struct MethodItem {
     pub ret_ty: ReturnType,
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ParamMeta {
     pub ident: Ident,
     pub ty: Type,
 }
 
-pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplInput> {
+pub(crate) fn parse(
+    attr: proc_macro2::TokenStream,
+    input: proc_macro2::TokenStream,
+) -> syn::Result<ObjectImplInput> {
+    let kind = parse_kind(attr)?;
     let mut item: ItemImpl = parse2(input)?;
 
-    if item.trait_.is_some() {
-        return Err(syn::Error::new(
-            item.self_ty.span(),
-            "#[object_impl] cannot be applied to a trait impl",
-        ));
-    }
-
+    let trait_path = item.trait_.as_ref().map(|(_, path, _)| path.clone());
     let self_ty = *item.self_ty;
     let self_ty_ident = extract_self_ty_ident(&self_ty)?;
 
@@ -67,9 +76,27 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectImplIn
     Ok(ObjectImplInput {
         self_ty,
         self_ty_ident,
+        trait_path,
+        kind,
         methods,
         other_items,
     })
+}
+
+fn parse_kind(attr: proc_macro2::TokenStream) -> syn::Result<MethodKind> {
+    let s = attr.to_string();
+    match s.trim() {
+        "" => Ok(MethodKind::Sole),
+        "partial" => Ok(MethodKind::Partial),
+        "final" => Ok(MethodKind::Final),
+        other => Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            format!(
+                "#[object_impl] flag must be `partial` or `final`, got `{}`",
+                other.trim()
+            ),
+        )),
+    }
 }
 
 /// Extracts the last path-segment ident from the impl's self type.
@@ -126,11 +153,7 @@ mod tests {
     use quote::quote;
 
     fn parse_ok(ts: TokenStream) -> ObjectImplInput {
-        parse(ts).expect("should parse successfully")
-    }
-
-    fn parse_err(ts: TokenStream) -> String {
-        parse(ts).unwrap_err().to_string()
+        parse(quote! {}, ts).expect("should parse successfully")
     }
 
     #[test]
@@ -196,13 +219,65 @@ mod tests {
     }
 
     #[test]
-    fn trait_impl_errors() {
-        let err = parse_err(quote! {
+    fn trait_impl_accepted() {
+        let ir = parse_ok(quote! {
             impl MyTrait for Foo {
                 fn foo(&self) {}
             }
         });
-        assert!(err.contains("trait impl"), "unexpected: {err}");
+        assert_eq!(ir.self_ty_ident, "Foo");
+        assert!(ir.trait_path.is_some(), "trait_path should be set");
+    }
+
+    #[test]
+    fn trait_impl_stores_trait_path() {
+        let ir = parse_ok(quote! {
+            impl MyTrait for Foo {
+                #[slot]
+                fn on_event(&mut self) {}
+            }
+        });
+        let trait_path = ir.trait_path.expect("trait_path should be set");
+        let path_str = quote! { #trait_path }.to_string();
+        assert!(path_str.contains("MyTrait"), "unexpected path: {path_str}");
+    }
+
+    #[test]
+    fn inherent_impl_trait_path_is_none() {
+        let ir = parse_ok(quote! {
+            impl Foo { fn bar(&self) {} }
+        });
+        assert!(ir.trait_path.is_none());
+    }
+
+    #[test]
+    fn kind_sole_when_no_attr() {
+        let ir = parse(quote! {}, quote! { impl Foo {} }).expect("parse ok");
+        assert_eq!(ir.kind, MethodKind::Sole);
+    }
+
+    #[test]
+    fn kind_partial_when_partial_attr() {
+        let ir = parse(quote! { partial }, quote! { impl Foo {} }).expect("parse ok");
+        assert_eq!(ir.kind, MethodKind::Partial);
+    }
+
+    #[test]
+    fn kind_final_when_final_attr() {
+        let attr: proc_macro2::TokenStream = "final".parse().unwrap();
+        let ir = parse(attr, quote! { impl Foo {} }).expect("parse ok");
+        assert_eq!(ir.kind, MethodKind::Final);
+    }
+
+    #[test]
+    fn invalid_kind_errors() {
+        let err = parse(quote! { unknown }, quote! { impl Foo {} })
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("partial") || err.contains("final"),
+            "unexpected error: {err}"
+        );
     }
 
     #[test]

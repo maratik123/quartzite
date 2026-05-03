@@ -27,7 +27,8 @@ mod util;
 mod extend;
 mod meta_enum;
 mod object;
-mod object_impl;
+pub(crate) mod object_impl;
+mod object_meta;
 
 /// Derive macro that generates `As{TypeName}` trait impls and delegation chains for
 /// single-inheritance object hierarchies.
@@ -150,8 +151,39 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 /// }
 /// ```
 #[proc_macro_attribute]
-pub fn object_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    object_impl::expand(item.into()).into()
+pub fn object_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
+    object_impl::expand(attr.into(), item.into()).into()
+}
+
+/// Attribute macro that finalises the `Object` implementation after multiple
+/// `#[object_impl(partial)]` blocks.
+///
+/// Place `#[object_meta]` on an empty `impl Counter {}` block after all
+/// `#[object_impl(partial)]` blocks for the same type.  It reads the
+/// accumulated `#[slot]`/`#[invokable]` methods, generates the `MetaObject`
+/// static and the full `impl Object`, then discards the empty impl block.
+///
+/// # Examples
+///
+/// ```ignore
+/// use quartzite_macros::{Extend, Object, object_impl, object_meta};
+///
+/// #[derive(Extend, Object)]
+/// #[root]
+/// struct Counter { /* ... */ }
+///
+/// #[object_impl(partial)]
+/// impl Counter {
+///     #[slot]
+///     fn reset(&mut self) { /* ... */ }
+/// }
+///
+/// #[object_meta]
+/// impl Counter {}
+/// ```
+#[proc_macro_attribute]
+pub fn object_meta(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    object_meta::expand(item.into()).into()
 }
 
 /// Derive macro for C-like enums that generates `IntoValue` / `FromValue` conversions

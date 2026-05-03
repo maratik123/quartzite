@@ -1,5 +1,6 @@
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream};
-use quote::quote_spanned;
+use quote::{quote, quote_spanned};
 use syn::Ident;
 
 /// Strips the `Base` suffix from `name` if it ends with `Base` (case-sensitive).
@@ -54,10 +55,99 @@ pub(crate) fn emit_compile_error(span: Span, msg: &str) -> TokenStream {
     quote_spanned!(span => compile_error!(#msg_lit);)
 }
 
+/// Returns the leading path fragment for all `::quartzite::core::*` references in generated code.
+///
+/// Resolution order (facade-first, Bevy pattern):
+/// 1. `quartzite` facade found → `::name::core` (Name) or absolute path via pkg name (Itself)
+/// 2. `quartzite-core` found → `::name` (Name) or absolute path via pkg name (Itself)
+/// 3. Neither found → silent fallback to `::quartzite_core`
+///
+/// Always emits absolute paths — `crate::` is intentionally avoided because proc-macros run
+/// for example and binary targets where `crate` refers to the binary, not the library.
+pub(crate) fn crate_root() -> TokenStream {
+    let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "quartzite".into());
+    let facade = crate_name("quartzite").ok();
+    let core = if facade.is_none() {
+        crate_name("quartzite-core").ok()
+    } else {
+        None
+    };
+    crate_root_from(facade, core, &pkg_name)
+}
+
+pub(crate) fn crate_root_from(
+    facade: Option<FoundCrate>,
+    core: Option<FoundCrate>,
+    pkg_name: &str,
+) -> TokenStream {
+    match facade {
+        Some(FoundCrate::Itself) => {
+            let name = pkg_name.replace('-', "_");
+            let ident = Ident::new(&name, Span::call_site());
+            quote!(::#ident::core)
+        }
+        Some(FoundCrate::Name(n)) => {
+            let ident = Ident::new(&n, Span::call_site());
+            quote!(::#ident::core)
+        }
+        None => match core {
+            Some(FoundCrate::Itself) => {
+                let name = pkg_name.replace('-', "_");
+                let ident = Ident::new(&name, Span::call_site());
+                quote!(::#ident)
+            }
+            Some(FoundCrate::Name(n)) => {
+                let ident = Ident::new(&n, Span::call_site());
+                quote!(::#ident)
+            }
+            None => quote!(::quartzite_core),
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proc_macro_crate::FoundCrate;
     use proc_macro2::Span;
+
+    fn ts(facade: Option<FoundCrate>, core: Option<FoundCrate>) -> String {
+        crate_root_from(facade, core, "quartzite").to_string()
+    }
+
+    #[test]
+    fn crate_root_facade_itself() {
+        assert_eq!(ts(Some(FoundCrate::Itself), None), ":: quartzite :: core");
+    }
+
+    #[test]
+    fn crate_root_facade_name() {
+        assert_eq!(
+            ts(Some(FoundCrate::Name("my_quartzite".into())), None),
+            ":: my_quartzite :: core"
+        );
+    }
+
+    #[test]
+    fn crate_root_core_only_name() {
+        assert_eq!(
+            ts(None, Some(FoundCrate::Name("quartzite_core".into()))),
+            ":: quartzite_core"
+        );
+    }
+
+    #[test]
+    fn crate_root_core_itself() {
+        assert_eq!(
+            crate_root_from(None, Some(FoundCrate::Itself), "quartzite-core").to_string(),
+            ":: quartzite_core"
+        );
+    }
+
+    #[test]
+    fn crate_root_fallback() {
+        assert_eq!(ts(None, None), ":: quartzite_core");
+    }
 
     fn ident(s: &str) -> Ident {
         Ident::new(s, Span::call_site())
