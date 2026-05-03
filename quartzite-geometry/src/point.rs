@@ -7,7 +7,11 @@ pub(crate) fn round_f32(x: f32) -> i32 {
     {
         x.round() as i32
     }
-    #[cfg(not(feature = "std"))]
+    #[cfg(all(not(feature = "std"), feature = "libm"))]
+    {
+        libm::roundf(x) as i32
+    }
+    #[cfg(not(any(feature = "std", feature = "libm")))]
     {
         (x + if x >= 0.0 { 0.5 } else { -0.5 }) as i32
     }
