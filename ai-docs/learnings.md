@@ -1,5 +1,16 @@
 # Learnings
 
+### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
+
+**What happened:** Renamed `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked` (which consults the `blocked` flag). Neither function is `unsafe`. This conflicts with `std` ecosystem convention: `_unchecked` is reserved for `unsafe` fns whose invariants the caller must uphold to avoid UB (e.g. `slice::get_unchecked`, `str::from_utf8_unchecked`). The natural unsuffixed name should be the safe, ergonomic default — using `_unchecked` for "skips an unrelated runtime check" misleads readers and reviewers and removes the ergonomic reward for the safe path.
+
+**Rule:** API naming follows `std`:
+- Default `do_something()` is safe/checked. `do_something_unchecked()` is the `unsafe` companion (must include a `# Safety` doc section listing invariants).
+- If the safe default panics, add `try_do_something()` (preferred) or `do_something_checked()` returning `Result`/`Option`.
+- For non-safety "with/without runtime behavior X" variants, pick descriptive names — do not co-opt `_unchecked`/`_checked`.
+
+**Escalated?** AGENTS.md, agent:review-findings, agent:self-review
+
 ### 2026-05-03 — process — breaking public API changes are allowed before first crates.io release
 
 **What happened:** Suggested keeping `Signal::emit` for backward compatibility. User clarified: the project has no downstream clients yet; API can be freely broken until the first release to crates.io.

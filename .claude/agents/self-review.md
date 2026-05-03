@@ -51,6 +51,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - Clones where `&T` would suffice?
 - Error handling: `?` propagation consistent? No silenced errors (`let _ = ...`)?
 - No `#[allow(clippy::...)]` without justification comment?
+- Naming (see AGENTS.md "API Naming"): every new `_unchecked` fn marked `unsafe` with a `# Safety` doc section? No safe fn carries `_unchecked` (or `_checked` co-opted for non-safety variants)? Default unsuffixed name is the safe/ergonomic variant? Any violation → REJECT.
 
 ### 5. Style (AGENTS.md rules)
 - All new source files in Rust (`.rs`)?
