@@ -118,7 +118,7 @@ impl Timer {
                 let sig = Arc::clone(&timeout);
                 // Post emission to the event-loop thread.
                 let _ = post.send(Box::new(move || {
-                    sig.lock().unwrap().emit(&());
+                    sig.lock().unwrap().emit_unchecked(&());
                 }));
                 if single_shot {
                     running.store(false, Ordering::SeqCst);

@@ -79,7 +79,7 @@ fn ac10_connect_signal_and_emit() {
     let id = c.connect_signal("count_changed", cb);
     assert!(id.is_some());
 
-    c.count_changed.emit(&(7,));
+    c.count_changed.emit_unchecked(&(7,));
     assert_eq!(*received.lock().unwrap(), Some(7));
 }
 

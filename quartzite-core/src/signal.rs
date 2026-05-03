@@ -30,7 +30,7 @@ pub enum ConnectionType {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect_typed(|args| println!("direct: {}", args.0), ConnectionType::Direct);
-    /// sig.emit(&(42,));
+    /// sig.emit_unchecked(&(42,));
     /// ```
     Direct,
     /// Invoke the slot exactly once, then automatically disconnect.
@@ -42,8 +42,8 @@ pub enum ConnectionType {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect_typed(|_| {}, ConnectionType::SingleShot);
-    /// sig.emit(&(1,)); // fires once
-    /// sig.emit(&(2,)); // slot already disconnected; no-op
+    /// sig.emit_unchecked(&(1,)); // fires once
+    /// sig.emit_unchecked(&(2,)); // slot already disconnected; no-op
     /// ```
     SingleShot,
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
@@ -192,8 +192,8 @@ impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
 /// `Args` is typically a tuple (e.g. `Signal<(i32, bool)>`). Slots receive a
 /// shared reference to the args tuple.
 ///
-/// `emit` takes `&mut self` to allow `SingleShot` cleanup without interior
-/// mutability. This means a slot cannot call `emit` on the *same* signal
+/// `emit_unchecked` takes `&mut self` to allow `SingleShot` cleanup without interior
+/// mutability. This means a slot cannot call `emit_unchecked` on the *same* signal
 /// instance during emission (the borrow checker prevents it). Re-entrant
 /// emission across *different* signals is fine.
 ///
@@ -272,7 +272,7 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// let id = sig.connect_typed(|args| println!("{}", args.0), ConnectionType::SingleShot);
-    /// sig.emit(&(1,)); // fires once, then disconnects
+    /// sig.emit_unchecked(&(1,)); // fires once, then disconnects
     /// sig.disconnect(id); // safe to call even after auto-disconnect
     /// ```
     pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
@@ -384,6 +384,28 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
+    /// Invoke all connected slots unless `blocked` is `true`.
+    ///
+    /// This is the standard checked entry point. Pass `object_base.signals_blocked()`
+    /// as `blocked`; the signal fires only when the object has not blocked emissions.
+    /// Generated `emit_<signal>` wrappers call this method automatically.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect(|_| {});
+    /// sig.emit_checked(false, &(1,)); // fires — not blocked
+    /// sig.emit_checked(true,  &(2,)); // suppressed — blocked
+    /// ```
+    pub fn emit_checked(&mut self, blocked: bool, args: &Args) {
+        if !blocked {
+            self.emit_unchecked(args);
+        }
+    }
+
     /// Remove the slot identified by `id`. No-op if `id` is not found.
     ///
     /// Runs in O(1) via `IndexMap::shift_remove`, preserving insertion order
@@ -397,7 +419,7 @@ impl<Args: 'static> Signal<Args> {
     /// let mut sig: Signal<()> = Signal::new();
     /// let id = sig.connect(|_| {});
     /// sig.disconnect(id);
-    /// sig.emit(&()); // slot no longer called
+    /// sig.emit_unchecked(&()); // slot no longer called
     /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
         self.slots.shift_remove(&id);
@@ -407,16 +429,22 @@ impl<Args: 'static> Signal<Args> {
         self.auto_slots.shift_remove(&id);
     }
 
-    /// Invoke all connected slots with `args`.
+    /// Invoke all connected slots with `args` unconditionally.
+    ///
+    /// This is the low-level primitive — it does **not** check `signals_blocked`.
+    /// Use the generated `emit_<signal>` wrappers (from `#[derive(Object)]`) for
+    /// blocked-aware emission, or call [`emit_checked`](Self::emit_checked) directly
+    /// and pass `object_base.signals_blocked()` as the guard.
     ///
     /// `SingleShot` slots are called once and then removed in-place.
     /// `Queued` slots are posted to the event-loop thread via the registered
     /// `QueuedDispatcher` (if any).
     /// `Auto` slots inspect the emitting thread: same-thread → direct call;
     /// cross-thread → posted to the dispatcher (silently dropped if none installed).
-    /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
-    /// or `emit` on the *same* signal instance during emission — the borrow checker
-    /// prevents it. Cross-signal mutation from within a slot is fine.
+    /// Because `emit_unchecked` takes `&mut self`, no slot can call `connect`,
+    /// `disconnect`, or `emit_unchecked` on the *same* signal instance during
+    /// emission — the borrow checker prevents it. Cross-signal mutation from within
+    /// a slot is fine.
     ///
     /// # Examples
     ///
@@ -425,9 +453,9 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect(|_| {});
-    /// sig.emit(&(42,));
+    /// sig.emit_unchecked(&(42,));
     /// ```
-    pub fn emit(&mut self, args: &Args) {
+    pub fn emit_unchecked(&mut self, args: &Args) {
         for entry in self.slots.values() {
             (entry.callback)(args);
         }
@@ -526,7 +554,7 @@ mod tests {
         sig.connect(move |args| a2.store(args.0, Ordering::Relaxed));
         sig.connect(move |args| b2.store(args.0, Ordering::Relaxed));
 
-        sig.emit(&(42,));
+        sig.emit_unchecked(&(42,));
 
         assert_eq!(a.load(Ordering::Relaxed), 42);
         assert_eq!(b.load(Ordering::Relaxed), 42);
@@ -545,7 +573,7 @@ mod tests {
 
         let id = sig.connect(move |_args| called2.store(true, Ordering::Relaxed));
         sig.disconnect(id);
-        sig.emit(&(1,));
+        sig.emit_unchecked(&(1,));
 
         assert!(
             !called.load(Ordering::Relaxed),
@@ -572,7 +600,7 @@ mod tests {
         sig.connect(move |_| l3.lock().unwrap().push(3)); // slot C
 
         sig.disconnect(id_b);
-        sig.emit(&());
+        sig.emit_unchecked(&());
 
         assert_eq!(
             *log.lock().unwrap(),
@@ -607,8 +635,8 @@ mod tests {
             d2.fetch_add(1, Ordering::Relaxed);
         });
 
-        sig.emit(&());
-        sig.emit(&());
+        sig.emit_unchecked(&());
+        sig.emit_unchecked(&());
 
         assert_eq!(
             ss_count.load(Ordering::Relaxed),
@@ -640,9 +668,9 @@ mod tests {
             ConnectionType::SingleShot,
         );
 
-        sig.emit(&());
-        sig.emit(&());
-        sig.emit(&());
+        sig.emit_unchecked(&());
+        sig.emit_unchecked(&());
+        sig.emit_unchecked(&());
 
         assert_eq!(
             count.load(Ordering::Relaxed),
@@ -651,12 +679,66 @@ mod tests {
         );
     }
 
+    // ---------------------------------------------------------------------------
+    // emit_checked: AC3 suppressed when blocked, AC4 fires when not blocked
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_checked_suppressed_when_blocked() {
+        let mut sig: Signal<()> = Signal::new();
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+        sig.connect(move |_| called2.store(true, Ordering::Relaxed));
+        sig.emit_checked(true, &());
+        assert!(
+            !called.load(Ordering::Relaxed),
+            "emit_checked with blocked=true must not invoke any slot"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_checked_fires_when_not_blocked() {
+        let mut sig: Signal<(i32,)> = Signal::new();
+        let value = Arc::new(AtomicI32::new(0));
+        let value2 = Arc::clone(&value);
+        sig.connect(move |args| value2.store(args.0, Ordering::Relaxed));
+        sig.emit_checked(false, &(99,));
+        assert_eq!(
+            value.load(Ordering::Relaxed),
+            99,
+            "emit_checked with blocked=false must invoke all slots"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_checked_single_shot_fires_once_when_not_blocked() {
+        let count = Arc::new(AtomicU32::new(0));
+        let count2 = Arc::clone(&count);
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_typed(
+            move |_| {
+                count2.fetch_add(1, Ordering::Relaxed);
+            },
+            ConnectionType::SingleShot,
+        );
+        sig.emit_checked(false, &(1,));
+        sig.emit_checked(false, &(2,)); // slot already removed — must not fire again
+        assert_eq!(
+            count.load(Ordering::Relaxed),
+            1,
+            "SingleShot through emit_checked must fire exactly once"
+        );
+    }
+
     // --- emit on empty signal must not panic ---
 
     #[test]
     fn emit_with_no_slots_does_not_panic() {
         let mut sig: Signal<(bool,)> = Signal::new();
-        sig.emit(&(true,)); // must not panic
+        sig.emit_unchecked(&(true,)); // must not panic
     }
 
     #[test]
@@ -666,7 +748,7 @@ mod tests {
         let id = sig.connect(|_| {});
         sig.disconnect(id);
         sig.disconnect(id); // second disconnect must be a no-op
-        sig.emit(&());
+        sig.emit_unchecked(&());
     }
 
     #[test]
@@ -683,7 +765,7 @@ mod tests {
         sig.connect(move |_| {
             c2.fetch_add(1, Ordering::Relaxed);
         });
-        sig.emit(&());
+        sig.emit_unchecked(&());
 
         assert_eq!(count.load(Ordering::Relaxed), 2);
     }
@@ -694,7 +776,7 @@ mod tests {
         let mut sig: Signal<()> = Signal::new();
         let fake_id = ConnectionId::new();
         sig.disconnect(fake_id); // must not panic
-        sig.emit(&()); // must not panic
+        sig.emit_unchecked(&()); // must not panic
     }
 
     // ---------------------------------------------------------------------------
@@ -721,7 +803,7 @@ mod tests {
         drop(guard_arc);
 
         // Emit after receiver is destroyed — must NOT post.
-        sig.emit(&99);
+        sig.emit_unchecked(&99);
         assert_eq!(
             dispatcher.posted.lock().unwrap().len(),
             pre_len,
@@ -752,7 +834,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(&(1,));
+        sig.emit_unchecked(&(1,));
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -790,7 +872,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(&(42,));
+        sig.emit_unchecked(&(42,));
 
         // Slot must NOT have been called directly during emit.
         assert!(
@@ -832,7 +914,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(&());
+        sig.emit_unchecked(&());
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -870,7 +952,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(&());
+        sig.emit_unchecked(&());
 
         // Dispatch is governed by the foreign receiver_thread_id, not the emitting thread.
         assert!(
@@ -913,7 +995,7 @@ mod tests {
         );
 
         sig.disconnect(id);
-        sig.emit(&());
+        sig.emit_unchecked(&());
 
         assert!(
             !called.load(Ordering::SeqCst),
@@ -946,7 +1028,7 @@ mod tests {
             std::sync::Weak::new(),
             move |_| {},
         );
-        sig.emit(&(1,));
+        sig.emit_unchecked(&(1,));
 
         // Queue must not grow — the foreign entry is still there, but our emit
         // must not have added anything.
@@ -981,7 +1063,7 @@ mod tests {
 
         drop(guard_arc); // receiver destroyed
 
-        sig.emit(&(1,));
+        sig.emit_unchecked(&(1,));
 
         assert!(
             !called.load(Ordering::SeqCst),
@@ -1017,7 +1099,7 @@ mod tests {
 
         drop(guard_arc); // receiver destroyed
 
-        sig.emit(&(99,));
+        sig.emit_unchecked(&(99,));
 
         assert_eq!(
             dispatcher.posted.lock().unwrap().len(),
