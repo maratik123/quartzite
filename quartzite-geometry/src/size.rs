@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign, Mul, MulAssign};
 
-use crate::point::round_f32;
+use crate::round_f32;
 
 macro_rules! impl_size_ops {
     ($Size:ident, $scalar:ty) => {

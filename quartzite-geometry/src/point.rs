@@ -1,21 +1,6 @@
 use core::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
-/// Rounds `x` to the nearest integer, half away from zero.
-#[inline]
-pub(crate) fn round_f32(x: f32) -> i32 {
-    #[cfg(feature = "std")]
-    {
-        x.round() as i32
-    }
-    #[cfg(all(not(feature = "std"), feature = "libm"))]
-    {
-        libm::roundf(x) as i32
-    }
-    #[cfg(not(any(feature = "std", feature = "libm")))]
-    {
-        (x + if x >= 0.0 { 0.5 } else { -0.5 }) as i32
-    }
-}
+use crate::round_f32;
 
 macro_rules! impl_point_ops {
     ($Point:ident, $scalar:ty) => {

@@ -31,8 +31,6 @@ default = ["std", "derive"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
 std = ["quartzite-core/std", "quartzite-geometry/std"]
-## Use libm for math operations in `no_std` environments (recommended when `std` is disabled).
-libm = ["quartzite-geometry/libm"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]

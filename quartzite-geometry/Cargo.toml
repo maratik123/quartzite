@@ -10,14 +10,11 @@ description = "Geometry primitives (Point, Size, Rect, Margins) for quartzite"
 
 [features]
 ## Enable standard-library support. Uses `f32::round()` and other `f32` methods directly.
+## When disabled, [`libm`](https://docs.rs/libm) is used automatically.
 std = []
-## Use [`libm`](https://docs.rs/libm) for math operations when `std` is disabled.
-## Recommended for `no_std` environments. Falls back to a manual implementation if neither
-## `std` nor `libm` is enabled.
-libm = ["dep:libm"]
 
 [dependencies]
-libm = { version = "0.2", optional = true }
+libm = { version = "0.2", default-features = false }
 
 [dev-dependencies]
 rstest = "0.26"

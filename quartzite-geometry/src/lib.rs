@@ -16,3 +16,16 @@ pub use margins::Margins;
 pub use point::{Point, PointF};
 pub use rect::{Rect, RectF};
 pub use size::{Size, SizeF};
+
+/// Rounds `x` to the nearest integer, half away from zero.
+#[inline]
+pub(crate) fn round_f32(x: f32) -> i32 {
+    #[cfg(feature = "std")]
+    {
+        x.round() as i32
+    }
+    #[cfg(not(feature = "std"))]
+    {
+        libm::roundf(x) as i32
+    }
+}
