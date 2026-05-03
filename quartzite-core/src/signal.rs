@@ -384,6 +384,28 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
+    /// Invoke all connected slots unless `blocked` is `true`.
+    ///
+    /// Pass `object_base.signals_blocked()` as `blocked`; the signal fires only
+    /// when the object has not blocked emissions.
+    /// Generated `emit_<signal>` wrappers call this method automatically.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::Signal;
+    ///
+    /// let mut sig: Signal<(i32,)> = Signal::new();
+    /// sig.connect(|_| {});
+    /// sig.emit_unless_blocked(false, &(1,)); // fires — not blocked
+    /// sig.emit_unless_blocked(true,  &(2,)); // suppressed — blocked
+    /// ```
+    pub fn emit_unless_blocked(&mut self, blocked: bool, args: &Args) {
+        if !blocked {
+            self.emit(args);
+        }
+    }
+
     /// Remove the slot identified by `id`. No-op if `id` is not found.
     ///
     /// Runs in O(1) via `IndexMap::shift_remove`, preserving insertion order
@@ -407,16 +429,22 @@ impl<Args: 'static> Signal<Args> {
         self.auto_slots.shift_remove(&id);
     }
 
-    /// Invoke all connected slots with `args`.
+    /// Invoke all connected slots with `args` unconditionally.
+    ///
+    /// This is the low-level primitive — it does **not** check `signals_blocked`.
+    /// Use the generated `emit_<signal>` wrappers (from `#[derive(Object)]`) for
+    /// blocked-aware emission, or call [`emit_unless_blocked`](Self::emit_unless_blocked) directly
+    /// and pass `object_base.signals_blocked()` as the guard.
     ///
     /// `SingleShot` slots are called once and then removed in-place.
     /// `Queued` slots are posted to the event-loop thread via the registered
     /// `QueuedDispatcher` (if any).
     /// `Auto` slots inspect the emitting thread: same-thread → direct call;
     /// cross-thread → posted to the dispatcher (silently dropped if none installed).
-    /// Because `emit` takes `&mut self`, no slot can call `connect`, `disconnect`,
-    /// or `emit` on the *same* signal instance during emission — the borrow checker
-    /// prevents it. Cross-signal mutation from within a slot is fine.
+    /// Because `emit` takes `&mut self`, no slot can call `connect`,
+    /// `disconnect`, or `emit` on the *same* signal instance during
+    /// emission — the borrow checker prevents it. Cross-signal mutation from within
+    /// a slot is fine.
     ///
     /// # Examples
     ///
@@ -648,6 +676,60 @@ mod tests {
             count.load(Ordering::Relaxed),
             1,
             "SingleShot slot must fire exactly once"
+        );
+    }
+
+    // ---------------------------------------------------------------------------
+    // emit_unless_blocked: AC3 suppressed when blocked, AC4 fires when not blocked
+    // ---------------------------------------------------------------------------
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_unless_blocked_suppressed_when_blocked() {
+        let mut sig: Signal<()> = Signal::new();
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+        sig.connect(move |_| called2.store(true, Ordering::Relaxed));
+        sig.emit_unless_blocked(true, &());
+        assert!(
+            !called.load(Ordering::Relaxed),
+            "emit_unless_blocked with blocked=true must not invoke any slot"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_unless_blocked_fires_when_not_blocked() {
+        let mut sig: Signal<(i32,)> = Signal::new();
+        let value = Arc::new(AtomicI32::new(0));
+        let value2 = Arc::clone(&value);
+        sig.connect(move |args| value2.store(args.0, Ordering::Relaxed));
+        sig.emit_unless_blocked(false, &(99,));
+        assert_eq!(
+            value.load(Ordering::Relaxed),
+            99,
+            "emit_unless_blocked with blocked=false must invoke all slots"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_unless_blocked_single_shot_fires_once_when_not_blocked() {
+        let count = Arc::new(AtomicU32::new(0));
+        let count2 = Arc::clone(&count);
+        let mut sig: Signal<(i32,)> = Signal::new();
+        sig.connect_typed(
+            move |_| {
+                count2.fetch_add(1, Ordering::Relaxed);
+            },
+            ConnectionType::SingleShot,
+        );
+        sig.emit_unless_blocked(false, &(1,));
+        sig.emit_unless_blocked(false, &(2,)); // slot already removed — must not fire again
+        assert_eq!(
+            count.load(Ordering::Relaxed),
+            1,
+            "SingleShot through emit_unless_blocked must fire exactly once"
         );
     }
 

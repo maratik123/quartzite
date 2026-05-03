@@ -1,5 +1,62 @@
 # Learnings
 
+### 2026-05-03 — process — commit and push without waiting for explicit approval when inside a /task workflow
+
+**What happened:** All rename changes were complete, verified, and ready to push, but no commit or push was made until the user explicitly asked. The stated reason was the global system instruction "only create commits when requested." The user clarified that this instruction does not override the /task workflow, which already authorizes commits at Steps 8 and 12.
+
+**Rule:** Within a `/task` workflow, committing after each subtask (Step 8) and committing + pushing at Step 12 are part of the authorized workflow — no additional user prompt is needed. The global "ask before committing" instruction applies to ad-hoc work outside a task, not to steps explicitly prescribed by the task skill.
+
+**How to apply:** If currently executing a `/task` (progress file exists or task was just completed), follow the step instructions for committing and pushing. Only pause to ask if something is ambiguous or risky beyond what the task step covers.
+
+**Escalated?** no
+
+### 2026-05-03 — process — include ai-docs/learnings.md in the PR commit when it changes during the task
+
+**What happened:** `ai-docs/learnings.md` was modified while working on a PR but not staged or committed — leaving learnings outside the PR diff and not reviewed alongside the code change that prompted them.
+
+**Rule:** If `ai-docs/learnings.md` is modified during work on a PR (Step 8–11 or a follow-up push), stage and commit it together with the related code changes. Learnings are part of the task deliverable and should be visible in the PR for review.
+
+**How to apply:** Before any `git commit` during a PR task, check `git diff --name-only ai-docs/learnings.md`. If it shows changes, include the file in the commit being staged.
+
+**Escalated?** no
+
+### 2026-05-03 — process — update PR title and body after commits that change public API or scope
+
+**What happened:** After renaming `emit_unchecked`/`emit_checked` → `emit`/`emit_unless_blocked`, the PR title and body still referenced the old names. The user had to prompt explicitly to update them.
+
+**Rule:** After any `git push` that changes public API names, scope, or acceptance criteria, immediately update the PR title and body with `gh pr edit` before reporting done. The PR description is part of the deliverable — it must stay in sync with the actual implementation.
+
+**How to apply:** At the end of Step 12 (or any follow-up push), check whether the PR title/body mentions any symbol, AC, or scope item that the new commits changed. If yes, run `gh pr edit --title "..." --body "..."` before posting the PR URL to the user.
+
+**Escalated?** no
+
+### 2026-05-03 — code-style — `_unchecked`/`_checked` violations in Signal API corrected: emit / emit_unless_blocked
+
+**What happened:** The first implementation named `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked`. Both are safe fns; neither violates memory safety. `_unchecked` implies `unsafe`; `_checked` implies `Result`/`Option` return — both names were wrong per project naming rules. Fix: restore `Signal::emit` as the unconditional primitive; rename `emit_checked` to `emit_unless_blocked` (descriptive of what it does).
+
+**Rule:** For safe "with/without runtime behavior X" variants where neither panics nor involves UB, pick a descriptive name that says what each variant *does* — do not co-opt `_unchecked` or `_checked`. The unsuffixed name goes to the most common/ergonomic variant.
+
+**Escalated?** AGENTS.md
+
+### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
+
+**What happened:** Renamed `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked` (which consults the `blocked` flag). Neither function is `unsafe`. This conflicts with `std` ecosystem convention: `_unchecked` is reserved for `unsafe` fns whose invariants the caller must uphold to avoid UB (e.g. `slice::get_unchecked`, `str::from_utf8_unchecked`). The natural unsuffixed name should be the safe, ergonomic default — using `_unchecked` for "skips an unrelated runtime check" misleads readers and reviewers and removes the ergonomic reward for the safe path.
+
+**Rule:** API naming follows `std`:
+- Default `do_something()` is safe/checked. `do_something_unchecked()` is the `unsafe` companion (must include a `# Safety` doc section listing invariants).
+- If the safe default panics, add `try_do_something()` (preferred) or `do_something_checked()` returning `Result`/`Option`.
+- For non-safety "with/without runtime behavior X" variants, pick descriptive names — do not co-opt `_unchecked`/`_checked`.
+
+**Escalated?** AGENTS.md, agent:review-findings, agent:self-review
+
+### 2026-05-03 — process — breaking public API changes are allowed before first crates.io release
+
+**What happened:** Suggested keeping `Signal::emit` for backward compatibility. User clarified: the project has no downstream clients yet; API can be freely broken until the first release to crates.io.
+
+**Rule:** Do not add backward-compat shims, deprecation layers, or keep old names "for compatibility" while the crate has not been published to crates.io. Rename, remove, or restructure public API freely. Note the release milestone in decisions when it matters.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-02 — code-style — let chains are allowed and formattable in edition 2024
 
 **What happened:** During the macros task, rustfmt errored on a let chain with "let chains are only allowed in Rust 2024 or later". The workspace uses `edition = "2024"`, Rust 1.95, and rustfmt 1.9.0 — all of which support let chains. The error was caused by running rustfmt without `--edition 2024` explicitly, or against a stale binary. The response was to replace let chains wholesale with match expressions as a blanket rule.
@@ -138,6 +195,14 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** Never cite other frameworks (Qt, GTK, WinForms, etc.) as justification for design choices. Design based on Rust idioms, crate ecosystem norms, and explicit reasoning about the problem. "Other library does X" is not a valid argument.
 
 **Escalated?** no
+
+### 2026-05-03 — process — delete progress file immediately on self-review APPROVE, before Step 12
+
+**What happened:** Self-review Round 2 returned APPROVE. Proceeded directly to Step 12 (finalize INDEX.md, commit, PR) without deleting the progress file first. The file was left as an untracked artifact after the PR was created.
+
+**Rule:** On self-review APPROVE, delete `.progress.md` as the *first action* before starting Step 12. The task skill is explicit: "On APPROVE: delete `.progress.md` → proceed to Step 12." The file is transient handoff state; it must not outlive the task.
+
+**Escalated?** skill:task
 
 ### 2026-05-02 — process — verify relative markdown links before committing
 

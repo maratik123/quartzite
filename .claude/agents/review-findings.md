@@ -35,6 +35,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - `pub` where `pub(crate)` would suffice?
 - `no_std` compatibility: any `::std::` paths in crates that declare `#![no_std]`?
 - Lifetime / ownership: surprising footguns for callers?
+- Naming (see AGENTS.md "API Naming"): is every `_unchecked` fn `unsafe` with a `# Safety` doc section? Is the unsuffixed name the safe/ergonomic default? Any safe fn carrying `_unchecked` (or `_checked` used for non-safety variants) → finding.
 
 ### 3. Test coverage
 - Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `quartzite-examples/examples/` are runnable demos — no test block required)

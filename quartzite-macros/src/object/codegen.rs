@@ -201,10 +201,11 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
                 // CONSTRAINT: the notify signal must be `Signal<(PropType,)>` — one
                 // element tuple matching the property's type. Enforced at compile time.
                 quote! {
-                    if !::quartzite::core::AsObject::object_base(this).signals_blocked() {
-                        let __notify_val = v.clone();
-                        this.#sig_ident.emit(&(__notify_val,));
-                    }
+                    let __notify_val = v.clone();
+                    this.#sig_ident.emit_unless_blocked(
+                        ::quartzite::core::AsObject::object_base(this).signals_blocked(),
+                        &(__notify_val,),
+                    );
                 }
             });
             quote! {
@@ -305,10 +306,10 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
             /// Returns immediately without invoking any slots when blocked.
             #[inline]
             pub fn #fn_name(&mut self, #(#params),*) {
-                if ::quartzite::core::AsObject::object_base(self).signals_blocked() {
-                    return;
-                }
-                self.#field.emit(&(#(#arg_idents,)*));
+                self.#field.emit_unless_blocked(
+                    ::quartzite::core::AsObject::object_base(self).signals_blocked(),
+                    &(#(#arg_idents,)*),
+                );
             }
         }
     });
@@ -620,13 +621,16 @@ mod tests {
                 pub changed: Signal<(i32,)>,
             }
         });
-        assert!(out.contains("changed . emit"), "missing signal emit: {out}");
+        assert!(
+            out.contains("changed . emit_unless_blocked"),
+            "missing emit_unless_blocked call on notify signal: {out}"
+        );
         assert!(out.contains("__notify_val"), "missing notify val: {out}");
     }
 
     // write_property notify is guarded by signals_blocked.
     #[test]
-    fn write_property_notify_guarded_by_signals_blocked() {
+    fn write_property_notify_uses_emit_unless_blocked() {
         let out = emit(quote! {
             struct Foo {
                 #[prop(notify = changed)]
@@ -636,10 +640,17 @@ mod tests {
             }
         });
         assert!(
-            out.contains("signals_blocked"),
-            "missing signals_blocked guard in write_property: {out}"
+            out.contains("emit_unless_blocked"),
+            "missing emit_unless_blocked in write_property notify: {out}"
         );
-        assert!(out.contains("changed . emit"), "missing notify emit: {out}");
+        assert!(
+            out.contains("signals_blocked"),
+            "missing signals_blocked arg to emit_unless_blocked in write_property: {out}"
+        );
+        assert!(
+            out.contains("changed . emit_unless_blocked"),
+            "missing emit_unless_blocked on notify signal: {out}"
+        );
     }
 
     // write_property without notify does NOT introduce a signals_blocked check.
@@ -741,8 +752,12 @@ mod tests {
             "missing emit wrapper: {out}"
         );
         assert!(
+            out.contains("emit_unless_blocked"),
+            "missing emit_unless_blocked call in emit wrapper: {out}"
+        );
+        assert!(
             out.contains("signals_blocked"),
-            "missing signals_blocked guard: {out}"
+            "missing signals_blocked arg to emit_unless_blocked: {out}"
         );
     }
 
