@@ -383,3 +383,13 @@ then filter `isResolved == false` before reading any comment bodies.
 **How to apply:** In `/improve` Step 5 (Apply), the first action — before any Edit/Write — is the branch check. If on `master`, `git checkout -b chore/YYYY-MM-DD-improve-<short-name>` carries the working tree over. Edit only after the branch is in place.
 
 **Escalated?** AGENTS.md, agent:self-improve
+
+### 2026-05-06 — code-style — never use .expect() on mutex locks or condvar waits in production code
+
+**What happened:** All `.lock().expect("... poisoned")` and `condvar.wait().expect("...")` calls in `ThreadDriver`, `AppDriver`, and `PoolDriver` were written as panicking. Reviewer flagged all three sites asking why panicking behavior was there and whether it was avoidable.
+
+**Rule:** Mutex poisoning in library code is recoverable. Use `.lock().unwrap_or_else(|e| e.into_inner())` (or `.ok()?` in Result-returning fns) instead of `.expect("... poisoned")`. The `AGENTS.md` library safety idioms section already states this explicitly. Also remove any `# Panics` doc sections from methods that no longer panic after the fix.
+
+**How to apply:** On any new driver, scheduler, or shared-state type: whenever a `Mutex::lock()` or `Condvar::wait()` call appears in production code (i.e., not in tests), use `unwrap_or_else(|e| e.into_inner())` by default. Reserve `.expect("reason")` only for cases where poisoning genuinely means an unrecoverable invariant violation (document why in the reason string).
+
+**Escalated?** no
