@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS — `quartzite` facade audit complete. The crate-level `//!` doc gained a proper third-person summary line (`Provides a single facade crate that re-exports …`) and the previous `## Getting started` section was promoted/renamed to `# Examples` so the convention's always-present rule is satisfied at the crate root. All six module declarations (`core`, `macros`, `runtime`, `geometry`, `events`, `prelude`) now have third-person present indicative summary lines (`Re-exports …` / `Re-exports a curated set …`). `cargo build -p quartzite` PASS; `cargo build -p quartzite --no-default-features` PASS (AC10 final crate); `cargo clippy -p quartzite --all-targets -- -D warnings` PASS; doc gate PASS; `cargo test -p quartzite` PASS (1 unit + 1 doctest); `cargo fmt -- --check` PASS. No new `clippy.toml` entries needed.
+**Last build:** PASS — review-group instruction files updated together (Propagation Rule). `.claude/skills/code-review/SKILL.md` gained a *Doc convention conformance* item in the Step 4 verify checklist; `.claude/agents/review-findings.md` gained a new §6 *Documentation conformance* checklist; `.claude/agents/self-review.md` gained the parallel block under §6 Documentation. All three reference `ai-docs/doc-convention.md` via relative links (verified with `realpath`). Grep cross-check returns exactly the four expected files (the three above + `AGENTS.md`). `cargo build --workspace` PASS (no source touched, sanity confirmed).
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,12 +13,15 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 10 — update review skill + agents (Propagation Rule). Per design § *Implementation breakdown* row 10:
+**Do this immediately:** Subtask 11 — final workspace verification. Run all gates green from a clean state:
 
-- Add the *Doc convention conformance* checklist item to `.claude/agents/review-findings.md` (under §5 Style or new §6 Documentation conformance) and `.claude/agents/self-review.md` (under §6 Documentation).
-- In `.claude/skills/code-review/SKILL.md` add a sentence in the verify step: "Reviewers must check `ai-docs/doc-convention.md` conformance for every changed `pub` item."
-- Run the Propagation grep procedure (`grep -rn "doc-convention" .claude/agents/ .claude/skills/ AGENTS.md`) to confirm no other instruction file references the convention.
-- Verify gate: grep cross-check returns only the three files above.
+- `cargo fmt -- --check`
+- `cargo clippy --workspace --all-targets -- -D warnings`
+- `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace`
+- `cargo test --workspace` (all unit + integration + doctests)
+- `cargo build -p quartzite --no-default-features` (AC10 final re-confirmation)
+
+After all five gates green: PR is ready (subtask 11 closes the task).
 
 ## Subtasks
 
@@ -33,8 +36,8 @@ _Updated: 2026-05-05_
 - [x] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
 - [x] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
 - [x] 9. Audit & fix `quartzite` facade (`src/lib.rs`)
-- [ ] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule) ← CURRENT
-- [ ] 11. Final workspace verification — `cargo fmt --check`, full clippy/doc/test/no_std
+- [x] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule)
+- [ ] 11. Final workspace verification — `cargo fmt --check`, full clippy/doc/test/no_std ← CURRENT
 
 ## Key discoveries (don't re-investigate)
 
@@ -132,6 +135,16 @@ _Updated: 2026-05-05_
 - **AC10 milestone hit:** `cargo build -p quartzite --no-default-features` PASS, completing AC10 across all three crates that exercise the no_std / derive-free path (`quartzite-geometry`, `quartzite-events`, `quartzite`).
 - **AC3 milestone hit:** the audit is now complete for every public item across all six workspace crates (`quartzite-core` ✓ `quartzite-geometry` ✓ `quartzite-events` ✓ `quartzite-macros` ✓ `quartzite-runtime` ✓ `quartzite` facade ✓). AC4 trait-impl exemption was honored throughout (no facade-level trait impls exist to skip).
 
+### Subtask 10 (review skill + agents) notes
+
+- **Three files updated together per Propagation Rule.** `.claude/skills/code-review/SKILL.md`, `.claude/agents/review-findings.md`, `.claude/agents/self-review.md` — all in the same operation. Each cites `ai-docs/doc-convention.md` (relative path adjusted per file depth — `../../../` from the skill, `../../` from the two agent files; both forms verified with `realpath` to resolve to `/home/syt/RustroverProjects/quartzite/ai-docs/doc-convention.md`).
+- **Checklist item shape (parallel across both agent files).** Each lists the same actionable triggers a reviewer can spot: imperative summary line ("Returns" required, not "Return"); missing `# Parameters` on a public fn with ≥1 non-receiver arg; section ordering violation (canonical order pasted in full so reviewers don't have to re-open the convention); missing `# Errors` on a `Result`-returning public fn; missing `# Panics` on a fn that calls `unwrap`/`expect`/indexing/asserts/overflowing arithmetic; missing `# Safety` on every `unsafe fn`; ad-hoc sections (only canonical headings allowed). Each restates the AC4 trait-impl exemption explicitly so reviewers don't flag exempt items. Each includes the design's mechanical heading-scan as a copy-pasteable `rg` one-liner.
+- **Skill placement** (`.claude/skills/code-review/SKILL.md`). New item 6 in the Step 4 final-verify checklist, sitting between the workspace doc gate and the progress-file update. The Gate checklist row was updated from "all five checks pass" → "all six checks pass (build, test, clippy, fmt, doc, doc convention)" so the gate description stays accurate. The skill body cites the convention via `[ai-docs/doc-convention.md](../../../ai-docs/doc-convention.md)`.
+- **Findings-agent placement** (`.claude/agents/review-findings.md`). New §6 *Documentation conformance* section appended after §5 Style, before the existing *What you do NOT check* section. Numbering matches `self-review.md`'s §6 Documentation, which keeps the structure parallel between findings producer and fix validator (per the Propagation Rule sync group).
+- **Self-review-agent placement** (`.claude/agents/self-review.md`). The new block was appended to the existing §6 Documentation section rather than promoted to §7, because the existing §6 already covers `cargo doc` lint-level checks — the doc-convention block extends the same documentation theme with the convention's behavioural-only checks (tense, ordering, trait-impl exemption). Keeping it inside §6 avoids re-numbering §7 *Objection quality* and keeps the agent's checklist contiguous.
+- **Grep cross-check after edits.** `grep -rn "doc-convention" .claude/agents/ .claude/skills/ AGENTS.md` returns exactly four lines: the three files updated in this subtask plus `AGENTS.md` line 60 (the *Code Style* pointer added in subtask 1). No other instruction file references the convention — Propagation Rule procedure step 1 satisfied.
+- **Verify gate.** No source touched, but `cargo build --workspace` PASS confirms the tree still compiles. Markdown links traced via `realpath`: both relative forms resolve correctly to the canonical convention doc.
+
 ### Subtask 4 (`quartzite-geometry`) notes
 
 - `clippy.toml` did **not** need any new entries during this subtask — `PointF` / `RectF` / `SizeF` were already in the seed list, and existing prose carried no other un-backticked CamelCase identifiers.
@@ -169,7 +182,7 @@ _Updated: 2026-05-05_
 | AC9 | NOT_TESTED |
 | AC10 | PASS (subtasks 4+5+9 — `quartzite-geometry --no-default-features`, `quartzite-events --no-default-features`, and `quartzite --no-default-features` (no_std / derive-free path) all build clean) |
 | AC11 | PASS (subtask 7 — codegen now emits `# Parameters` + `# Examples` on `emit_<sig>`, `connect_<sig>_auto`, `connect_<sig>_queued` wrappers, plus single-line summaries on the two `As<Self>` trait-definition accessor methods; all three subtask-6 TDD lock tests now green) |
-| AC12 | NOT_TESTED |
+| AC12 | PASS (subtask 10 — `.claude/skills/code-review/SKILL.md`, `.claude/agents/review-findings.md`, `.claude/agents/self-review.md` updated together (Propagation Rule); each cites `ai-docs/doc-convention.md` and lists the actionable convention checks) |
 | AC13 | PASS (subtask 5 — `MouseEvent::new` carries `# Parameters` for `event_button` and `buttons_state` plus a doctest constructing an event where `event_button = Right` while `buttons_state = Left | Right`, asserting `event_button()` and `buttons_state()` independently — readers cannot conflate the two fields) |
 
 ## Files touched
@@ -211,6 +224,9 @@ _Updated: 2026-05-05_
 - `quartzite-runtime/src/thread_pool.rs` — `# Parameters` on `new` and `spawn`; tense fixes (`Submit` → `Submits`, `Create` → `Creates`); `# Examples` on `ThreadPool` itself
 - `quartzite-runtime/src/timer.rs` — `# Panics` on `connect_timeout`, `disconnect_timeout`, `start`; `# Parameters` on `new`, `connect_timeout`, `disconnect_timeout`, `start`; tense fixes throughout (`Create`/`Connect`/`Disconnect`/`Start`/`Stop`); `# Examples` on `Timer` itself; doctest on `new` and `is_running` upgraded from `no_run` → compiling
 - `quartzite-runtime/tests/object_tree.rs` — renamed `LogObj::new` → `LogObj::boxed` (clippy `new_ret_no_self` — test helper that returns `Box<dyn Object>`, not `Self`); updated 4 call sites in `destroy_is_depth_first_post_order`
+- `.claude/skills/code-review/SKILL.md` — Step 4 verify checklist gained item 6 (*Doc convention conformance*), citing `ai-docs/doc-convention.md` via the `../../../` relative path; gate-checklist row updated from "all five checks pass" → "all six checks pass (build, test, clippy, fmt, doc, doc convention)"
+- `.claude/agents/review-findings.md` — added §6 *Documentation conformance* between §5 Style and *What you do NOT check*; cites `ai-docs/doc-convention.md` via `../../`; lists the actionable triggers (imperative summary, missing `# Parameters`, missing `# Errors`/`# Panics`/`# Safety`, section-ordering violation, ad-hoc sections); explicitly restates the AC4 trait-impl exemption; includes the `rg` heading-scan one-liner
+- `.claude/agents/self-review.md` — appended a parallel *Doc convention conformance* block at the end of §6 Documentation; same shape, same triggers, same `rg` heading-scan, same AC4 exemption; uses the same `../../` relative path
 
 ## Audit worklist (from subtask 2 baseline clippy run)
 

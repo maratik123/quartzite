@@ -72,7 +72,8 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 3. `cargo clippy -- -D warnings` — clean
 4. `cargo fmt -- --check` — clean
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI)
-6. Update progress file: `**Last build:** PASS`
+6. **Doc convention conformance.** For every changed `pub` item, verify it conforms to [`ai-docs/doc-convention.md`](../../../ai-docs/doc-convention.md) (summary tense, `# Parameters` on fns with ≥1 non-receiver arg, strict section order, `# Errors` / `# Panics` / `# Safety` where applicable). Methods inside `impl Trait for Type {}` blocks are exempt; the trait *definition* is not. Mechanical heading scan on changed files: `rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <file>`.
+7. Update progress file: `**Last build:** PASS`
 
 ### Step 5: Self-review loop (max 3 rounds)
 
@@ -121,6 +122,6 @@ EOF
 |---|---|
 | Step 2 | branch confirmed? base_commit recorded? |
 | Step 3 | build green after every 3 fixes? |
-| Step 4 | all five checks pass? |
+| Step 4 | all six checks pass (build, test, clippy, fmt, doc, doc convention)? |
 | Step 5 | self-review APPROVE before commit? |
 | Commit | `major`/`blocker` objections user-approved? progress file deleted? |
