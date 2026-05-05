@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS — review-group instruction files updated together (Propagation Rule). `.claude/skills/code-review/SKILL.md` gained a *Doc convention conformance* item in the Step 4 verify checklist; `.claude/agents/review-findings.md` gained a new §6 *Documentation conformance* checklist; `.claude/agents/self-review.md` gained the parallel block under §6 Documentation. All three reference `ai-docs/doc-convention.md` via relative links (verified with `realpath`). Grep cross-check returns exactly the four expected files (the three above + `AGENTS.md`). `cargo build --workspace` PASS (no source touched, sanity confirmed).
+**Last build:** PASS — all five subtask-11 gates green: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace`, `cargo test --workspace` (all unit + integration + doctests), `cargo build -p quartzite --no-default-features`. Renamed two test methods (`from_part`/`from_impl` → `via_part`/`via_impl` in `quartzite-macros/tests/object_impl.rs`) to clear `clippy::wrong_self_convention` (the `from_` prefix conventionally implies no-`self`). Pre-existing test-only warning surfaced under `--all-targets` (CI's plain `cargo clippy -- -D warnings` doesn't check tests).
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,15 +13,7 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 11 — final workspace verification. Run all gates green from a clean state:
-
-- `cargo fmt -- --check`
-- `cargo clippy --workspace --all-targets -- -D warnings`
-- `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace`
-- `cargo test --workspace` (all unit + integration + doctests)
-- `cargo build -p quartzite --no-default-features` (AC10 final re-confirmation)
-
-After all five gates green: PR is ready (subtask 11 closes the task).
+**Do this immediately:** Implementation done — all 11 subtasks complete, all 13 ACs PASS. Orchestrator continues with `/task` Step 9.5 (update `ai-docs/context.md` if affected; README.md unchanged — no new crate added) → Step 10 (self-review agent) → Step 11 (review fixes if any) → Step 12 (delete this progress file, finalise INDEX.md, move spec+design to `done/`, commit, push, open PR with `Closes #80`).
 
 ## Subtasks
 
@@ -37,7 +29,7 @@ After all five gates green: PR is ready (subtask 11 closes the task).
 - [x] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
 - [x] 9. Audit & fix `quartzite` facade (`src/lib.rs`)
 - [x] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule)
-- [ ] 11. Final workspace verification — `cargo fmt --check`, full clippy/doc/test/no_std ← CURRENT
+- [x] 11. Final workspace verification — all five gates clean
 
 ## Key discoveries (don't re-investigate)
 
@@ -174,12 +166,12 @@ After all five gates green: PR is ready (subtask 11 closes the task).
 | AC1 | PASS (subtask 1 — `ai-docs/doc-convention.md` written) |
 | AC2 | PASS (subtask 1 — AGENTS.md Code Style updated) |
 | AC3 | PASS (subtasks 3+4+5+6+8+9 — every workspace crate audited: `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API, `quartzite-runtime`, and the `quartzite` facade) |
-| AC4 | NOT_TESTED |
+| AC4 | PASS (subtasks 3+4+5+6+8+9 — trait-impl methods inside `impl Trait for Type {}` blocks left untouched throughout; only inherent + trait-definition methods carry the convention; agents were instructed on the exemption in subtask 10) |
 | AC5 | PASS (subtask 2 — five lints in every `lib.rs`) |
-| AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during subtask 3) |
-| AC7 | NOT_TESTED |
-| AC8 | NOT_TESTED |
-| AC9 | NOT_TESTED |
+| AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during the audit) |
+| AC7 | PASS (subtask 11 — `cargo clippy --workspace --all-targets -- -D warnings` clean) |
+| AC8 | PASS (subtask 11 — `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` clean) |
+| AC9 | PASS (subtask 11 — `cargo test --workspace` green; all unit + integration + doctests) |
 | AC10 | PASS (subtasks 4+5+9 — `quartzite-geometry --no-default-features`, `quartzite-events --no-default-features`, and `quartzite --no-default-features` (no_std / derive-free path) all build clean) |
 | AC11 | PASS (subtask 7 — codegen now emits `# Parameters` + `# Examples` on `emit_<sig>`, `connect_<sig>_auto`, `connect_<sig>_queued` wrappers, plus single-line summaries on the two `As<Self>` trait-definition accessor methods; all three subtask-6 TDD lock tests now green) |
 | AC12 | PASS (subtask 10 — `.claude/skills/code-review/SKILL.md`, `.claude/agents/review-findings.md`, `.claude/agents/self-review.md` updated together (Propagation Rule); each cites `ai-docs/doc-convention.md` and lists the actionable convention checks) |
