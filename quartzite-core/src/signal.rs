@@ -14,6 +14,7 @@ use crate::id::ConnectionId;
 use crate::receiver_guard::ReceiverGuard;
 #[cfg(feature = "std")]
 use std::sync::Arc;
+use tracing::trace;
 
 /// Determines how a slot is invoked when a signal is emitted.
 ///
@@ -383,6 +384,7 @@ impl<Args: 'static> Signal<Args> {
                 conn_type: ct,
             },
         );
+        trace!(conn_id = ?id, ?ct, "signal connected");
         id
     }
 
@@ -424,6 +426,7 @@ impl<Args: 'static> Signal<Args> {
                 guard,
             }),
         );
+        trace!(conn_id = ?id, "signal connected (queued)");
         id
     }
 
@@ -486,6 +489,7 @@ impl<Args: 'static> Signal<Args> {
                 callback: Arc::new(f),
             }),
         );
+        trace!(conn_id = ?id, "signal connected (auto)");
         id
     }
 
@@ -537,6 +541,7 @@ impl<Args: 'static> Signal<Args> {
     /// sig.emit(&()); // slot no longer called
     /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
+        trace!(conn_id = ?id, "signal disconnected");
         self.slots.shift_remove(&id);
         #[cfg(feature = "std")]
         self.queued_slots.shift_remove(&id);
@@ -576,6 +581,7 @@ impl<Args: 'static> Signal<Args> {
     /// sig.emit(&(42,));
     /// ```
     pub fn emit(&mut self, args: &Args) {
+        trace!(direct_slots = self.slots.len(), "signal emit");
         for entry in self.slots.values() {
             (entry.callback)(args);
         }

@@ -20,6 +20,7 @@ impl Counter {
 }
 
 fn main() {
+    env_logger::init();
     let mut c = Counter {
         object_base: ObjectBase::new(),
         count: 0,

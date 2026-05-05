@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 use quartzite_core::{ObjectId, traits::Object};
 use slotmap::{DefaultKey, SlotMap};
+use tracing::debug;
 
 use crate::object_id::SlotKey;
 
@@ -83,6 +84,7 @@ impl ObjectTree {
             self.parent_map.insert(id, pid);
             self.children_map.entry(pid).or_default().push(id);
         }
+        debug!(object_id = ?id, parent_id = ?parent_id, "object tree: inserted");
         id
     }
 
@@ -213,6 +215,7 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn reparent(&mut self, id: ObjectId, new_parent: Option<ObjectId>) {
+        debug!(object_id = ?id, new_parent_id = ?new_parent, "object tree: reparent");
         self.detach_from_parent(id);
         if let Some(pid) = new_parent {
             self.parent_map.insert(id, pid);
@@ -271,6 +274,7 @@ impl ObjectTree {
     /// ```
     pub fn rename(&mut self, id: ObjectId, new_name: impl Into<String>) {
         let new_name = new_name.into();
+        debug!(object_id = ?id, new_name, "object tree: rename");
         // Remove from old name bucket.
         if let Some(old_name) = self.with(id, |obj| obj.object_base().name().map(str::to_owned)) {
             if let Some(old_name) = old_name {
@@ -336,6 +340,7 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn destroy(&mut self, id: ObjectId) {
+        debug!(object_id = ?id, "object tree: destroy");
         // Collect subtree in depth-first post-order (leaves first).
         let mut order: Vec<ObjectId> = Vec::new();
         self.collect_post_order(id, &mut order);
@@ -383,6 +388,7 @@ impl ObjectTree {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::{Itertools, assert_equal};
     use quartzite_core::{
         id::ConnectionId,
         meta::MetaObject,
@@ -659,9 +665,11 @@ mod tests {
         let a = tree.insert(StubObject::named("dup"), None);
         let b = tree.insert(StubObject::named("dup"), None);
         let ids = tree.find_by_name("dup");
-        assert!(ids.contains(&a), "missing a: {ids:?}");
-        assert!(ids.contains(&b), "missing b: {ids:?}");
-        assert_eq!(ids.len(), 2);
+        let key = |id: &&ObjectId| id.raw();
+        assert_equal(
+            ids.iter().sorted_unstable_by_key(key),
+            [a, b].iter().sorted_unstable_by_key(key),
+        );
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use itertools::Itertools;
 use quartzite_core::{
     ObjectId,
     id::ConnectionId,
@@ -243,12 +244,14 @@ fn destroy_is_depth_first_post_order() {
     let order = log.lock().unwrap().clone();
     assert_eq!(order.len(), 4, "all 4 nodes must be destroyed");
 
-    let gc_pos = order.iter().position(|n| n == "gc").unwrap();
-    let c1_pos = order.iter().position(|n| n == "c1").unwrap();
-    let root_pos = order.iter().position(|n| n == "root").unwrap();
-
-    assert!(gc_pos < c1_pos, "gc must be destroyed before its parent c1");
-    assert!(c1_pos < root_pos, "c1 must be destroyed before root");
+    let positions: Vec<usize> = ["gc", "c1", "root"]
+        .iter()
+        .map(|&n| order.iter().position(|x| x == n).unwrap())
+        .collect();
+    assert!(
+        positions.iter().tuple_windows().all(|(a, b)| a < b),
+        "expected gc < c1 < root in destruction order, got: {order:?}",
+    );
     assert_eq!(order.last().unwrap(), "root", "root must be destroyed last");
 
     let unknown = ObjectId::new();

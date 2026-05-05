@@ -330,6 +330,16 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+### 2026-05-05 — tooling — use `0.x` version format for 0.x.y deps, not bare `0`
+
+**What happened:** Added `tracing = "0"` and `itertools = "0"` to Cargo.toml. AGENTS.md rule is "use `0.x` for `0.x.y` versions — never pin the patch." The correct forms are `tracing = "0.1"` (tracing is 0.1.x) and `itertools = "0.14"` (itertools is 0.14.x). Bare `"0"` is overly broad; it would accept any 0.x.y release including incompatible minor versions.
+
+**Rule:** Check the resolved minor version (from `cargo update` output or crates.io) and use `0.x` — e.g. `"0.1"`, `"0.14"`. `"0"` is wrong because Cargo treats 0.x as breaking per minor version; `"0.x"` pins to that minor line.
+
+**How to apply:** When adding a new 0.x.y dep, look at the version that `cargo update` resolves (e.g., `tracing v0.1.44`) and write `"0.1"`, not `"0"`. Same applies to `{ version = "0.x", ... }` inline tables.
+
+**Escalated?** no
+
 ### 2026-05-05 — process — switch to feature branch BEFORE editing files in `/improve` (and similar skills)
 
 **What happened:** During `/improve`, all instruction-file edits were applied while on `master`. Only at commit time was the branch-switch made reactively (`git checkout -b chore/...`). AGENTS.md says "create a feature branch before any commits" — that was technically respected (no commits on master), but the spirit (don't accumulate work on master) was broken. `/task` already gates this at Step 8; `/improve` had no equivalent gate.

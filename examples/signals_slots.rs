@@ -13,6 +13,7 @@ struct Greeter {
 impl Greeter {}
 
 fn main() {
+    env_logger::init();
     let mut g = Greeter {
         object_base: ObjectBase::new(),
         greeted: Signal::new(),

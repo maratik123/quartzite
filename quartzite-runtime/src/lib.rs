@@ -3,6 +3,18 @@
 //! Entry point is [`Application::new`](application::Application::new), which initialises the
 //! singleton and installs the queued dispatcher. Call [`Application::exec`](application::Application::exec)
 //! on the main thread to run the event loop.
+//!
+//! ## Logging
+//!
+//! quartzite emits diagnostics via [`tracing`]. When the `std` feature is enabled (the default),
+//! the `tracing/log` bridge is active: any [`log`](https://docs.rs/log)-compatible subscriber
+//! (e.g. [`env_logger`](https://docs.rs/env_logger)) automatically receives quartzite's
+//! diagnostics. Install the subscriber before creating an [`Application`]:
+//!
+//! ```rust,no_run
+//! env_logger::init(); // or any other log-compatible subscriber
+//! // … create Application, run event loop
+//! ```
 #![deny(rustdoc::broken_intra_doc_links)]
 #![warn(clippy::missing_errors_doc)]
 #![warn(clippy::missing_panics_doc)]
