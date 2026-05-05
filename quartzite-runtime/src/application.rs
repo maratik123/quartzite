@@ -245,14 +245,14 @@ impl Drop for Application {
 /// // Returns Err(NotLive) before Application::new()
 /// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive));
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum TreeAccessError {
     /// No [`Application`] is currently live in this process.
     #[error("no Application is currently live")]
     NotLive,
-    /// The [`ObjectTree`] mutex is poisoned.
-    #[error("ObjectTree mutex is poisoned")]
-    Poisoned,
+    /// The [`ObjectTree`] mutex is poisoned; contains the error description from [`std::sync::PoisonError`].
+    #[error("ObjectTree mutex is poisoned: {0}")]
+    Poisoned(String),
 }
 
 /// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
@@ -284,7 +284,7 @@ pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAcces
         .ok_or(TreeAccessError::NotLive)?
         .object_tree
         .lock()
-        .map_err(|_| TreeAccessError::Poisoned)?;
+        .map_err(|e| TreeAccessError::Poisoned(e.to_string()))?;
     Ok(f(&guard))
 }
 
