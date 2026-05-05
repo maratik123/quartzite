@@ -57,6 +57,14 @@ Why hook and not rule: [explanation]
 
 ### Step 5: Apply after confirmation
 
+**First action — branch check.** Run `git branch --show-current`. If it returns `master` and the planned changes are intended for a PR, create a feature branch *before any file edit*:
+
+```bash
+git checkout -b chore/YYYY-MM-DD-improve-<short-name>
+```
+
+`git checkout -b` carries the (still-uncommitted) working tree over. Discovering you're on master *after* editing forces a reactive recovery — switching at commit time technically respects AGENTS.md "no commits on master" but breaks the spirit (working tree should never accumulate on master). Switch first, edit second.
+
 Number all proposals. Let user choose. Apply the selected:
 - Update `AGENTS.md` / skill / agent files via Edit
 - Update `Escalated?` field in `ai-docs/learnings.md` for processed entries

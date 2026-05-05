@@ -319,3 +319,23 @@ then filter `isResolved == false` before reading any comment bodies.
 **How to apply:** Add a "re-read PR body" step to your post-push checklist whenever the open-PR-on-branch state holds. Cheapest shape: `gh pr view <N> --json title,body | rg -i '<thing-you-just-changed>'` — if any hit, the body needs an edit. The cost of an extra `gh pr edit` is minutes; the cost of a reviewer reading a body that contradicts the diff is wasted reviewer trust.
 
 **Escalated?** AGENTS.md, skill:task
+
+### 2026-05-05 — process — `gh pr view` not needed immediately after `gh pr create`
+
+**What happened:** After `gh pr create` for PR #85, ran `gh pr view 85` to "apply the new unconditional read rule". The body returned was exactly what was just authored a second earlier — the read was wasted work. The "PR body sync after every push" rule treats `gh pr create` as if it were a subsequent push that might have invalidated the body, but in fact the body and the push are authored together: there is nothing to discover.
+
+**Rule:** The "PR body sync after every push" rule does not apply to the push that immediately precedes `gh pr create`. The body at that moment is what you just authored; nothing to discover. The rule starts firing on the *next* push to the branch.
+
+**How to apply:** After `gh pr create` returns the URL, stop — do not re-read the body until at least one further `git push` happens. From the *second* push onward, the unconditional read rule applies.
+
+**Escalated?** AGENTS.md
+
+### 2026-05-05 — process — switch to feature branch BEFORE editing files in `/improve` (and similar skills)
+
+**What happened:** During `/improve`, all instruction-file edits were applied while on `master`. Only at commit time was the branch-switch made reactively (`git checkout -b chore/...`). AGENTS.md says "create a feature branch before any commits" — that was technically respected (no commits on master), but the spirit (don't accumulate work on master) was broken. `/task` already gates this at Step 8; `/improve` had no equivalent gate.
+
+**Rule:** Skills that produce commits intended for a PR (currently: `/improve`; future: any new skill in the same shape) must check `git branch --show-current` and create a feature branch *before any file edit*, not just before commit.
+
+**How to apply:** In `/improve` Step 5 (Apply), the first action — before any Edit/Write — is the branch check. If on `master`, `git checkout -b chore/YYYY-MM-DD-improve-<short-name>` carries the working tree over. Edit only after the branch is in place.
+
+**Escalated?** AGENTS.md, agent:self-improve
