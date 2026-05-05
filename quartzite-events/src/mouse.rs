@@ -67,14 +67,14 @@ pub type MouseButtons = BitFlags<MouseButton>;
 ///     Default::default(),
 ///     MouseEventKind::Press,
 /// );
-/// assert!(e.button().contains(MouseButton::Left));
+/// assert!(e.event_button().contains(MouseButton::Left));
 /// ```
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MouseEvent {
     position: Point,
     global_position: Point,
-    button: MouseButtons,
-    buttons: MouseButtons,
+    event_button: MouseButtons,
+    buttons_state: MouseButtons,
     modifiers: KeyModifiers,
     kind: MouseEventKind,
 }
@@ -102,16 +102,16 @@ impl MouseEvent {
     pub fn new(
         position: Point,
         global_position: Point,
-        button: MouseButtons,
-        buttons: MouseButtons,
+        event_button: MouseButtons,
+        buttons_state: MouseButtons,
         modifiers: KeyModifiers,
         kind: MouseEventKind,
     ) -> Self {
         Self {
             position,
             global_position,
-            button,
-            buttons,
+            event_button,
+            buttons_state,
             modifiers,
             kind,
         }
@@ -158,11 +158,11 @@ impl MouseEvent {
     /// use quartzite_geometry::Point;
     ///
     /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::Right.into(), MouseButton::Right.into(), Default::default(), MouseEventKind::Press);
-    /// assert!(e.button().contains(MouseButton::Right));
+    /// assert!(e.event_button().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub fn button(&self) -> MouseButtons {
-        self.button
+    pub fn event_button(&self) -> MouseButtons {
+        self.event_button
     }
 
     /// Returns a bitmask of all currently pressed buttons.
@@ -175,11 +175,11 @@ impl MouseEvent {
     ///
     /// let pressed: MouseButtons = MouseButton::Left | MouseButton::Right;
     /// let e = MouseEvent::new(Point::new(0, 0), Point::new(0, 0), MouseButton::Left.into(), pressed, Default::default(), MouseEventKind::Press);
-    /// assert!(e.buttons().contains(MouseButton::Right));
+    /// assert!(e.buttons_state().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub fn buttons(&self) -> MouseButtons {
-        self.buttons
+    pub fn buttons_state(&self) -> MouseButtons {
+        self.buttons_state
     }
 
     /// Returns the active keyboard modifiers at the time of the event.
@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn mouse_event_button_left() {
         let e = make_event(MouseEventKind::Press, MouseButton::Left.into());
-        assert!(e.button().contains(MouseButton::Left));
+        assert!(e.event_button().contains(MouseButton::Left));
     }
 
     #[test]
@@ -277,6 +277,6 @@ mod tests {
             KeyModifiers::empty(),
             MouseEventKind::Press,
         );
-        assert!(e.buttons().contains(MouseButton::Right));
+        assert!(e.buttons_state().contains(MouseButton::Right));
     }
 }
