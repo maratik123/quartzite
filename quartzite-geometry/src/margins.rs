@@ -25,6 +25,15 @@ pub struct Margins {
 impl Margins {
     /// Creates margins with the given values for each edge.
     ///
+    /// # Parameters
+    ///
+    /// - `left`: inset applied to the left edge, in pixels.
+    /// - `top`: inset applied to the top edge, in pixels.
+    /// - `right`: inset applied to the right edge, in pixels.
+    /// - `bottom`: inset applied to the bottom edge, in pixels.
+    ///
+    /// Positive values shrink the target rect; negative values expand it.
+    ///
     /// # Examples
     ///
     /// ```
@@ -101,6 +110,10 @@ impl Margins {
     }
 
     /// Applies these margins to `rect`, shrinking each edge inward.
+    ///
+    /// # Parameters
+    ///
+    /// - `rect`: source rectangle to inset by these margins.
     ///
     /// # Examples
     ///

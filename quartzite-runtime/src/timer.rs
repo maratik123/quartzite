@@ -13,8 +13,21 @@ use quartzite_core::{ConnectionId, signal::Signal};
 /// Fires its `timeout` signal at a given interval via the event loop.
 ///
 /// The background thread posts a closure to the event loop each interval.
-/// `Signal` is not `Sync`, so the signal is wrapped in `Arc<Mutex<>>` to allow
+/// `Signal` is not `Sync`, so the signal is wrapped in `Arc<Mutex<...>>` to allow
 /// the background thread to capture and emit it on the event-loop thread.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::time::Duration;
+/// use quartzite_runtime::{EventLoop, Timer};
+///
+/// let el = EventLoop::new();
+/// let mut timer = Timer::new(Duration::from_millis(100));
+/// timer.connect_timeout(|_| println!("tick"));
+/// timer.start(el.sender());
+/// timer.stop();
+/// ```
 pub struct Timer {
     /// Duration between `timeout` signal emissions.
     pub interval: Duration,
@@ -28,13 +41,17 @@ pub struct Timer {
 }
 
 impl Timer {
-    /// Create a new repeating timer that fires every `interval`.
+    /// Creates a new repeating timer that fires every `interval`.
     ///
     /// The timer is not started; call [`start`](Self::start) to begin firing.
     ///
+    /// # Parameters
+    ///
+    /// - `interval`: duration between successive `timeout` emissions.
+    ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use std::time::Duration;
     /// use quartzite_runtime::Timer;
     ///
@@ -51,12 +68,21 @@ impl Timer {
         }
     }
 
-    /// Connect a slot to the `timeout` signal. The closure must be `Send`
-    /// because it may be called on the event-loop thread (not the caller's thread).
+    /// Connects a slot to the `timeout` signal. The closure must be `Send` because it
+    /// is called on the event-loop thread, not the caller's thread.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: callback invoked once per `timeout` emission.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal signal mutex is poisoned (only possible if a previous
+    /// holder panicked while emitting `timeout`).
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use std::time::Duration;
     /// use quartzite_runtime::Timer;
     ///
@@ -68,11 +94,20 @@ impl Timer {
         self.timeout.lock().unwrap().connect(f)
     }
 
-    /// Disconnect a previously connected timeout slot.
+    /// Disconnects a previously connected timeout slot.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier returned by a previous [`connect_timeout`](Self::connect_timeout) call.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal signal mutex is poisoned (only possible if a previous
+    /// holder panicked while emitting `timeout`).
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use std::time::Duration;
     /// use quartzite_runtime::Timer;
     ///
@@ -84,7 +119,18 @@ impl Timer {
         self.timeout.lock().unwrap().disconnect(id);
     }
 
-    /// Start the timer. `post` must be a `Sender` cloned from the active `EventLoop`.
+    /// Starts the timer. The background thread posts emissions through `post` to the
+    /// event loop. No-op if the timer is already running.
+    ///
+    /// # Parameters
+    ///
+    /// - `post`: a `Sender` cloned from the active [`EventLoop`](crate::EventLoop) — used to
+    ///   post `timeout` emissions onto the event-loop thread.
+    ///
+    /// # Panics
+    ///
+    /// Posted closures lock the internal signal mutex when emitting and so panic if
+    /// it is poisoned (only possible if a previous holder panicked while emitting).
     ///
     /// # Examples
     ///
@@ -129,7 +175,7 @@ impl Timer {
         self.handle = Some(handle);
     }
 
-    /// Stop the timer and join the background thread.
+    /// Stops the timer and joins the background thread.
     ///
     /// No-op if the timer is not running. Blocks until the background thread exits.
     ///

@@ -10,8 +10,20 @@ use std::{
 
 const TICK_MS: u64 = 1;
 
-/// Single-threaded event loop. Run `run()` on the main thread; post work from
-/// any thread via `post()`.
+/// Single-threaded event loop.
+///
+/// Call [`run`](Self::run) on the main thread; post work from any thread via
+/// [`post`](Self::post).
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::EventLoop;
+///
+/// let el = EventLoop::new();
+/// el.post(Box::new(|| println!("hello")));
+/// el.stop();
+/// ```
 pub struct EventLoop {
     sender: Sender<Box<dyn FnOnce() + Send>>,
     receiver: std::sync::Mutex<Receiver<Box<dyn FnOnce() + Send>>>,
@@ -19,8 +31,9 @@ pub struct EventLoop {
 }
 
 impl EventLoop {
-    /// Create a new, idle event loop. Call [`run`](Self::run) on the intended
-    /// loop thread to start processing events.
+    /// Creates a new, idle event loop.
+    ///
+    /// Call [`run`](Self::run) on the intended loop thread to start processing events.
     ///
     /// # Examples
     ///
@@ -39,8 +52,12 @@ impl EventLoop {
         }
     }
 
-    /// Post a closure to be executed on the event-loop thread. Callable from
-    /// any thread.
+    /// Posts a closure to be executed on the event-loop thread. Callable from any thread.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: closure to run on the event-loop thread; runs in FIFO order with other
+    ///   posted closures.
     ///
     /// # Examples
     ///
@@ -54,8 +71,8 @@ impl EventLoop {
         let _ = self.sender.send(f);
     }
 
-    /// Clone the sender so callers can post without holding a reference to the
-    /// loop itself.
+    /// Returns a clone of the sender so callers can post without holding a reference to
+    /// the loop itself.
     ///
     /// # Examples
     ///
@@ -71,7 +88,13 @@ impl EventLoop {
         self.sender.clone()
     }
 
-    /// Run the event loop on the calling thread. Blocks until `stop()` is called.
+    /// Runs the event loop on the calling thread. Blocks until [`stop`](Self::stop) is called.
+    ///
+    /// # Panics
+    ///
+    /// Panics if another thread is already inside `run` for this loop — the receiver
+    /// mutex is already held — or if a previous holder panicked while it was held
+    /// (poisoned mutex). In normal use `run` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -103,7 +126,7 @@ impl EventLoop {
         }
     }
 
-    /// Signal the event loop to stop. May be called from any thread.
+    /// Signals the event loop to stop. May be called from any thread.
     ///
     /// # Examples
     ///

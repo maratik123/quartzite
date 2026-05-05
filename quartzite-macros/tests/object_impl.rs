@@ -42,7 +42,7 @@ struct MultiBlock {
 #[object_part]
 impl MultiBlock {
     #[slot]
-    fn from_part(&mut self) {
+    fn via_part(&mut self) {
         self.value += 1;
     }
 }
@@ -51,7 +51,7 @@ impl MultiBlock {
 #[object_impl]
 impl MultiBlock {
     #[invokable]
-    fn from_impl(&self) -> i32 {
+    fn via_impl(&self) -> i32 {
         self.value * 3
     }
 }
@@ -154,12 +154,12 @@ fn ac4_multi_block_methods_dispatched() {
         object_base: ObjectBase::new(),
         value: 0,
     };
-    // from_part: came from #[object_part] block
-    let r1 = mb.invoke_method("from_part", &[]);
+    // via_part: came from #[object_part] block
+    let r1 = mb.invoke_method("via_part", &[]);
     assert_eq!(r1, Some(Value::Null));
     assert_eq!(mb.value, 1);
-    // from_impl: came from #[object_impl] terminal block
-    let r2 = mb.invoke_method("from_impl", &[]);
+    // via_impl: came from #[object_impl] terminal block
+    let r2 = mb.invoke_method("via_impl", &[]);
     assert_eq!(r2, Some(Value::Int(3)));
 }
 

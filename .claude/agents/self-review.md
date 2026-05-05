@@ -69,6 +69,23 @@ Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 
 
 On any error or warning → REJECT with the exact rustdoc message as the finding.
 
+**Doc convention conformance ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md)).** For every changed `pub` item — `pub fn` / `pub struct` / `pub enum` / `pub trait` / `pub union` / `pub macro_rules!` and every method declared inside a `pub trait` body — verify the convention. **Trait-impl exemption (AC4):** methods inside `impl Trait for Type {}` blocks are EXEMPT — do NOT REJECT for missing convention sections on them. The trait *definition* is **not** exempt.
+
+Mechanical heading scan to spot missing or out-of-order sections in a changed file:
+
+```bash
+rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <changed-file>
+```
+
+REJECT on any of:
+- **Imperative summary line** (`Return`, `Create`, `Construct`) instead of third-person present indicative (`Returns`, `Creates`, `Constructs`).
+- **Missing `# Parameters`** on a public fn / method with ≥1 argument other than `self` / `&self` / `&mut self`.
+- **Section ordering violation.** Required order: Summary → free-form prose → `# Parameters` → `# Returns` → `# Type parameters` → `# Lifetimes` → `# Errors` → `# Panics` → `# Safety` → `# Examples` → `# See also`.
+- **Missing `# Errors`** on a `Result`-returning public fn (also flagged by `clippy::missing_errors_doc`).
+- **Missing `# Panics`** on a fn that calls `unwrap()` / `expect(…)`, indexes / slices a collection, asserts an invariant, or performs arithmetic that can overflow on plausible inputs (also flagged by `clippy::missing_panics_doc`).
+- **Missing `# Safety`** on every `unsafe fn` (also flagged by `clippy::missing_safety_doc`).
+- **Ad-hoc sections** (e.g. stray `# Notes`) — only the canonical headings above are allowed.
+
 ### 7. Objection quality (round > 1 only)
 
 For each `⚠️ Objected` item in the progress file:

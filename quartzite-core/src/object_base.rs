@@ -75,6 +75,11 @@ impl ObjectBase {
 
     /// Creates an `ObjectBase` with the given name and a freshly allocated [`ObjectId`].
     ///
+    /// # Parameters
+    ///
+    /// - `name`: human-readable identifier; any `Into<String>` value (e.g.
+    ///   `&str`, `String`) is accepted.
+    ///
     /// # Examples
     ///
     /// ```
@@ -112,6 +117,11 @@ impl ObjectBase {
     ///
     /// Prefer calling `ObjectTree::rename` or `ObjectTree::clear_name` in production code
     /// so the name index stays consistent.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: new name to store; `None` clears the name (object becomes
+    ///   anonymous). The previous name, if any, is dropped.
     ///
     /// # Examples
     ///

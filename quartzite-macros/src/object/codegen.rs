@@ -295,6 +295,7 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
     let methods = signals.iter().map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("emit_{field}"), field.span());
+        let fn_name_str = fn_name.to_string();
         let args_ty = &s.args_ty;
         let elems = tuple_elems(args_ty);
         let params: Vec<TokenStream> = elems
@@ -308,11 +309,37 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
         let arg_idents: Vec<Ident> = (0..elems.len())
             .map(|i| Ident::new(&format!("arg{i}"), field.span()))
             .collect();
+        let parameters_doc = if elems.is_empty() {
+            quote! {}
+        } else {
+            let bullets = (0..elems.len()).map(|i| {
+                let bullet = format!(
+                    " - `arg{i}`: the {i}-th positional argument forwarded to slots."
+                );
+                quote! { #[doc = #bullet] }
+            });
+            quote! {
+                #[doc = ""]
+                #[doc = " # Parameters"]
+                #[doc = ""]
+                #(#bullets)*
+            }
+        };
+        let example_args = (0..elems.len())
+            .map(|i| format!("arg{i}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let example_doc = format!(
+            " # Examples\n\n```no_run\n# fn example(obj: &mut Emitter) {{\n#     obj.{fn_name_str}({example_args});\n# }}\n```"
+        );
         quote! {
-            /// Emits this signal unless signals are blocked on this object.
-            ///
-            /// Checks [`quartzite::core::ObjectBase::signals_blocked`] before firing.
-            /// Returns immediately without invoking any slots when blocked.
+            #[doc = " Emits this signal unless signals are blocked on this object."]
+            #[doc = ""]
+            #[doc = " Checks [`quartzite::core::ObjectBase::signals_blocked`] before firing."]
+            #[doc = " Returns immediately without invoking any slots when blocked."]
+            #parameters_doc
+            #[doc = ""]
+            #[doc = #example_doc]
             #[inline]
             pub fn #fn_name(&mut self, #(#params),*) {
                 self.#field.emit_unless_blocked(
@@ -337,12 +364,23 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
     let methods = signals.iter().map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("connect_{field}_auto"), field.span());
+        let fn_name_str = fn_name.to_string();
         let args_ty = &s.args_ty;
+        let example_doc = format!(
+            " # Examples\n\n```no_run\n# fn example(obj: &mut Emitter, receiver: &quartzite::core::ObjectBase) {{\n#     obj.{fn_name_str}(receiver, |_| {{}});\n# }}\n```"
+        );
         quote! {
-            /// Connects this signal to a slot with `Auto` delivery.
-            ///
-            /// Same-thread emits call `f` directly; cross-thread emits post to the dispatcher.
-            /// The slot is silently skipped once `receiver` has been dropped.
+            #[doc = " Connects this signal to a slot with `Auto` delivery."]
+            #[doc = ""]
+            #[doc = " Same-thread emits call `f` directly; cross-thread emits post to the dispatcher."]
+            #[doc = " The slot is silently skipped once `receiver` has been dropped."]
+            #[doc = ""]
+            #[doc = " # Parameters"]
+            #[doc = ""]
+            #[doc = " - `receiver`: object whose [`quartzite::core::ReceiverGuard`] keeps the slot alive; the slot is silently skipped once the guard is dropped."]
+            #[doc = " - `f`: closure invoked on each emit with the signal's argument tuple."]
+            #[doc = ""]
+            #[doc = #example_doc]
             #[cfg(feature = "std")]
             #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
             #[inline]
@@ -387,11 +425,17 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
             " # Examples\n\n```no_run\n# fn example(obj: &mut Receiver, receiver: &quartzite::core::ObjectBase) {{\n#     obj.{fn_name_str}(receiver, |_| {{}});\n# }}\n```"
         );
         quote! {
-            /// Connects this signal to a slot with `Queued` delivery.
-            ///
-            /// The slot is always posted to the receiver's dispatcher, even when emitted
-            /// from the same thread. The slot is silently skipped once `receiver` has been
-            /// dropped.
+            #[doc = " Connects this signal to a slot with `Queued` delivery."]
+            #[doc = ""]
+            #[doc = " The slot is always posted to the receiver's dispatcher, even when emitted"]
+            #[doc = " from the same thread. The slot is silently skipped once `receiver` has been"]
+            #[doc = " dropped."]
+            #[doc = ""]
+            #[doc = " # Parameters"]
+            #[doc = ""]
+            #[doc = " - `receiver`: object whose [`quartzite::core::ReceiverGuard`] keeps the slot alive; the slot is silently skipped once the guard is dropped."]
+            #[doc = " - `f`: closure posted to the receiver's [`quartzite::core::QueuedDispatcher`] on each emit."]
+            #[doc = ""]
             #[doc = #example_doc]
             #[cfg(feature = "std")]
             #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
@@ -1035,6 +1079,57 @@ mod tests {
         assert!(
             out[impl_start..].contains("emit_ticked"),
             "emit_ticked not found in outer impl block: {out}"
+        );
+    }
+
+    // Doc-convention contract (TDD lock for subtask 7): `emit_<sig>` wrappers
+    // must carry both `# Parameters` and `# Examples` sections in their docs.
+    #[test]
+    fn emit_wrapper_doc_contains_parameters_and_examples() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub moved: Signal<(i32, i32)>,
+            }
+        });
+        assert!(
+            out.contains("# Parameters"),
+            "missing # Parameters in emit_<sig> wrapper doc: {out}"
+        );
+        assert!(
+            out.contains("# Examples"),
+            "missing # Examples in emit_<sig> wrapper doc: {out}"
+        );
+    }
+
+    // Doc-convention contract (TDD lock for subtask 7): `connect_<sig>_auto`
+    // wrappers must carry both `# Parameters` and `# Examples` sections.
+    #[test]
+    fn connect_auto_wrapper_doc_contains_parameters_and_examples() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        // Locate the connect_auto impl block to scope the assertion: there are
+        // three `impl Foo` blocks (emit, connect_auto, connect_queued); the
+        // connect_queued block already contains `# Examples`, so a workspace-
+        // wide `out.contains` would pass on it. Restrict to the auto block.
+        let positions: Vec<usize> = out.match_indices("impl Foo").map(|(i, _)| i).collect();
+        assert_eq!(
+            positions.len(),
+            3,
+            "expected 3 impl Foo blocks (emit, connect_auto, connect_queued): {out}"
+        );
+        let auto_section = &out[positions[1]..positions[2]];
+        assert!(
+            auto_section.contains("# Parameters"),
+            "missing # Parameters in connect_<sig>_auto wrapper doc: {auto_section}"
+        );
+        assert!(
+            auto_section.contains("# Examples"),
+            "missing # Examples in connect_<sig>_auto wrapper doc: {auto_section}"
         );
     }
 }

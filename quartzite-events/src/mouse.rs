@@ -82,7 +82,21 @@ pub struct MouseEvent {
 impl MouseEvent {
     /// Creates a new mouse event.
     ///
+    /// # Parameters
+    ///
+    /// - `position`: cursor position in widget-local coordinates.
+    /// - `global_position`: cursor position in screen coordinates.
+    /// - `event_button`: the button that triggered this event (use
+    ///   [`MouseButtons::empty()`] for pure move events with no button change).
+    /// - `buttons_state`: bitmask of every button currently held at event time
+    ///   — distinct from `event_button`, which names only the button whose
+    ///   state changed.
+    /// - `modifiers`: keyboard modifiers active at event time.
+    /// - `kind`: which kind of mouse event this is (press / release / move).
+    ///
     /// # Examples
+    ///
+    /// Pure move event with no button change:
     ///
     /// ```
     /// use quartzite_events::{MouseEvent, MouseButtons, MouseEventKind};
@@ -97,6 +111,33 @@ impl MouseEvent {
     ///     MouseEventKind::Move,
     /// );
     /// assert_eq!(e.kind(), MouseEventKind::Move);
+    /// ```
+    ///
+    /// `event_button` and `buttons_state` carry independent information: the
+    /// right button was just pressed while the left button was already held.
+    /// Asserting both fields separately demonstrates the distinction:
+    ///
+    /// ```
+    /// use quartzite_events::{MouseButton, MouseButtons, MouseEvent, MouseEventKind};
+    /// use quartzite_geometry::Point;
+    ///
+    /// let buttons_state: MouseButtons = MouseButton::Left | MouseButton::Right;
+    /// let e = MouseEvent::new(
+    ///     Point::new(0, 0),
+    ///     Point::new(0, 0),
+    ///     MouseButton::Right.into(),
+    ///     buttons_state,
+    ///     Default::default(),
+    ///     MouseEventKind::Press,
+    /// );
+    ///
+    /// // event_button names only the button whose state just changed.
+    /// assert_eq!(e.event_button(), MouseButtons::from(MouseButton::Right));
+    /// assert!(!e.event_button().contains(MouseButton::Left));
+    ///
+    /// // buttons_state holds every button currently pressed.
+    /// assert!(e.buttons_state().contains(MouseButton::Left));
+    /// assert!(e.buttons_state().contains(MouseButton::Right));
     /// ```
     #[inline]
     pub fn new(

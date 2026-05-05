@@ -19,6 +19,16 @@ use std::sync::Arc;
 ///
 /// `Queued` and `Auto` (cross-thread delivery) require the `std` feature and an
 /// active `QueuedDispatcher` registered via `set_queued_dispatcher`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::signal::{ConnectionType, Signal};
+///
+/// let mut sig: Signal<()> = Signal::new();
+/// sig.connect_typed(|_| {}, ConnectionType::Direct);
+/// sig.emit(&());
+/// ```
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConnectionType {
     /// Invoke the slot immediately in the emitting call stack.
@@ -70,10 +80,39 @@ struct SlotEntry<Args: 'static> {
 
 /// Receives closures posted by queued signal connections and executes them on
 /// the event-loop thread. Implemented by `ConnectionTable` in `quartzite-runtime`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::signal::QueuedDispatcher;
+///
+/// struct ImmediateDispatcher;
+/// impl QueuedDispatcher for ImmediateDispatcher {
+///     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) { f(); }
+/// }
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub trait QueuedDispatcher: Send + Sync {
-    /// Post a closure to be executed on the event-loop thread.
+    /// Posts a closure to be executed on the event-loop thread.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: boxed closure to enqueue; ownership transfers to the dispatcher.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::signal::QueuedDispatcher;
+    ///
+    /// struct ImmediateDispatcher;
+    /// impl QueuedDispatcher for ImmediateDispatcher {
+    ///     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) { f(); }
+    /// }
+    ///
+    /// let d = ImmediateDispatcher;
+    /// d.post(Box::new(|| { let _ = 1 + 1; }));
+    /// ```
     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
 }
 
@@ -82,6 +121,15 @@ static QUEUED_DISPATCHER: std::sync::OnceLock<Arc<dyn QueuedDispatcher>> =
     std::sync::OnceLock::new();
 
 /// Error returned by `set_queued_dispatcher` when a dispatcher is already registered.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::signal::DispatcherAlreadySet;
+///
+/// let err = DispatcherAlreadySet;
+/// assert_eq!(format!("{err}"), "queued dispatcher is already installed");
+/// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -98,8 +146,22 @@ impl std::fmt::Display for DispatcherAlreadySet {
 #[cfg(feature = "std")]
 impl std::error::Error for DispatcherAlreadySet {}
 
-/// Register the process-wide queued dispatcher. Called by `Application::new()`.
-/// Returns `Ok(())` on the first call; `Err(DispatcherAlreadySet)` on subsequent calls.
+/// Registers the process-wide queued dispatcher.
+///
+/// Normally called once by `Application::new()`. Returns `Ok(())` on the first
+/// call; `Err(DispatcherAlreadySet)` on subsequent calls (the existing
+/// dispatcher remains installed).
+///
+/// # Parameters
+///
+/// - `d`: dispatcher to install; must be `Send + Sync` so it can be invoked
+///   from any signal-emitting thread.
+///
+/// # Errors
+///
+/// Returns `DispatcherAlreadySet` if a dispatcher has already been installed
+/// in the current process. The slot can be set exactly once for the lifetime
+/// of the process (backed by [`std::sync::OnceLock`]).
 ///
 /// # Examples
 ///
@@ -214,6 +276,17 @@ impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
 ///
 /// Slots are stored in an `IndexMap` keyed by `ConnectionId`, preserving
 /// insertion order for deterministic emission while providing O(1) disconnect.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::signal::Signal;
+///
+/// let mut sig: Signal<(i32,)> = Signal::new();
+/// let id = sig.connect(|args| println!("got {}", args.0));
+/// sig.emit(&(7,));
+/// sig.disconnect(id);
+/// ```
 pub struct Signal<Args: 'static> {
     slots: IndexMap<ConnectionId, SlotEntry<Args>>,
     #[cfg(feature = "std")]
@@ -238,7 +311,7 @@ impl<Args: 'static> Default for Signal<Args> {
 }
 
 impl<Args: 'static> Signal<Args> {
-    /// Create a new signal with no slots connected.
+    /// Creates a new signal with no slots connected.
     ///
     /// # Examples
     ///
@@ -253,8 +326,12 @@ impl<Args: 'static> Signal<Args> {
         Self::default()
     }
 
-    /// Connect a `Direct` slot. Returns the `ConnectionId` that can be used to
-    /// disconnect later.
+    /// Connects a `Direct` slot and returns its `ConnectionId` for later disconnect.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: slot callback invoked with a shared reference to the args tuple
+    ///   each time the signal is emitted; must be `Send` and `'static`.
     ///
     /// # Examples
     ///
@@ -270,11 +347,23 @@ impl<Args: 'static> Signal<Args> {
         self.connect_typed(f, ConnectionType::Direct)
     }
 
-    /// Connect a slot with an explicit `ConnectionType`.
+    /// Connects a slot with an explicit `ConnectionType`.
     ///
     /// Only `Direct` and `SingleShot` are valid here. Use [`connect_queued`](Self::connect_queued)
     /// for `Queued` and [`connect_auto`](Self::connect_auto) for `Auto` — both require additional
     /// parameters (`ReceiverGuard` / `ThreadId`) that this method cannot accept.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: slot callback; invoked with a shared reference to the args tuple
+    ///   each time the signal is emitted.
+    /// - `ct`: which connection type to install; must be `Direct` or `SingleShot`.
+    ///
+    /// # Panics
+    ///
+    /// In `debug` builds, panics via `debug_assert!` when `ct` is `Queued` or
+    /// `Auto`. Release builds silently install the slot but it will never fire
+    /// because the queued/auto delivery paths read from different storage.
     ///
     /// # Examples
     ///
@@ -307,11 +396,18 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
-    /// Connect a `Queued` slot that is invoked on the event-loop thread.
+    /// Connects a `Queued` slot that is invoked on the event-loop thread.
     ///
     /// The receiver guard is checked before posting: if the guard has expired
     /// (receiver destroyed), the closure is silently discarded. Requires
     /// `Args: Clone + Send` so the arguments can be moved across threads.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: slot callback; invoked on the dispatcher thread with an owned
+    ///   clone of the emit-time args.
+    /// - `guard`: weak handle to the receiver's [`ReceiverGuard`]; used to
+    ///   short-circuit posting once the receiver has been dropped.
     ///
     /// # Examples
     ///
@@ -341,7 +437,7 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
-    /// Connect an `Auto` slot.
+    /// Connects an `Auto` slot whose dispatch route is decided at emit time.
     ///
     /// At emit time the emitting thread's id is compared against
     /// `receiver_thread_id` (captured here). If they match the slot is called
@@ -360,6 +456,14 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// The `receiver_thread_id` is captured at connect time and is not updated
     /// if the receiver migrates to a different thread later.
+    ///
+    /// # Parameters
+    ///
+    /// - `receiver_thread_id`: the receiver's owning thread; captured once and
+    ///   not refreshed.
+    /// - `guard`: weak handle to the receiver's [`ReceiverGuard`]; expired
+    ///   guards short-circuit dispatch on both the same- and cross-thread paths.
+    /// - `f`: slot callback; receives an owned clone of the args tuple.
     ///
     /// # Examples
     ///
@@ -395,11 +499,17 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
-    /// Invoke all connected slots unless `blocked` is `true`.
+    /// Invokes all connected slots unless `blocked` is `true`.
     ///
     /// Pass `object_base.signals_blocked()` as `blocked`; the signal fires only
     /// when the object has not blocked emissions.
     /// Generated `emit_<signal>` wrappers call this method automatically.
+    ///
+    /// # Parameters
+    ///
+    /// - `blocked`: when `true`, the call is a no-op; when `false`, behaves
+    ///   exactly like [`emit`](Self::emit).
+    /// - `args`: arguments forwarded to every slot as a shared reference.
     ///
     /// # Examples
     ///
@@ -417,10 +527,14 @@ impl<Args: 'static> Signal<Args> {
         }
     }
 
-    /// Remove the slot identified by `id`. No-op if `id` is not found.
+    /// Removes the slot identified by `id`; a no-op if no matching slot exists.
     ///
     /// Runs in O(1) via `IndexMap::shift_remove`, preserving insertion order
     /// for all remaining slots.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: the connection identifier returned by a previous `connect*` call.
     ///
     /// # Examples
     ///
@@ -440,7 +554,7 @@ impl<Args: 'static> Signal<Args> {
         self.auto_slots.shift_remove(&id);
     }
 
-    /// Invoke all connected slots with `args` unconditionally.
+    /// Invokes all connected slots with `args` unconditionally.
     ///
     /// This is the low-level primitive — it does **not** check `signals_blocked`.
     /// Use the generated `emit_<signal>` wrappers (from `#[derive(Object)]`) for
@@ -456,6 +570,11 @@ impl<Args: 'static> Signal<Args> {
     /// `disconnect`, or `emit` on the *same* signal instance during
     /// emission — the borrow checker prevents it. Cross-signal mutation from within
     /// a slot is fine.
+    ///
+    /// # Parameters
+    ///
+    /// - `args`: arguments forwarded to every slot as a shared reference;
+    ///   cloned per slot only on the queued/auto-cross-thread paths.
     ///
     /// # Examples
     ///

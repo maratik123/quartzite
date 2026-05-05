@@ -31,6 +31,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [objectbase-debug-rename-factory](done/2026-05-03-objectbase-debug-rename-factory.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (16 new tests) | — |
 | [macro-codegen-improvements](done/2026-05-03-macro-codegen-improvements.spec.md) | `quartzite-macros` | ✅ implemented (30 new tests) | — |
 | [object-part-redesign](done/2026-05-03-object-part-redesign.spec.md) | `quartzite-macros` `quartzite` | ✅ implemented (27 new tests) | — |
+| [doc-convention](done/2026-05-05-doc-convention.spec.md) | all crates | ✅ implemented (workspace-wide doc convention; 23+ new doctests; 645 tests total) | — |
 
 ## Deferred plans
 
@@ -60,7 +61,7 @@ graphics-stack (ready — no blocker)
 └── quartzite-renderer     (depends on quartzite-paint-api; vello+wgpu+winit)
 ```
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign. These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
@@ -68,7 +69,7 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 2. **Start** widgets (unblocked — geometry-events done; needs `WidgetBase`, layouts, basic widgets)
 3. **Pick up** remaining small design issues: #55 (parent/children accessors)
 3. **Expand** `quartzite` facade prelude as new crates are implemented
-4. Any future PR adding public items must satisfy `#![deny(missing_docs)]` + `# Examples` (enforced by CI and self-review checklist)
+4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
 6. `#[inline]` rule is enforced by AGENTS.md and review agents; new simple non-generic functions must carry the attribute
 7. `proc_macro_crate` ergonomics: macro users currently need both `quartzite` and `quartzite-core` as direct deps; using `proc_macro_crate` in `quartzite-macros` would enable true single-dep usage

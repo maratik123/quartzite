@@ -53,6 +53,25 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Dead code that clippy does not catch?
 - Simple non-generic functions missing `#[inline]`? "Simple" = no branches or loops, at most one function call. Exclude generic functions and blanket-impl trait methods (monomorphized). Also check codegen files: simple generated `fn`s must emit `#[inline]`.
 
+### 6. Documentation conformance ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md))
+
+For every changed `pub` item — `pub fn` / `pub struct` / `pub enum` / `pub trait` / `pub union` / `pub macro_rules!` and every method declared inside a `pub trait` body — verify against the convention. **Trait-impl exemption (AC4):** methods inside `impl Trait for Type {}` blocks are EXEMPT — do NOT flag missing convention sections on them. The trait *definition* is **not** exempt.
+
+Mechanical heading scan to spot missing or out-of-order sections in a changed file:
+
+```bash
+rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <changed-file>
+```
+
+Flag each of the following:
+- **Imperative summary line** (`Return`, `Create`, `Construct`) instead of third-person present indicative (`Returns`, `Creates`, `Constructs`).
+- **Missing `# Parameters`** on a public fn / method with ≥1 argument other than `self` / `&self` / `&mut self`.
+- **Section ordering violation.** Required order: Summary → free-form prose → `# Parameters` → `# Returns` → `# Type parameters` → `# Lifetimes` → `# Errors` → `# Panics` → `# Safety` → `# Examples` → `# See also`.
+- **Missing `# Errors`** on a `Result`-returning public fn (also flagged by `clippy::missing_errors_doc`).
+- **Missing `# Panics`** on a fn that calls `unwrap()` / `expect(…)`, indexes / slices a collection, asserts an invariant, or performs arithmetic that can overflow on plausible inputs (also flagged by `clippy::missing_panics_doc`).
+- **Missing `# Safety`** on every `unsafe fn` (also flagged by `clippy::missing_safety_doc`).
+- **Ad-hoc sections** (e.g. stray `# Notes`) — only the canonical headings above are allowed.
+
 ## What you do NOT check
 
 - `cargo fmt` / formatting drift — enforced by the fix loop in the calling skill

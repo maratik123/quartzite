@@ -64,6 +64,11 @@ pub struct Point {
 impl Point {
     /// Creates a new point with the given coordinates.
     ///
+    /// # Parameters
+    ///
+    /// - `x`: horizontal coordinate, in pixels.
+    /// - `y`: vertical coordinate, in pixels.
+    ///
     /// # Examples
     ///
     /// ```
@@ -129,6 +134,11 @@ pub struct PointF {
 
 impl PointF {
     /// Creates a new point with the given floating-point coordinates.
+    ///
+    /// # Parameters
+    ///
+    /// - `x`: horizontal coordinate, in logical units.
+    /// - `y`: vertical coordinate, in logical units.
     ///
     /// # Examples
     ///

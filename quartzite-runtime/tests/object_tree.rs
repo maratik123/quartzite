@@ -74,7 +74,7 @@ struct LogObj {
 }
 
 impl LogObj {
-    fn new(name: &str, log: Arc<Mutex<Vec<String>>>) -> Box<dyn Object> {
+    fn boxed(name: &str, log: Arc<Mutex<Vec<String>>>) -> Box<dyn Object> {
         Box::new(LogObj {
             base: ObjectBase::named(name),
             log,
@@ -233,10 +233,10 @@ fn destroy_is_depth_first_post_order() {
 
     // Build: root → c1 → gc
     //             → c2
-    let root = tree.insert(LogObj::new("root", Arc::clone(&log)), None);
-    let c1 = tree.insert(LogObj::new("c1", Arc::clone(&log)), Some(root));
-    let _c2 = tree.insert(LogObj::new("c2", Arc::clone(&log)), Some(root));
-    let _gc = tree.insert(LogObj::new("gc", Arc::clone(&log)), Some(c1));
+    let root = tree.insert(LogObj::boxed("root", Arc::clone(&log)), None);
+    let c1 = tree.insert(LogObj::boxed("c1", Arc::clone(&log)), Some(root));
+    let _c2 = tree.insert(LogObj::boxed("c2", Arc::clone(&log)), Some(root));
+    let _gc = tree.insert(LogObj::boxed("gc", Arc::clone(&log)), Some(c1));
 
     tree.destroy(root);
 

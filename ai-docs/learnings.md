@@ -223,3 +223,23 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** After generating files with relative links, verify at least one link manually: trace the path on disk (`realpath` or mental directory traversal) before committing. From `ai-docs/deferred/file.md`, one `..` reaches `ai-docs/`; two `../..` reaches the repo root.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-05 — code-style — `clippy::doc_markdown` allowlist scope + heuristic limits
+
+**What happened:** Initial doc-convention seed populated `clippy.toml`'s `doc-valid-idents` with ~60 entries: every project type (`MouseEvent`, `ObjectBase`, `BitFlags`, …), third-party types (`IndexMap`, `RwLock`), and `no_std`. The reasoning was "avoid noise from `clippy::doc_markdown` false positives during the audit." On review the user pointed out this was the wrong default — Rust identifiers in prose should always be backticked; the allowlist is for *non-code* tokens only. Shrinking to just `GPU` surfaced only **3 violations** workspace-wide. **A follow-up empirical test then showed that even `GPU` was dead code:** the `doc_markdown` heuristic flags `CamelCase` identifiers (`HelloWorld` → warning) but does NOT flag pure all-caps acronyms regardless of length (`GPU`, `REALLYLONGACRONYM` → no warning). The entire `clippy.toml` was deleted as a result.
+
+**Rule:** `doc-valid-idents` entries must be genuine non-code tokens **AND** must be `CamelCase` / mixed-case names (the only shape the heuristic catches). **Never add Rust type names, function names, module names, third-party crate types, or build-config tokens like `no_std`** to the allowlist — backtick them inline. **Never add pure all-caps acronyms** like `GPU`, `JSON`, `URL` — the heuristic already ignores them. Realistic candidates are `CamelCase` brand names or proper nouns the project genuinely uses in prose without intending them as code (e.g. a product name).
+
+**How to apply:** Default response to a `doc_markdown` warning is "add backticks", not "allowlist the name". Before adding any entry, verify the token actually fires the lint by removing it temporarily and re-running clippy with `--all-targets`. The workspace currently ships **no `clippy.toml`** — only resurrect it if a real non-code `CamelCase` token surfaces.
+
+**Escalated?** doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)
+
+### 2026-05-05 — process — keep PR description in sync after every push to an open PR
+
+**What happened:** While iterating on PR #83 (doc-convention) after it was already open, we landed two follow-up commits — first tightening the "backtick every Rust identifier" rule and shrinking `clippy.toml` to one entry, then deleting `clippy.toml` entirely after an empirical test showed the heuristic ignores all-caps tokens. The original PR body still claimed "New workspace-root `clippy.toml` with a ~60-entry `doc-valid-idents` allowlist…" and the AC6 test-plan line still said "seeded; no growth needed". Neither was true after the follow-ups. The PR description was not synced until the user explicitly asked. The `/task` skill *does* spell out this rule in Step 11 ("If the fixes changed any public API name, scope, or AC referenced in the PR title/body (and the PR is already open), run `gh pr edit --title ... --body ...` to bring the PR description in sync before pushing"), but the rule applies to *any* push that invalidates a claim in the body — not only Step 11 review-fix commits.
+
+**Rule:** **After every push to a branch with an open PR, re-read the PR body (`gh pr view <N>`) and ask "is anything here now wrong?".** If yes, sync via `gh pr edit <N> --title "..." --body "..."` *before* the next action. Sync triggers include: scope items added or dropped; renames or removals of files / types / fns named in the body; AC checkbox status flips; numbers cited in the body that drifted (test count, lint count, allowlist size, file count, etc.). Routine commits — typos, formatting, refactors strictly within already-described scope — do not need a body edit. The **upstream tracking issue's** title and body are the user's original problem statement and **must not be rewritten**; communicate scope changes via an issue comment instead, and rely on the PR's `Closes #N` line to surface the merging PR via GitHub's auto-link.
+
+**How to apply:** Add a "re-read PR body" step to your post-push checklist whenever the open-PR-on-branch state holds. Cheapest shape: `gh pr view <N> --json title,body | rg -i '<thing-you-just-changed>'` — if any hit, the body needs an edit. The cost of an extra `gh pr edit` is minutes; the cost of a reviewer reading a body that contradicts the diff is wasted reviewer trust.
+
+**Escalated?** no
