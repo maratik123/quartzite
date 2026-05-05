@@ -10,7 +10,7 @@
 2. Inline the old `emit` body directly into the new `emit`'s `if !blocked { … }` branch; remove the standalone raw `emit` fn entirely
 3. Update all `sig.emit(args)` call sites in tests → `sig.emit(false, args)`
 4. Update `emit_signal_wrappers` codegen in `quartzite-macros` to call `emit` instead of `emit_unless_blocked`
-5. Fix `quartzite-runtime/src/timer.rs` to pass the Timer's `signals_blocked()` state to `emit` — **blocked on #36** (Timer needs a proper `ObjectBase` before the flag is cleanly accessible in the thread closure)
+5. Fix `quartzite-runtime/src/timer.rs` to pass the Timer's `signals_blocked()` state to `emit` — #36 is resolved; `Timer` now has `pub base: ObjectBase` and `TimerState::signals_blocked: AtomicBool`. Simplify each call site: pass the flag directly to `emit` and remove the now-redundant outer guard
 
 ## Out of scope
 
@@ -20,7 +20,7 @@
 
 ## Deferred
 
-- Timer fix (`timer.rs:167`) | blocked on #36 — Timer needs a proper `ObjectBase` so `signals_blocked()` is accessible inside the thread closure | tracked in #93, depends on #36
+- None.
 
 ## Key decisions
 
@@ -28,11 +28,11 @@
 |---|---|
 | What happens to the old raw `emit` body? | Inlined into new `emit`'s `if !blocked { … }` branch — no internal helper function |
 | Should old `emit` be kept as `pub(crate)`? | No — inlining removes the need entirely |
-| Timer.rs interim approach | Blocked on #36; do not ship a `emit(false, &())` workaround |
+| Timer.rs approach | #36 resolved — pass `signals_blocked()` directly to `emit` and remove the outer guards at lines 384–386 and 498–501 |
 
 ## Technical constraints
 
-- `quartzite-runtime` is a different crate from `quartzite-core`; `pub(crate)` on any internal emit helper would not be visible to `timer.rs` — hence the block on #36
+- `quartzite-runtime` is a different crate from `quartzite-core`; inlining the raw emit body removes any need for a `pub(crate)` helper
 - The generated `emit_signal_wrappers` in `quartzite-macros` call `emit_unless_blocked`; these must be updated in the same PR
 - All existing tests use bare `sig.emit(args)` on `Signal` directly; they must become `sig.emit(false, args)` after the rename
 
@@ -46,7 +46,8 @@
 | AC4 | `SingleShot`, `Queued`, and `Auto` connection types behave identically to before the rename |
 | AC5 | The macro-generated `emit_<signal>` wrappers compile and behave correctly after the codegen update |
 | AC6 | `cargo doc` produces no warnings about missing or broken links related to the renamed method |
+| AC7 | `timer.rs` passes `signals_blocked()` directly to `emit`; the now-redundant outer `if !signals_blocked` guards are removed |
 
 ## Open questions
 
-- None — timer.rs fix explicitly deferred to #36.
+- None.

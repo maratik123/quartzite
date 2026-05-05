@@ -29,5 +29,5 @@ fn auto_cross_thread_no_dispatcher_silent_drop() {
     });
 
     // Must not panic, must not error.
-    sig.emit(&(99,));
+    sig.emit(false, &(99,));
 }

@@ -209,7 +209,7 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
                 // element tuple matching the property's type. Enforced at compile time.
                 quote! {
                     let __notify_val = v.clone();
-                    this.#sig_ident.emit_unless_blocked(
+                    this.#sig_ident.emit(
                         #cr::AsObject::object_base(this).signals_blocked(),
                         &(__notify_val,),
                     );
@@ -342,7 +342,7 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
             #[doc = #example_doc]
             #[inline]
             pub fn #fn_name(&mut self, #(#params),*) {
-                self.#field.emit_unless_blocked(
+                self.#field.emit(
                     #cr::AsObject::object_base(self).signals_blocked(),
                     &(#(#arg_idents,)*),
                 );
@@ -677,15 +677,15 @@ mod tests {
             }
         });
         assert!(
-            out.contains("changed . emit_unless_blocked"),
-            "missing emit_unless_blocked call on notify signal: {out}"
+            out.contains("changed . emit ("),
+            "missing emit call on notify signal: {out}"
         );
         assert!(out.contains("__notify_val"), "missing notify val: {out}");
     }
 
     // write_property notify is guarded by signals_blocked.
     #[test]
-    fn write_property_notify_uses_emit_unless_blocked() {
+    fn write_property_notify_uses_emit() {
         let out = emit(quote! {
             struct Foo {
                 #[prop(notify = changed)]
@@ -695,16 +695,12 @@ mod tests {
             }
         });
         assert!(
-            out.contains("emit_unless_blocked"),
-            "missing emit_unless_blocked in write_property notify: {out}"
+            out.contains("changed . emit ("),
+            "missing emit call in write_property notify: {out}"
         );
         assert!(
             out.contains("signals_blocked"),
-            "missing signals_blocked arg to emit_unless_blocked in write_property: {out}"
-        );
-        assert!(
-            out.contains("changed . emit_unless_blocked"),
-            "missing emit_unless_blocked on notify signal: {out}"
+            "missing signals_blocked arg to emit in write_property: {out}"
         );
     }
 
@@ -807,12 +803,12 @@ mod tests {
             "missing emit wrapper: {out}"
         );
         assert!(
-            out.contains("emit_unless_blocked"),
-            "missing emit_unless_blocked call in emit wrapper: {out}"
+            out.contains(". emit ("),
+            "missing emit call in emit wrapper: {out}"
         );
         assert!(
             out.contains("signals_blocked"),
-            "missing signals_blocked arg to emit_unless_blocked: {out}"
+            "missing signals_blocked arg to emit: {out}"
         );
     }
 
