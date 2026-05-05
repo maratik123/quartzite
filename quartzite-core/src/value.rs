@@ -29,10 +29,65 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 /// ```
 pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// Returns a static string identifying the concrete type (e.g. `"MyVal"`).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::CustomValue;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct MyVal;
+    ///
+    /// impl CustomValue for MyVal {
+    ///     fn type_name(&self) -> &'static str { "MyVal" }
+    ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
+    ///     fn as_any(&self) -> &dyn core::any::Any { self }
+    /// }
+    ///
+    /// assert_eq!(MyVal.type_name(), "MyVal");
+    /// ```
     fn type_name(&self) -> &'static str;
-    /// Clone this value into a new `Box<dyn CustomValue>`.
+
+    /// Clones this value into a new `Box<dyn CustomValue>`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::CustomValue;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct MyVal;
+    ///
+    /// impl CustomValue for MyVal {
+    ///     fn type_name(&self) -> &'static str { "MyVal" }
+    ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
+    ///     fn as_any(&self) -> &dyn core::any::Any { self }
+    /// }
+    ///
+    /// let cloned: Box<dyn CustomValue> = MyVal.clone_box();
+    /// assert_eq!(cloned.type_name(), "MyVal");
+    /// ```
     fn clone_box(&self) -> Box<dyn CustomValue>;
-    /// Upcast to `&dyn Any` for checked downcasting.
+
+    /// Upcasts to `&dyn Any` for checked downcasting.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::CustomValue;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// struct MyVal(i32);
+    ///
+    /// impl CustomValue for MyVal {
+    ///     fn type_name(&self) -> &'static str { "MyVal" }
+    ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
+    ///     fn as_any(&self) -> &dyn core::any::Any { self }
+    /// }
+    ///
+    /// let v = MyVal(7);
+    /// assert!(v.as_any().downcast_ref::<MyVal>().is_some());
+    /// ```
     fn as_any(&self) -> &dyn core::any::Any;
 }
 
@@ -47,6 +102,15 @@ impl Clone for Box<dyn CustomValue> {
 /// Liveness is confirmed by `ObjectTree::is_valid(ref)` in `quartzite-runtime`.
 /// The type is intentionally opaque here so that `quartzite-core` stays `no_std`-safe
 /// and runtime-agnostic.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::WeakObjectRef;
+///
+/// let r = WeakObjectRef(42);
+/// assert_eq!(r.0, 42);
+/// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct WeakObjectRef(pub u64);
 
@@ -54,6 +118,15 @@ pub struct WeakObjectRef(pub u64);
 ///
 /// The `Custom` variant allows storing arbitrary user types via `Arc<dyn CustomValue>`.
 /// `Value::Null` is the default.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::Value;
+///
+/// assert_eq!(Value::default(), Value::Null);
+/// assert_eq!(Value::Int(7).type_name(), "Int");
+/// ```
 #[derive(Clone, Debug, Default)]
 pub enum Value {
     /// Absence of a value; the default variant.
@@ -129,6 +202,16 @@ impl Value {
 }
 
 /// Error returned when a `FromValue` conversion fails due to a type mismatch.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::value::{FromValue, TypeError, Value};
+///
+/// let err = i64::from_value(Value::Bool(true)).unwrap_err();
+/// assert_eq!(err.expected, "Int");
+/// assert_eq!(err.got, "Bool");
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TypeError {
     /// The type name that was expected (e.g. `"Int"`).
@@ -147,7 +230,7 @@ impl core::fmt::Display for TypeError {
     }
 }
 
-/// Convert a [`Value`] into a concrete Rust type.
+/// Converts a [`Value`] into a concrete Rust type.
 ///
 /// # Examples
 ///
@@ -158,9 +241,17 @@ impl core::fmt::Display for TypeError {
 /// assert!(bool::from_value(Value::Int(0)).is_err());
 /// ```
 pub trait FromValue: Sized {
-    /// Attempt to convert `val` into `Self`.
+    /// Attempts to convert `val` into `Self`.
     ///
-    /// Returns `Err(TypeError)` when `val` is not the expected variant.
+    /// # Parameters
+    ///
+    /// - `val`: the dynamic value to convert; consumed by the call.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(TypeError)` when `val` is not the variant expected by `Self`
+    /// (for example, calling `i64::from_value(Value::Bool(_))`), or when the
+    /// payload does not fit the target type (e.g. `u32::from_value(Value::Int(-1))`).
     ///
     /// # Examples
     ///
@@ -172,7 +263,7 @@ pub trait FromValue: Sized {
     fn from_value(val: Value) -> Result<Self, TypeError>;
 }
 
-/// Convert a concrete Rust type into a [`Value`].
+/// Converts a concrete Rust type into a [`Value`].
 ///
 /// # Examples
 ///
@@ -180,10 +271,10 @@ pub trait FromValue: Sized {
 /// use quartzite_core::value::{IntoValue, Value};
 ///
 /// assert_eq!(true.into_value(), Value::Bool(true));
-/// assert_eq!(3.14f64.into_value(), Value::Float(3.14));
+/// assert_eq!(1.5f64.into_value(), Value::Float(1.5));
 /// ```
 pub trait IntoValue {
-    /// Wrap `self` in the appropriate `Value` variant.
+    /// Wraps `self` in the appropriate `Value` variant.
     ///
     /// # Examples
     ///
@@ -426,7 +517,8 @@ mod tests {
 
     #[rstest]
     #[case(0.0f64)]
-    #[case(3.14f64)]
+    // Non-trivial neutral value — avoids `clippy::approx_constant` matches for PI/E.
+    #[case(1.5f64)]
     fn f64_round_trip(#[case] f: f64) {
         let val = f.into_value();
         assert_eq!(f64::from_value(val), Ok(f));

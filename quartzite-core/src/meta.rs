@@ -106,6 +106,15 @@ impl PropertyFlag {
 }
 
 /// Static metadata for a single property.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::{PropertyFlag, PropertyMeta};
+///
+/// let meta = PropertyMeta::new("count", "i64", PropertyFlag::read_write());
+/// assert_eq!(meta.name, "count");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PropertyMeta {
     /// The property name as it appears in the meta-system (e.g. `"count"`).
@@ -117,7 +126,13 @@ pub struct PropertyMeta {
 }
 
 impl PropertyMeta {
-    /// Construct a new `PropertyMeta` from its components.
+    /// Constructs a new `PropertyMeta` from its components.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system name of the property (e.g. `"count"`).
+    /// - `type_name`: Rust type of the property value (e.g. `"i64"`).
+    /// - `flags`: access flags controlling readability, writability, and storage.
     ///
     /// # Examples
     ///
@@ -138,6 +153,15 @@ impl PropertyMeta {
 }
 
 /// Static metadata for a single parameter (used in signals and methods).
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::ParamMeta;
+///
+/// let p = ParamMeta::new("value", "i64");
+/// assert_eq!(p.name, "value");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ParamMeta {
     /// Parameter name (e.g. `"value"`).
@@ -147,7 +171,12 @@ pub struct ParamMeta {
 }
 
 impl ParamMeta {
-    /// Construct a new `ParamMeta`.
+    /// Constructs a new `ParamMeta`.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: parameter name as exposed in the meta-system (e.g. `"value"`).
+    /// - `type_name`: Rust type name of the parameter (e.g. `"i64"`).
     ///
     /// # Examples
     ///
@@ -165,6 +194,15 @@ impl ParamMeta {
 }
 
 /// Static metadata for a signal.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::SignalMeta;
+///
+/// let s = SignalMeta::new("clicked", &[]);
+/// assert_eq!(s.name, "clicked");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SignalMeta {
     /// Signal name as it appears in the meta-system (e.g. `"clicked"`).
@@ -174,7 +212,13 @@ pub struct SignalMeta {
 }
 
 impl SignalMeta {
-    /// Construct a new `SignalMeta`.
+    /// Constructs a new `SignalMeta`.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system signal name (e.g. `"clicked"`).
+    /// - `params`: ordered slice of parameter descriptors; empty for nullary
+    ///   signals.
     ///
     /// # Examples
     ///
@@ -192,6 +236,15 @@ impl SignalMeta {
 }
 
 /// Static metadata for a callable method.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::MethodMeta;
+///
+/// let m = MethodMeta::new("click", &[], "()");
+/// assert_eq!(m.name, "click");
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MethodMeta {
     /// Method name as it appears in the meta-system (e.g. `"click"`).
@@ -203,7 +256,14 @@ pub struct MethodMeta {
 }
 
 impl MethodMeta {
-    /// Construct a new `MethodMeta`.
+    /// Constructs a new `MethodMeta`.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system method name (e.g. `"click"`).
+    /// - `params`: ordered slice of parameter descriptors.
+    /// - `return_type`: Rust type name of the return value (e.g. `"()"`,
+    ///   `"i64"`).
     ///
     /// # Examples
     ///
@@ -229,6 +289,16 @@ impl MethodMeta {
 }
 
 /// A single enumerator entry: a name paired with an integer value.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::EnumEntry;
+///
+/// let e = EnumEntry::new("Alpha", 0);
+/// assert_eq!(e.name, "Alpha");
+/// assert_eq!(e.value, 0);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EnumEntry {
     /// Enumerator name as a string (e.g. `"Alpha"`).
@@ -238,7 +308,12 @@ pub struct EnumEntry {
 }
 
 impl EnumEntry {
-    /// Construct a new `EnumEntry`.
+    /// Constructs a new `EnumEntry`.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: enumerator name as a `&'static str`.
+    /// - `value`: integer discriminant of this enumerator.
     ///
     /// # Examples
     ///
@@ -255,19 +330,55 @@ impl EnumEntry {
     }
 }
 
-/// No-op entry-by-name lookup — always returns `None`. Used in hand-written `EnumMeta` statics.
+/// Returns `None` for any input; placeholder lookup used in hand-written
+/// [`EnumMeta`] statics that have no name index.
+///
+/// # Parameters
+///
+/// - `_`: ignored entry-name query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_entry_by_name;
+///
+/// assert!(noop_lookup_entry_by_name("anything").is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_entry_by_name(_: &str) -> Option<EnumEntry> {
     None
 }
 
-/// No-op entry-by-value lookup — always returns `None`. Used in hand-written `EnumMeta` statics.
+/// Returns `None` for any input; placeholder lookup used in hand-written
+/// [`EnumMeta`] statics that have no value index.
+///
+/// # Parameters
+///
+/// - `_`: ignored entry-value query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_entry_by_value;
+///
+/// assert!(noop_lookup_entry_by_value(42).is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_entry_by_value(_: i64) -> Option<EnumEntry> {
     None
 }
 
 /// Static metadata for an enumeration type exposed via the meta-system.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::{EnumEntry, EnumMeta, noop_lookup_entry_by_name, noop_lookup_entry_by_value};
+///
+/// static ENTRIES: &[EnumEntry] = &[EnumEntry::new("On", 1), EnumEntry::new("Off", 0)];
+/// let em = EnumMeta::new("State", ENTRIES, noop_lookup_entry_by_name, noop_lookup_entry_by_value);
+/// assert_eq!(em.name, "State");
+/// ```
 #[derive(Clone, Copy)]
 pub struct EnumMeta {
     /// Enum type name (e.g. `"State"`).
@@ -298,11 +409,21 @@ impl PartialEq for EnumMeta {
 impl Eq for EnumMeta {}
 
 impl EnumMeta {
-    /// Construct a new `EnumMeta`.
+    /// Constructs a new `EnumMeta`.
     ///
     /// The last two parameters are fast-path lookup functions generated by
     /// `#[meta_enum]`. Pass the `noop_lookup_entry_by_name` and
     /// `noop_lookup_entry_by_value` helpers for hand-written statics.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system enum type name (e.g. `"State"`).
+    /// - `entries`: slice of all enumerator entries; ownership remains in
+    ///   `'static` storage.
+    /// - `lookup_entry_by_name`: fast-path name lookup; pass
+    ///   [`noop_lookup_entry_by_name`] when no index is available.
+    /// - `lookup_entry_by_value`: fast-path value lookup; pass
+    ///   [`noop_lookup_entry_by_value`] when no index is available.
     ///
     /// # Examples
     ///
@@ -329,7 +450,11 @@ impl EnumMeta {
         }
     }
 
-    /// Find an entry by name; delegates to the fast-path lookup function.
+    /// Finds an entry by name; delegates to the fast-path lookup function.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: enumerator name to look up.
     ///
     /// # Examples
     ///
@@ -345,7 +470,11 @@ impl EnumMeta {
         (self.lookup_entry_by_name)(name)
     }
 
-    /// Find an entry by integer value; delegates to the fast-path lookup function.
+    /// Finds an entry by integer value; delegates to the fast-path lookup function.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: integer discriminant to look up.
     ///
     /// # Examples
     ///
@@ -362,25 +491,77 @@ impl EnumMeta {
     }
 }
 
-/// No-op property lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+/// Returns `None` for any input; placeholder property lookup used in hand-written
+/// [`MetaObject`] statics that have no property index.
+///
+/// # Parameters
+///
+/// - `_`: ignored property-name query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_property;
+///
+/// assert!(noop_lookup_property("anything").is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_property(_: &str) -> Option<PropertyMeta> {
     None
 }
 
-/// No-op signal lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+/// Returns `None` for any input; placeholder signal lookup used in hand-written
+/// [`MetaObject`] statics that have no signal index.
+///
+/// # Parameters
+///
+/// - `_`: ignored signal-name query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_signal;
+///
+/// assert!(noop_lookup_signal("anything").is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_signal(_: &str) -> Option<SignalMeta> {
     None
 }
 
-/// No-op method lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+/// Returns `None` for any input; placeholder method lookup used in hand-written
+/// [`MetaObject`] statics that have no method index.
+///
+/// # Parameters
+///
+/// - `_`: ignored method-name query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_method;
+///
+/// assert!(noop_lookup_method("anything").is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_method(_: &str) -> Option<MethodMeta> {
     None
 }
 
-/// No-op enum lookup — always returns `None`. Used in hand-written `MetaObject` statics.
+/// Returns `None` for any input; placeholder enum lookup used in hand-written
+/// [`MetaObject`] statics that have no enum index.
+///
+/// # Parameters
+///
+/// - `_`: ignored enum-name query.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::noop_lookup_enum;
+///
+/// assert!(noop_lookup_enum("anything").is_none());
+/// ```
 #[inline]
 pub fn noop_lookup_enum(_: &str) -> Option<EnumMeta> {
     None
@@ -390,6 +571,21 @@ pub fn noop_lookup_enum(_: &str) -> Option<EnumMeta> {
 ///
 /// Each concrete object type provides exactly one `&'static MetaObject`.
 /// All slices are `'static` so that the whole struct can be stored in a `static`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::meta::{
+///     MetaObject, noop_lookup_property, noop_lookup_signal,
+///     noop_lookup_method, noop_lookup_enum,
+/// };
+///
+/// static META: MetaObject = MetaObject::new(
+///     "MyType", &[], &[], &[], &[],
+///     noop_lookup_property, noop_lookup_signal, noop_lookup_method, noop_lookup_enum,
+/// );
+/// assert_eq!(META.class_name, "MyType");
+/// ```
 #[derive(Clone, Copy)]
 pub struct MetaObject {
     /// The Rust type name of the described class (e.g. `"Button"`).
@@ -437,10 +633,26 @@ impl PartialEq for MetaObject {
 impl Eq for MetaObject {}
 
 impl MetaObject {
-    /// Construct a new `MetaObject` from its static components.
+    /// Constructs a new `MetaObject` from its static components.
     ///
     /// The last four parameters are fast-path lookup functions generated by
     /// `#[object_impl]`. Pass the four `noop_lookup_*` helpers for hand-written statics.
+    ///
+    /// # Parameters
+    ///
+    /// - `class_name`: Rust type name of the described class (e.g. `"Button"`).
+    /// - `properties`: slice of all property descriptors in declaration order.
+    /// - `signals`: slice of all signal descriptors in declaration order.
+    /// - `methods`: slice of all method descriptors in declaration order.
+    /// - `enums`: slice of all nested enum descriptors in declaration order.
+    /// - `lookup_property`: fast-path property lookup; pass
+    ///   [`noop_lookup_property`] when no index is generated.
+    /// - `lookup_signal`: fast-path signal lookup; pass [`noop_lookup_signal`]
+    ///   when no index is generated.
+    /// - `lookup_method`: fast-path method lookup; pass [`noop_lookup_method`]
+    ///   when no index is generated.
+    /// - `lookup_enum`: fast-path enum lookup; pass [`noop_lookup_enum`] when
+    ///   no index is generated.
     ///
     /// # Examples
     ///
@@ -484,10 +696,14 @@ impl MetaObject {
         }
     }
 
-    /// Find property metadata by name.
+    /// Finds property metadata by name.
     ///
     /// Delegates to the fast-path lookup function when available (generated by
     /// `#[object_impl]`); pass `noop_lookup_*` for types without generated lookups.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: property name to look up.
     ///
     /// # Examples
     ///
@@ -516,10 +732,14 @@ impl MetaObject {
         (self.lookup_property)(name)
     }
 
-    /// Find signal metadata by name.
+    /// Finds signal metadata by name.
     ///
     /// Delegates to the fast-path lookup function when available (generated by
     /// `#[object_impl]`); pass `noop_lookup_*` for types without generated lookups.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: signal name to look up.
     ///
     /// # Examples
     ///
@@ -548,10 +768,14 @@ impl MetaObject {
         (self.lookup_signal)(name)
     }
 
-    /// Find method metadata by name.
+    /// Finds method metadata by name.
     ///
     /// Delegates to the fast-path lookup function when available (generated by
     /// `#[object_impl]`); pass `noop_lookup_*` for types without generated lookups.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: method name to look up.
     ///
     /// # Examples
     ///
@@ -580,10 +804,14 @@ impl MetaObject {
         (self.lookup_method)(name)
     }
 
-    /// Find enum metadata by name.
+    /// Finds enum metadata by name.
     ///
     /// Delegates to the fast-path lookup function when available (generated by
     /// `#[object_impl]`); pass `noop_lookup_*` for types without generated lookups.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: enum type name to look up.
     ///
     /// # Examples
     ///

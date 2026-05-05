@@ -12,7 +12,7 @@ use std::sync::{Arc, Weak};
 pub struct ReceiverGuard;
 
 impl ReceiverGuard {
-    /// Create a linked `(Arc<ReceiverGuard>, Weak<ReceiverGuard>)` pair.
+    /// Creates a linked `(Arc<ReceiverGuard>, Weak<ReceiverGuard>)` pair.
     ///
     /// The `Arc` is stored in `ObjectBase` (owner side). Every queued slot
     /// connection stores the `Weak`. When the object is dropped the `Arc`

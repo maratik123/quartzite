@@ -94,23 +94,80 @@ pub trait Object: AsObject + Send {
     fn meta_object(&self) -> &'static MetaObject;
 
     /// Returns the current value of `name`, or `None` if `name` is not a known property.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system property name (e.g. `"count"`).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::Object;
+    /// # fn example(obj: &impl Object) {
+    /// let _v = obj.read_property("count");
+    /// # }
+    /// ```
     fn read_property(&self, name: &str) -> Option<Value>;
 
-    /// Sets property `name` to `val`. Returns `true` on success.
+    /// Sets property `name` to `val` and returns `true` on success.
     ///
     /// Returns `false` if `name` is unknown, the property is read-only, or `val` has
     /// the wrong type.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system property name to update.
+    /// - `val`: new value; consumed by the call. Type must match the property's
+    ///   declared type.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::{Object, value::Value};
+    /// # fn example(obj: &mut impl Object) {
+    /// let _ok = obj.write_property("count", Value::Int(42));
+    /// # }
+    /// ```
     fn write_property(&mut self, name: &str, val: Value) -> bool;
 
-    /// Invokes method `name` with `args`. Returns `Some(result)` on success.
+    /// Invokes method `name` with `args` and returns `Some(result)` on success.
     ///
     /// Returns `None` if `name` is unknown, the argument count is wrong, or any
     /// argument fails type conversion.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: meta-system method name to invoke.
+    /// - `args`: positional arguments; cardinality and types must match the
+    ///   method signature.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::Object;
+    /// # fn example(obj: &mut impl Object) {
+    /// let _r = obj.invoke_method("reset", &[]);
+    /// # }
+    /// ```
     fn invoke_method(&mut self, name: &str, args: &[Value]) -> Option<Value>;
 
-    /// Connects a dynamic callback to signal `name`. Returns `Some(id)` on success.
+    /// Connects a dynamic callback to signal `name` and returns `Some(id)` on success.
     ///
     /// Returns `None` if `name` does not match any signal on this object.
+    ///
+    /// # Parameters
+    ///
+    /// - `signal`: meta-system signal name to subscribe to.
+    /// - `callback`: type-erased slot receiving the emit-time argument values.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::Object;
+    /// # fn example(obj: &mut impl Object) {
+    /// let _id = obj.connect_signal("clicked", Box::new(|_args| {}));
+    /// # }
+    /// ```
     fn connect_signal(&mut self, signal: &str, callback: SignalCallback) -> Option<ConnectionId>;
 }
 
