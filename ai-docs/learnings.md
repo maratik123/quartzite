@@ -264,6 +264,16 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+### 2026-05-05 — code-style — use thiserror for error types; apply undocumented_unsafe_blocks to every crate
+
+**What happened:** `TreeAccessError` was initially hand-rolled with manual `Display` / `std::error::Error` impls. PR review requested `thiserror = "2"` be added. Separately, `#![warn(clippy::undocumented_unsafe_blocks)]` was added only to `quartzite-runtime` when first introduced; review comment pointed out it should be in every crate's `lib.rs`.
+
+**Rule:** Use `thiserror` for any new error enum/struct in this workspace — avoids boilerplate `Display` / `Error` impls. Add `#![warn(clippy::undocumented_unsafe_blocks)]` to every crate `lib.rs` (next to the other clippy attributes), not just the crate where unsafe was first introduced.
+
+**How to apply:** When adding a new crate-level lint attribute, immediately propagate it to all other crate `lib.rs` files in the same PR. When defining an error type, reach for `thiserror` first.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-05 — process — keep PR description in sync after every push to an open PR
 
 **What happened:** While iterating on PR #83 (doc-convention) after it was already open, we landed two follow-up commits — first tightening the "backtick every Rust identifier" rule and shrinking `clippy.toml` to one entry, then deleting `clippy.toml` entirely after an empirical test showed the heuristic ignores all-caps tokens. The original PR body still claimed "New workspace-root `clippy.toml` with a ~60-entry `doc-valid-idents` allowlist…" and the AC6 test-plan line still said "seeded; no growth needed". Neither was true after the follow-ups. The PR description was not synced until the user explicitly asked. The `/task` skill *does* spell out this rule in Step 11 ("If the fixes changed any public API name, scope, or AC referenced in the PR title/body (and the PR is already open), run `gh pr edit --title ... --body ...` to bring the PR description in sync before pushing"), but the rule applies to *any* push that invalidates a claim in the body — not only Step 11 review-fix commits.

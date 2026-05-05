@@ -24,7 +24,7 @@ pub mod thread_pool;
 pub mod timer;
 
 pub use application::try_with_tree;
-pub use application::{Application, ApplicationError};
+pub use application::{Application, ApplicationError, TreeAccessError};
 pub use connection_table::ConnectionTable;
 pub use event_loop::EventLoop;
 pub use factory::{FactoryAlreadySet, ObjectFactory};

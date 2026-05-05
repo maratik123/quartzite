@@ -87,8 +87,8 @@ fn parent_children_accessors_all_acs() {
     // Phase 0 — before Application::new() (AC9 pre-new)
     // ──────────────────────────────────────────────────────────────────────────
     assert!(
-        try_with_tree(|_| ()).is_none(),
-        "AC9: try_with_tree must return None before Application::new()"
+        try_with_tree(|_| ()).is_err(),
+        "AC9: try_with_tree must return Err before Application::new()"
     );
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -98,8 +98,8 @@ fn parent_children_accessors_all_acs() {
 
     // AC9 — tree is accessible after new()
     assert!(
-        try_with_tree(|_| ()).is_some(),
-        "AC9: try_with_tree must return Some after Application::new()"
+        try_with_tree(|_| ()).is_ok(),
+        "AC9: try_with_tree must return Ok after Application::new()"
     );
 
     // Build a small tree: root -> child_a, child_b; child_a -> grandchild
@@ -119,39 +119,43 @@ fn parent_children_accessors_all_acs() {
     let grandchild_q = Stub::with_id(grandchild_id);
 
     // AC1 — parent of root is None
-    assert_eq!(root_q.parent(), None, "AC1: root.parent() must be None");
+    assert_eq!(
+        root_q.parent().unwrap(),
+        None,
+        "AC1: root.parent() must be None"
+    );
 
     // AC2 — parent of child returns Some(parent_id)
     assert_eq!(
-        child_a_q.parent(),
+        child_a_q.parent().unwrap(),
         Some(root_id),
         "AC2: child_a.parent() must be Some(root_id)"
     );
     assert_eq!(
-        grandchild_q.parent(),
+        grandchild_q.parent().unwrap(),
         Some(child_a_id),
         "AC2: grandchild.parent() must be Some(child_a_id)"
     );
 
     // AC4 — children in insertion order
     assert_eq!(
-        root_q.children(),
+        root_q.children().unwrap(),
         vec![child_a_id, child_b_id],
         "AC4: root.children() must be [child_a, child_b] in insertion order"
     );
 
     // AC5 — leaf returns empty Vec
     assert_eq!(
-        grandchild_q.children(),
-        Vec::<ObjectId>::new(),
+        grandchild_q.children().unwrap(),
+        vec![],
         "AC5: grandchild.children() must be empty"
     );
 
     // AC7 / AC8 — _in variants match global variants.
     // Compute global results first (outside any lock), then compare inside the lock.
     // Calling parent()/children() while holding the tree mutex would deadlock.
-    let parent_b_global = child_b_q.parent();
-    let children_root_global = root_q.children();
+    let parent_b_global = child_b_q.parent().unwrap();
+    let children_root_global = root_q.children().unwrap();
     {
         let tree = app.object_tree().lock().unwrap();
         assert_eq!(
@@ -171,23 +175,21 @@ fn parent_children_accessors_all_acs() {
     // ──────────────────────────────────────────────────────────────────────────
     drop(app);
 
-    // AC3 — parent() returns None after drop
-    assert_eq!(
-        root_q.parent(),
-        None,
-        "AC3: parent() must return None after Application is dropped"
-    );
-
-    // AC6 — children() returns empty Vec after drop
-    assert_eq!(
-        root_q.children(),
-        Vec::<ObjectId>::new(),
-        "AC6: children() must return empty Vec after Application is dropped"
-    );
-
-    // AC9 post — try_with_tree returns None after drop
+    // AC3 — parent() returns Err after drop
     assert!(
-        try_with_tree(|_| ()).is_none(),
-        "AC9: try_with_tree must return None after Application is dropped"
+        root_q.parent().is_err(),
+        "AC3: parent() must return Err after Application is dropped"
+    );
+
+    // AC6 — children() returns Err after drop
+    assert!(
+        root_q.children().is_err(),
+        "AC6: children() must return Err after Application is dropped"
+    );
+
+    // AC9 post — try_with_tree returns Err after drop
+    assert!(
+        try_with_tree(|_| ()).is_err(),
+        "AC9: try_with_tree must return Err after Application is dropped"
     );
 }

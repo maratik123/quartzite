@@ -234,28 +234,58 @@ impl Drop for Application {
     }
 }
 
+/// Error returned by [`try_with_tree`] and [`ObjectTreeExt`](crate::ObjectTreeExt) global
+/// methods when the process-wide [`ObjectTree`] cannot be accessed.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{try_with_tree, TreeAccessError};
+///
+/// // Returns Err(NotLive) before Application::new()
+/// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive));
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum TreeAccessError {
+    /// No [`Application`] is currently live in this process.
+    #[error("no Application is currently live")]
+    NotLive,
+    /// The [`ObjectTree`] mutex is poisoned.
+    #[error("ObjectTree mutex is poisoned")]
+    Poisoned,
+}
+
 /// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
-/// the result wrapped in `Some`, or returns `None` if no [`Application`] is
-/// currently live or if the tree mutex is poisoned.
+/// the result, or a [`TreeAccessError`] if the tree cannot be accessed.
 ///
 /// # Parameters
 ///
 /// - `f`: closure that receives a shared reference to the active tree.
 ///
+/// # Errors
+///
+/// - [`TreeAccessError::NotLive`] — no [`Application`] is currently live.
+/// - [`TreeAccessError::Poisoned`] — the [`ObjectTree`] mutex is poisoned.
+///
 /// # Examples
 ///
 /// ```no_run
-/// use quartzite_runtime::try_with_tree;
+/// use quartzite_runtime::{try_with_tree, TreeAccessError};
 ///
-/// // Returns None when called before Application::new()
-/// assert!(try_with_tree(|_tree| ()).is_none());
+/// // Returns Err(NotLive) before Application::new()
+/// assert_eq!(try_with_tree(|_tree| ()), Err(TreeAccessError::NotLive));
 /// ```
-pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Option<R> {
+pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAccessError> {
     if !crate::global_tree::is_live() {
-        return None;
+        return Err(TreeAccessError::NotLive);
     }
-    let guard = APP.get()?.object_tree.lock().ok()?;
-    Some(f(&guard))
+    let guard = APP
+        .get()
+        .ok_or(TreeAccessError::NotLive)?
+        .object_tree
+        .lock()
+        .map_err(|_| TreeAccessError::Poisoned)?;
+    Ok(f(&guard))
 }
 
 #[cfg(test)]

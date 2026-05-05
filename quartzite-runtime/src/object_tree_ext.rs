@@ -1,7 +1,10 @@
 //! Extension trait for accessing parent/child relationships from any object.
 use quartzite_core::{AsObject, ObjectId};
 
-use crate::{application::try_with_tree, object_tree::ObjectTree};
+use crate::{
+    application::{TreeAccessError, try_with_tree},
+    object_tree::ObjectTree,
+};
 
 /// Provides ergonomic access to parent and child relationships stored in the
 /// process-wide [`ObjectTree`].
@@ -9,8 +12,9 @@ use crate::{application::try_with_tree, object_tree::ObjectTree};
 /// Automatically implemented for every type that implements [`AsObject`].
 ///
 /// Methods without a `_in` suffix use the process-global tree registered by
-/// [`Application::new`](crate::Application::new) and return `None` or an
-/// empty collection when called outside an active [`Application`](crate::Application).
+/// [`Application::new`](crate::Application::new) and return
+/// [`Err`]`(`[`TreeAccessError::NotLive`]`)` when called outside an active
+/// [`Application`](crate::Application).
 ///
 /// # Examples
 ///
@@ -19,14 +23,19 @@ use crate::{application::try_with_tree, object_tree::ObjectTree};
 /// use quartzite_runtime::{Application, ObjectTreeExt};
 ///
 /// let _app = Application::new().unwrap();
-/// # fn example(obj: &impl AsObject) {
-/// let _parent = obj.parent();
-/// let _children = obj.children();
-/// # }
+/// # fn example(obj: &impl AsObject) -> Result<(), quartzite_runtime::TreeAccessError> {
+/// let _parent = obj.parent()?;
+/// let _children = obj.children()?;
+/// # Ok(()) }
 /// ```
 pub trait ObjectTreeExt: AsObject {
     /// Returns the [`ObjectId`] of this object's parent in the active tree, or
-    /// `None` when this object is a root or no [`Application`](crate::Application) is live.
+    /// `Ok(None)` when this object is a root.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live or
+    /// the tree mutex is poisoned. See [`try_with_tree`] for details.
     ///
     /// # Examples
     ///
@@ -34,13 +43,13 @@ pub trait ObjectTreeExt: AsObject {
     /// use quartzite_core::AsObject;
     /// use quartzite_runtime::ObjectTreeExt;
     ///
-    /// # fn example(obj: &impl AsObject) {
-    /// let _parent = obj.parent();
-    /// # }
+    /// # fn example(obj: &impl AsObject) -> Result<(), quartzite_runtime::TreeAccessError> {
+    /// let _parent = obj.parent()?;
+    /// # Ok(()) }
     /// ```
-    fn parent(&self) -> Option<ObjectId> {
+    fn parent(&self) -> Result<Option<ObjectId>, TreeAccessError> {
         let id = self.object_base().id();
-        try_with_tree(|tree| tree.parent_of(id)).flatten()
+        try_with_tree(|tree| tree.parent_of(id))
     }
 
     /// Returns the [`ObjectId`] of this object's parent in `tree`, or `None`
@@ -65,8 +74,12 @@ pub trait ObjectTreeExt: AsObject {
         tree.parent_of(self.object_base().id())
     }
 
-    /// Returns the [`ObjectId`]s of this object's children in insertion order,
-    /// or an empty [`Vec`] when this object is a leaf or no [`Application`](crate::Application) is live.
+    /// Returns the [`ObjectId`]s of this object's children in insertion order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live or
+    /// the tree mutex is poisoned. See [`try_with_tree`] for details.
     ///
     /// # Examples
     ///
@@ -74,13 +87,13 @@ pub trait ObjectTreeExt: AsObject {
     /// use quartzite_core::AsObject;
     /// use quartzite_runtime::ObjectTreeExt;
     ///
-    /// # fn example(obj: &impl AsObject) {
-    /// let _children = obj.children();
-    /// # }
+    /// # fn example(obj: &impl AsObject) -> Result<(), quartzite_runtime::TreeAccessError> {
+    /// let _children = obj.children()?;
+    /// # Ok(()) }
     /// ```
-    fn children(&self) -> Vec<ObjectId> {
+    fn children(&self) -> Result<Vec<ObjectId>, TreeAccessError> {
         let id = self.object_base().id();
-        try_with_tree(|tree| tree.children_of(id).to_vec()).unwrap_or_default()
+        try_with_tree(|tree| tree.children_of(id).to_vec())
     }
 
     /// Returns a slice of this object's children in insertion order, with
