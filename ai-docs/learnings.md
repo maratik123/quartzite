@@ -264,6 +264,16 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+### 2026-05-05 — process — always run the PR body check after every push, even if no edit seems needed
+
+**What happened:** After pushing AGENTS.md + learnings.md changes to the open PR branch, the PR body check (`gh pr view <N>`) was skipped on the grounds that instruction-only commits can't affect code claims. The rule is unconditional: re-read first, then decide. Reasoning your way out of the check is the failure mode the rule prevents.
+
+**Rule:** After every push to a branch with an open PR, always run `gh pr view <N>` and read the body. Only then decide whether an edit is needed. Never skip the read — only skip the edit if the body is still accurate.
+
+**How to apply:** Post-push checklist: `gh pr view <N> --json title,body`. If the body matches reality → done. If not → `gh pr edit`. The cost is one command; the benefit is catching invisible drift.
+
+**Escalated?** no
+
 ### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
 
 **What happened:** After applying fixes and posting an objection reply to a PR review comment, neither type of comment was resolved on GitHub. The user clarified the correct rule: resolve only comments that were fixed; leave comments where an objection was posted so the reviewer can decide whether to accept the objection.
