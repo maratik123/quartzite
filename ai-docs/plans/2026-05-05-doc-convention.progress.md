@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS (`quartzite-events` build/build-no-default/clippy/doc/test/fmt all green; 26 unit + 40 doctests pass; no `clippy.toml` additions needed; AC13 doctest exercising `event_button` vs `buttons_state` lives in `MouseEvent::new` `# Examples`)
+**Last build:** PARTIAL — `quartzite-macros` clippy/doc/build/fmt clean (lib + own sources); 3 new TDD tests failing as designed (locking the contract subtask 7 will satisfy); existing 142 unit tests + all 4 integration test files still pass; subtask 7 will green the new tests by emitting `# Parameters` / `# Examples` / accessor docs from the four `quote!` sites. (Transitive `cargo clippy --tests` errors from `quartzite-runtime/src/{application,connection_table,event_loop,factory,object_tree,timer}.rs` are subtask 8 work — not introduced by subtask 6.)
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,7 +13,14 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 6 — add codegen tests for `quartzite-macros`. Extend the `#[cfg(test)] mod tests` blocks in `quartzite-macros/src/object/codegen.rs` and `quartzite-macros/src/extend/codegen.rs` with string-contains assertions on emitted docs (sketch in design § *Test design*, subtask 6). The tests should fail until subtask 7 lands the codegen change — that is the point of subtask 6 (TDD lock).
+**Do this immediately:** Subtask 7 — update `quartzite-macros` codegen so the three failing TDD tests added in subtask 6 turn green. Required emissions per design § *Implementation breakdown* (row 7):
+
+1. `emit_signal_wrappers` (`quartzite-macros/src/object/codegen.rs` ~lines 290–330): inject `# Parameters` (one bullet per `arg{i}: <ty>`) and a `no_run` `# Examples` block into the `quote!` doc comments. Test to satisfy: `object::codegen::tests::emit_wrapper_doc_contains_parameters_and_examples` (asserts `out.contains("# Parameters")` and `out.contains("# Examples")` against a `Signal<(i32, i32)>` fixture).
+2. `emit_connect_auto_wrappers` (same file, ~lines 332–374): inject `# Parameters` (`receiver`, `f`) and a `no_run` `# Examples` block. Test to satisfy: `object::codegen::tests::connect_auto_wrapper_doc_contains_parameters_and_examples` (scoped to the second of three `impl Foo` blocks because `connect_queued` already emits `# Examples`).
+3. `emit_connect_queued_wrappers` (same file, ~lines 376–423): already has `# Examples`; add `# Parameters` (`receiver`, `f`). No new test was added for this in subtask 6 (the existing `connect_queued_wrapper_generated_for_signal` test already covers the `no_run` doc shape), but the design row 7 lists this as part of the codegen change — implement it for symmetry.
+4. `emit_root_trait_and_impl` (`quartzite-macros/src/extend/codegen.rs` ~lines 47–78): inject doc comments on the two trait-definition methods `#acc` and `#acc_mut`. Suggested summary lines: `Returns a shared reference to this object.` / `Returns a mutable reference to this object.` Test to satisfy: `extend::codegen::tests::root_trait_methods_carry_docs` (asserts `out.contains("# [doc")` for the `#[root] struct Widget { x: i32 }` case, which has zero other doc-emitting items).
+
+Per design AC4 the trait-impl methods (`impl AsWidget for Widget`) remain exempt — only the trait-definition methods need docs.
 
 ## Subtasks
 
@@ -23,8 +30,8 @@ _Updated: 2026-05-05_
 - [x] **HANDOFF here per design** — `/context-reset` after subtask 3
 - [x] 4. Audit & fix `quartzite-geometry`
 - [x] 5. Audit & fix `quartzite-events` (AC13 — `MouseEvent::new` doctest)
-- [ ] 6. Add codegen tests for `quartzite-macros` (string-contains assertions on emitted docs) ← CURRENT
-- [ ] 7. Update `quartzite-macros` codegen — emit conforming docs at four `quote!` sites
+- [x] 6. Add codegen tests for `quartzite-macros` (string-contains assertions on emitted docs)
+- [ ] 7. Update `quartzite-macros` codegen — emit conforming docs at four `quote!` sites ← CURRENT
 - [ ] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
 - [ ] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
 - [ ] 9. Audit & fix `quartzite` facade (`src/lib.rs`)
@@ -68,6 +75,20 @@ _Updated: 2026-05-05_
 - Doctest count: 33 → 40 (+7 — the AC13 second example, the `KeyEvent::new` second example, and `# Examples` blocks added on the `Event` and `EventFilter` trait definitions; mouse and key constructors each have two doctests now). All pass.
 - No conservative `# Parameters` descriptions were left for orchestrator review — every bullet is grounded in code I read directly. The trickiest call was distinguishing `event_button` from `buttons_state`; the prose mirrors the AC13 design intent ("the button whose state changed" vs "every button currently held") and is reinforced by the assertion structure of the new doctest.
 
+### Subtask 6 (`quartzite-macros` audit + TDD tests) notes
+
+- **Half 1 — own public API audit.** Two British → American spelling fixes in `quartzite-macros/src/lib.rs`:
+  - `derive_object` `#[prop]` table: `"exclude from serialisation"` → `"exclude from serialization"`.
+  - `object_impl` summary line: `"finalises the Object implementation"` → `"finalizes the Object implementation"`.
+  - One `clippy::doc_markdown` fix in `quartzite-macros/src/util.rs:29`: `snake_case` → `` `snake_case` `` (per the audit worklist baseline — "1 × doc_markdown or similar"). The remaining four exported proc-macros (`derive_extend`, `derive_object`, `object_part`, `object_impl`, `derive_meta_enum`) all already carry summary lines in third-person present indicative ("Derive macro that generates …", "Attribute macro applied to …"), each item has an `# Examples` block (using `no_run` or `ignore` per the proc-macro `# Examples` rule), and each item with attributes documents them under an `## Attributes` subsection. The `# Parameters` rule is N/A for `proc_macro_*` exports because the function signatures are `(TokenStream) -> TokenStream` driven by the proc-macro machinery — the design's "judgment call" was to keep the existing `## Attributes` subsections as the equivalent of `# Parameters`.
+- **Half 2 — TDD tests.** Three new `#[cfg(test)] mod tests` entries; all three intentionally **fail** until subtask 7 lands the codegen change:
+  - `quartzite-macros/src/object/codegen.rs::tests::emit_wrapper_doc_contains_parameters_and_examples` — fixture `Signal<(i32, i32)>`. Failure message: `missing # Parameters in emit_<sig> wrapper doc: …` (full token stream pasted into the assertion message; current emit doc contains only summary + `Checks [...] before firing.` + `Returns immediately when blocked.`).
+  - `quartzite-macros/src/object/codegen.rs::tests::connect_auto_wrapper_doc_contains_parameters_and_examples` — fixture `Signal<(i32,)>`. Scoped to the second of three `impl Foo` blocks (the connect_queued block already has `# Examples`, so the assertion would otherwise pass on the wrong block). Failure message: `missing # Parameters in connect_<sig>_auto wrapper doc: impl Foo { # [doc = r" Connects this signal to a slot with `Auto` delivery."] # [doc = r""] # [doc = r" Same-thread emits call `f` directly; cross-thread emits post to the dispatcher."] # [doc = r" The slot is silently skipped once `receiver` has been dropped."] …`.
+  - `quartzite-macros/src/extend/codegen.rs::tests::root_trait_methods_carry_docs` — fixture `#[root] struct Widget { x: i32 }`. Failure message: `missing doc attribute on root-trait accessor methods: pub trait AsWidget { fn widget (& self) -> & Widget ; fn widget_mut (& mut self) -> & mut Widget ; } impl AsWidget for Widget { # [inline] fn widget (& self) -> & Widget { self } # [inline] fn widget_mut (& mut self) -> & mut Widget { self } }` — the test asserts `out.contains("# [doc")` because the `quote!` round-trip lowers `///` to `# [doc = "..."]` in the rendered token stream, and this fixture (no signals, no base, no mixin) emits zero doc-bearing items today.
+- **Verify gates.** All four non-test gates green for `quartzite-macros` itself: `cargo build -p quartzite-macros` PASS; `cargo clippy -p quartzite-macros --lib -- -D warnings` PASS (no warnings in `quartzite-macros/src/`); `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc -p quartzite-macros --no-deps` PASS; `cargo fmt -- --check` PASS. `cargo clippy -p quartzite-macros --tests` shows 12 errors but **all** are from `quartzite-runtime/src/{application,connection_table,event_loop,factory,object_tree,timer}.rs` (transitive dev-dep through `quartzite` facade) — that's subtask 8 work, not introduced by this subtask.
+- **Test gate.** `cargo test -p quartzite-macros --lib`: 142 passed, 3 failed (the new TDD tests). `cargo test -p quartzite-macros --tests` (integration tests `extend.rs`, `meta_enum.rs`, `object.rs`, `object_impl.rs`): all 4 binaries compile and pass — no regression.
+- **Decision flagged for review:** the `extend/codegen.rs` test asserts `out.contains("# [doc")` rather than a more specific scoped assertion. Justification: for the `#[root] struct Widget { x: i32 }` fixture (no signals, no base, no mixin), `emit_root_trait_and_impl` is the **only** doc-emitting site, so any `# [doc` substring uniquely belongs to the trait-def accessor methods. If subtask 7 also emits docs on the impl-block methods (`impl AsWidget for Widget` — exempt per AC4 but harmless to document), the test still passes. Reviewer can tighten to a positional assertion if needed.
+
 ### Subtask 4 (`quartzite-geometry`) notes
 
 - `clippy.toml` did **not** need any new entries during this subtask — `PointF` / `RectF` / `SizeF` were already in the seed list, and existing prose carried no other un-backticked CamelCase identifiers.
@@ -96,7 +117,7 @@ _Updated: 2026-05-05_
 |----|--------|
 | AC1 | PASS (subtask 1 — `ai-docs/doc-convention.md` written) |
 | AC2 | PASS (subtask 1 — AGENTS.md Code Style updated) |
-| AC3 | PARTIAL (subtasks 3+4+5 — `quartzite-core`, `quartzite-geometry`, `quartzite-events` audited; subtasks 6/8/9 cover the rest) |
+| AC3 | PARTIAL (subtasks 3+4+5+6 — `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API audited; subtasks 8/9 cover `quartzite-runtime` and the `quartzite` facade) |
 | AC4 | NOT_TESTED |
 | AC5 | PASS (subtask 2 — five lints in every `lib.rs`) |
 | AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during subtask 3) |
@@ -104,7 +125,7 @@ _Updated: 2026-05-05_
 | AC8 | NOT_TESTED |
 | AC9 | NOT_TESTED |
 | AC10 | PARTIAL (subtasks 4+5 — `quartzite-geometry --no-default-features` and `quartzite-events --no-default-features` PASS; `quartzite` facade still NOT_TESTED — subtasks 9/11) |
-| AC11 | NOT_TESTED |
+| AC11 | NOT_TESTED (subtask 6 added the locking string-contains tests in `quartzite-macros/src/object/codegen.rs` + `quartzite-macros/src/extend/codegen.rs` — currently failing as designed; subtask 7 will green them by updating the four `quote!` sites) |
 | AC12 | NOT_TESTED |
 | AC13 | PASS (subtask 5 — `MouseEvent::new` carries `# Parameters` for `event_button` and `buttons_state` plus a doctest constructing an event where `event_button = Right` while `buttons_state = Left | Right`, asserting `event_button()` and `buttons_state()` independently — readers cannot conflate the two fields) |
 
@@ -134,6 +155,10 @@ _Updated: 2026-05-05_
 - `quartzite-events/src/mouse.rs` — `# Parameters` on `MouseEvent::new` (AC13 flagship) plus a second `# Examples` doctest where `event_button = Right` while `buttons_state = Left | Right`, asserting both accessors independently
 - `quartzite-events/src/timer.rs` — `# Parameters` on `TimerEvent::new`
 - `quartzite-events/src/window.rs` — `# Parameters` on `ResizeEvent::new`
+- `quartzite-macros/src/lib.rs` — British → American spelling fixes (`finalises` → `finalizes` on `object_impl`; `serialisation` → `serialization` in `derive_object` `#[prop(stored = false)]` table)
+- `quartzite-macros/src/util.rs` — `clippy::doc_markdown` fix on `accessor_name` doc (`snake_case` → `` `snake_case` ``)
+- `quartzite-macros/src/object/codegen.rs` — added two TDD tests inside the `#[cfg(test)] mod tests` block: `emit_wrapper_doc_contains_parameters_and_examples`, `connect_auto_wrapper_doc_contains_parameters_and_examples` (both currently fail; subtask 7 lands the codegen change)
+- `quartzite-macros/src/extend/codegen.rs` — added one TDD test inside the `#[cfg(test)] mod tests` block: `root_trait_methods_carry_docs` (currently fails; subtask 7 lands the codegen change)
 
 ## Audit worklist (from subtask 2 baseline clippy run)
 

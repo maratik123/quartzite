@@ -88,7 +88,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///   - `notify = signal_name` — emit `signal_name` after every successful write
 ///   - `read_only` — disallow property writes
 ///   - `constant` — value never changes (implies `read_only`)
-///   - `stored = false` — exclude from serialisation
+///   - `stored = false` — exclude from serialization
 ///   - `designable = false` — hide from visual editors
 ///   - `user` — mark as the primary user-editable property
 /// - `#[signal]` — marks a `Signal<Args>` field so its
@@ -157,7 +157,7 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
     object_part::expand(attr.into(), item.into()).into()
 }
 
-/// Attribute macro applied to an `impl` block that finalises the `Object` implementation.
+/// Attribute macro applied to an `impl` block that finalizes the `Object` implementation.
 ///
 /// Generates the `MetaObject` static (class name, property list, signal list, method list)
 /// and the complete `Object` trait impl. Methods inside the block can be annotated with:

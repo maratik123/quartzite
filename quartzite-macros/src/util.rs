@@ -26,7 +26,7 @@ pub(crate) fn as_trait_name(type_ident: &Ident) -> Option<Ident> {
     Some(Ident::new(&trait_name, type_ident.span()))
 }
 
-/// Returns the accessor method name: snake_case of the **original** type ident (not stripped).
+/// Returns the accessor method name: `snake_case` of the **original** type ident (not stripped).
 /// E.g. `ObjectBase` → `object_base`, `WidgetBase` → `widget_base`, `Button` → `button`.
 pub(crate) fn accessor_name(type_ident: &Ident) -> Ident {
     use heck::ToSnakeCase;

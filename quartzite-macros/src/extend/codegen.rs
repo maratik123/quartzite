@@ -502,4 +502,27 @@ mod tests {
             "unexpected empty angle brackets: {out}"
         );
     }
+
+    // Doc-convention contract (TDD lock for subtask 7): the generated
+    // `pub trait As{Self}` definition is user-facing public API; per the
+    // convention, every method declared inside a `pub trait` body must carry
+    // a doc comment. The two accessor methods (`#acc`, `#acc_mut`) emitted
+    // by `emit_root_trait_and_impl` must each have a `///`/`#[doc = "..."]`
+    // attribute. Today the codegen emits no doc on them — this assertion
+    // fails until subtask 7 lands.
+    #[test]
+    fn root_trait_methods_carry_docs() {
+        let out = emit(quote! {
+            #[root]
+            struct Widget { x: i32 }
+        });
+        // `quote!` lowers `///` to `# [doc = "..."]` in the rendered token
+        // stream. Use that form for the substring check — the no-signal /
+        // no-base root case emits nothing else that carries docs, so any
+        // `# [doc` occurrence comes from the trait-def methods.
+        assert!(
+            out.contains("# [doc"),
+            "missing doc attribute on root-trait accessor methods: {out}"
+        );
+    }
 }

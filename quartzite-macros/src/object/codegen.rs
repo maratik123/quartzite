@@ -1037,4 +1037,55 @@ mod tests {
             "emit_ticked not found in outer impl block: {out}"
         );
     }
+
+    // Doc-convention contract (TDD lock for subtask 7): `emit_<sig>` wrappers
+    // must carry both `# Parameters` and `# Examples` sections in their docs.
+    #[test]
+    fn emit_wrapper_doc_contains_parameters_and_examples() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub moved: Signal<(i32, i32)>,
+            }
+        });
+        assert!(
+            out.contains("# Parameters"),
+            "missing # Parameters in emit_<sig> wrapper doc: {out}"
+        );
+        assert!(
+            out.contains("# Examples"),
+            "missing # Examples in emit_<sig> wrapper doc: {out}"
+        );
+    }
+
+    // Doc-convention contract (TDD lock for subtask 7): `connect_<sig>_auto`
+    // wrappers must carry both `# Parameters` and `# Examples` sections.
+    #[test]
+    fn connect_auto_wrapper_doc_contains_parameters_and_examples() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        // Locate the connect_auto impl block to scope the assertion: there are
+        // three `impl Foo` blocks (emit, connect_auto, connect_queued); the
+        // connect_queued block already contains `# Examples`, so a workspace-
+        // wide `out.contains` would pass on it. Restrict to the auto block.
+        let positions: Vec<usize> = out.match_indices("impl Foo").map(|(i, _)| i).collect();
+        assert_eq!(
+            positions.len(),
+            3,
+            "expected 3 impl Foo blocks (emit, connect_auto, connect_queued): {out}"
+        );
+        let auto_section = &out[positions[1]..positions[2]];
+        assert!(
+            auto_section.contains("# Parameters"),
+            "missing # Parameters in connect_<sig>_auto wrapper doc: {auto_section}"
+        );
+        assert!(
+            auto_section.contains("# Examples"),
+            "missing # Examples in connect_<sig>_auto wrapper doc: {auto_section}"
+        );
+    }
 }
