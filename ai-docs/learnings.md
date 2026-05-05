@@ -393,3 +393,24 @@ then filter `isResolved == false` before reading any comment bodies.
 **How to apply:** On any new driver, scheduler, or shared-state type: whenever a `Mutex::lock()` or `Condvar::wait()` call appears in production code (i.e., not in tests), use `unwrap_or_else(|e| e.into_inner())` by default. Reserve `.expect("reason")` only for cases where poisoning genuinely means an unrecoverable invariant violation (document why in the reason string).
 
 **Escalated?** no
+
+### 2026-05-06 — code-style — `.expect()` on mutex/condvar/Option is still a panic; checklist must catch it explicitly
+
+**What happened:** `timer.rs` was implemented with `.expect("... mutex poisoned")` on every `Mutex::lock()`, `Condvar::wait()`, and `BinaryHeap::peek()`/`pop()` call in `ThreadDriver`, `AppDriver`, and `PoolDriver`. Two rounds of self-review (Rounds 2 and 3) both approved without catching these. The user had to flag all five sites via PR comments.
+
+**Why the gate broke — implementor side:** AGENTS.md § *Library safety idioms* says "use `mutex.lock().ok()?` or `.unwrap_or_else(|e| e.into_inner())`". The implementor read the *general* test rule ("no `unwrap()` in production code; `expect("reason")` preferred") and concluded that spelling out a reason string was sufficient. The mutex-specific rule was applied silently only to the `Mutex<Signal>` from `quartzite-core` (which was correctly handled via `ok()?`) but not to the driver-owned mutexes.
+
+**Why the gate broke — self-review agent side:** The reviewer checklist item was worded as "No `unwrap()` in production code (only in `.expect("reason")` form with justification)." Because `.expect(...)` is literally a different method name, the grep mental model (`grep unwrap`) missed it entirely. The agent never checked `.expect()` calls for panicking soundness — only for the presence of a justification string.
+
+**Rule:** Both implementor and self-review agent must treat `.unwrap()`, `.expect()`, and `panic!()` as the same category — *unconditional panics* — and apply the same scrutiny to all three. For every occurrence in production code (outside `#[cfg(test)]`), ask: "Is there a non-panicking form?"
+
+Concrete substitutions:
+- `mutex.lock().expect(...)` → `mutex.lock().unwrap_or_else(|e| e.into_inner())`
+- `condvar.wait(g).expect(...)` → `condvar.wait(g).unwrap_or_else(|e| e.into_inner())`
+- `condvar.wait_timeout(g, d).expect(...)` → `condvar.wait_timeout(g, d).unwrap_or_else(|e| e.into_inner())`
+- `option.expect("logically guaranteed")` → `let Some(x) = option else { continue/return; };`
+- `result.expect("infallible")` → `result.unwrap_or_else(|e| /* handle or return */)`
+
+**How to apply — self-review agent:** After checking for `unwrap`, also `grep -n '\.expect(' src/` (excluding test modules) and verify each call. Acceptable forms: `.expect()` in tests, `.expect()` where poisoning means a genuine broken global invariant with the reason string explaining *why* it is unrecoverable. Anything else is a finding.
+
+**Escalated?** agent:self-review
