@@ -223,3 +223,13 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** After generating files with relative links, verify at least one link manually: trace the path on disk (`realpath` or mental directory traversal) before committing. From `ai-docs/deferred/file.md`, one `..` reaches `ai-docs/`; two `../..` reaches the repo root.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-05 — code-style — clippy.toml `doc-valid-idents` is for non-code tokens only
+
+**What happened:** Initial doc-convention seed populated `clippy.toml`'s `doc-valid-idents` with ~60 entries: every project type (`MouseEvent`, `ObjectBase`, `BitFlags`, …), third-party types (`IndexMap`, `RwLock`), and `no_std`. The reasoning was "avoid noise from `clippy::doc_markdown` false positives during the audit." On review the user pointed out this was the wrong default — Rust identifiers in prose should always be backticked; the allowlist is for *non-code* tokens only (acronyms, brand names, proper nouns the heuristic mistakes for identifiers). Shrinking the list to just `GPU` (the one acronym not in clippy's defaults) surfaced only **3 violations** workspace-wide, confirming authors had been backticking project types correctly all along.
+
+**Rule:** `doc-valid-idents` entries must be genuine non-code tokens — acronyms (e.g. `GPU`), brand names, proper nouns. **Never add Rust type names, function names, module names, third-party crate types, or build-config tokens like `no_std`** to the allowlist. They are code references; backtick them at every prose mention. Clippy's built-in list already covers common acronyms (`OpenGL`, `JSON`, `HTTP`, etc.) — do not duplicate those either.
+
+**How to apply:** When `clippy::doc_markdown` warns on an identifier, the default response is "add backticks", not "allowlist the name". Reach for the allowlist only when the token is genuinely not a Rust item (e.g. a brand, a domain term, an acronym for a concept). Document the rule in the project's doc-convention reference (`ai-docs/doc-convention.md`) so future code-review agents inherit the same default.
+
+**Escalated?** doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)
