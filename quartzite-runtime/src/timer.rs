@@ -255,10 +255,6 @@ impl Timer {
     ///
     /// - `f`: callback invoked on the emitting thread each time the signal fires.
     ///
-    /// # Panics
-    ///
-    /// Panics if the internal signal mutex is poisoned.
-    ///
     /// # Examples
     ///
     /// ```
@@ -272,7 +268,7 @@ impl Timer {
     pub fn connect_tick<F: Fn(&(usize,)) + Send + 'static>(&self, f: F) -> ConnectionId {
         self.tick
             .lock()
-            .expect("tick signal mutex poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .connect(f)
     }
 
@@ -286,10 +282,6 @@ impl Timer {
     ///
     /// - `f`: callback invoked on the dispatcher thread with an owned clone of the args.
     /// - `guard`: weak handle to the receiver's [`ReceiverGuard`].
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal signal mutex is poisoned.
     ///
     /// # Examples
     ///
@@ -314,7 +306,7 @@ impl Timer {
     {
         self.tick
             .lock()
-            .expect("tick signal mutex poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .connect_queued(f, guard)
     }
 
@@ -328,10 +320,6 @@ impl Timer {
     /// - `receiver_thread_id`: the receiver's owning thread, captured once at connect time.
     /// - `guard`: weak handle to the receiver's [`ReceiverGuard`].
     /// - `f`: callback invoked with an owned clone of the args tuple.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal signal mutex is poisoned.
     ///
     /// # Examples
     ///
@@ -361,7 +349,7 @@ impl Timer {
     {
         self.tick
             .lock()
-            .expect("tick signal mutex poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .connect_auto(receiver_thread_id, guard, f)
     }
 
@@ -370,10 +358,6 @@ impl Timer {
     /// # Parameters
     ///
     /// - `id`: connection identifier returned by a previous `connect_tick*` call.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal signal mutex is poisoned.
     ///
     /// # Examples
     ///
@@ -388,7 +372,7 @@ impl Timer {
     pub fn disconnect_tick(&self, id: ConnectionId) {
         self.tick
             .lock()
-            .expect("tick signal mutex poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .disconnect(id);
     }
 
@@ -397,10 +381,6 @@ impl Timer {
     /// # Parameters
     ///
     /// - `fire_count`: the 0-indexed count to deliver to slots.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal signal mutex is poisoned.
     ///
     /// # Examples
     ///
@@ -417,7 +397,7 @@ impl Timer {
         }
         self.tick
             .lock()
-            .expect("tick signal mutex poisoned")
+            .unwrap_or_else(|e| e.into_inner())
             .emit(&(fire_count,));
     }
 
@@ -669,19 +649,13 @@ impl TimerDriver for ThreadDriver {
         });
 
         let thread_handle = join.thread().clone();
-        *self
-            .handle
-            .lock()
-            .expect("ThreadDriver handle mutex poisoned") = Some((thread_handle, join));
+        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some((thread_handle, join));
     }
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
-        if let Some((thread_handle, join)) = self
-            .handle
-            .lock()
-            .expect("ThreadDriver handle mutex poisoned")
-            .take()
+        if let Some((thread_handle, join)) =
+            self.handle.lock().unwrap_or_else(|e| e.into_inner()).take()
         {
             thread_handle.unpark();
             let _ = join.join();
@@ -769,16 +743,13 @@ impl TimerDriver for AppDriver {
         });
 
         let thread_handle = join.thread().clone();
-        *self.handle.lock().expect("AppDriver handle mutex poisoned") = Some((thread_handle, join));
+        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some((thread_handle, join));
     }
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
-        if let Some((thread_handle, join)) = self
-            .handle
-            .lock()
-            .expect("AppDriver handle mutex poisoned")
-            .take()
+        if let Some((thread_handle, join)) =
+            self.handle.lock().unwrap_or_else(|e| e.into_inner()).take()
         {
             thread_handle.unpark();
             let _ = join.join();
@@ -873,17 +844,14 @@ impl PoolDriver {
 
     fn pool_loop(inner: &PoolInner) {
         loop {
-            let mut guard = inner.state.lock().expect("PoolDriver state mutex poisoned");
+            let mut guard = inner.state.lock().unwrap_or_else(|e| e.into_inner());
 
             // Wait while the heap is empty.
             while guard.heap.is_empty() {
                 if !inner.running.load(Ordering::SeqCst) {
                     return;
                 }
-                guard = inner
-                    .condvar
-                    .wait(guard)
-                    .expect("PoolDriver condvar wait failed");
+                guard = inner.condvar.wait(guard).unwrap_or_else(|e| e.into_inner());
             }
 
             if !inner.running.load(Ordering::SeqCst) {
@@ -899,7 +867,7 @@ impl PoolDriver {
                 let (new_guard, _) = inner
                     .condvar
                     .wait_timeout(guard, wait)
-                    .expect("PoolDriver condvar wait_timeout failed");
+                    .unwrap_or_else(|e| e.into_inner());
                 guard = new_guard;
                 // Re-check emptiness and deadline from the top.
                 continue;
@@ -950,11 +918,7 @@ impl TimerDriver for PoolDriver {
         let id = config.timer_id;
         let cb: Arc<dyn Fn() + Send + Sync> = Arc::from(callback);
 
-        let mut guard = self
-            .inner
-            .state
-            .lock()
-            .expect("PoolDriver state mutex poisoned");
+        let mut guard = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
 
         guard.heap.push(Reverse((deadline, id)));
         guard.callbacks.insert(id, cb);
@@ -966,11 +930,7 @@ impl TimerDriver for PoolDriver {
     }
 
     fn stop(&self, id: ObjectId) {
-        let mut guard = self
-            .inner
-            .state
-            .lock()
-            .expect("PoolDriver state mutex poisoned");
+        let mut guard = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
 
         // Remove all per-timer state; stale heap entries will be discarded at pop time
         // because the id is no longer present in the callbacks map.
