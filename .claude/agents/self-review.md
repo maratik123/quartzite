@@ -66,6 +66,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - All new source files in Rust (`.rs`)?
 - No `#[allow(dead_code)]` / `#[allow(unused)]` without comment?
 - Every simple, non-generic function added by this diff has `#[inline]`? "Simple" = no branches or loops, at most one function call. Exclude generic functions and blanket-impl trait methods (monomorphized). Also check codegen: new simple generated `fn`s must emit `#[inline]`.
+- **File size (AGENTS.md "Code Style"):** any file added or grown by this diff over the **hard limit** (1000 lines excl. `#[cfg(test)]` / 1500 incl. tests) → REJECT unless an exemption applies (auto-generated / codegen output, a single state machine or `match` where splitting obscures control flow, `macro_rules!` definitions). Files crossing the **soft limit** (500 / 800) and visibly mixing responsibilities → flag as `nit` with a split suggestion (split by responsibility — `models.rs` / `db.rs` / `handlers.rs` — never mechanically by line count). Do **not** flag cohesive small-to-medium files for being "monolithic" — one-struct-per-file is anti-idiomatic in Rust.
 
 ### 6. Documentation
 

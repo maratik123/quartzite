@@ -56,6 +56,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Public items undocumented (`///` missing on `pub` functions/types)?
 - Dead code that clippy does not catch?
 - Simple non-generic functions missing `#[inline]`? "Simple" = no branches or loops, at most one function call. Exclude generic functions and blanket-impl trait methods (monomorphized). Also check codegen files: simple generated `fn`s must emit `#[inline]`.
+- **File size (AGENTS.md "Code Style"):** any non-exempt `.rs` file over the **hard limit** (1000 lines excl. `#[cfg(test)]` / 1500 incl. tests) → `major`, refactor required. Files over the **soft limit** (500 / 800) that visibly mix responsibilities → `minor` with a split suggestion. Exemptions: auto-generated / codegen output, single large state machine or `match`, `macro_rules!` definitions. Measure excl-tests with `awk '/^#\[cfg\(test\)\]/{exit} {n++} END{print n}' file.rs`. Do **not** flag cohesive small-to-medium files for being "monolithic" — one-struct-per-file is anti-idiomatic in Rust.
 
 ### 6. Documentation conformance ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md))
 

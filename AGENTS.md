@@ -63,6 +63,12 @@ Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic
 - **Library safety idioms.** Concrete forms of the "non-panicking APIs for libraries" rule (see *API Naming*):
   - **Mutex locks in `Option`/`Result`-returning fns:** use `mutex.lock().ok()?` (or `.unwrap_or_else(|e| e.into_inner())` to recover the inner value). Reserve `.lock().unwrap()` for cases where poisoning genuinely indicates an unrecoverable broken global invariant — and even then prefer `.expect("reason")`.
   - **Prefer safe primitives over raw pointers.** If a `OnceLock` / `Arc` / `Weak` already in scope holds the value, an `AtomicBool` flag is enough to track liveness — do not reach for `AtomicPtr` + `unsafe`. Reserve `unsafe` for cases where no safe construct expresses the semantic.
+- **File size.** Target **200–400 lines per `.rs` file excluding `#[cfg(test)]`** (readability sweet spot — fits in mental RAM, supports cohesive grouping of a struct + its `impl` blocks + related errors).
+  - **Soft limit:** 500 lines excl. tests / 800 incl. tests. Trigger a split-by-responsibility check (e.g. `models.rs` / `db.rs` / `handlers.rs`) — do **not** split mechanically by line count.
+  - **Hard limit:** 1000 lines excl. tests / 1500 incl. tests. Refactor before merge unless an exemption applies.
+  - **Exemptions:** auto-generated / codegen output (build scripts, proc-macro emission targets); a single state machine or `match` where splitting would obscure the control flow; `macro_rules!` definitions.
+  - **Counter-rule — do not over-split.** One-struct-per-file (Java / C# habit) is not Rust idiom and bloats the `mod` tree. Prefer one cohesive 300-line file over three 100-line fragments.
+  - **Per-function:** Clippy's `too_many_lines` (>100) is the canonical fn-level signal — keep functions under it. Small functions naturally yield small files.
 
 ## Dependency Versions
 
