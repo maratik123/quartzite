@@ -7,11 +7,13 @@
 
 use std::{
     sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     time::Duration,
 };
+
+use parking_lot::Mutex;
 
 use quartzite_core::{
     ConnectionId, ObjectBase, ObjectId, receiver_guard::ReceiverGuard, signal::Signal,
@@ -265,10 +267,7 @@ impl Timer {
     /// timer.disconnect_tick(id);
     /// ```
     pub fn connect_tick<F: Fn(&(usize,)) + Send + 'static>(&self, f: F) -> ConnectionId {
-        self.tick
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .connect(f)
+        self.tick.lock().connect(f)
     }
 
     /// Connects a `Queued` slot to the `tick` signal.
@@ -303,10 +302,7 @@ impl Timer {
     where
         F: Fn((usize,)) + Send + Sync + 'static,
     {
-        self.tick
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .connect_queued(f, guard)
+        self.tick.lock().connect_queued(f, guard)
     }
 
     /// Connects an `Auto` slot to the `tick` signal.
@@ -346,10 +342,7 @@ impl Timer {
     where
         F: Fn((usize,)) + Send + Sync + 'static,
     {
-        self.tick
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .connect_auto(receiver_thread_id, guard, f)
+        self.tick.lock().connect_auto(receiver_thread_id, guard, f)
     }
 
     /// Disconnects a previously connected `tick` slot.
@@ -369,10 +362,7 @@ impl Timer {
     /// timer.disconnect_tick(id);
     /// ```
     pub fn disconnect_tick(&self, id: ConnectionId) {
-        self.tick
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .disconnect(id);
+        self.tick.lock().disconnect(id);
     }
 
     /// Emits the `tick` signal with `fire_count` unless signals are blocked.
@@ -394,10 +384,7 @@ impl Timer {
         if self.base.signals_blocked() {
             return;
         }
-        self.tick
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .emit(&(fire_count,));
+        self.tick.lock().emit(&(fire_count,));
     }
 
     // ── signal-block wrappers ────────────────────────────────────────────────
@@ -509,7 +496,7 @@ impl Timer {
             }
             let count = state.fire_count.fetch_add(1, Ordering::SeqCst);
             if !state.signals_blocked.load(Ordering::Relaxed) {
-                let mut sig = state.signal.lock().unwrap_or_else(|e| e.into_inner());
+                let mut sig = state.signal.lock();
                 sig.emit(&(count,));
             }
             if single_shot {
@@ -685,7 +672,7 @@ mod tests {
         timer.connect_tick(move |args| count2.store(args.0 + 1, Ordering::SeqCst));
 
         // Emit via TimerState's signal Arc (same underlying Mutex).
-        timer.state.signal.lock().expect("signal lock").emit(&(41,));
+        timer.state.signal.lock().emit(&(41,));
         assert_eq!(count.load(Ordering::SeqCst), 42);
     }
 

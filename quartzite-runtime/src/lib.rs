@@ -39,7 +39,7 @@ pub mod timer_drivers;
 pub use application::try_with_tree;
 pub use application::{Application, ApplicationError, TreeAccessError};
 pub use connection_table::ConnectionTable;
-pub use event_loop::{EventLoop, RunError};
+pub use event_loop::EventLoop;
 pub use factory::{FactoryAlreadySet, ObjectFactory};
 pub use object_ref::{ObjectRef, WeakRef};
 pub use object_tree::ObjectTree;

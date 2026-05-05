@@ -1,8 +1,7 @@
 //! Process-wide store of active signal–slot connections.
-use std::{
-    collections::HashMap,
-    sync::{Arc, RwLock},
-};
+use std::{collections::HashMap, sync::Arc};
+
+use parking_lot::RwLock;
 
 use quartzite_core::{
     ConnectionId, ObjectId,
@@ -139,19 +138,14 @@ impl ConnectionTable {
             signal_index,
             receiver_id,
         };
-        self.connections
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(id, record);
+        self.connections.write().insert(id, record);
         self.by_receiver
             .write()
-            .unwrap_or_else(|e| e.into_inner())
             .entry(receiver_id)
             .or_default()
             .push(id);
         self.by_signal
             .write()
-            .unwrap_or_else(|e| e.into_inner())
             .entry((sender_id, signal_index))
             .or_default()
             .push(id);
@@ -177,24 +171,13 @@ impl ConnectionTable {
     /// table.remove(id);
     /// ```
     pub fn remove(&self, id: ConnectionId) {
-        if let Some(record) = self
-            .connections
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .remove(&id)
-        {
-            if let Some(v) = self
-                .by_receiver
-                .write()
-                .unwrap_or_else(|e| e.into_inner())
-                .get_mut(&record.receiver_id)
-            {
+        if let Some(record) = self.connections.write().remove(&id) {
+            if let Some(v) = self.by_receiver.write().get_mut(&record.receiver_id) {
                 v.retain(|&c| c != id);
             }
             if let Some(v) = self
                 .by_signal
                 .write()
-                .unwrap_or_else(|e| e.into_inner())
                 .get_mut(&(record.sender_id, record.signal_index))
             {
                 v.retain(|&c| c != id);
@@ -222,14 +205,9 @@ impl ConnectionTable {
     /// table.remove_by_receiver(receiver_id); // removes all slots for this receiver
     /// ```
     pub fn remove_by_receiver(&self, id: ObjectId) {
-        let ids: Vec<ConnectionId> = self
-            .by_receiver
-            .write()
-            .unwrap_or_else(|e| e.into_inner())
-            .remove(&id)
-            .unwrap_or_default();
-        let mut conns = self.connections.write().unwrap_or_else(|e| e.into_inner());
-        let mut by_signal = self.by_signal.write().unwrap_or_else(|e| e.into_inner());
+        let ids: Vec<ConnectionId> = self.by_receiver.write().remove(&id).unwrap_or_default();
+        let mut conns = self.connections.write();
+        let mut by_signal = self.by_signal.write();
         for cid in ids {
             if let Some(record) = conns.remove(&cid)
                 && let Some(v) = by_signal.get_mut(&(record.sender_id, record.signal_index))
@@ -265,7 +243,6 @@ impl ConnectionTable {
     ) -> Vec<ConnectionId> {
         self.by_signal
             .read()
-            .unwrap_or_else(|e| e.into_inner())
             .get(&(sender_id, signal_index))
             .cloned()
             .unwrap_or_default()

@@ -1,5 +1,7 @@
 //! Process-singleton `Application` and `ApplicationError`.
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
+
+use parking_lot::Mutex;
 
 use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tree::ObjectTree};
 
@@ -134,12 +136,6 @@ impl Application {
 
     /// Runs the event loop, blocking the calling thread until [`quit`](Self::quit) is called.
     ///
-    /// # Errors
-    ///
-    /// Returns [`RunError::Poisoned`](crate::event_loop::RunError::Poisoned) if the event loop's
-    /// receiver mutex is poisoned because a previous [`exec`](Self::exec) call panicked while
-    /// dispatching a posted closure.
-    ///
     /// # Panics
     ///
     /// If a posted closure panics, the panic propagates through `exec` to its caller.
@@ -154,11 +150,11 @@ impl Application {
     /// // post a quit event immediately so the loop exits right away in tests
     /// let app2 = Application::global().unwrap();
     /// app.post_event(Box::new(move || app2.quit()));
-    /// app.exec().unwrap();
+    /// app.exec();
     /// ```
     #[inline]
-    pub fn exec(&self) -> Result<(), crate::event_loop::RunError> {
-        self.0.event_loop.run()
+    pub fn exec(&self) {
+        self.0.event_loop.run();
     }
 
     /// Stops the event loop.
@@ -186,7 +182,7 @@ impl Application {
     /// use quartzite_runtime::Application;
     ///
     /// let app = Application::new().unwrap();
-    /// let _tree = app.object_tree().lock().unwrap();
+    /// let _tree = app.object_tree().lock();
     /// ```
     #[inline]
     pub fn object_tree(&self) -> &Mutex<ObjectTree> {
@@ -246,9 +242,6 @@ pub enum TreeAccessError {
     /// No [`Application`] is currently live in this process.
     #[error("no Application is currently live")]
     NotLive,
-    /// The [`ObjectTree`] mutex is poisoned; contains the description from [`std::sync::PoisonError`].
-    #[error("ObjectTree mutex is poisoned: {0}")]
-    Poisoned(String),
 }
 
 /// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
@@ -261,7 +254,6 @@ pub enum TreeAccessError {
 /// # Errors
 ///
 /// - [`TreeAccessError::NotLive`] — no [`Application`] is currently live.
-/// - [`TreeAccessError::Poisoned`] — the [`ObjectTree`] mutex is poisoned.
 ///
 /// # Examples
 ///
@@ -279,8 +271,7 @@ pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAcces
         .get()
         .ok_or(TreeAccessError::NotLive)?
         .object_tree
-        .lock()
-        .map_err(|e| TreeAccessError::Poisoned(e.to_string()))?;
+        .lock();
     Ok(f(&guard))
 }
 

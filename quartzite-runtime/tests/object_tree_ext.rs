@@ -104,7 +104,7 @@ fn parent_children_accessors_all_acs() {
 
     // Build a small tree: root -> child_a, child_b; child_a -> grandchild
     let (root_id, child_a_id, child_b_id, grandchild_id) = {
-        let mut tree = app.object_tree().lock().unwrap();
+        let mut tree = app.object_tree().lock();
         let root_id = tree.insert(Stub::named("root"), None);
         let child_a_id = tree.insert(Stub::named("child_a"), Some(root_id));
         let child_b_id = tree.insert(Stub::named("child_b"), Some(root_id));
@@ -157,7 +157,7 @@ fn parent_children_accessors_all_acs() {
     let parent_b_global = child_b_q.parent().unwrap();
     let children_root_global = root_q.children().unwrap();
     {
-        let tree = app.object_tree().lock().unwrap();
+        let tree = app.object_tree().lock();
         assert_eq!(
             child_b_q.parent_in(&tree),
             parent_b_global,

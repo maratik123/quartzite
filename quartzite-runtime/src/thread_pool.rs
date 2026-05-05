@@ -1,10 +1,11 @@
 //! Fixed-size worker thread pool for background task execution.
 use std::{
     num::NonZeroUsize,
-    sync::Mutex,
     sync::mpsc::{self, Receiver, Sender},
     thread::{self, JoinHandle},
 };
+
+use parking_lot::Mutex;
 
 type Task = Box<dyn FnOnce() + Send>;
 
@@ -53,7 +54,7 @@ impl ThreadPool {
             let rx: std::sync::Arc<Mutex<Receiver<Task>>> = std::sync::Arc::clone(&receiver);
             workers.push(thread::spawn(move || {
                 loop {
-                    let task = rx.lock().unwrap_or_else(|e| e.into_inner()).recv();
+                    let task = rx.lock().recv();
                     match task {
                         Ok(f) => f(),
                         Err(_) => break, // sender dropped — shut down

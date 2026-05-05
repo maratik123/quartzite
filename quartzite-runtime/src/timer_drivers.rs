@@ -9,12 +9,14 @@ use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap},
     sync::{
-        Arc, Condvar, Mutex,
+        Arc,
         atomic::{AtomicBool, Ordering},
     },
     thread::{self, JoinHandle, Thread},
     time::{Duration, Instant},
 };
+
+use parking_lot::{Condvar, Mutex};
 
 use quartzite_core::ObjectId;
 
@@ -94,14 +96,12 @@ impl TimerDriver for ThreadDriver {
         });
 
         let thread_handle = join.thread().clone();
-        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some((thread_handle, join));
+        *self.handle.lock() = Some((thread_handle, join));
     }
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
-        if let Some((thread_handle, join)) =
-            self.handle.lock().unwrap_or_else(|e| e.into_inner()).take()
-        {
+        if let Some((thread_handle, join)) = self.handle.lock().take() {
             thread_handle.unpark();
             let _ = join.join();
         }
@@ -188,14 +188,12 @@ impl TimerDriver for AppDriver {
         });
 
         let thread_handle = join.thread().clone();
-        *self.handle.lock().unwrap_or_else(|e| e.into_inner()) = Some((thread_handle, join));
+        *self.handle.lock() = Some((thread_handle, join));
     }
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
-        if let Some((thread_handle, join)) =
-            self.handle.lock().unwrap_or_else(|e| e.into_inner()).take()
-        {
+        if let Some((thread_handle, join)) = self.handle.lock().take() {
             thread_handle.unpark();
             let _ = join.join();
         }
@@ -290,14 +288,14 @@ impl PoolDriver {
 
     fn pool_loop(inner: &PoolInner) {
         loop {
-            let mut guard = inner.state.lock().unwrap_or_else(|e| e.into_inner());
+            let mut guard = inner.state.lock();
 
             // Wait while the heap is empty.
             while guard.heap.is_empty() {
                 if !inner.running.load(Ordering::SeqCst) {
                     return;
                 }
-                guard = inner.condvar.wait(guard).unwrap_or_else(|e| e.into_inner());
+                inner.condvar.wait(&mut guard);
             }
 
             if !inner.running.load(Ordering::SeqCst) {
@@ -312,11 +310,7 @@ impl PoolDriver {
 
             if deadline > now {
                 let wait = deadline - now;
-                let (new_guard, _) = inner
-                    .condvar
-                    .wait_timeout(guard, wait)
-                    .unwrap_or_else(|e| e.into_inner());
-                guard = new_guard;
+                inner.condvar.wait_for(&mut guard, wait);
                 // Re-check emptiness and deadline from the top.
                 continue;
             }
@@ -365,7 +359,7 @@ impl TimerDriver for PoolDriver {
         let id = config.timer_id;
         let cb: Arc<dyn Fn() + Send + Sync> = Arc::from(callback);
 
-        let mut guard = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.inner.state.lock();
 
         guard.heap.push(Reverse((deadline, id)));
         guard.callbacks.insert(id, cb);
@@ -377,7 +371,7 @@ impl TimerDriver for PoolDriver {
     }
 
     fn stop(&self, id: ObjectId) {
-        let mut guard = self.inner.state.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.inner.state.lock();
 
         // Remove all per-timer state; stale heap entries will be discarded at pop time
         // because the id is no longer present in the callbacks map.
