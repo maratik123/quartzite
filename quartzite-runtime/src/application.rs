@@ -243,16 +243,16 @@ impl Drop for Application {
 /// use quartzite_runtime::{try_with_tree, TreeAccessError};
 ///
 /// // Returns Err(NotLive) before Application::new()
-/// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive));
+/// assert!(matches!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive)));
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum TreeAccessError {
     /// No [`Application`] is currently live in this process.
     #[error("no Application is currently live")]
     NotLive,
-    /// The [`ObjectTree`] mutex is poisoned; contains the error description from [`std::sync::PoisonError`].
-    #[error("ObjectTree mutex is poisoned: {0}")]
-    Poisoned(String),
+    /// The [`ObjectTree`] mutex is poisoned.
+    #[error("ObjectTree mutex is poisoned")]
+    Poisoned(#[source] std::sync::PoisonError<()>),
 }
 
 /// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
@@ -273,7 +273,7 @@ pub enum TreeAccessError {
 /// use quartzite_runtime::{try_with_tree, TreeAccessError};
 ///
 /// // Returns Err(NotLive) before Application::new()
-/// assert_eq!(try_with_tree(|_tree| ()), Err(TreeAccessError::NotLive));
+/// assert!(matches!(try_with_tree(|_tree| ()), Err(TreeAccessError::NotLive)));
 /// ```
 pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAccessError> {
     if !crate::global_tree::is_live() {
@@ -284,7 +284,7 @@ pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAcces
         .ok_or(TreeAccessError::NotLive)?
         .object_tree
         .lock()
-        .map_err(|e| TreeAccessError::Poisoned(e.to_string()))?;
+        .map_err(|_| TreeAccessError::Poisoned(std::sync::PoisonError::new(())))?;
     Ok(f(&guard))
 }
 
