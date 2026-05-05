@@ -3,6 +3,11 @@
 //! Entry point is [`Application::new`](application::Application::new), which initialises the
 //! singleton and installs the queued dispatcher. Call [`Application::exec`](application::Application::exec)
 //! on the main thread to run the event loop.
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::doc_markdown)]
 #![deny(missing_docs)]
 
 pub mod application;

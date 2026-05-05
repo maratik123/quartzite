@@ -8,6 +8,11 @@
 //!   enabling type-safe single-inheritance hierarchies.
 //! - [`MetaEnum`](derive_meta_enum): generate `IntoValue`/`FromValue` and `EnumMeta` for
 //!   C-like enums.
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::doc_markdown)]
 #![deny(missing_docs)]
 
 use proc_macro::TokenStream;

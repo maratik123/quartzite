@@ -7,6 +7,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
+| [doc-convention](2026-05-05-doc-convention.spec.md) | all crates | 🟢 ready | — |
 ## Completed plans
 
 | Plan | Crate(s) | Status | Blocked by |

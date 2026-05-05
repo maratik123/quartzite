@@ -5,6 +5,11 @@
 //! `quartzite-runtime`.
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::doc_markdown)]
 #![deny(missing_docs)]
 #![doc = document_features::document_features!()]
 

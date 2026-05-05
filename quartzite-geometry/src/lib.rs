@@ -1,4 +1,9 @@
 #![no_std]
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::doc_markdown)]
 #![deny(missing_docs)]
 //! Geometry primitives for quartzite: integer and float coordinate types.
 //!
