@@ -15,7 +15,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 /// let b = ObjectId::new();
 /// assert_ne!(a, b);
 /// ```
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, PartialOrd, Ord)]
 pub struct ObjectId(u64);
 
 impl ObjectId {
@@ -76,7 +76,7 @@ impl Default for ObjectId {
 /// let b = ConnectionId::new();
 /// assert_ne!(a, b);
 /// ```
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, PartialOrd, Ord)]
 pub struct ConnectionId(u64);
 
 impl ConnectionId {
@@ -137,10 +137,24 @@ mod tests {
     }
 
     #[test]
+    fn object_id_later_allocation_is_greater() {
+        let a = ObjectId::new();
+        let b = ObjectId::new();
+        assert!(a < b);
+    }
+
+    #[test]
     fn connection_id_new_returns_distinct_sequential() {
         let a = ConnectionId::new();
         let b = ConnectionId::new();
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn connection_id_later_allocation_is_greater() {
+        let a = ConnectionId::new();
+        let b = ConnectionId::new();
+        assert!(a < b);
     }
 
     #[test]

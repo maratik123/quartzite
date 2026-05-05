@@ -665,10 +665,9 @@ mod tests {
         let a = tree.insert(StubObject::named("dup"), None);
         let b = tree.insert(StubObject::named("dup"), None);
         let ids = tree.find_by_name("dup");
-        let key = |id: &&ObjectId| id.raw();
         assert_equal(
-            ids.iter().sorted_unstable_by_key(key),
-            [a, b].iter().sorted_unstable_by_key(key),
+            ids.iter().sorted_unstable(),
+            [a, b].iter().sorted_unstable(),
         );
     }
 

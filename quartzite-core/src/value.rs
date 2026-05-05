@@ -150,6 +150,8 @@ pub enum Value {
     Custom(Arc<dyn CustomValue>),
     /// A weak reference to a runtime object (see [`WeakObjectRef`]).
     Object(WeakObjectRef),
+    /// A time duration.
+    Duration(core::time::Duration),
 }
 
 // `Value` intentionally does not implement `Eq`: the `Float` variant uses
@@ -168,6 +170,7 @@ impl PartialEq for Value {
             // Custom values are compared by Arc pointer identity, not deep equality.
             (Value::Custom(a), Value::Custom(b)) => Arc::ptr_eq(a, b),
             (Value::Object(a), Value::Object(b)) => a == b,
+            (Value::Duration(a), Value::Duration(b)) => a == b,
             _ => false,
         }
     }
@@ -184,6 +187,7 @@ impl Value {
     /// assert_eq!(Value::Int(42).type_name(), "Int");
     /// assert_eq!(Value::Null.type_name(), "Null");
     /// assert_eq!(Value::Bool(true).type_name(), "Bool");
+    /// assert_eq!(Value::Duration(core::time::Duration::from_secs(1)).type_name(), "Duration");
     /// ```
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -197,6 +201,7 @@ impl Value {
             Value::Bytes(_) => "Bytes",
             Value::Custom(_) => "Custom",
             Value::Object(_) => "Object",
+            Value::Duration(_) => "Duration",
         }
     }
 }
@@ -327,6 +332,7 @@ macro_rules! impl_int_checked {
 impl_int_checked!(i32);
 impl_int_checked!(u32);
 impl_int_checked!(u64);
+impl_int_checked!(usize);
 
 impl FromValue for f64 {
     fn from_value(val: Value) -> Result<Self, TypeError> {
@@ -397,6 +403,55 @@ impl FromValue for String {
 impl IntoValue for String {
     fn into_value(self) -> Value {
         Value::String(self)
+    }
+}
+
+impl FromValue for core::time::Duration {
+    /// Attempts to convert `val` into a [`core::time::Duration`].
+    ///
+    /// # Parameters
+    ///
+    /// - `val`: must be `Value::Duration`; any other variant returns `Err`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(TypeError)` when `val` is not `Value::Duration`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::time::Duration;
+    /// use quartzite_core::value::{FromValue, Value};
+    ///
+    /// let d = Duration::from_secs(1);
+    /// assert_eq!(Duration::from_value(Value::Duration(d)), Ok(d));
+    /// assert!(Duration::from_value(Value::Int(0)).is_err());
+    /// ```
+    fn from_value(val: Value) -> Result<Self, TypeError> {
+        match val {
+            Value::Duration(d) => Ok(d),
+            _ => Err(TypeError {
+                expected: "Duration",
+                got: val.type_name(),
+            }),
+        }
+    }
+}
+
+impl IntoValue for core::time::Duration {
+    /// Wraps `self` in `Value::Duration`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use core::time::Duration;
+    /// use quartzite_core::value::{IntoValue, Value};
+    ///
+    /// assert_eq!(Duration::from_secs(2).into_value(), Value::Duration(Duration::from_secs(2)));
+    /// ```
+    #[inline]
+    fn into_value(self) -> Value {
+        Value::Duration(self)
     }
 }
 
@@ -548,6 +603,35 @@ mod tests {
     #[test]
     fn i32_rejects_out_of_range() {
         assert!(i32::from_value(Value::Int(i64::MAX)).is_err());
+    }
+
+    #[test]
+    fn duration_round_trip() {
+        let d = core::time::Duration::from_millis(500);
+        assert_eq!(core::time::Duration::from_value(d.into_value()), Ok(d));
+    }
+
+    #[test]
+    fn duration_type_name() {
+        assert_eq!(
+            Value::Duration(core::time::Duration::ZERO).type_name(),
+            "Duration"
+        );
+    }
+
+    #[test]
+    fn duration_rejects_int() {
+        assert!(core::time::Duration::from_value(Value::Int(0)).is_err());
+    }
+
+    #[test]
+    fn usize_round_trip() {
+        assert_eq!(usize::from_value(42usize.into_value()), Ok(42usize));
+    }
+
+    #[test]
+    fn usize_rejects_negative() {
+        assert!(usize::from_value(Value::Int(-1)).is_err());
     }
 
     #[test]

@@ -244,6 +244,30 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+### 2026-05-05 — process — context-reset and self-review agents must check `#[inline]` on every simple new fn
+
+**What happened:** The context-reset subagent implementing Tasks 3–11 of the timer-object task wrote `impl AsObject` and `impl Object` methods (`object_base`, `object_base_mut`, `as_any`, `as_any_mut`, `meta_object`, `invoke_method`, `connect_signal`) without `#[inline]`. The self-review agent's Round 1 pass also missed the gap, only flagging it in Round 2. The user had to point it out explicitly before the PR commit.
+
+**Rule:** Both the context-reset implementing agent and the self-review agent must check `#[inline]` on every new simple, non-generic function — not only on named groups like "getters" or "Default impls". Every `AsObject`/`Object` impl method, every trivial wrapper, every constructor that is just a struct literal, must be reviewed for this annotation before the task is reported done.
+
+**Why:** The AGENTS.md `#[inline]` rule is unambiguous and applies broadly. Context-reset agents must apply it at write time. Self-review agents must validate it independently on every new public fn.
+
+**How to apply:** At implementation time, add `#[inline]` immediately before writing the body of any simple fn. At self-review time, scan every `fn` in the diff for missing `#[inline]` before reporting APPROVE — not just fn groups the reviewer already knows about.
+
+**Escalated?** agent:self-review
+
+### 2026-05-05 — architecture — use existing derive macros for `AsObject`/`Object`; do not write manual impls
+
+**What happened:** The context-reset subagent implementing the Timer type wrote manual `impl AsObject for Timer` and `impl Object for Timer` instead of using `#[derive(Extend, Object)]` from `quartzite-macros`. The design document explicitly specified the derive approach. Adding `quartzite-macros` as a dependency of `quartzite-runtime` has no circular dependency (quartzite-macros only depends on `syn`/`quote`/`proc-macro2`), so there was no obstacle. The manual impl caused a 2-round review cycle to surface the `#[inline]` gap the macro would have generated automatically.
+
+**Rule:** When a type in `quartzite-runtime` (or any crate with access to `quartzite-macros`) needs to implement `AsObject` and `Object`, use `#[derive(Extend, Object)]` + `#[object_impl]`. Do not hand-write the impls. The derive macros generate correct `#[inline]` annotations, property dispatch, and MetaObject registration automatically.
+
+**Why:** The derive macros exist precisely to eliminate boilerplate. Using them ensures consistency, correctness, and automatic compliance with all codegen conventions. Rolling a manual impl is reinventing the wheel and drifts from the generated pattern.
+
+**How to apply:** When adding `#[derive(Extend, Object)]` to a crate that doesn't yet depend on `quartzite-macros`, add the dep first (`quartzite-macros = { path = "../quartzite-macros" }`). Proc-macro crates are never circular.
+
+**Escalated?** no
+
 ### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
 
 **What happened:** `try_with_tree` used `mutex.lock().unwrap()`, which panics on a poisoned mutex. Since AGENTS.md mandates non-panicking APIs for libraries, and mutex poisoning (another thread panicking while holding the lock) is not a broken global invariant from the caller's perspective, returning `None` is the correct behaviour. `.lock().ok()?` achieves this with no additional code.
@@ -329,6 +353,16 @@ then filter `isResolved == false` before reading any comment bodies.
 **How to apply:** After `gh pr create` returns the URL, stop — do not re-read the body until at least one further `git push` happens. From the *second* push onward, the unconditional read rule applies.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-05 — process — backward-compat question asked again despite skill:interview escalation
+
+**What happened:** During `/interview` for issue #36, asked "should the current `Timer` construction/usage API stay roughly the same (just gaining object-tree integration), or is a full redesign expected?" — i.e., a backward-compat framing. The rule was already escalated to `skill:interview` on 2026-05-03 ("do not ask about backward compatibility; AGENTS.md already prohibits compat shims"). User rightly pushed back again.
+
+**Rule:** Never frame an interview question around backward compatibility, keeping old APIs, or preserving existing behavior "for users". AGENTS.md is clear: no crates.io release, no downstream clients, free to rename/remove/restructure. Apply this silently before any question round.
+
+**How to apply:** Before every interview round, re-read AGENTS.md § API Stability. If a candidate question touches compat, deprecation, or "keeping old X", discard it and apply the rule silently.
+
+**Escalated?** skill:interview
 
 ### 2026-05-05 — tooling — use `0.x` version format for 0.x.y deps, not bare `0`
 
