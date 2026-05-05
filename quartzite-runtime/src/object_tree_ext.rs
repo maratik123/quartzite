@@ -13,7 +13,7 @@ use crate::{
 ///
 /// Methods without a `_in` suffix use the process-global tree registered by
 /// [`Application::new`](crate::Application::new) and return
-/// [`Err`]`(`[`TreeAccessError::NotLive`]`)` when called outside an active
+/// [`Err`]`(`[`TreeAccessError`]`)` when called outside an active
 /// [`Application`](crate::Application).
 ///
 /// # Examples
@@ -34,8 +34,7 @@ pub trait ObjectTreeExt: AsObject {
     ///
     /// # Errors
     ///
-    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live or
-    /// the tree mutex is poisoned. See [`try_with_tree`] for details.
+    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live.
     ///
     /// # Examples
     ///
@@ -78,8 +77,7 @@ pub trait ObjectTreeExt: AsObject {
     ///
     /// # Errors
     ///
-    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live or
-    /// the tree mutex is poisoned. See [`try_with_tree`] for details.
+    /// Returns [`TreeAccessError`] when no [`Application`](crate::Application) is live.
     ///
     /// # Examples
     ///
