@@ -9,38 +9,39 @@
 
 The implementation has three layers:
 
-1. **Process-global tree accessor in `quartzite-runtime`** — a new free function
-   `try_with_tree<R, F: FnOnce(&ObjectTree) -> R>(f: F) -> Option<R>` in a new
-   module `quartzite-runtime/src/global_tree.rs`. The global is a
-   `static GLOBAL_TREE: OnceLock<Weak<ApplicationInner>>` — no, that couples
-   `global_tree` to `ApplicationInner` internals.
+1. **Process-global tree accessor in `quartzite-runtime`** — a `static TREE_LIVE: AtomicBool`
+   flag (in `quartzite-runtime/src/global_tree.rs`) and a public free function
+   `try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Option<R>` (in
+   `quartzite-runtime/src/application.rs`, which has access to both `TREE_LIVE` and
+   the private `APP: OnceLock<Arc<ApplicationInner>>`).
 
-   Better: store a raw `*const Mutex<ObjectTree>` in a process-global
-   `static TREE_PTR: AtomicPtr<Mutex<ObjectTree>>`. `Application::new()` stores the
-   address of `inner.object_tree` (which lives for the lifetime of `ApplicationInner`,
-   pinned behind `Arc`); `Application::drop()` CAS-clears the pointer.
+   `Application::new()` calls `global_tree::register()` (sets `TREE_LIVE = true`);
+   `impl Drop for Application` calls `global_tree::deregister()` (sets `TREE_LIVE = false`).
 
-   Wait — `Application` currently has no `Drop` impl. The spec requires clearing on
-   drop. Additionally the existing `APP: OnceLock<Arc<ApplicationInner>>` never clears,
-   so `Application::drop()` would run but the `OnceLock` stays populated forever.
-   Clearing the tree pointer from `Drop` is safe regardless: once the `Application`
-   handle is dropped, using the tree accessor from `ObjectExt` methods would yield
-   `None`, matching the spec requirement.
+   `try_with_tree` implementation:
+   ```rust
+   pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Option<R> {
+       if !crate::global_tree::is_live() { return None; }
+       let guard = APP.get()?.object_tree.lock().ok()?;
+       Some(f(&guard))
+   }
+   ```
 
-   `AtomicPtr` is simpler than a second `OnceLock` and does not require `unsafe` at
-   the call site of `try_with_tree`. The raw pointer is obtained from the
-   `Arc<ApplicationInner>` on construction and guaranteed valid for the duration
-   the `Arc` is alive (i.e., while the `Application` value exists). On drop the
-   pointer is zeroed with `store(ptr::null_mut(), Ordering::Release)`.
+   **Why `AtomicBool` instead of `AtomicPtr`:**
+   An earlier draft stored a raw `*const Mutex<ObjectTree>` in `AtomicPtr`, requiring
+   an `unsafe` dereference and a `// SAFETY:` block. This was rejected because
+   `APP: OnceLock<Arc<ApplicationInner>>` already keeps the `Mutex<ObjectTree>` alive
+   for the process lifetime — the pointer can be reached via the safe `APP.get()` path.
+   `AtomicBool` expresses the "live/dead" state with zero `unsafe`.
 
-   `try_with_tree` loads the pointer with `Ordering::Acquire`, checks for null,
-   and if non-null locks the mutex. Because the mutex lives inside the `Arc` which
-   is kept alive by `APP: OnceLock<Arc<ApplicationInner>>` until the process ends,
-   dereferencing is safe as long as the pointer is non-null after the load.
+   **`.lock().ok()?` instead of `.lock().unwrap()`:**
+   Mutex poisoning (another thread panicking while holding the lock) is not a broken
+   global invariant from the caller's perspective. Returning `None` is correct library
+   behaviour; `.ok()?` achieves this with no panic.
 
-   **Threading note for v1:** The project is single-threaded in its first iteration.
-   The `AtomicPtr` approach is documented as safe under this constraint and is already
-   the correct multi-threaded-safe form for the future.
+   **Threading note for v1:** The project is single-threaded. The `AtomicBool` TOCTOU
+   (check-then-use) is benign under this constraint. Multi-threaded use would require
+   a more sophisticated locking strategy regardless.
 
 2. **`ObjectExt` methods in `quartzite-core/src/traits.rs`** — four new default
    methods: `parent()`, `parent_in(tree)`, `children()`, `children_in(tree)`.
@@ -87,6 +88,10 @@ The implementation has three layers:
 
 ### Rejected alternatives
 
+- **`AtomicPtr<Mutex<ObjectTree>>`** (earlier draft): required an `unsafe` dereference of
+  a raw pointer in `try_with_tree` and `.lock().unwrap()` which panics on mutex poisoning.
+  Rejected because `APP: OnceLock<Arc<ApplicationInner>>` already holds the tree safely —
+  no raw pointer needed. `AtomicBool` expresses the same "live/dead" semantic with zero unsafe.
 - **Store closure in `quartzite-core` `OnceLock`** (like `set_queued_dispatcher`): would
   require erasing `&ObjectTree` behind a `dyn Fn` or similar, making the API awkward and
   adding an allocation. Rejected in favor of `ObjectTreeExt` in `quartzite-runtime`.
@@ -101,8 +106,8 @@ The implementation has three layers:
 
 | # | Task | Files | Depends on |
 |---|------|-------|------------|
-| 1 | Add `global_tree` module with `AtomicPtr`-based global and `try_with_tree` | `quartzite-runtime/src/global_tree.rs`, `quartzite-runtime/src/lib.rs` | — |
-| 2 | Wire `Application::new()` to register and `impl Drop for Application` to deregister | `quartzite-runtime/src/application.rs` | 1 |
+| 1 | Add `global_tree` module with `AtomicBool` flag + `register`/`deregister`; add `try_with_tree` to `application.rs` | `quartzite-runtime/src/global_tree.rs`, `quartzite-runtime/src/application.rs`, `quartzite-runtime/src/lib.rs` | — |
+| 2 | Wire `Application::new()` to call `register` and `impl Drop for Application` to call `deregister` | `quartzite-runtime/src/application.rs` | 1 |
 | 3 | Add `ObjectTreeExt` trait with `parent_in`, `children_in`, `parent`, `children` | `quartzite-runtime/src/object_tree_ext.rs`, `quartzite-runtime/src/lib.rs` | 1 |
 | 4 | Unit tests for `global_tree` (register / deregister / try_with_tree) | `quartzite-runtime/src/global_tree.rs` `#[cfg(test)]` | 1, 2 |
 | 5 | Integration tests for `ObjectTreeExt` (AC1–AC9) | `quartzite-runtime/tests/object_tree_ext.rs` | 2, 3 |
@@ -111,20 +116,16 @@ Five tasks — within the 7-task limit; no split needed.
 
 ## Risks
 
-- **`AtomicPtr` aliasing:** the raw pointer to `Mutex<ObjectTree>` is kept live by `APP:
-  OnceLock<Arc<ApplicationInner>>`, which never drops during the process. The `Application`
-  handle's `Drop` impl zeros the pointer before any other cleanup. Locking after zeroing
-  yields `None` — safe. The only hazard is a use-after-pointer-clear if a thread races
-  between load and lock. Mitigation: `try_with_tree` loads with `Acquire`, checks for null,
-  then locks. If the pointer races to null between load and lock the pointer value already
-  held is still valid (the `Arc` is still alive), so the lock succeeds and the caller gets
-  a `None`-returning closure from `Drop`-time perspective only after the lock is released.
-  Actually, the `Drop` impl only needs to zero the `AtomicPtr`; objects inside the tree are
-  still reachable via `APP` until process exit. The risk is low.
+- **`AtomicBool` TOCTOU (check-then-use):** between `is_live()` returning `true` and
+  `APP.get()` being called, another thread could drop `Application` (setting `TREE_LIVE =
+  false`). In that window, `APP.get()` still returns `Some` (the `OnceLock` never clears),
+  so `try_with_tree` would proceed and call `f`. The caller would receive results from a
+  "just-dropped" tree. Under v1 (single-threaded) this race is impossible. Multi-threaded
+  correctness would require a different locking strategy — accepted as future work.
 - **`OnceLock` for `APP` never clears:** `Application::drop()` cannot remove the entry from
   `APP: OnceLock`. This is by design — `Application::global()` returning `Some` after the
-  handle is dropped is a pre-existing behavior. The tree accessor pointer is separate and
-  *does* get cleared, so `try_with_tree` correctly returns `None` after drop.
+  handle is dropped is a pre-existing behavior. `TREE_LIVE` is separate and *does* get
+  cleared, so `try_with_tree` correctly returns `None` after drop (in the single-threaded case).
 - **`ObjectTreeExt` name collision with `ObjectExt`:** both traits auto-impl for all
   `AsObject` types. Names `parent`, `children`, `parent_in`, `children_in` must not appear
   in `ObjectExt`. Currently they do not. Mitigation: verify at compile time (clippy).
@@ -142,13 +143,10 @@ Five tasks — within the 7-task limit; no split needed.
   that runs all scenarios in sequence — "before `new()`" → create `Application` → live
   scenarios → drop handle → after-drop assertions. This mirrors the pattern already used
   in `tests/application.rs`. Risk: eliminated.
-- **`unsafe` block in `try_with_tree`:** dereferencing the raw `*const Mutex<ObjectTree>`
-  loaded from `TREE_PTR: AtomicPtr` requires an `unsafe` block. The implementation body
-  must carry a `// SAFETY:` comment: "The pointer, when non-null, was stored by
-  `Application::new()` from `&inner.object_tree` where `inner: Arc<ApplicationInner>`
-  held alive by `APP: OnceLock`. The pointer is valid for the process lifetime. v1 is
-  single-threaded; the `AtomicPtr` clear in `Drop` prevents TOCTOU in the single-thread
-  case." Omitting the safety comment will fail `clippy::undocumented_unsafe_blocks`.
+- **No `unsafe` code:** the `AtomicBool` + `APP.get()` approach is entirely safe Rust.
+  The earlier `AtomicPtr` draft required an `unsafe` dereference; this approach eliminates
+  that entirely. `#![warn(clippy::undocumented_unsafe_blocks)]` remains in `lib.rs` as a
+  future safeguard.
 
 ## Test Design
 
@@ -158,7 +156,7 @@ Not feasible to test registration/deregistration in isolation within a unit test
 `Application::new()` sets `APP: OnceLock` which cannot be reset. These cases are covered
 by the integration tests instead (task 5). The unit module can test:
 
-- `try_with_tree` returns `None` when not registered (pointer is null at module init).
+- `try_with_tree` returns `None` when not registered (`TREE_LIVE` is `false` at module init).
 
 ### Task 5 — `tests/object_tree_ext.rs` integration tests
 

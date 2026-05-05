@@ -23,11 +23,11 @@ pub mod object_tree_ext;
 pub mod thread_pool;
 pub mod timer;
 
+pub use application::try_with_tree;
 pub use application::{Application, ApplicationError};
 pub use connection_table::ConnectionTable;
 pub use event_loop::EventLoop;
 pub use factory::{FactoryAlreadySet, ObjectFactory};
-pub use global_tree::try_with_tree;
 pub use object_ref::{ObjectRef, WeakRef};
 pub use object_tree::ObjectTree;
 pub use object_tree_ext::ObjectTreeExt;

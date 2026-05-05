@@ -1,7 +1,7 @@
 //! Extension trait for accessing parent/child relationships from any object.
 use quartzite_core::{AsObject, ObjectId};
 
-use crate::{global_tree, object_tree::ObjectTree};
+use crate::{application::try_with_tree, object_tree::ObjectTree};
 
 /// Provides ergonomic access to parent and child relationships stored in the
 /// process-wide [`ObjectTree`].
@@ -40,7 +40,7 @@ pub trait ObjectTreeExt: AsObject {
     /// ```
     fn parent(&self) -> Option<ObjectId> {
         let id = self.object_base().id();
-        global_tree::try_with_tree(|tree| tree.parent_of(id)).flatten()
+        try_with_tree(|tree| tree.parent_of(id)).flatten()
     }
 
     /// Returns the [`ObjectId`] of this object's parent in `tree`, or `None`
@@ -80,7 +80,7 @@ pub trait ObjectTreeExt: AsObject {
     /// ```
     fn children(&self) -> Vec<ObjectId> {
         let id = self.object_base().id();
-        global_tree::try_with_tree(|tree| tree.children_of(id).to_vec()).unwrap_or_default()
+        try_with_tree(|tree| tree.children_of(id).to_vec()).unwrap_or_default()
     }
 
     /// Returns a slice of this object's children in insertion order, with

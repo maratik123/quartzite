@@ -97,8 +97,8 @@ impl Application {
         // possible) share the first factory via OnceLock semantics.
         let _ = crate::factory::ObjectFactory::install(crate::factory::ObjectFactory::new());
 
-        // Register the global tree pointer so ObjectTreeExt::parent/children work.
-        crate::global_tree::register(&inner.object_tree);
+        // Mark the global tree as live so ObjectTreeExt::parent/children work.
+        crate::global_tree::register();
 
         Ok(Application(inner))
     }
@@ -232,6 +232,30 @@ impl Drop for Application {
     fn drop(&mut self) {
         crate::global_tree::deregister();
     }
+}
+
+/// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
+/// the result wrapped in `Some`, or returns `None` if no [`Application`] is
+/// currently live or if the tree mutex is poisoned.
+///
+/// # Parameters
+///
+/// - `f`: closure that receives a shared reference to the active tree.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::try_with_tree;
+///
+/// // Returns None when called before Application::new()
+/// assert!(try_with_tree(|_tree| ()).is_none());
+/// ```
+pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Option<R> {
+    if !crate::global_tree::is_live() {
+        return None;
+    }
+    let guard = APP.get()?.object_tree.lock().ok()?;
+    Some(f(&guard))
 }
 
 #[cfg(test)]

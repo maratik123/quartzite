@@ -234,6 +234,26 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)
 
+### 2026-05-05 — architecture — prefer AtomicBool + safe OnceLock over AtomicPtr + unsafe for process-global accessors
+
+**What happened:** The `global_tree` process-global accessor used `static TREE_PTR: AtomicPtr<Mutex<ObjectTree>>` with an `unsafe` dereference inside `try_with_tree`. The user pointed out that the `AtomicPtr` + `unsafe` design is unnecessary: since `APP: OnceLock<Arc<ApplicationInner>>` already holds the tree for the process lifetime, a simple `AtomicBool TREE_LIVE` flag (set by `Application::new`, cleared by `Drop`) is sufficient. `try_with_tree` then checks the bool, calls `APP.get()?`, and locks safely — no raw pointers, no unsafe blocks.
+
+**Rule:** When implementing a process-global accessor that tracks whether a singleton is "live", prefer `AtomicBool` (or a similar safe primitive) over `AtomicPtr` to raw memory. Reach for `unsafe` only when there is no safe alternative. An `OnceLock` or `Weak<T>` already in scope can often provide the pointer without raw pointer manipulation.
+
+**How to apply:** Before writing an `AtomicPtr`-based global, ask "can I express the same semantic with a `bool` flag plus an already-existing `OnceLock`?" If yes, use that. Reserve `AtomicPtr` for cases where the pointee's lifetime genuinely cannot be tracked through existing safe constructs.
+
+**Escalated?** no
+
+### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
+
+**What happened:** `try_with_tree` used `mutex.lock().unwrap()`, which panics on a poisoned mutex. Since AGENTS.md mandates non-panicking APIs for libraries, and mutex poisoning (another thread panicking while holding the lock) is not a broken global invariant from the caller's perspective, returning `None` is the correct behaviour. `.lock().ok()?` achieves this with no additional code.
+
+**Rule:** In library code, use `mutex.lock().ok()?` (or `mutex.lock().unwrap_or_else(|e| e.into_inner())` when you want to recover the inner value) rather than `.unwrap()`. Panicking on mutex poisoning is not appropriate for a library — callers should decide how to handle a "tree unavailable" result.
+
+**How to apply:** Any time you write `something.lock().unwrap()` in a function that returns `Option` or `Result`, replace with `.lock().ok()?`. Reserve `.unwrap()` for cases where poisoning truly indicates an unrecoverable program invariant failure.
+
+**Escalated?** no
+
 ### 2026-05-05 — process — never ask whether a library API should panic for an avoidable error
 
 **What happened:** During interview for #55 (parent/children accessors), asked "should `parent()` / `children()` panic or return a default when called outside an Application scope?" — AGENTS.md already answers this: "Prefer non-panicking APIs for libraries; panicking is acceptable only when a fundamental invariant is broken." Being outside an Application scope is a recoverable condition, not a broken global invariant, so `None`/empty is the correct answer by rule.
