@@ -6,10 +6,19 @@
 # allowlist is reserved for genuine non-code tokens that the heuristic
 # mistakes for identifiers: acronyms, brand names, proper nouns.
 #
-# Clippy's built-in list already covers common acronyms (OpenGL, WebGL,
-# JSON, HTML, CSS, HTTP, HTTPS, URL, XML, YAML, TLS, TCP, UDP, IP, RAM,
-# CPU, CamelCase, etc.) — those are not repeated here.
+# Clippy ships its own default allowlist covering: storage units (`KiB`,
+# `MiB`, …), frequencies (`MHz`, `GHz`), Apple frameworks (`CoreFoundation`,
+# …), Microsoft (`DirectX`, `PowerShell`, …), the OpenGL family (`OpenGL`,
+# `WebGL`, `WebGPU`, …), web/JS langs (`JavaScript`, `TypeScript`, …),
+# operating systems (`iOS`, `macOS`, `FreeBSD`, …), typesetting (`TeX`,
+# `LaTeX`, …), `IPv4`/`IPv6`, `OAuth`, `GraphQL`, `NaN`, `CamelCase`, etc.
+# Defaults do NOT cover plain `GPU`, nor common networking acronyms like
+# `JSON`/`HTTP`/`URL` — add those here only if/when they actually appear in
+# our prose.
+#
+# Reference: https://doc.rust-lang.org/clippy/lint_configuration.html#doc-valid-idents
 doc-valid-idents = [
-    # Acronyms / brand names not in clippy's defaults.
+    # Extends the default list — does NOT replace it.
+    # Acronyms / brand names that we use in prose and are not in the defaults.
     "GPU",
 ]

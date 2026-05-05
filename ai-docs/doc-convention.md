@@ -215,12 +215,18 @@ Each crate's `lib.rs` enables:
   `unsafe fn`.
 - `#![warn(clippy::doc_markdown)]` — flags un-backticked `CamelCase` /
   acronyms in prose. The workspace-root `clippy.toml` `doc-valid-idents`
-  list is **reserved for genuine non-code tokens** that the lint's
-  heuristic mistakes for identifiers — acronyms not covered by clippy's
-  defaults (e.g. `GPU`), brand names, proper nouns. **Project type names,
-  third-party type names, and build-config tokens (like `no_std`) are NOT
-  allow-listed** — they are code references and must be backticked
-  inline at every prose mention.
+  list **extends** clippy's built-in defaults (it does not replace
+  them) and is **reserved for genuine non-code tokens** that the
+  heuristic mistakes for identifiers — acronyms not covered by the
+  defaults (e.g. `GPU`), brand names, proper nouns. **Project type
+  names, third-party type names, and build-config tokens (like
+  `no_std`) are NOT allow-listed** — they are code references and must
+  be backticked inline at every prose mention. Clippy's default list
+  covers a wide range (storage units, frequencies, Apple/Microsoft
+  frameworks, the `OpenGL` family, JS langs, OSes, `IPv4`/`IPv6`,
+  `OAuth`, `NaN`, `CamelCase`, etc.); see the [clippy lint config
+  docs](https://doc.rust-lang.org/clippy/lint_configuration.html#doc-valid-idents)
+  for the authoritative list.
 
 CI runs `cargo clippy -- -D warnings`, so the four `warn`-level lints are
 hard errors in practice.
