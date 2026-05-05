@@ -4,6 +4,18 @@ use std::sync::{Arc, Mutex, OnceLock};
 use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tree::ObjectTree};
 
 /// Error returned by [`Application::new`] when it fails.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{Application, ApplicationError};
+///
+/// let _first = Application::new().expect("first call succeeds");
+/// match Application::new() {
+///     Err(ApplicationError::AlreadyExists) => {}
+///     _ => panic!("second call must fail with AlreadyExists"),
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ApplicationError {
     /// An `Application` instance already exists in this process.
@@ -32,12 +44,26 @@ static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
 
 /// Singleton entry point for the quartzite runtime.
 ///
-/// Owns the `ObjectTree` and `EventLoop`. Creates the `ConnectionTable` and
-/// installs it as the process-wide `QueuedDispatcher`.
+/// Owns the [`ObjectTree`] and [`EventLoop`]. Creates the [`ConnectionTable`] and
+/// installs it as the process-wide queued dispatcher.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::Application;
+///
+/// let app = Application::new().expect("only one Application per process");
+/// app.quit();
+/// ```
 pub struct Application(Arc<ApplicationInner>);
 
 impl Application {
-    /// Create the application. Returns `Err(AlreadyExists)` if called more than once.
+    /// Creates the application singleton and installs the queued dispatcher and object factory.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApplicationError::AlreadyExists`] if an `Application` has already been
+    /// installed in this process. Only one `Application` may exist per process.
     ///
     /// # Examples
     ///
@@ -74,9 +100,9 @@ impl Application {
         Ok(Application(inner))
     }
 
-    /// Access the global application without consuming it.
+    /// Returns a handle to the global application, or `None` if it has not been installed yet.
     ///
-    /// Returns `None` if [`Application::new`] has not been called yet.
+    /// Calling [`Application::new`] is required before this returns `Some`.
     ///
     /// # Examples
     ///
@@ -92,7 +118,12 @@ impl Application {
         APP.get().map(|inner| Application(Arc::clone(inner)))
     }
 
-    /// Post a closure to run on the event-loop thread.
+    /// Posts a closure to run on the event-loop thread.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: closure to run on the event-loop thread; runs in FIFO order with other
+    ///   posted closures.
     ///
     /// # Examples
     ///
@@ -107,7 +138,13 @@ impl Application {
         self.0.event_loop.post(f);
     }
 
-    /// Run the event loop, blocking the calling thread until `quit()` is called.
+    /// Runs the event loop, blocking the calling thread until [`quit`](Self::quit) is called.
+    ///
+    /// # Panics
+    ///
+    /// Panics if another thread is already inside [`exec`](Self::exec) for the same
+    /// application — the underlying receiver mutex is already held. In normal use
+    /// `exec` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -125,7 +162,7 @@ impl Application {
         self.0.event_loop.run();
     }
 
-    /// Stop the event loop.
+    /// Stops the event loop.
     ///
     /// # Examples
     ///

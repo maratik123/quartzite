@@ -12,13 +12,26 @@ type Task = Box<dyn FnOnce() + Send>;
 /// Workers pick up tasks from a shared channel. On `Drop`, the channel is
 /// closed and all workers are joined (graceful shutdown — in-flight tasks
 /// complete before the pool is destroyed).
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::ThreadPool;
+///
+/// let pool = ThreadPool::new(2);
+/// pool.spawn(|| println!("background work"));
+/// ```
 pub struct ThreadPool {
     sender: Option<Sender<Task>>,
     workers: Vec<JoinHandle<()>>,
 }
 
 impl ThreadPool {
-    /// Create a pool with `size` worker threads.
+    /// Creates a pool with `size` worker threads.
+    ///
+    /// # Parameters
+    ///
+    /// - `size`: number of worker threads to spawn; must be at least 1.
     ///
     /// # Panics
     ///
@@ -56,7 +69,11 @@ impl ThreadPool {
         }
     }
 
-    /// Submit a task. Returns immediately; the task runs on a worker thread.
+    /// Submits a task. Returns immediately; the task runs on a worker thread.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: closure to execute on a worker thread.
     ///
     /// # Examples
     ///

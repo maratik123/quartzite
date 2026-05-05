@@ -15,6 +15,20 @@ use crate::event_loop::EventLoop;
 type SignalIndex = usize;
 
 /// Record of a single active signal → slot connection.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::ObjectId;
+/// use quartzite_runtime::connection_table::ConnectionRecord;
+///
+/// let record = ConnectionRecord {
+///     sender_id: ObjectId::new(),
+///     signal_index: 0,
+///     receiver_id: ObjectId::new(),
+/// };
+/// assert_eq!(record.signal_index, 0);
+/// ```
 pub struct ConnectionRecord {
     /// `ObjectId` of the object that owns the signal.
     pub sender_id: ObjectId,
@@ -28,6 +42,16 @@ pub struct ConnectionRecord {
 ///
 /// Two secondary indices allow O(m) cleanup when an object is destroyed.
 /// Locks are released before invoking slots to prevent deadlock on re-entrant emit.
+///
+/// # Examples
+///
+/// ```
+/// use std::sync::Arc;
+/// use quartzite_runtime::{ConnectionTable, EventLoop};
+///
+/// let table = ConnectionTable::new(Arc::new(EventLoop::new()));
+/// assert!(table.receivers_for_signal(quartzite_core::ObjectId::new(), 0).is_empty());
+/// ```
 pub struct ConnectionTable {
     connections: RwLock<HashMap<ConnectionId, ConnectionRecord>>,
     by_receiver: RwLock<HashMap<ObjectId, Vec<ConnectionId>>>,
@@ -36,10 +60,14 @@ pub struct ConnectionTable {
 }
 
 impl ConnectionTable {
-    /// Create a new, empty `ConnectionTable` backed by `event_loop` for queued dispatch.
+    /// Creates a new, empty `ConnectionTable` backed by `event_loop` for queued dispatch.
     ///
-    /// Returns an `Arc` because `ConnectionTable` is shared between the application and
-    /// the `QueuedDispatcher` registration.
+    /// Returns an `Arc` because the table is shared between the application and the
+    /// queued-dispatcher registration.
+    ///
+    /// # Parameters
+    ///
+    /// - `event_loop`: shared event loop to which queued slot invocations are posted.
     ///
     /// # Examples
     ///
@@ -59,8 +87,12 @@ impl ConnectionTable {
         })
     }
 
-    /// Register this table as the process-wide `QueuedDispatcher`.
-    /// Returns `Err(DispatcherAlreadySet)` if a dispatcher is already registered.
+    /// Registers this table as the process-wide [`QueuedDispatcher`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DispatcherAlreadySet`] if a queued dispatcher has already been registered
+    /// in this process.
     ///
     /// # Examples
     ///
@@ -76,7 +108,18 @@ impl ConnectionTable {
         set_queued_dispatcher(Arc::clone(self) as Arc<dyn QueuedDispatcher>)
     }
 
-    /// Register a new connection.
+    /// Registers a new connection from `(sender_id, signal_index)` to `receiver_id`.
+    ///
+    /// # Parameters
+    ///
+    /// - `sender_id`: id of the object owning the signal.
+    /// - `signal_index`: index of the signal in the sender's `MetaObject::signals` slice.
+    /// - `receiver_id`: id of the object owning the slot.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the internal `RwLock`s is poisoned (only possible if a previous
+    /// caller panicked while holding the lock).
     ///
     /// # Examples
     ///
@@ -117,7 +160,15 @@ impl ConnectionTable {
         id
     }
 
-    /// Remove a connection by id.
+    /// Removes a connection by id. Has no effect if `id` is not registered.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier returned by a previous [`register`](Self::register) call.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the internal `RwLock`s is poisoned.
     ///
     /// # Examples
     ///
@@ -152,7 +203,15 @@ impl ConnectionTable {
         }
     }
 
-    /// Remove all connections where `id` is the receiver (called on object destroy).
+    /// Removes all connections where `id` is the receiver. Called on object destroy.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: id of the receiver object whose slots are all being torn down.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the internal `RwLock`s is poisoned.
     ///
     /// # Examples
     ///
@@ -185,7 +244,16 @@ impl ConnectionTable {
         }
     }
 
-    /// Returns connection ids for a given (sender, signal) pair.
+    /// Returns connection ids for a given `(sender, signal)` pair.
+    ///
+    /// # Parameters
+    ///
+    /// - `sender_id`: id of the object owning the signal.
+    /// - `signal_index`: index of the signal in the sender's `MetaObject::signals` slice.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the internal `RwLock` is poisoned.
     ///
     /// # Examples
     ///

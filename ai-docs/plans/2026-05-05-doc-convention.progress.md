@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS — `quartzite-macros` codegen now emits `# Parameters` + `# Examples` on every user-facing emit/connect_auto/connect_queued wrapper, plus one-line summaries on the two trait-definition accessor methods (`#acc`/`#acc_mut`) of every `As<Self>` trait. All 145 unit tests + all 4 integration test files (`extend`, `meta_enum`, `object`, `object_impl`) pass; workspace `cargo build` PASS; `cargo test --workspace` PASS; `quartzite-macros` lib clippy / doc / fmt PASS. (Transitive `cargo clippy --tests` errors from `quartzite-runtime/src/{application,connection_table,event_loop,factory,object_tree,timer}.rs` are still subtask 8 work — not introduced by subtask 7.)
+**Last build:** PASS — `quartzite-runtime` audit complete. All four `# Errors`/`# Panics` flagship sites (`Application::new`, `ConnectionTable::install_as_dispatcher`, `ObjectFactory::install`, `EventLoop::run`) plus the lock-then-unwrap surface (`ConnectionTable::{register, remove, remove_by_receiver, receivers_for_signal}`, `Timer::{connect_timeout, disconnect_timeout, start}`) carry conforming docs. The `tests/object_tree.rs` `LogObj::new` test helper renamed to `LogObj::boxed` (clippy `new_ret_no_self`). `cargo build -p quartzite-runtime` PASS; `cargo clippy -p quartzite-runtime --all-targets -- -D warnings` PASS; doc gate PASS; `cargo test -p quartzite-runtime` PASS (40 unit + 25 integration + 63 doctest = 128 tests); `cargo fmt -- --check` PASS. No new `clippy.toml` entries needed.
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,13 +13,11 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 8 — audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work). Per design § *Implementation breakdown* row 8:
+**Do this immediately:** Subtask 9 — audit & fix `quartzite` facade (`src/lib.rs`). Per design § *Implementation breakdown* row 9:
 
-- Add `# Errors` on `Application::new`, `ObjectFactory::install`, `ConnectionTable::install_as_dispatcher`.
-- Add `# Panics` on `Application::exec`, `EventLoop::run`, `Timer::start`, `Timer::stop` (and the other lock-then-unwrap sites surfaced by `cargo clippy -p quartzite-runtime --all-targets -- -D warnings`).
-- Tense pass throughout `quartzite-runtime/src/{lib,application,connection_table,event_loop,factory,object_ref,object_tree,thread_pool,timer}.rs`; reorder sections per convention.
-- Restart per-crate verify gate after each addition: `cargo clippy -p quartzite-runtime --all-targets -- -D warnings`; doc gate; `cargo test -p quartzite-runtime`.
-- Append any new `doc-valid-idents` entries to workspace-root `clippy.toml` as `doc_markdown` warnings surface.
+- Module-level docs and module re-export docs only.
+- Tense pass; reorder if any heading exists; ensure module docs do not raise `doc_markdown` warnings.
+- Verify gate: `cargo clippy -p quartzite --all-targets -- -D warnings`; doc gate; `cargo test -p quartzite`; `cargo build -p quartzite --no-default-features` (AC10).
 
 ## Subtasks
 
@@ -31,9 +29,9 @@ _Updated: 2026-05-05_
 - [x] 5. Audit & fix `quartzite-events` (AC13 — `MouseEvent::new` doctest)
 - [x] 6. Add codegen tests for `quartzite-macros` (string-contains assertions on emitted docs)
 - [x] 7. Update `quartzite-macros` codegen — emit conforming docs at four `quote!` sites
-- [ ] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
-- [ ] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work) ← CURRENT
-- [ ] 9. Audit & fix `quartzite` facade (`src/lib.rs`)
+- [x] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
+- [x] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
+- [ ] 9. Audit & fix `quartzite` facade (`src/lib.rs`) ← CURRENT
 - [ ] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule)
 - [ ] 11. Final workspace verification — `cargo fmt --check`, full clippy/doc/test/no_std
 
@@ -100,6 +98,28 @@ _Updated: 2026-05-05_
 - **Test results.** `cargo test -p quartzite-macros --lib`: 145 passed (was 142 + 3 failing TDD; now all green). All 4 integration test binaries (`extend`, `meta_enum`, `object`, `object_impl`) still pass — no regression. Workspace `cargo test --workspace` PASS (every doctest compiles, every unit test passes, every integration test passes).
 - **Verify gates.** `cargo build --workspace` PASS; `cargo clippy -p quartzite-macros --lib -- -D warnings` PASS; `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc -p quartzite-macros --no-deps` PASS; `cargo fmt -- --check` PASS; `cargo test --workspace --doc` PASS. (`cargo clippy --workspace --all-targets` still surfaces the same 12 transitive `quartzite-runtime` errors that were present before subtask 7 — those are subtask 8 work.)
 
+### Subtask 8 (`quartzite-runtime`) notes
+
+- **`clippy.toml`** did **not** need any new entries — the only `doc_markdown` warning (`object_tree.rs:28` on the bare `ObjectIds` token in a private field comment) was fixed by inline backticking, not allowlisting. Same treatment applied to the four other `ObjectId` / `MetaObject` / `RwLock` / `Arc<Mutex<...>>` mentions in field comments and module docs.
+- **`# Errors`** added to all three flagship `Result`-returning sites:
+  - `Application::new` — `ApplicationError::AlreadyExists` if an `Application` is already installed in this process.
+  - `ConnectionTable::install_as_dispatcher` — `DispatcherAlreadySet` if a queued dispatcher is already registered.
+  - `ObjectFactory::install` — `FactoryAlreadySet` if a factory is already installed.
+- **`# Panics`** added to every site clippy flagged. All cases are `Mutex`/`RwLock` poisoning (panic only if a previous holder panicked while emitting / mutating). Sites:
+  - `Application::exec` (transitively, through `EventLoop::run`'s receiver-mutex lock).
+  - `EventLoop::run` (receiver mutex; secondary precondition: only one thread may be inside `run` at a time).
+  - `ConnectionTable::register`, `remove`, `remove_by_receiver`, `receivers_for_signal` (all four `RwLock` accessors).
+  - `Timer::connect_timeout`, `disconnect_timeout`, `start` (signal mutex).
+  - `Timer::stop` is **not** flagged — it only does `running.store(false)` and `handle.join()`; no `unwrap` on a lock. Left without `# Panics`.
+  - `ThreadPool::new` already had `# Panics` for the `assert!(size > 0)` precondition; left as-is and added `# Parameters`.
+- **Tense fixes throughout:** `Create` → `Creates`, `Insert` → `Inserts`, `Remove` → `Removes`, `Run` → `Runs`, `Post` → `Posts`, `Stop` → `Stops`, `Find` → `Returns the slice…`, `Move` → `Moves`, `Rename` → `Renames`, `Clear` → `Clears`, `Submit` → `Submits`, `Connect` → `Connects`, `Disconnect` → `Disconnects`, `Wrap` → `Wraps`, `Convert` → `Converts`, `Register` → `Registers`, `Install` → `Installs`, `Signal` → `Signals`, `Access the global` → `Returns a handle to the global`. `Clone the sender` → `Returns a clone of the sender`.
+- **`# Parameters`** added to every public fn with ≥1 non-receiver arg. Conservative descriptions ground every bullet in code I read directly — no orchestrator-review flags.
+- **`# Examples`** added at the type level for `Application`, `ApplicationError`, `ConnectionRecord`, `ConnectionTable`, `EventLoop`, `FactoryAlreadySet`, `ObjectFactory`, `ObjectRef<T>`, `WeakRef<T>`, `ObjectTree`, `ThreadPool`, `Timer` (some had only constructor-level examples; convention requires one on every `pub` item).
+- **Doctest fix on `ApplicationError`:** the first attempt used `Application::new().unwrap_err()` which requires `Application: Debug` (not implemented). Rewrote as a `match` arm that asserts `Err(ApplicationError::AlreadyExists)` — semantically equivalent, no `Debug` requirement on the `Ok` variant.
+- **Trait-impl exemption (AC4) honored:** the `impl Default for EventLoop`, `impl QueuedDispatcher for ConnectionTable`, `impl Drop for ThreadPool`, `impl Drop for Timer`, and the various `Copy`/`Clone`/`PartialEq`/`Eq`/`Hash` impls on `ObjectRef<T>` / `WeakRef<T>` were all left undocumented per the convention's trait-impl skip rule. Same for `impl std::error::Error` and `impl std::fmt::Display` for `ApplicationError` / `FactoryAlreadySet`.
+- **Test-only `new_ret_no_self` warning disposition:** Renamed `LogObj::new` → `LogObj::boxed` in `quartzite-runtime/tests/object_tree.rs` (test helper that returns `Box<dyn Object>`, not `Self`). Followed the existing `Stub::named` precedent in the same file (`fn named(name: &str) -> Box<dyn Object>` — no `new` name, no warning). The four call sites in `destroy_is_depth_first_post_order` updated. **No `#[allow(clippy::new_ret_no_self)]` was needed** — the rename is the cleaner fix and matches the file's existing style.
+- **Doctest count:** 63 doctests in `quartzite-runtime` (was 0 before subtask 2 lints landed; substantial jump from this subtask). All pass. Plus 40 unit tests + 25 integration tests across 5 binaries.
+
 ### Subtask 4 (`quartzite-geometry`) notes
 
 - `clippy.toml` did **not** need any new entries during this subtask — `PointF` / `RectF` / `SizeF` were already in the seed list, and existing prose carried no other un-backticked CamelCase identifiers.
@@ -128,7 +148,7 @@ _Updated: 2026-05-05_
 |----|--------|
 | AC1 | PASS (subtask 1 — `ai-docs/doc-convention.md` written) |
 | AC2 | PASS (subtask 1 — AGENTS.md Code Style updated) |
-| AC3 | PARTIAL (subtasks 3+4+5+6 — `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API audited; subtasks 8/9 cover `quartzite-runtime` and the `quartzite` facade) |
+| AC3 | PARTIAL (subtasks 3+4+5+6+8 — `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API, `quartzite-runtime` audited; subtask 9 covers the `quartzite` facade) |
 | AC4 | NOT_TESTED |
 | AC5 | PASS (subtask 2 — five lints in every `lib.rs`) |
 | AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during subtask 3) |
@@ -170,6 +190,15 @@ _Updated: 2026-05-05_
 - `quartzite-macros/src/util.rs` — `clippy::doc_markdown` fix on `accessor_name` doc (`snake_case` → `` `snake_case` ``)
 - `quartzite-macros/src/object/codegen.rs` — subtask 6 added two TDD tests (`emit_wrapper_doc_contains_parameters_and_examples`, `connect_auto_wrapper_doc_contains_parameters_and_examples`); subtask 7 updated three `quote!` sites (`emit_signal_wrappers`, `emit_connect_auto_wrappers`, `emit_connect_queued_wrappers`) to emit `# Parameters` + `# Examples` (`no_run`) doc blocks on every user-facing wrapper, in convention-mandated order
 - `quartzite-macros/src/extend/codegen.rs` — subtask 6 added one TDD test (`root_trait_methods_carry_docs`); subtask 7 added single-line `#[doc = "…"]` attributes to both trait-definition accessor methods (`#acc`, `#acc_mut`) inside `emit_root_trait_and_impl` (the matching `impl As<Self> for <Self>` impl methods stay undocumented per AC4 exemption)
+- `quartzite-runtime/src/application.rs` — `# Errors` on `Application::new`; `# Panics` on `Application::exec`; `# Parameters` on `post_event`; tense fixes throughout; `# Examples` on `Application` and `ApplicationError` (the latter rewritten as a `match` arm to avoid requiring `Application: Debug` for `unwrap_err`)
+- `quartzite-runtime/src/connection_table.rs` — `# Errors` on `install_as_dispatcher`; `# Panics` on `register`, `remove`, `remove_by_receiver`, `receivers_for_signal`; `# Parameters` on every multi-arg accessor; tense fixes; `# Examples` on `ConnectionRecord` and `ConnectionTable`
+- `quartzite-runtime/src/event_loop.rs` — `# Panics` on `run`; `# Parameters` on `post`; tense fixes (`Run`/`Post`/`Signal`/`Clone` → 3rd-person present); `# Examples` on `EventLoop` itself
+- `quartzite-runtime/src/factory.rs` — `# Errors` on `install`; `# Parameters` on `install`, `register`, `create`; tense fixes throughout; `# Examples` on `ObjectFactory` and `FactoryAlreadySet`; minor markdown cleanup of `global` description (trailing periods + comma list)
+- `quartzite-runtime/src/object_ref.rs` — `# Parameters` on all four `new` / `is_valid` constructors; `# Examples` added at the type level on both `ObjectRef<T>` and `WeakRef<T>`; `#[inline]` added to the simple non-generic `new`/`id`/`downgrade`/`is_valid` getters; tense fixes (`Wrap`/`Convert` → 3rd-person)
+- `quartzite-runtime/src/object_tree.rs` — `# Parameters` on every public method (`insert`, `contains`, `with`, `with_mut`, `parent_of`, `children_of`, `reparent`, `find_by_name`, `rename`, `clear_name`, `destroy`); `doc_markdown` fixes on every `ObjectId` mention in field comments; tense fixes throughout; `# Examples` added on the type itself; `contains` doctest upgraded from `no_run`-with-fake-helper to a real compiling assertion
+- `quartzite-runtime/src/thread_pool.rs` — `# Parameters` on `new` and `spawn`; tense fixes (`Submit` → `Submits`, `Create` → `Creates`); `# Examples` on `ThreadPool` itself
+- `quartzite-runtime/src/timer.rs` — `# Panics` on `connect_timeout`, `disconnect_timeout`, `start`; `# Parameters` on `new`, `connect_timeout`, `disconnect_timeout`, `start`; tense fixes throughout (`Create`/`Connect`/`Disconnect`/`Start`/`Stop`); `# Examples` on `Timer` itself; doctest on `new` and `is_running` upgraded from `no_run` → compiling
+- `quartzite-runtime/tests/object_tree.rs` — renamed `LogObj::new` → `LogObj::boxed` (clippy `new_ret_no_self` — test helper that returns `Box<dyn Object>`, not `Self`); updated 4 call sites in `destroy_is_depth_first_post_order`
 
 ## Audit worklist (from subtask 2 baseline clippy run)
 

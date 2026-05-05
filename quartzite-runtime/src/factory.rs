@@ -11,6 +11,16 @@ type Constructor = Box<dyn Fn() -> Box<dyn Object> + Send + Sync>;
 static FACTORY: OnceLock<Arc<RwLock<ObjectFactory>>> = OnceLock::new();
 
 /// Error returned by [`ObjectFactory::install`] when a factory is already registered.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{FactoryAlreadySet, ObjectFactory};
+///
+/// ObjectFactory::install(ObjectFactory::new()).unwrap();
+/// let err: FactoryAlreadySet = ObjectFactory::install(ObjectFactory::new()).unwrap_err();
+/// assert_eq!(err, FactoryAlreadySet);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FactoryAlreadySet;
 
@@ -24,17 +34,26 @@ impl std::fmt::Display for FactoryAlreadySet {
 impl std::error::Error for FactoryAlreadySet {}
 
 /// Creates objects by class name string — used by scripting and serialization.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_runtime::ObjectFactory;
+///
+/// let factory = ObjectFactory::new();
+/// assert!(factory.create("Unknown").is_none());
+/// ```
 #[derive(Default)]
 pub struct ObjectFactory {
     registry: HashMap<String, Constructor>,
 }
 
 impl ObjectFactory {
-    /// Create an empty `ObjectFactory` with no registered constructors.
+    /// Creates an empty `ObjectFactory` with no registered constructors.
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use quartzite_runtime::ObjectFactory;
     ///
     /// let factory = ObjectFactory::new();
@@ -45,11 +64,19 @@ impl ObjectFactory {
         Self::default()
     }
 
-    /// Install `factory` as the process-wide singleton.
+    /// Installs `factory` as the process-wide singleton.
     ///
-    /// Returns `Ok(())` on the first call; `Err(FactoryAlreadySet)` on subsequent calls.
     /// Called by [`Application::new`](crate::Application::new) automatically — explicit
     /// calls are needed only when using the factory without an `Application`.
+    ///
+    /// # Parameters
+    ///
+    /// - `factory`: factory instance to install as the global singleton.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FactoryAlreadySet`] if a process-wide factory has already been installed.
+    /// Only one factory may exist per process.
     ///
     /// # Examples
     ///
@@ -68,8 +95,8 @@ impl ObjectFactory {
     /// [`install`](ObjectFactory::install) has not been called yet.
     ///
     /// Callers must lock the returned `RwLock` to read or mutate the factory:
-    /// - `global().unwrap().read().expect("poisoned").create("Foo")`
-    /// - `global().unwrap().write().expect("poisoned").register("Foo", ctor)`
+    /// - `global().unwrap().read().expect("poisoned").create("Foo")`,
+    /// - `global().unwrap().write().expect("poisoned").register("Foo", ctor)`.
     ///
     /// # Examples
     ///
@@ -85,7 +112,12 @@ impl ObjectFactory {
         FACTORY.get().cloned()
     }
 
-    /// Register a constructor for `class_name`. Overwrites any existing entry.
+    /// Registers a constructor for `class_name`. Overwrites any existing entry.
+    ///
+    /// # Parameters
+    ///
+    /// - `class_name`: the class name string used to look up this constructor.
+    /// - `ctor`: closure returning a freshly boxed object instance on each call.
     ///
     /// # Examples
     ///
@@ -102,11 +134,16 @@ impl ObjectFactory {
         self.registry.insert(class_name.into(), Box::new(ctor));
     }
 
-    /// Create an instance of `class_name`. Returns `None` if not registered.
+    /// Creates an instance of `class_name`. Returns `None` if not registered.
+    ///
+    /// # Parameters
+    ///
+    /// - `class_name`: the class name string to look up; matched against
+    ///   [`register`](Self::register) calls.
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use quartzite_runtime::ObjectFactory;
     ///
     /// let factory = ObjectFactory::new();

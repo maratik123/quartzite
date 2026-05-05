@@ -14,23 +14,32 @@ use crate::object_id::SlotKey;
 ///
 /// `ObjectTree: Send` follows automatically from `Object: Send`. Callers
 /// requiring shared access should wrap the tree in `Mutex<ObjectTree>`.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_runtime::ObjectTree;
+///
+/// let tree = ObjectTree::new();
+/// assert!(!tree.contains(quartzite_core::ObjectId::new()));
+/// ```
 #[derive(Default)]
 pub struct ObjectTree {
     store: SlotMap<DefaultKey, Box<dyn Object>>,
-    /// ObjectId → arena slot (forward index)
+    /// `ObjectId` → arena slot (forward index)
     forward: HashMap<ObjectId, SlotKey>,
-    /// arena slot → ObjectId (reverse index, for destroy traversal)
+    /// arena slot → `ObjectId` (reverse index, for destroy traversal)
     reverse: HashMap<SlotKey, ObjectId>,
-    /// child ObjectId → parent ObjectId
+    /// child `ObjectId` → parent `ObjectId`
     parent_map: HashMap<ObjectId, ObjectId>,
-    /// parent ObjectId → ordered children list
+    /// parent `ObjectId` → ordered children list
     children_map: HashMap<ObjectId, Vec<ObjectId>>,
-    /// name → list of ObjectIds with that name (supports multiple objects sharing a name)
+    /// name → list of `ObjectId`s with that name (supports multiple objects sharing a name)
     by_name: HashMap<String, Vec<ObjectId>>,
 }
 
 impl ObjectTree {
-    /// Create an empty `ObjectTree`.
+    /// Creates an empty `ObjectTree`.
     ///
     /// # Examples
     ///
@@ -46,8 +55,13 @@ impl ObjectTree {
         Self::default()
     }
 
-    /// Insert `obj` into the tree, optionally under `parent_id`.
-    /// Returns the `ObjectId` of the inserted object.
+    /// Inserts `obj` into the tree, optionally under `parent_id`. Returns the
+    /// [`ObjectId`] of the inserted object.
+    ///
+    /// # Parameters
+    ///
+    /// - `obj`: object to insert; ownership is transferred to the tree.
+    /// - `parent_id`: optional parent under which to insert; `None` makes a root node.
     ///
     /// # Examples
     ///
@@ -74,21 +88,30 @@ impl ObjectTree {
 
     /// Returns `true` if `id` is present in the tree.
     ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier to look up in the forward index.
+    ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```
     /// use quartzite_runtime::ObjectTree;
-    /// # fn example(tree: &ObjectTree, id: quartzite_core::ObjectId) {
-    /// assert!(!tree.contains(id));
-    /// # }
+    ///
+    /// let tree = ObjectTree::new();
+    /// assert!(!tree.contains(quartzite_core::ObjectId::new()));
     /// ```
     #[inline]
     pub fn contains(&self, id: ObjectId) -> bool {
         self.forward.contains_key(&id)
     }
 
-    /// Run `f` with a shared reference to the object identified by `id`.
-    /// Returns `None` if `id` is not in the tree.
+    /// Runs `f` with a shared reference to the object identified by `id`. Returns
+    /// `None` if `id` is not in the tree.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the object to access.
+    /// - `f`: closure invoked with a shared reference to the object.
     ///
     /// # Examples
     ///
@@ -106,8 +129,13 @@ impl ObjectTree {
         self.store.get(slot.0).map(|obj| f(obj.as_ref()))
     }
 
-    /// Run `f` with an exclusive reference to the object identified by `id`.
-    /// Returns `None` if `id` is not in the tree.
+    /// Runs `f` with an exclusive reference to the object identified by `id`. Returns
+    /// `None` if `id` is not in the tree.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the object to access.
+    /// - `f`: closure invoked with an exclusive reference to the object.
     ///
     /// # Examples
     ///
@@ -126,7 +154,11 @@ impl ObjectTree {
         self.store.get_mut(slot.0).map(|obj| f(obj.as_mut()))
     }
 
-    /// Returns the parent `ObjectId` of `id`, or `None` if `id` is a root.
+    /// Returns the parent [`ObjectId`] of `id`, or `None` if `id` is a root.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the child whose parent is requested.
     ///
     /// # Examples
     ///
@@ -145,6 +177,10 @@ impl ObjectTree {
 
     /// Returns the ordered list of children of `id`.
     ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the parent whose children are requested.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -161,7 +197,12 @@ impl ObjectTree {
             .unwrap_or_default()
     }
 
-    /// Move `id` to a new parent. If `new_parent` is `None`, `id` becomes a root.
+    /// Moves `id` to a new parent. If `new_parent` is `None`, `id` becomes a root.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the object being moved.
+    /// - `new_parent`: optional new parent; `None` detaches `id` to become a root.
     ///
     /// # Examples
     ///
@@ -187,8 +228,12 @@ impl ObjectTree {
         }
     }
 
-    /// Find all objects with the given `name`. Returns a slice of `ObjectId`s
-    /// (empty if no object has that name).
+    /// Returns the slice of `ObjectId`s for objects with the given `name`. The slice
+    /// is empty if no object has that name.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: name to look up in the by-name index; matched exactly.
     ///
     /// # Examples
     ///
@@ -206,9 +251,14 @@ impl ObjectTree {
             .unwrap_or_default()
     }
 
-    /// Rename the object `id` to `new_name`, updating the name index.
+    /// Renames the object `id` to `new_name`, updating the name index.
     ///
     /// Has no effect if `id` is not in the tree.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the object to rename.
+    /// - `new_name`: new name; replaces any existing name and updates the by-name index.
     ///
     /// # Examples
     ///
@@ -240,9 +290,14 @@ impl ObjectTree {
         self.by_name.entry(new_name).or_default().push(id);
     }
 
-    /// Clear the name of object `id`, making it anonymous and removing it from the name index.
+    /// Clears the name of object `id`, making it anonymous and removing it from the
+    /// name index.
     ///
     /// Has no effect if `id` is not in the tree.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the object whose name is being cleared.
     ///
     /// # Examples
     ///
@@ -265,7 +320,11 @@ impl ObjectTree {
         self.with_mut(id, |obj| obj.object_base_mut().set_name_raw(None));
     }
 
-    /// Remove `id` and all its descendants from the tree (depth-first post-order).
+    /// Removes `id` and all its descendants from the tree (depth-first post-order).
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: identifier of the root of the subtree to destroy.
     ///
     /// # Examples
     ///
