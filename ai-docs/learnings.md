@@ -214,7 +214,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before asking any interview question, check whether AGENTS.md already answers it. Questions about API stability, compat shims, deprecation, and release timing are all answered there.
 
-**Escalated?** no
+**Escalated?** skill:interview
 
 ### 2026-05-02 — process — verify relative markdown links before committing
 
@@ -242,7 +242,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before writing an `AtomicPtr`-based global, ask "can I express the same semantic with a `bool` flag plus an already-existing `OnceLock`?" If yes, use that. Reserve `AtomicPtr` for cases where the pointee's lifetime genuinely cannot be tracked through existing safe constructs.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
 
@@ -252,7 +252,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Any time you write `something.lock().unwrap()` in a function that returns `Option` or `Result`, replace with `.lock().ok()?`. Reserve `.unwrap()` for cases where poisoning truly indicates an unrecoverable program invariant failure.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — process — never ask whether a library API should panic for an avoidable error
 
@@ -262,7 +262,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before formulating interview questions, check whether AGENTS.md already resolves the question. "Should X panic or return None/Err?" is almost always answered by the non-panicking library API rule — apply it silently.
 
-**Escalated?** no
+**Escalated?** skill:interview
 
 ### 2026-05-05 — process — filter to unresolved PR review threads before reading comments
 
@@ -286,7 +286,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Post-push checklist: `gh pr view <N> --json title,body`. If the body matches reality → done. If not → `gh pr edit`. The cost is one command; the benefit is catching invisible drift.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
 
@@ -318,4 +318,24 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Add a "re-read PR body" step to your post-push checklist whenever the open-PR-on-branch state holds. Cheapest shape: `gh pr view <N> --json title,body | rg -i '<thing-you-just-changed>'` — if any hit, the body needs an edit. The cost of an extra `gh pr edit` is minutes; the cost of a reviewer reading a body that contradicts the diff is wasted reviewer trust.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
+
+### 2026-05-05 — process — `gh pr view` not needed immediately after `gh pr create`
+
+**What happened:** After `gh pr create` for PR #85, ran `gh pr view 85` to "apply the new unconditional read rule". The body returned was exactly what was just authored a second earlier — the read was wasted work. The "PR body sync after every push" rule treats `gh pr create` as if it were a subsequent push that might have invalidated the body, but in fact the body and the push are authored together: there is nothing to discover.
+
+**Rule:** The "PR body sync after every push" rule does not apply to the push that immediately precedes `gh pr create`. The body at that moment is what you just authored; nothing to discover. The rule starts firing on the *next* push to the branch.
+
+**How to apply:** After `gh pr create` returns the URL, stop — do not re-read the body until at least one further `git push` happens. From the *second* push onward, the unconditional read rule applies.
+
+**Escalated?** AGENTS.md
+
+### 2026-05-05 — process — switch to feature branch BEFORE editing files in `/improve` (and similar skills)
+
+**What happened:** During `/improve`, all instruction-file edits were applied while on `master`. Only at commit time was the branch-switch made reactively (`git checkout -b chore/...`). AGENTS.md says "create a feature branch before any commits" — that was technically respected (no commits on master), but the spirit (don't accumulate work on master) was broken. `/task` already gates this at Step 8; `/improve` had no equivalent gate.
+
+**Rule:** Skills that produce commits intended for a PR (currently: `/improve`; future: any new skill in the same shape) must check `git branch --show-current` and create a feature branch *before any file edit*, not just before commit.
+
+**How to apply:** In `/improve` Step 5 (Apply), the first action — before any Edit/Write — is the branch check. If on `master`, `git checkout -b chore/YYYY-MM-DD-improve-<short-name>` carries the working tree over. Edit only after the branch is in place.
+
+**Escalated?** AGENTS.md, agent:self-improve
