@@ -7,9 +7,13 @@
 #![deny(missing_docs)]
 #![doc = document_features::document_features!()]
 //!
-//! ## Getting started
+//! Provides a single facade crate that re-exports the workspace member crates
+//! ([`core`], [`events`], [`geometry`], [`macros`], [`runtime`]) plus a
+//! curated [`prelude`] for one-line imports.
 //!
-//! Import the prelude to bring the most commonly used types into scope:
+//! # Examples
+//!
+//! Imports the prelude to bring the most commonly used types into scope:
 //!
 //! ```rust
 //! use quartzite::prelude::*;
@@ -18,14 +22,14 @@
 //! `MetaEnum` for enum reflection is available via [`macros::MetaEnum`] (requires the `derive`
 //! feature, enabled by default).
 
-/// Core object model, signals, and reflection types — re-exported from [`quartzite_core`].
+/// Re-exports the core object model, signals, and reflection types from [`quartzite_core`].
 ///
 /// Prefer `use quartzite::core::Foo` over adding a direct `quartzite-core` dependency.
 pub mod core {
     pub use quartzite_core::*;
 }
 
-/// Derive macros and attribute macros — re-exported from [`quartzite_macros`].
+/// Re-exports derive macros and attribute macros from [`quartzite_macros`].
 ///
 /// Prefer `use quartzite::macros::MetaEnum` over adding a direct `quartzite-macros` dependency.
 /// Most macros (`Extend`, `Object`, `object_impl`, `object_part`) are already included in [`prelude`].
@@ -37,28 +41,28 @@ pub mod macros {
     pub use quartzite_macros::*;
 }
 
-/// Application runtime, event loop, and object tree — re-exported from [`quartzite_runtime`].
+/// Re-exports the application runtime, event loop, and object tree from [`quartzite_runtime`].
 ///
 /// Prefer `use quartzite::runtime::Foo` over adding a direct `quartzite-runtime` dependency.
 pub mod runtime {
     pub use quartzite_runtime::*;
 }
 
-/// Geometry primitives — re-exported from [`quartzite_geometry`].
+/// Re-exports geometry primitives from [`quartzite_geometry`].
 ///
 /// Provides integer (`Point`, `Size`, `Rect`, `Margins`) and float (`PointF`, `SizeF`, `RectF`) types.
 pub mod geometry {
     pub use quartzite_geometry::*;
 }
 
-/// Event model — re-exported from [`quartzite_events`].
+/// Re-exports the event model from [`quartzite_events`].
 ///
 /// Provides `MouseEvent`, `KeyEvent`, `ResizeEvent`, `CloseEvent`, `TimerEvent`, `EventFilter`, and `EventType`.
 pub mod events {
     pub use quartzite_events::*;
 }
 
-/// Curated set of types needed for typical usage — one glob covers a working import.
+/// Re-exports a curated set of types needed for typical usage — one glob covers a working import.
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
 /// macros, and runtime in one line. For production code that values legibility,

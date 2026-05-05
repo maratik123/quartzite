@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS — `quartzite-runtime` audit complete. All four `# Errors`/`# Panics` flagship sites (`Application::new`, `ConnectionTable::install_as_dispatcher`, `ObjectFactory::install`, `EventLoop::run`) plus the lock-then-unwrap surface (`ConnectionTable::{register, remove, remove_by_receiver, receivers_for_signal}`, `Timer::{connect_timeout, disconnect_timeout, start}`) carry conforming docs. The `tests/object_tree.rs` `LogObj::new` test helper renamed to `LogObj::boxed` (clippy `new_ret_no_self`). `cargo build -p quartzite-runtime` PASS; `cargo clippy -p quartzite-runtime --all-targets -- -D warnings` PASS; doc gate PASS; `cargo test -p quartzite-runtime` PASS (40 unit + 25 integration + 63 doctest = 128 tests); `cargo fmt -- --check` PASS. No new `clippy.toml` entries needed.
+**Last build:** PASS — `quartzite` facade audit complete. The crate-level `//!` doc gained a proper third-person summary line (`Provides a single facade crate that re-exports …`) and the previous `## Getting started` section was promoted/renamed to `# Examples` so the convention's always-present rule is satisfied at the crate root. All six module declarations (`core`, `macros`, `runtime`, `geometry`, `events`, `prelude`) now have third-person present indicative summary lines (`Re-exports …` / `Re-exports a curated set …`). `cargo build -p quartzite` PASS; `cargo build -p quartzite --no-default-features` PASS (AC10 final crate); `cargo clippy -p quartzite --all-targets -- -D warnings` PASS; doc gate PASS; `cargo test -p quartzite` PASS (1 unit + 1 doctest); `cargo fmt -- --check` PASS. No new `clippy.toml` entries needed.
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,11 +13,12 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 9 — audit & fix `quartzite` facade (`src/lib.rs`). Per design § *Implementation breakdown* row 9:
+**Do this immediately:** Subtask 10 — update review skill + agents (Propagation Rule). Per design § *Implementation breakdown* row 10:
 
-- Module-level docs and module re-export docs only.
-- Tense pass; reorder if any heading exists; ensure module docs do not raise `doc_markdown` warnings.
-- Verify gate: `cargo clippy -p quartzite --all-targets -- -D warnings`; doc gate; `cargo test -p quartzite`; `cargo build -p quartzite --no-default-features` (AC10).
+- Add the *Doc convention conformance* checklist item to `.claude/agents/review-findings.md` (under §5 Style or new §6 Documentation conformance) and `.claude/agents/self-review.md` (under §6 Documentation).
+- In `.claude/skills/code-review/SKILL.md` add a sentence in the verify step: "Reviewers must check `ai-docs/doc-convention.md` conformance for every changed `pub` item."
+- Run the Propagation grep procedure (`grep -rn "doc-convention" .claude/agents/ .claude/skills/ AGENTS.md`) to confirm no other instruction file references the convention.
+- Verify gate: grep cross-check returns only the three files above.
 
 ## Subtasks
 
@@ -31,8 +32,8 @@ _Updated: 2026-05-05_
 - [x] 7. Update `quartzite-macros` codegen — emit conforming docs at four `quote!` sites
 - [x] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
 - [x] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
-- [ ] 9. Audit & fix `quartzite` facade (`src/lib.rs`) ← CURRENT
-- [ ] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule)
+- [x] 9. Audit & fix `quartzite` facade (`src/lib.rs`)
+- [ ] 10. Update `code-review` skill + `review-findings` + `self-review` agents (Propagation Rule) ← CURRENT
 - [ ] 11. Final workspace verification — `cargo fmt --check`, full clippy/doc/test/no_std
 
 ## Key discoveries (don't re-investigate)
@@ -120,6 +121,17 @@ _Updated: 2026-05-05_
 - **Test-only `new_ret_no_self` warning disposition:** Renamed `LogObj::new` → `LogObj::boxed` in `quartzite-runtime/tests/object_tree.rs` (test helper that returns `Box<dyn Object>`, not `Self`). Followed the existing `Stub::named` precedent in the same file (`fn named(name: &str) -> Box<dyn Object>` — no `new` name, no warning). The four call sites in `destroy_is_depth_first_post_order` updated. **No `#[allow(clippy::new_ret_no_self)]` was needed** — the rename is the cleaner fix and matches the file's existing style.
 - **Doctest count:** 63 doctests in `quartzite-runtime` (was 0 before subtask 2 lints landed; substantial jump from this subtask). All pass. Plus 40 unit tests + 25 integration tests across 5 binaries.
 
+### Subtask 9 (`quartzite` facade) notes
+
+- **Scope confirmed minimal.** The facade is module re-exports plus a `prelude` module. Nothing inherent to document beyond the crate-level `//!` and the six `pub mod { pub use … }` declarations. No `pub use` items needed touching (re-exports inherit docs from the source crate per AC4 spirit).
+- **Crate-level `//!` doc.** Added a third-person summary line directly after the `document_features::document_features!()` insertion: `Provides a single facade crate that re-exports the workspace member crates ([`core`], [`events`], [`geometry`], [`macros`], [`runtime`]) plus a curated [`prelude`] for one-line imports.` Renamed the existing `## Getting started` section to `# Examples` so the convention's always-present rule is satisfied at the crate root; the body (`use quartzite::prelude::*;` plus the `MetaEnum` note) was preserved verbatim. Reworded the lead-in to `Imports the prelude …` (third person present indicative). Section ordering is now: summary line → free-form prose (none) → `# Examples` — convention-conforming.
+- **Six module-level `///` docs.** Each `pub mod` declaration's summary line was rewritten from a noun-phrase fragment (`Core object model, signals, …`) to a third-person present indicative verb phrase (`Re-exports the core object model, signals, …`). Same treatment applied to `macros`, `runtime`, `geometry`, `events`, `prelude`. Trailing prose paragraphs (`Prefer …`, `Provides integer …`, etc.) preserved as-is. No `# Parameters`, `# Errors`, `# Panics`, or `# Examples` blocks needed at module level — convention scope per `ai-docs/doc-convention.md` lists `pub fn / struct / enum / trait / union / macro_rules`, not `pub mod`, and design row 9 explicitly limits the facade audit to "tense pass; reorder if any heading exists; ensure module docs do not raise `doc_markdown` warnings".
+- **`clippy.toml`** did **not** need any new entries — every CamelCase identifier in the facade prose (`MetaEnum`, `PointF`, `SizeF`, `RectF`, `MouseEvent`, `KeyEvent`, `ResizeEvent`, `CloseEvent`, `TimerEvent`, `EventFilter`, `EventType`) was already on the seed list, and the rest are already wrapped in backticks (`` `Extend` ``, `` `Object` ``, `` `object_impl` ``, `` `object_part` ``, `` `Point` ``, `` `Size` ``, `` `Rect` ``, `` `Margins` ``).
+- **No conservative descriptions left for orchestrator review** — every reworded line is grounded in the visible re-export contents.
+- **Test gate:** 1 unit test (`prelude_compiles`) + 1 doctest (the `# Examples` block) = 2 tests, both pass. No regression.
+- **AC10 milestone hit:** `cargo build -p quartzite --no-default-features` PASS, completing AC10 across all three crates that exercise the no_std / derive-free path (`quartzite-geometry`, `quartzite-events`, `quartzite`).
+- **AC3 milestone hit:** the audit is now complete for every public item across all six workspace crates (`quartzite-core` ✓ `quartzite-geometry` ✓ `quartzite-events` ✓ `quartzite-macros` ✓ `quartzite-runtime` ✓ `quartzite` facade ✓). AC4 trait-impl exemption was honored throughout (no facade-level trait impls exist to skip).
+
 ### Subtask 4 (`quartzite-geometry`) notes
 
 - `clippy.toml` did **not** need any new entries during this subtask — `PointF` / `RectF` / `SizeF` were already in the seed list, and existing prose carried no other un-backticked CamelCase identifiers.
@@ -148,14 +160,14 @@ _Updated: 2026-05-05_
 |----|--------|
 | AC1 | PASS (subtask 1 — `ai-docs/doc-convention.md` written) |
 | AC2 | PASS (subtask 1 — AGENTS.md Code Style updated) |
-| AC3 | PARTIAL (subtasks 3+4+5+6+8 — `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API, `quartzite-runtime` audited; subtask 9 covers the `quartzite` facade) |
+| AC3 | PASS (subtasks 3+4+5+6+8+9 — every workspace crate audited: `quartzite-core`, `quartzite-geometry`, `quartzite-events`, `quartzite-macros` own API, `quartzite-runtime`, and the `quartzite` facade) |
 | AC4 | NOT_TESTED |
 | AC5 | PASS (subtask 2 — five lints in every `lib.rs`) |
 | AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during subtask 3) |
 | AC7 | NOT_TESTED |
 | AC8 | NOT_TESTED |
 | AC9 | NOT_TESTED |
-| AC10 | PARTIAL (subtasks 4+5 — `quartzite-geometry --no-default-features` and `quartzite-events --no-default-features` PASS; `quartzite` facade still NOT_TESTED — subtasks 9/11) |
+| AC10 | PASS (subtasks 4+5+9 — `quartzite-geometry --no-default-features`, `quartzite-events --no-default-features`, and `quartzite --no-default-features` (no_std / derive-free path) all build clean) |
 | AC11 | PASS (subtask 7 — codegen now emits `# Parameters` + `# Examples` on `emit_<sig>`, `connect_<sig>_auto`, `connect_<sig>_queued` wrappers, plus single-line summaries on the two `As<Self>` trait-definition accessor methods; all three subtask-6 TDD lock tests now green) |
 | AC12 | NOT_TESTED |
 | AC13 | PASS (subtask 5 — `MouseEvent::new` carries `# Parameters` for `event_button` and `buttons_state` plus a doctest constructing an event where `event_button = Right` while `buttons_state = Left | Right`, asserting `event_button()` and `buttons_state()` independently — readers cannot conflate the two fields) |
@@ -170,7 +182,7 @@ _Updated: 2026-05-05_
 - `quartzite-geometry/src/lib.rs` — added 5 lint attrs
 - `quartzite-macros/src/lib.rs` — added 5 lint attrs
 - `quartzite-runtime/src/lib.rs` — added 5 lint attrs
-- `src/lib.rs` — added 5 lint attrs
+- `src/lib.rs` — added 5 lint attrs (subtask 2); subtask 9 added a third-person crate-level summary line, renamed `## Getting started` to `# Examples`, and rewrote each of the six `pub mod` (`core`, `macros`, `runtime`, `geometry`, `events`, `prelude`) summary lines to third-person present indicative (`Re-exports …`)
 - `quartzite-core/src/meta.rs` — tense fixes; `# Parameters` on every `*::new`; `# Examples` added to `PropertyMeta`/`ParamMeta`/`SignalMeta`/`MethodMeta`/`EnumEntry`/`EnumMeta`/`MetaObject`; `# Parameters`/`# Examples` on six `noop_lookup_*` helpers
 - `quartzite-core/src/object_base.rs` — `# Parameters` on `named` and `set_name_raw`
 - `quartzite-core/src/receiver_guard.rs` — tense fix on `new_pair`
