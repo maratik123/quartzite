@@ -860,7 +860,9 @@ impl PoolDriver {
 
             // Peek at the earliest deadline.
             let now = Instant::now();
-            let &Reverse((deadline, _)) = guard.heap.peek().expect("heap non-empty after wait");
+            let Some(&Reverse((deadline, _))) = guard.heap.peek() else {
+                continue;
+            };
 
             if deadline > now {
                 let wait = deadline - now;
@@ -874,10 +876,9 @@ impl PoolDriver {
             }
 
             // Pop the earliest entry.
-            let Reverse((_, id)) = guard
-                .heap
-                .pop()
-                .expect("heap non-empty after deadline check");
+            let Some(Reverse((_, id))) = guard.heap.pop() else {
+                continue;
+            };
 
             // Skip entries for cancelled timers (id absent from callbacks map).
             let callback = match guard.callbacks.get(&id) {
