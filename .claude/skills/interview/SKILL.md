@@ -18,6 +18,17 @@ Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`, bidi
 2. **Max 4 rounds** total.
 3. Don't ask about the obvious — focus on edge cases, technical constraints, scope ambiguities.
 4. **Pre-flight: read `AGENTS.md` before drafting any question.** If `AGENTS.md` already answers a candidate question, apply the rule silently — do not ask. Topics commonly pre-resolved: API stability / compat shims / deprecation, panic-vs-`Result` policy for libraries, `_unchecked` naming, allowed Rust idioms (let chains, stdlib comparison helpers), test coverage requirements. When in doubt, re-read `AGENTS.md` — do not ask.
+5. **Forbidden question framings (mechanical substring blacklist).** If a draft question contains any of the substrings below, **discard it** and apply the documented rule silently. This rule exists because the same questions kept being asked despite Rule 4 — see `ai-docs/learnings.md` 2026-05-03, 2026-05-05.
+
+   | Forbidden substring (case-insensitive) | Documented answer to apply silently |
+   |----------------------------------------|--------------------------------------|
+   | `backward compat`, `back-compat`, `backcompat`, `compat shim`, `compat layer` | AGENTS.md § *API Stability*: pre-crates.io, free to break — no shims |
+   | `deprecat` (matches *deprecate*, *deprecated*, *deprecation*) | AGENTS.md § *API Stability*: no `#[deprecated]` wrappers |
+   | `keep old`, `preserve existing`, `existing API stay`, `keep the old name` | AGENTS.md § *API Stability*: rename freely |
+   | `should X panic`, `panic or return`, `should it panic`, `panic vs return`, `should this panic` | AGENTS.md § *API Naming* + *Library safety idioms*: non-panicking by default; `try_*` returning `Result`/`Option` |
+   | `for users`, `for downstream`, `existing callers` | AGENTS.md § *API Stability*: no downstream clients yet |
+
+   Mechanical check before sending a question round: `printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers'` — any hit means rewrite or drop the question.
 
 ## Workflow
 

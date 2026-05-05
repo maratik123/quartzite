@@ -310,7 +310,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Post-push checklist: `gh pr view <N> --json title,body`. If the body matches reality → done. If not → `gh pr edit`. The cost is one command; the benefit is catching invisible drift.
 
-**Escalated?** AGENTS.md, skill:task
+**Escalated?** AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)
 
 ### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
 
@@ -342,7 +342,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Add a "re-read PR body" step to your post-push checklist whenever the open-PR-on-branch state holds. Cheapest shape: `gh pr view <N> --json title,body | rg -i '<thing-you-just-changed>'` — if any hit, the body needs an edit. The cost of an extra `gh pr edit` is minutes; the cost of a reviewer reading a body that contradicts the diff is wasted reviewer trust.
 
-**Escalated?** AGENTS.md, skill:task
+**Escalated?** AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)
 
 ### 2026-05-05 — process — `gh pr view` not needed immediately after `gh pr create`
 
@@ -392,7 +392,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** On any new driver, scheduler, or shared-state type: whenever a `Mutex::lock()` or `Condvar::wait()` call appears in production code (i.e., not in tests), use `unwrap_or_else(|e| e.into_inner())` by default. Reserve `.expect("reason")` only for cases where poisoning genuinely means an unrecoverable invariant violation (document why in the reason string).
 
-**Escalated?** no
+**Escalated?** hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)
 
 ### 2026-05-06 — code-style — `.expect()` on mutex/condvar/Option is still a panic; checklist must catch it explicitly
 
@@ -413,7 +413,7 @@ Concrete substitutions:
 
 **How to apply — self-review agent:** After checking for `unwrap`, also `grep -n '\.expect(' src/` (excluding test modules) and verify each call. Acceptable forms: `.expect()` in tests, `.expect()` where poisoning means a genuine broken global invariant with the reason string explaining *why* it is unrecoverable. Anything else is a finding.
 
-**Escalated?** agent:self-review
+**Escalated?** agent:self-review, hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)
 
 ### 2026-05-06 — process — "add to learnings" means learnings only; do not propagate to agent/skill files
 
@@ -445,4 +445,4 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **How to apply:** In the post-push step after every PR fix round: reply first, then query for thread IDs, then resolve. If resolution fails, diagnose before giving up.
 
-**Escalated?** no
+**Escalated?** AGENTS.md (GraphQL recipe added to "PR review comment resolution" bullet)
