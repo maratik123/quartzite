@@ -5,7 +5,7 @@ _Updated: 2026-05-05_
 
 **Branch:** feat/2026-05-05-doc-convention
 **base_commit:** 5ee77d67d7d48cd37143d2bc18f00efbb96b7d84
-**Last build:** PASS (`quartzite-geometry` build/build-no-default/clippy/doc/test/fmt all green; 40 unit + 59 doctests pass; no `clippy.toml` additions needed)
+**Last build:** PASS (`quartzite-events` build/build-no-default/clippy/doc/test/fmt all green; 26 unit + 40 doctests pass; no `clippy.toml` additions needed; AC13 doctest exercising `event_button` vs `buttons_state` lives in `MouseEvent::new` `# Examples`)
 
 **Issue:** #80
 **Spec:** ai-docs/plans/2026-05-05-doc-convention.spec.md
@@ -13,7 +13,7 @@ _Updated: 2026-05-05_
 
 ## Next action
 
-**Do this immediately:** Subtask 5 — audit `quartzite-events`. Tense pass; add `# Parameters` to `MouseEvent::new` (AC13 — flagship), `KeyEvent::new`, `TimerEvent::new`, `ResizeEvent::new`. Tense check on enums and `Event` / `EventFilter` traits. Extend `MouseEvent` test module with the AC13 doctest exercising `event_button` and `buttons_state` separately (sketch in design § *Test design*). Verify with `cargo clippy -p quartzite-events --all-targets -- -D warnings`, doc gate, `cargo test -p quartzite-events`, plus `cargo build -p quartzite-events --no-default-features`.
+**Do this immediately:** Subtask 6 — add codegen tests for `quartzite-macros`. Extend the `#[cfg(test)] mod tests` blocks in `quartzite-macros/src/object/codegen.rs` and `quartzite-macros/src/extend/codegen.rs` with string-contains assertions on emitted docs (sketch in design § *Test design*, subtask 6). The tests should fail until subtask 7 lands the codegen change — that is the point of subtask 6 (TDD lock).
 
 ## Subtasks
 
@@ -22,8 +22,8 @@ _Updated: 2026-05-05_
 - [x] 3. Audit & fix `quartzite-core` (clippy/doc/test gates clean for the crate)
 - [x] **HANDOFF here per design** — `/context-reset` after subtask 3
 - [x] 4. Audit & fix `quartzite-geometry`
-- [ ] 5. Audit & fix `quartzite-events` (AC13 — `MouseEvent::new` doctest) ← CURRENT
-- [ ] 6. Add codegen tests for `quartzite-macros` (string-contains assertions on emitted docs)
+- [x] 5. Audit & fix `quartzite-events` (AC13 — `MouseEvent::new` doctest)
+- [ ] 6. Add codegen tests for `quartzite-macros` (string-contains assertions on emitted docs) ← CURRENT
 - [ ] 7. Update `quartzite-macros` codegen — emit conforming docs at four `quote!` sites
 - [ ] **HANDOFF here per design** (recommended) — `/context-reset` after subtask 7
 - [ ] 8. Audit & fix `quartzite-runtime` (heaviest `# Errors`/`# Panics` work)
@@ -48,6 +48,25 @@ _Updated: 2026-05-05_
 - All `pub struct` / `pub enum` / `pub trait` items now carry their own `# Examples` block in addition to the constructors' examples (extra coverage for the convention's "every public item" rule).
 - Doctest count rose from 81 → 94 (13 new compiling doctests across the crate); all pass.
 - No conservative `# Parameters` descriptions were left for orchestrator review — every `# Parameters` bullet is grounded in code I read directly.
+
+### Subtask 5 (`quartzite-events`) notes
+
+- `clippy.toml` did **not** need any new entries — every `doc_markdown` site was already covered by the seed list (the seed already contained `MouseButton`, `MouseButtons`, `MouseEvent`, `KeyEvent`, `KeyModifier`, `KeyModifiers`, `EventFilter`, `ResizeEvent`, `TimerEvent`, etc. from earlier subtasks).
+- Tense audit: every existing summary line (enums `KeyEventKind` / `MouseEventKind` / `EventType` / `MouseButton` / `KeyModifier` / `Key`, structs `KeyEvent` / `MouseEvent` / `TimerEvent` / `ResizeEvent` / `CloseEvent`, traits `Event` / `EventFilter`) was already in third-person present indicative ("Returns", "Creates", "Combine", "Constructed by"). No imperative remnants found.
+- `# Parameters` added to every `*::new` constructor:
+  - `MouseEvent::new` — `position`, `global_position`, `event_button`, `buttons_state`, `modifiers`, `kind` (AC13 flagship).
+  - `KeyEvent::new` — `key`, `text`, `modifiers`, `is_repeat`, `kind`.
+  - `TimerEvent::new` — `timer_id`.
+  - `ResizeEvent::new` — `old_size`, `new_size`.
+  - `CloseEvent::new` — receiver-only / no args; left with the existing summary + `# Examples`.
+- Trait *definition* methods are NOT exempt per AC4: added `# Examples` to `Event::event_type` (receiver-only, so no `# Parameters`) and added both `# Parameters` (`obj`, `event`) and `# Examples` to `EventFilter::event_filter`.
+- All accessors (`position`, `global_position`, `event_button`, `buttons_state`, `modifiers`, `kind`, `key`, `text`, `is_repeat`, `timer_id`, `old_size`, `new_size`, `accepted`, `accept`) are receiver-only — they keep their existing one-line summary + `# Examples`.
+- AC13 doctest design: the new second example block under `MouseEvent::new` constructs an event where `event_button = MouseButton::Right` while `buttons_state = MouseButton::Left | MouseButton::Right`, simulating "right was just pressed while left was already held". It then asserts `event.event_button()` and `event.buttons_state()` separately, plus a negative assertion that `event_button` does NOT contain `Left` — making conflation of the two fields impossible to miss for a reader.
+- Symmetric `KeyEvent::new` doctest: a second example block exercises `key`, `text`, `modifiers` (Shift), `is_repeat = true`, and `kind` together — asserts each of the four observable fields independently.
+- No `# Errors`, `# Panics`, `# Safety`, `# Returns`, `# Type parameters`, or `# Lifetimes` sections needed: no `Result` returns, no `unsafe`, no panics, no non-obvious generics.
+- Module-level `//!` doc in `lib.rs` already conformed; no edits needed.
+- Doctest count: 33 → 40 (+7 — the AC13 second example, the `KeyEvent::new` second example, and `# Examples` blocks added on the `Event` and `EventFilter` trait definitions; mouse and key constructors each have two doctests now). All pass.
+- No conservative `# Parameters` descriptions were left for orchestrator review — every bullet is grounded in code I read directly. The trickiest call was distinguishing `event_button` from `buttons_state`; the prose mirrors the AC13 design intent ("the button whose state changed" vs "every button currently held") and is reinforced by the assertion structure of the new doctest.
 
 ### Subtask 4 (`quartzite-geometry`) notes
 
@@ -77,17 +96,17 @@ _Updated: 2026-05-05_
 |----|--------|
 | AC1 | PASS (subtask 1 — `ai-docs/doc-convention.md` written) |
 | AC2 | PASS (subtask 1 — AGENTS.md Code Style updated) |
-| AC3 | PARTIAL (subtasks 3+4 — `quartzite-core` and `quartzite-geometry` audited; subtasks 5/6/8/9 cover the rest) |
+| AC3 | PARTIAL (subtasks 3+4+5 — `quartzite-core`, `quartzite-geometry`, `quartzite-events` audited; subtasks 6/8/9 cover the rest) |
 | AC4 | NOT_TESTED |
 | AC5 | PASS (subtask 2 — five lints in every `lib.rs`) |
 | AC6 | PASS (subtask 1 — `clippy.toml` seeded; no new entries needed during subtask 3) |
 | AC7 | NOT_TESTED |
 | AC8 | NOT_TESTED |
 | AC9 | NOT_TESTED |
-| AC10 | PARTIAL (subtask 4 — `quartzite-geometry --no-default-features` PASS; `quartzite-events`/`quartzite` facade still NOT_TESTED — subtasks 5/9/11) |
+| AC10 | PARTIAL (subtasks 4+5 — `quartzite-geometry --no-default-features` and `quartzite-events --no-default-features` PASS; `quartzite` facade still NOT_TESTED — subtasks 9/11) |
 | AC11 | NOT_TESTED |
 | AC12 | NOT_TESTED |
-| AC13 | NOT_TESTED |
+| AC13 | PASS (subtask 5 — `MouseEvent::new` carries `# Parameters` for `event_button` and `buttons_state` plus a doctest constructing an event where `event_button = Right` while `buttons_state = Left | Right`, asserting `event_button()` and `buttons_state()` independently — readers cannot conflate the two fields) |
 
 ## Files touched
 
@@ -110,6 +129,11 @@ _Updated: 2026-05-05_
 - `quartzite-geometry/src/size.rs` — `# Parameters` on `Size::new`, `SizeF::new`
 - `quartzite-geometry/src/rect.rs` — `# Parameters` on `Rect::new`, `Rect::contains`, `Rect::intersects`, `Rect::united`, `Rect::translated`, `Rect::adjusted`, and the matching `RectF::*` methods
 - `quartzite-geometry/src/margins.rs` — `# Parameters` on `Margins::new`, `Margins::apply`
+- `quartzite-events/src/event.rs` — `# Examples` added to trait-definition method `Event::event_type`; `# Parameters` (`obj`, `event`) + `# Examples` added to trait-definition method `EventFilter::event_filter`
+- `quartzite-events/src/keyboard.rs` — `# Parameters` on `KeyEvent::new` plus a second `# Examples` doctest exercising `key`, `text`, `modifiers`, `is_repeat`, `kind` together
+- `quartzite-events/src/mouse.rs` — `# Parameters` on `MouseEvent::new` (AC13 flagship) plus a second `# Examples` doctest where `event_button = Right` while `buttons_state = Left | Right`, asserting both accessors independently
+- `quartzite-events/src/timer.rs` — `# Parameters` on `TimerEvent::new`
+- `quartzite-events/src/window.rs` — `# Parameters` on `ResizeEvent::new`
 
 ## Audit worklist (from subtask 2 baseline clippy run)
 

@@ -23,6 +23,11 @@ pub struct ResizeEvent {
 impl ResizeEvent {
     /// Creates a new resize event.
     ///
+    /// # Parameters
+    ///
+    /// - `old_size`: the widget or window size before the resize.
+    /// - `new_size`: the widget or window size after the resize.
+    ///
     /// # Examples
     ///
     /// ```
@@ -30,6 +35,7 @@ impl ResizeEvent {
     /// use quartzite_geometry::Size;
     ///
     /// let e = ResizeEvent::new(Size::new(100, 100), Size::new(200, 200));
+    /// assert_eq!(e.old_size(), Size::new(100, 100));
     /// assert_eq!(e.new_size(), Size::new(200, 200));
     /// ```
     #[inline]

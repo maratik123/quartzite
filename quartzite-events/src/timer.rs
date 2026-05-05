@@ -23,6 +23,10 @@ pub struct TimerEvent {
 impl TimerEvent {
     /// Creates a new timer event for the given timer object.
     ///
+    /// # Parameters
+    ///
+    /// - `timer_id`: identifier of the timer object that fired this event.
+    ///
     /// # Examples
     ///
     /// ```

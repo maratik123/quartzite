@@ -93,6 +93,22 @@ impl<T: 'static + Send + Sync + Copy> Copy for EventType<T> {}
 /// ```
 pub trait Event<T: 'static + Send + Sync = ()> {
     /// Returns the discriminant describing which kind of event this is.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_events::{Event, EventType, KeyEventKind};
+    ///
+    /// struct MyEvent;
+    /// impl Event for MyEvent {
+    ///     fn event_type(&self) -> EventType {
+    ///         EventType::Key(KeyEventKind::Release)
+    ///     }
+    /// }
+    ///
+    /// let e = MyEvent;
+    /// assert_eq!(e.event_type(), EventType::Key(KeyEventKind::Release));
+    /// ```
     fn event_type(&self) -> EventType<T>;
 }
 
@@ -114,9 +130,29 @@ pub trait Event<T: 'static + Send + Sync = ()> {
 /// }
 /// ```
 pub trait EventFilter<T: 'static + Send + Sync = ()> {
-    /// Called for each event dispatched to `obj`.
+    /// Inspects an event dispatched to `obj` and decides whether to consume it.
     ///
     /// Return `true` to consume the event; `false` to let it propagate.
+    ///
+    /// # Parameters
+    ///
+    /// - `obj`: identifier of the object the event is targeting.
+    /// - `event`: the event being dispatched, as a trait object so filters
+    ///   can handle any [`Event<T>`] implementor uniformly.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_events::{Event, EventFilter, EventType};
+    ///
+    /// struct DropAll;
+    /// impl EventFilter for DropAll {
+    ///     fn event_filter(&mut self, _obj: ObjectId, _event: &dyn Event) -> bool {
+    ///         true
+    ///     }
+    /// }
+    /// ```
     fn event_filter(&mut self, obj: ObjectId, event: &dyn Event<T>) -> bool;
 }
 
