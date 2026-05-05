@@ -414,3 +414,35 @@ Concrete substitutions:
 **How to apply — self-review agent:** After checking for `unwrap`, also `grep -n '\.expect(' src/` (excluding test modules) and verify each call. Acceptable forms: `.expect()` in tests, `.expect()` where poisoning means a genuine broken global invariant with the reason string explaining *why* it is unrecoverable. Anything else is a finding.
 
 **Escalated?** agent:self-review
+
+### 2026-05-06 — process — "add to learnings" means learnings only; do not propagate to agent/skill files
+
+**What happened:** User said "add to learnings: unwrap/expect/panic should be avoided... with explanations how this quality gate is broken." I wrote the learnings entry, then also updated `.claude/agents/self-review.md` and `.claude/agents/review-findings.md` citing the Propagation Rule. The user flagged this as unauthorized — they asked for one action (learnings), not three.
+
+**Rule:** "Add to learnings" is a request to write to `ai-docs/learnings.md` only. The `Escalated?` field in the learnings entry records that an issue *is a candidate* for escalation to an agent/skill/AGENTS.md — it is not authorization to make that escalation immediately. The Propagation Rule in AGENTS.md only triggers when you are already editing an instruction file (`.claude/agents/**`, `.claude/skills/**`, `AGENTS.md`, `.claude/settings.json`). Creating a learnings entry is not editing an instruction file, so no propagation is triggered.
+
+**How to apply:** When the user says "add to learnings" (or "note this", "remember this"), write the entry and stop. If the learnings entry merits escalation to project instructions, mark `Escalated? no` and let the user trigger `/improve` when ready. Never escalate to agents/skills on the same turn as a learnings-only request.
+
+**Escalated?** no
+
+### 2026-05-06 — process — resolve fixed PR review comments via GraphQL after pushing the fix
+
+**What happened:** After fixing the panicking mutex ops (commits 543bb4f, 2ddece7), I replied to each comment but did not resolve the conversations. I attempted `resolveReviewThread` via GraphQL but used a guessed thread ID (`PRRT_kwDOSR5chs5UHUwU`) that did not exist, got NOT_FOUND, printed "resolve via graphql not available", and moved on. AGENTS.md says: "After pushing fixes, resolve only the comments that were addressed by a code change" — this was not done.
+
+**Rule:** When a PR review comment is fixed by a code change, the conversation must be resolved. The flow is:
+1. Reply to the comment explaining the fix.
+2. Query for the actual thread node IDs:
+   ```bash
+   gh api graphql -f query='{ repository(owner:"OWNER", name:"REPO") { pullRequest(number:N) { reviewThreads(first:20) { nodes { id isResolved path } } } } }'
+   ```
+3. For each unresolved thread whose comment was addressed, call:
+   ```bash
+   gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<id>"}) { thread { isResolved } } }'
+   ```
+4. Verify `isResolved: true` in the response.
+
+When a GraphQL mutation fails with NOT_FOUND, do not silently move on — investigate: the thread ID was wrong, so query for the correct one first.
+
+**How to apply:** In the post-push step after every PR fix round: reply first, then query for thread IDs, then resolve. If resolution fails, diagnose before giving up.
+
+**Escalated?** no
