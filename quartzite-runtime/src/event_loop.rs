@@ -1,5 +1,6 @@
 //! Single-threaded event loop for posting and executing closures.
 use std::{
+    fmt,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -8,6 +9,39 @@ use std::{
     time::Duration,
 };
 use tracing::{debug, trace};
+
+/// Error returned by [`EventLoop::run`].
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{EventLoop, RunError};
+///
+/// let el = EventLoop::new();
+/// match el.run() {
+///     Ok(()) => {}
+///     Err(RunError::Poisoned) => eprintln!("event loop poisoned — previous run() panicked"),
+/// }
+/// ```
+#[derive(Debug, PartialEq, Eq)]
+pub enum RunError {
+    /// The receiver mutex is poisoned: a previous [`EventLoop::run`] call panicked while
+    /// dispatching a closure.
+    Poisoned,
+}
+
+impl fmt::Display for RunError {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Poisoned => f.write_str(
+                "event loop receiver mutex is poisoned — a previous run() panicked mid-loop",
+            ),
+        }
+    }
+}
+
+impl std::error::Error for RunError {}
 
 const TICK_MS: u64 = 1;
 
@@ -92,11 +126,15 @@ impl EventLoop {
 
     /// Runs the event loop on the calling thread. Blocks until [`stop`](Self::stop) is called.
     ///
+    /// # Errors
+    ///
+    /// Returns [`RunError::Poisoned`] if the receiver mutex is poisoned because a previous
+    /// `run()` call panicked while dispatching a closure.
+    ///
     /// # Panics
     ///
-    /// Panics if another thread is already inside `run` for this loop — the receiver
-    /// mutex is already held — or if a previous holder panicked while it was held
-    /// (poisoned mutex). In normal use `run` is called once on the main thread.
+    /// If a posted closure panics, the panic propagates through `run()` to its caller.
+    /// In normal use `run` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -106,15 +144,15 @@ impl EventLoop {
     ///
     /// let el = Arc::new(EventLoop::new());
     /// let el2 = Arc::clone(&el);
-    /// std::thread::spawn(move || { std::thread::sleep(std::time::Duration::from_millis(10)); el2.stop(); });
-    /// el.run(); // blocks until stop() is called above
+    /// std::thread::spawn(move || {
+    ///     std::thread::sleep(std::time::Duration::from_millis(10));
+    ///     el2.stop();
+    /// });
+    /// el.run().expect("event loop poisoned"); // blocks until stop() is called above
     /// ```
-    pub fn run(&self) {
+    pub fn run(&self) -> Result<(), RunError> {
+        let receiver = self.receiver.lock().map_err(|_| RunError::Poisoned)?;
         self.running.store(true, Ordering::SeqCst);
-        let receiver = self
-            .receiver
-            .lock()
-            .expect("receiver mutex poisoned — a previous run() panicked mid-loop");
         while self.running.load(Ordering::SeqCst) {
             while let Ok(f) = receiver.try_recv() {
                 f();
@@ -129,6 +167,7 @@ impl EventLoop {
         while let Ok(f) = receiver.try_recv() {
             f();
         }
+        Ok(())
     }
 
     /// Signals the event loop to stop. May be called from any thread.
@@ -180,7 +219,7 @@ mod tests {
         time::Duration,
     };
 
-    fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
+    fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<Result<(), RunError>> {
         thread::spawn(move || el.run())
     }
 
@@ -201,7 +240,7 @@ mod tests {
 
         thread::sleep(Duration::from_millis(20));
         el.stop();
-        handle.join().unwrap();
+        handle.join().unwrap().unwrap();
 
         let recorded = loop_thread_id.lock().unwrap();
         assert!(recorded.is_some());
@@ -223,7 +262,7 @@ mod tests {
 
         thread::sleep(Duration::from_millis(20));
         el.stop();
-        handle.join().unwrap();
+        handle.join().unwrap().unwrap();
 
         assert_eq!(*log.lock().unwrap(), vec![1, 2, 3]);
     }
@@ -238,6 +277,6 @@ mod tests {
         el.stop();
 
         let result = handle.join();
-        assert!(result.is_ok());
+        assert!(result.unwrap().is_ok());
     }
 }

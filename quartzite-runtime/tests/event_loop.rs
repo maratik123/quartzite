@@ -4,9 +4,9 @@ use std::{
     time::Duration,
 };
 
-use quartzite_runtime::EventLoop;
+use quartzite_runtime::{EventLoop, RunError};
 
-fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
+fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<Result<(), RunError>> {
     thread::spawn(move || el.run())
 }
 
@@ -26,7 +26,7 @@ fn post_from_other_thread_executes_on_loop_thread() {
 
     thread::sleep(Duration::from_millis(20));
     el.stop();
-    handle.join().unwrap();
+    handle.join().unwrap().unwrap();
 
     let recorded = *loop_tid.lock().unwrap();
     assert!(recorded.is_some(), "closure must have run");
@@ -53,7 +53,7 @@ fn post_multiple_preserves_order() {
 
     thread::sleep(Duration::from_millis(20));
     el.stop();
-    handle.join().unwrap();
+    handle.join().unwrap().unwrap();
 
     assert_eq!(*log.lock().unwrap(), vec![1, 2, 3]);
 }
@@ -70,5 +70,6 @@ fn stop_terminates_run() {
 
     handle
         .join()
-        .expect("event loop thread must exit cleanly after stop()");
+        .expect("event loop thread must exit cleanly after stop()")
+        .expect("run() must return Ok after normal stop()");
 }

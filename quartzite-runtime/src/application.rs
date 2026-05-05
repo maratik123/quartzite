@@ -134,11 +134,16 @@ impl Application {
 
     /// Runs the event loop, blocking the calling thread until [`quit`](Self::quit) is called.
     ///
+    /// # Errors
+    ///
+    /// Returns [`RunError::Poisoned`](crate::event_loop::RunError::Poisoned) if the event loop's
+    /// receiver mutex is poisoned because a previous [`exec`](Self::exec) call panicked while
+    /// dispatching a posted closure.
+    ///
     /// # Panics
     ///
-    /// Panics if another thread is already inside [`exec`](Self::exec) for the same
-    /// application — the underlying receiver mutex is already held. In normal use
-    /// `exec` is called once on the main thread.
+    /// If a posted closure panics, the panic propagates through `exec` to its caller.
+    /// In normal use `exec` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -149,11 +154,11 @@ impl Application {
     /// // post a quit event immediately so the loop exits right away in tests
     /// let app2 = Application::global().unwrap();
     /// app.post_event(Box::new(move || app2.quit()));
-    /// app.exec();
+    /// app.exec().unwrap();
     /// ```
     #[inline]
-    pub fn exec(&self) {
-        self.0.event_loop.run();
+    pub fn exec(&self) -> Result<(), crate::event_loop::RunError> {
+        self.0.event_loop.run()
     }
 
     /// Stops the event loop.
