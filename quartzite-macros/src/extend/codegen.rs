@@ -64,7 +64,9 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
 
     quote! {
         pub trait #self_trait #supertrait {
+            #[doc = " Returns a shared reference to this object."]
             fn #acc(&self) -> &#self_ident;
+            #[doc = " Returns a mutable reference to this object."]
             fn #acc_mut(&mut self) -> &mut #self_ident;
         }
 
