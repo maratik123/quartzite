@@ -111,7 +111,10 @@ impl EventLoop {
     /// ```
     pub fn run(&self) {
         self.running.store(true, Ordering::SeqCst);
-        let receiver = self.receiver.lock().unwrap();
+        let receiver = self
+            .receiver
+            .lock()
+            .expect("receiver mutex poisoned — a previous run() panicked mid-loop");
         while self.running.load(Ordering::SeqCst) {
             while let Ok(f) = receiver.try_recv() {
                 f();

@@ -116,11 +116,6 @@ impl ConnectionTable {
     /// - `signal_index`: index of the signal in the sender's `MetaObject::signals` slice.
     /// - `receiver_id`: id of the object owning the slot.
     ///
-    /// # Panics
-    ///
-    /// Panics if any of the internal `RwLock`s is poisoned (only possible if a previous
-    /// caller panicked while holding the lock).
-    ///
     /// # Examples
     ///
     /// ```no_run
@@ -144,16 +139,19 @@ impl ConnectionTable {
             signal_index,
             receiver_id,
         };
-        self.connections.write().unwrap().insert(id, record);
+        self.connections
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(id, record);
         self.by_receiver
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .entry(receiver_id)
             .or_default()
             .push(id);
         self.by_signal
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .entry((sender_id, signal_index))
             .or_default()
             .push(id);
@@ -165,10 +163,6 @@ impl ConnectionTable {
     /// # Parameters
     ///
     /// - `id`: identifier returned by a previous [`register`](Self::register) call.
-    ///
-    /// # Panics
-    ///
-    /// Panics if any of the internal `RwLock`s is poisoned.
     ///
     /// # Examples
     ///
@@ -183,11 +177,16 @@ impl ConnectionTable {
     /// table.remove(id);
     /// ```
     pub fn remove(&self, id: ConnectionId) {
-        if let Some(record) = self.connections.write().unwrap().remove(&id) {
+        if let Some(record) = self
+            .connections
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .remove(&id)
+        {
             if let Some(v) = self
                 .by_receiver
                 .write()
-                .unwrap()
+                .unwrap_or_else(|e| e.into_inner())
                 .get_mut(&record.receiver_id)
             {
                 v.retain(|&c| c != id);
@@ -195,7 +194,7 @@ impl ConnectionTable {
             if let Some(v) = self
                 .by_signal
                 .write()
-                .unwrap()
+                .unwrap_or_else(|e| e.into_inner())
                 .get_mut(&(record.sender_id, record.signal_index))
             {
                 v.retain(|&c| c != id);
@@ -208,10 +207,6 @@ impl ConnectionTable {
     /// # Parameters
     ///
     /// - `id`: id of the receiver object whose slots are all being torn down.
-    ///
-    /// # Panics
-    ///
-    /// Panics if any of the internal `RwLock`s is poisoned.
     ///
     /// # Examples
     ///
@@ -230,11 +225,11 @@ impl ConnectionTable {
         let ids: Vec<ConnectionId> = self
             .by_receiver
             .write()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .remove(&id)
             .unwrap_or_default();
-        let mut conns = self.connections.write().unwrap();
-        let mut by_signal = self.by_signal.write().unwrap();
+        let mut conns = self.connections.write().unwrap_or_else(|e| e.into_inner());
+        let mut by_signal = self.by_signal.write().unwrap_or_else(|e| e.into_inner());
         for cid in ids {
             if let Some(record) = conns.remove(&cid)
                 && let Some(v) = by_signal.get_mut(&(record.sender_id, record.signal_index))
@@ -250,10 +245,6 @@ impl ConnectionTable {
     ///
     /// - `sender_id`: id of the object owning the signal.
     /// - `signal_index`: index of the signal in the sender's `MetaObject::signals` slice.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the internal `RwLock` is poisoned.
     ///
     /// # Examples
     ///
@@ -274,7 +265,7 @@ impl ConnectionTable {
     ) -> Vec<ConnectionId> {
         self.by_signal
             .read()
-            .unwrap()
+            .unwrap_or_else(|e| e.into_inner())
             .get(&(sender_id, signal_index))
             .cloned()
             .unwrap_or_default()

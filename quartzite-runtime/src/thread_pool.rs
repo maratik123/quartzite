@@ -55,7 +55,10 @@ impl ThreadPool {
             let rx: std::sync::Arc<Mutex<Receiver<Task>>> = std::sync::Arc::clone(&receiver);
             workers.push(thread::spawn(move || {
                 loop {
-                    let task = rx.lock().unwrap().recv();
+                    let task = rx
+                        .lock()
+                        .expect("task channel mutex poisoned — worker thread in broken state")
+                        .recv();
                     match task {
                         Ok(f) => f(),
                         Err(_) => break, // sender dropped — shut down
