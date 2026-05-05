@@ -214,7 +214,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before asking any interview question, check whether AGENTS.md already answers it. Questions about API stability, compat shims, deprecation, and release timing are all answered there.
 
-**Escalated?** no
+**Escalated?** skill:interview
 
 ### 2026-05-02 — process — verify relative markdown links before committing
 
@@ -242,7 +242,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before writing an `AtomicPtr`-based global, ask "can I express the same semantic with a `bool` flag plus an already-existing `OnceLock`?" If yes, use that. Reserve `AtomicPtr` for cases where the pointee's lifetime genuinely cannot be tracked through existing safe constructs.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
 
@@ -252,7 +252,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Any time you write `something.lock().unwrap()` in a function that returns `Option` or `Result`, replace with `.lock().ok()?`. Reserve `.unwrap()` for cases where poisoning truly indicates an unrecoverable program invariant failure.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — process — never ask whether a library API should panic for an avoidable error
 
@@ -262,7 +262,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **How to apply:** Before formulating interview questions, check whether AGENTS.md already resolves the question. "Should X panic or return None/Err?" is almost always answered by the non-panicking library API rule — apply it silently.
 
-**Escalated?** no
+**Escalated?** skill:interview
 
 ### 2026-05-05 — process — filter to unresolved PR review threads before reading comments
 
@@ -286,7 +286,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Post-push checklist: `gh pr view <N> --json title,body`. If the body matches reality → done. If not → `gh pr edit`. The cost is one command; the benefit is catching invisible drift.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
 
@@ -318,4 +318,4 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Add a "re-read PR body" step to your post-push checklist whenever the open-PR-on-branch state holds. Cheapest shape: `gh pr view <N> --json title,body | rg -i '<thing-you-just-changed>'` — if any hit, the body needs an edit. The cost of an extra `gh pr edit` is minutes; the cost of a reviewer reading a body that contradicts the diff is wasted reviewer trust.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task

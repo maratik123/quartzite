@@ -17,6 +17,7 @@ Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`, bidi
 1. **Max 3 questions** per round.
 2. **Max 4 rounds** total.
 3. Don't ask about the obvious — focus on edge cases, technical constraints, scope ambiguities.
+4. **Pre-flight: read `AGENTS.md` before drafting any question.** If `AGENTS.md` already answers a candidate question, apply the rule silently — do not ask. Topics commonly pre-resolved: API stability / compat shims / deprecation, panic-vs-`Result` policy for libraries, `_unchecked` naming, allowed Rust idioms (let chains, stdlib comparison helpers), test coverage requirements. When in doubt, re-read `AGENTS.md` — do not ask.
 
 ## Workflow
 
@@ -120,6 +121,7 @@ This closes the loop: the spec references the issue via `**Tracked in:**`, and t
 - 6+ questions at once
 - Investigating code before the interview is done
 - Stretching beyond 4 rounds
+- Asking the user a question that `AGENTS.md` already answers (compat shims, library panic policy, naming conventions, etc.) — apply the documented rule silently
 - Forgetting to save the spec before moving to design
 - Saving the spec without `**Tracked in:**` (unless user explicitly opted out)
 - Skipping the cross-link comment on the tracking issue

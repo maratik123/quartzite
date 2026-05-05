@@ -224,7 +224,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 2. `cargo test` — all green
 3. `cargo clippy -- -D warnings` — clean
 4. Update `.progress.md`
-5. **If the fixes changed any public API name, scope, or AC referenced in the PR title/body** (and the PR is already open), run `gh pr edit --title "..." --body "..."` to bring the PR description in sync before pushing. Check by re-reading the current PR with `gh pr view` and comparing against the new commits.
+5. **PR body sync (unconditional).** Run `gh pr view <N> --json title,body` and re-read the body. Decide *after* reading whether `gh pr edit` is needed: edit if the body contradicts the new commits (renames, scope drift, AC status flips, cited counts that drifted), skip if it's still accurate. Never skip the read. Applies to every push during this step — not just review-fix commits that change public API. See AGENTS.md *Workflow*.
 6. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
@@ -254,6 +254,8 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - **Test plan** (checklist: one line per AC, plus clippy/build)
 9. Post the PR URL to the user.
 
+After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
+
 **FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
 ## Gate checklist
@@ -268,6 +270,6 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 | Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
-| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? PR title/body updated via `gh pr edit` if commits changed public-facing names/scope? |
+| Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
 | Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
