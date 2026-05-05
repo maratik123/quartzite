@@ -22,6 +22,11 @@ pub struct Rect {
 impl Rect {
     /// Creates a new rect from an origin point and a size.
     ///
+    /// # Parameters
+    ///
+    /// - `origin`: top-left corner of the rect.
+    /// - `size`: width and height of the rect (should be non-negative).
+    ///
     /// # Examples
     ///
     /// ```
@@ -135,6 +140,10 @@ impl Rect {
 
     /// Returns `true` if `point` lies inside this rect (inclusive left/top, exclusive right/bottom).
     ///
+    /// # Parameters
+    ///
+    /// - `point`: point to test for containment.
+    ///
     /// # Examples
     ///
     /// ```
@@ -154,6 +163,10 @@ impl Rect {
 
     /// Returns `true` if this rect overlaps with `other`.
     ///
+    /// # Parameters
+    ///
+    /// - `other`: rect to test for overlap with `self`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -172,6 +185,10 @@ impl Rect {
     }
 
     /// Returns the smallest rect that contains both `self` and `other`.
+    ///
+    /// # Parameters
+    ///
+    /// - `other`: rect to union with `self`.
     ///
     /// # Examples
     ///
@@ -194,6 +211,10 @@ impl Rect {
 
     /// Returns this rect translated by `offset`.
     ///
+    /// # Parameters
+    ///
+    /// - `offset`: vector added to the origin; the size is unchanged.
+    ///
     /// # Examples
     ///
     /// ```
@@ -210,6 +231,13 @@ impl Rect {
     /// Returns a rect expanded by `dx` on each horizontal side and `dy` on each vertical side.
     ///
     /// Negative values shrink the rect.
+    ///
+    /// # Parameters
+    ///
+    /// - `dx1`: amount added to the left edge (negative shifts the edge inward).
+    /// - `dy1`: amount added to the top edge (negative shifts the edge inward).
+    /// - `dx2`: amount added to the right edge (positive expands outward).
+    /// - `dy2`: amount added to the bottom edge (positive expands outward).
     ///
     /// # Examples
     ///
@@ -250,6 +278,11 @@ pub struct RectF {
 
 impl RectF {
     /// Creates a new floating-point rect.
+    ///
+    /// # Parameters
+    ///
+    /// - `origin`: top-left corner of the rect.
+    /// - `size`: width and height of the rect (should be non-negative).
     ///
     /// # Examples
     ///
@@ -365,6 +398,10 @@ impl RectF {
 
     /// Returns `true` if `point` lies inside this rect (inclusive left/top, exclusive right/bottom).
     ///
+    /// # Parameters
+    ///
+    /// - `point`: point to test for containment.
+    ///
     /// # Examples
     ///
     /// ```
@@ -384,6 +421,10 @@ impl RectF {
 
     /// Returns `true` if this rect overlaps with `other`.
     ///
+    /// # Parameters
+    ///
+    /// - `other`: rect to test for overlap with `self`.
+    ///
     /// # Examples
     ///
     /// ```
@@ -402,6 +443,10 @@ impl RectF {
     }
 
     /// Returns the smallest rect containing both `self` and `other`.
+    ///
+    /// # Parameters
+    ///
+    /// - `other`: rect to union with `self`.
     ///
     /// # Examples
     ///
@@ -427,6 +472,10 @@ impl RectF {
 
     /// Returns this rect translated by `offset`.
     ///
+    /// # Parameters
+    ///
+    /// - `offset`: vector added to the origin; the size is unchanged.
+    ///
     /// # Examples
     ///
     /// ```
@@ -443,6 +492,13 @@ impl RectF {
     /// Returns a rect expanded by `dx` on each horizontal side and `dy` on each vertical side.
     ///
     /// Negative values shrink the rect.
+    ///
+    /// # Parameters
+    ///
+    /// - `dx1`: amount added to the left edge (negative shifts the edge inward).
+    /// - `dy1`: amount added to the top edge (negative shifts the edge inward).
+    /// - `dx2`: amount added to the right edge (positive expands outward).
+    /// - `dy2`: amount added to the bottom edge (positive expands outward).
     ///
     /// # Examples
     ///

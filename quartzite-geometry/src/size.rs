@@ -58,6 +58,11 @@ impl Size {
     ///
     /// By contract, `width` and `height` should be non-negative.
     ///
+    /// # Parameters
+    ///
+    /// - `width`: horizontal extent, in pixels (should be `>= 0`).
+    /// - `height`: vertical extent, in pixels (should be `>= 0`).
+    ///
     /// # Examples
     ///
     /// ```
@@ -136,6 +141,11 @@ pub struct SizeF {
 
 impl SizeF {
     /// Creates a new floating-point size.
+    ///
+    /// # Parameters
+    ///
+    /// - `width`: horizontal extent, in logical units (should be `>= 0.0`).
+    /// - `height`: vertical extent, in logical units (should be `>= 0.0`).
     ///
     /// # Examples
     ///
