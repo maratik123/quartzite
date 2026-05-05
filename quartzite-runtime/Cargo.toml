@@ -10,6 +10,7 @@ description = "Application runtime, event loop, and object tree for quartzite"
 
 [dependencies]
 quartzite-core = { path = "../quartzite-core" }
+quartzite-macros = { path = "../quartzite-macros" }
 slotmap = "1"
 thiserror = "2"
 tracing = { version = "0.1", features = ["log"] }

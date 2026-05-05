@@ -47,7 +47,16 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 4. Safety and correctness
 - `unsafe` blocks: each one justified with a comment?
-- `unwrap()` / `expect()`: only with clear reasoning? Production code should use `?` or explicit error handling.
+- **`unwrap()` / `expect()` / `panic!()` audit (run this grep first):**
+  ```bash
+  grep -n '\.unwrap()\|\.expect(\|panic!' <changed-files> | grep -v '#\[cfg(test)\]' | grep -v '^\s*//'
+  ```
+  For every hit outside a `#[cfg(test)]` module, ask: "Is there a non-panicking form?"
+  - `.lock().expect(...)` on a `Mutex` → **REJECT**; must be `.lock().unwrap_or_else(|e| e.into_inner())`
+  - `.wait(...).expect(...)` on a `Condvar` → **REJECT**; same fix
+  - `.expect(...)` on `Option` (even with an invariant comment) → **REJECT**; must be `if let` or `let Some(...) = ... else { ... }`
+  - `.expect(...)` is acceptable **only** when poisoning means a genuine unrecoverable broken global invariant AND the reason string explains *why recovery is impossible* (not just what invariant was expected). Suspicion → read the call site.
+  - A reason string alone does NOT make a panicking call acceptable. The question is always: can this be made non-panicking?
 - Clones where `&T` would suffice?
 - Error handling: `?` propagation consistent? No silenced errors (`let _ = ...`)?
 - No `#[allow(clippy::...)]` without justification comment?

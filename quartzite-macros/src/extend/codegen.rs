@@ -62,11 +62,86 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
         }
     });
 
+    let self_name = self_ident.to_string();
+    let trait_name = self_trait.to_string();
+    let acc_str = acc.to_string();
+    let acc_mut_str = acc_mut.to_string();
+
+    // Build self-contained doctest preamble (hidden `#` lines).  The proc macro
+    // does not know the calling crate's module path, so all needed types are
+    // defined inline.  When the root has an ObjectBase field we import ObjectBase
+    // and AsObject from the resolved quartzite-core path; otherwise the example
+    // needs no quartzite_core dependency.
+    let cr_str: String = cr.to_string().split_whitespace().collect();
+    let example_setup = if ir
+        .base_field
+        .as_ref()
+        .is_some_and(|b| b.ty_ident == "ObjectBase")
+    {
+        format!(
+            "# use {cr_str}::{{ObjectBase, AsObject}};\n\
+             # use ::core::any::Any;\n\
+             # struct {self_name} {{ base: ObjectBase }}\n\
+             # impl AsObject for {self_name} {{\n\
+             #     fn object_base(&self) -> &ObjectBase {{ &self.base }}\n\
+             #     fn object_base_mut(&mut self) -> &mut ObjectBase {{ &mut self.base }}\n\
+             #     fn as_any(&self) -> &dyn Any {{ self }}\n\
+             #     fn as_any_mut(&mut self) -> &mut dyn Any {{ self }}\n\
+             # }}\n\
+             # trait {trait_name}: AsObject {{\n\
+             #     fn {acc_str}(&self) -> &{self_name};\n\
+             #     fn {acc_mut_str}(&mut self) -> &mut {self_name};\n\
+             # }}\n\
+             # impl {trait_name} for {self_name} {{\n\
+             #     fn {acc_str}(&self) -> &{self_name} {{ self }}\n\
+             #     fn {acc_mut_str}(&mut self) -> &mut {self_name} {{ self }}\n\
+             # }}"
+        )
+    } else {
+        format!(
+            "# struct {self_name};\n\
+             # trait {trait_name} {{\n\
+             #     fn {acc_str}(&self) -> &{self_name};\n\
+             #     fn {acc_mut_str}(&mut self) -> &mut {self_name};\n\
+             # }}\n\
+             # impl {trait_name} for {self_name} {{\n\
+             #     fn {acc_str}(&self) -> &{self_name} {{ self }}\n\
+             #     fn {acc_mut_str}(&mut self) -> &mut {self_name} {{ self }}\n\
+             # }}"
+        )
+    };
+
+    let trait_doc = format!(
+        "Provides shared and mutable upcasting to [`{self_name}`] for object subtypes.\n\n\
+         # Examples\n\n\
+         ```no_run\n\
+         {example_setup}\n\
+         fn inspect<T: {trait_name}>(obj: &T) -> &{self_name} {{ obj.{acc_str}() }}\n\
+         ```"
+    );
+    let acc_doc = format!(
+        "Returns a shared reference to the [`{self_name}`].\n\n\
+         # Examples\n\n\
+         ```no_run\n\
+         {example_setup}\n\
+         fn upcast<T: {trait_name}>(obj: &T) -> &{self_name} {{ obj.{acc_str}() }}\n\
+         ```"
+    );
+    let acc_mut_doc = format!(
+        "Returns a mutable reference to the [`{self_name}`].\n\n\
+         # Examples\n\n\
+         ```no_run\n\
+         {example_setup}\n\
+         fn upcast_mut<T: {trait_name}>(obj: &mut T) -> &mut {self_name} {{ obj.{acc_mut_str}() }}\n\
+         ```"
+    );
+
     quote! {
+        #[doc = #trait_doc]
         pub trait #self_trait #supertrait {
-            #[doc = " Returns a shared reference to this object."]
+            #[doc = #acc_doc]
             fn #acc(&self) -> &#self_ident;
-            #[doc = " Returns a mutable reference to this object."]
+            #[doc = #acc_mut_doc]
             fn #acc_mut(&mut self) -> &mut #self_ident;
         }
 

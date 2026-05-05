@@ -44,4 +44,4 @@ pub use object_ref::{ObjectRef, WeakRef};
 pub use object_tree::ObjectTree;
 pub use object_tree_ext::ObjectTreeExt;
 pub use thread_pool::ThreadPool;
-pub use timer::Timer;
+pub use timer::{AppDriver, PoolDriver, ThreadDriver, Timer, TimerConfig, TimerDriver};

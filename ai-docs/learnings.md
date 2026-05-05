@@ -244,6 +244,30 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+### 2026-05-05 — process — context-reset and self-review agents must check `#[inline]` on every simple new fn
+
+**What happened:** The context-reset subagent implementing Tasks 3–11 of the timer-object task wrote `impl AsObject` and `impl Object` methods (`object_base`, `object_base_mut`, `as_any`, `as_any_mut`, `meta_object`, `invoke_method`, `connect_signal`) without `#[inline]`. The self-review agent's Round 1 pass also missed the gap, only flagging it in Round 2. The user had to point it out explicitly before the PR commit.
+
+**Rule:** Both the context-reset implementing agent and the self-review agent must check `#[inline]` on every new simple, non-generic function — not only on named groups like "getters" or "Default impls". Every `AsObject`/`Object` impl method, every trivial wrapper, every constructor that is just a struct literal, must be reviewed for this annotation before the task is reported done.
+
+**Why:** The AGENTS.md `#[inline]` rule is unambiguous and applies broadly. Context-reset agents must apply it at write time. Self-review agents must validate it independently on every new public fn.
+
+**How to apply:** At implementation time, add `#[inline]` immediately before writing the body of any simple fn. At self-review time, scan every `fn` in the diff for missing `#[inline]` before reporting APPROVE — not just fn groups the reviewer already knows about.
+
+**Escalated?** agent:self-review
+
+### 2026-05-05 — architecture — use existing derive macros for `AsObject`/`Object`; do not write manual impls
+
+**What happened:** The context-reset subagent implementing the Timer type wrote manual `impl AsObject for Timer` and `impl Object for Timer` instead of using `#[derive(Extend, Object)]` from `quartzite-macros`. The design document explicitly specified the derive approach. Adding `quartzite-macros` as a dependency of `quartzite-runtime` has no circular dependency (quartzite-macros only depends on `syn`/`quote`/`proc-macro2`), so there was no obstacle. The manual impl caused a 2-round review cycle to surface the `#[inline]` gap the macro would have generated automatically.
+
+**Rule:** When a type in `quartzite-runtime` (or any crate with access to `quartzite-macros`) needs to implement `AsObject` and `Object`, use `#[derive(Extend, Object)]` + `#[object_impl]`. Do not hand-write the impls. The derive macros generate correct `#[inline]` annotations, property dispatch, and MetaObject registration automatically.
+
+**Why:** The derive macros exist precisely to eliminate boilerplate. Using them ensures consistency, correctness, and automatic compliance with all codegen conventions. Rolling a manual impl is reinventing the wheel and drifts from the generated pattern.
+
+**How to apply:** When adding `#[derive(Extend, Object)]` to a crate that doesn't yet depend on `quartzite-macros`, add the dep first (`quartzite-macros = { path = "../quartzite-macros" }`). Proc-macro crates are never circular.
+
+**Escalated?** no
+
 ### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
 
 **What happened:** `try_with_tree` used `mutex.lock().unwrap()`, which panics on a poisoned mutex. Since AGENTS.md mandates non-panicking APIs for libraries, and mutex poisoning (another thread panicking while holding the lock) is not a broken global invariant from the caller's perspective, returning `None` is the correct behaviour. `.lock().ok()?` achieves this with no additional code.
@@ -330,6 +354,16 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+### 2026-05-05 — process — backward-compat question asked again despite skill:interview escalation
+
+**What happened:** During `/interview` for issue #36, asked "should the current `Timer` construction/usage API stay roughly the same (just gaining object-tree integration), or is a full redesign expected?" — i.e., a backward-compat framing. The rule was already escalated to `skill:interview` on 2026-05-03 ("do not ask about backward compatibility; AGENTS.md already prohibits compat shims"). User rightly pushed back again.
+
+**Rule:** Never frame an interview question around backward compatibility, keeping old APIs, or preserving existing behavior "for users". AGENTS.md is clear: no crates.io release, no downstream clients, free to rename/remove/restructure. Apply this silently before any question round.
+
+**How to apply:** Before every interview round, re-read AGENTS.md § API Stability. If a candidate question touches compat, deprecation, or "keeping old X", discard it and apply the rule silently.
+
+**Escalated?** skill:interview
+
 ### 2026-05-05 — tooling — use `0.x` version format for 0.x.y deps, not bare `0`
 
 **What happened:** Added `tracing = "0"` and `itertools = "0"` to Cargo.toml. AGENTS.md rule is "use `0.x` for `0.x.y` versions — never pin the patch." The correct forms are `tracing = "0.1"` (tracing is 0.1.x) and `itertools = "0.14"` (itertools is 0.14.x). Bare `"0"` is overly broad; it would accept any 0.x.y release including incompatible minor versions.
@@ -349,3 +383,66 @@ then filter `isResolved == false` before reading any comment bodies.
 **How to apply:** In `/improve` Step 5 (Apply), the first action — before any Edit/Write — is the branch check. If on `master`, `git checkout -b chore/YYYY-MM-DD-improve-<short-name>` carries the working tree over. Edit only after the branch is in place.
 
 **Escalated?** AGENTS.md, agent:self-improve
+
+### 2026-05-06 — code-style — never use .expect() on mutex locks or condvar waits in production code
+
+**What happened:** All `.lock().expect("... poisoned")` and `condvar.wait().expect("...")` calls in `ThreadDriver`, `AppDriver`, and `PoolDriver` were written as panicking. Reviewer flagged all three sites asking why panicking behavior was there and whether it was avoidable.
+
+**Rule:** Mutex poisoning in library code is recoverable. Use `.lock().unwrap_or_else(|e| e.into_inner())` (or `.ok()?` in Result-returning fns) instead of `.expect("... poisoned")`. The `AGENTS.md` library safety idioms section already states this explicitly. Also remove any `# Panics` doc sections from methods that no longer panic after the fix.
+
+**How to apply:** On any new driver, scheduler, or shared-state type: whenever a `Mutex::lock()` or `Condvar::wait()` call appears in production code (i.e., not in tests), use `unwrap_or_else(|e| e.into_inner())` by default. Reserve `.expect("reason")` only for cases where poisoning genuinely means an unrecoverable invariant violation (document why in the reason string).
+
+**Escalated?** no
+
+### 2026-05-06 — code-style — `.expect()` on mutex/condvar/Option is still a panic; checklist must catch it explicitly
+
+**What happened:** `timer.rs` was implemented with `.expect("... mutex poisoned")` on every `Mutex::lock()`, `Condvar::wait()`, and `BinaryHeap::peek()`/`pop()` call in `ThreadDriver`, `AppDriver`, and `PoolDriver`. Two rounds of self-review (Rounds 2 and 3) both approved without catching these. The user had to flag all five sites via PR comments.
+
+**Why the gate broke — implementor side:** AGENTS.md § *Library safety idioms* says "use `mutex.lock().ok()?` or `.unwrap_or_else(|e| e.into_inner())`". The implementor read the *general* test rule ("no `unwrap()` in production code; `expect("reason")` preferred") and concluded that spelling out a reason string was sufficient. The mutex-specific rule was applied silently only to the `Mutex<Signal>` from `quartzite-core` (which was correctly handled via `ok()?`) but not to the driver-owned mutexes.
+
+**Why the gate broke — self-review agent side:** The reviewer checklist item was worded as "No `unwrap()` in production code (only in `.expect("reason")` form with justification)." Because `.expect(...)` is literally a different method name, the grep mental model (`grep unwrap`) missed it entirely. The agent never checked `.expect()` calls for panicking soundness — only for the presence of a justification string.
+
+**Rule:** Both implementor and self-review agent must treat `.unwrap()`, `.expect()`, and `panic!()` as the same category — *unconditional panics* — and apply the same scrutiny to all three. For every occurrence in production code (outside `#[cfg(test)]`), ask: "Is there a non-panicking form?"
+
+Concrete substitutions:
+- `mutex.lock().expect(...)` → `mutex.lock().unwrap_or_else(|e| e.into_inner())`
+- `condvar.wait(g).expect(...)` → `condvar.wait(g).unwrap_or_else(|e| e.into_inner())`
+- `condvar.wait_timeout(g, d).expect(...)` → `condvar.wait_timeout(g, d).unwrap_or_else(|e| e.into_inner())`
+- `option.expect("logically guaranteed")` → `let Some(x) = option else { continue/return; };`
+- `result.expect("infallible")` → `result.unwrap_or_else(|e| /* handle or return */)`
+
+**How to apply — self-review agent:** After checking for `unwrap`, also `grep -n '\.expect(' src/` (excluding test modules) and verify each call. Acceptable forms: `.expect()` in tests, `.expect()` where poisoning means a genuine broken global invariant with the reason string explaining *why* it is unrecoverable. Anything else is a finding.
+
+**Escalated?** agent:self-review
+
+### 2026-05-06 — process — "add to learnings" means learnings only; do not propagate to agent/skill files
+
+**What happened:** User said "add to learnings: unwrap/expect/panic should be avoided... with explanations how this quality gate is broken." I wrote the learnings entry, then also updated `.claude/agents/self-review.md` and `.claude/agents/review-findings.md` citing the Propagation Rule. The user flagged this as unauthorized — they asked for one action (learnings), not three.
+
+**Rule:** "Add to learnings" is a request to write to `ai-docs/learnings.md` only. The `Escalated?` field in the learnings entry records that an issue *is a candidate* for escalation to an agent/skill/AGENTS.md — it is not authorization to make that escalation immediately. The Propagation Rule in AGENTS.md only triggers when you are already editing an instruction file (`.claude/agents/**`, `.claude/skills/**`, `AGENTS.md`, `.claude/settings.json`). Creating a learnings entry is not editing an instruction file, so no propagation is triggered.
+
+**How to apply:** When the user says "add to learnings" (or "note this", "remember this"), write the entry and stop. If the learnings entry merits escalation to project instructions, mark `Escalated? no` and let the user trigger `/improve` when ready. Never escalate to agents/skills on the same turn as a learnings-only request.
+
+**Escalated?** no
+
+### 2026-05-06 — process — resolve fixed PR review comments via GraphQL after pushing the fix
+
+**What happened:** After fixing the panicking mutex ops (commits 543bb4f, 2ddece7), I replied to each comment but did not resolve the conversations. I attempted `resolveReviewThread` via GraphQL but used a guessed thread ID (`PRRT_kwDOSR5chs5UHUwU`) that did not exist, got NOT_FOUND, printed "resolve via graphql not available", and moved on. AGENTS.md says: "After pushing fixes, resolve only the comments that were addressed by a code change" — this was not done.
+
+**Rule:** When a PR review comment is fixed by a code change, the conversation must be resolved. The flow is:
+1. Reply to the comment explaining the fix.
+2. Query for the actual thread node IDs:
+   ```bash
+   gh api graphql -f query='{ repository(owner:"OWNER", name:"REPO") { pullRequest(number:N) { reviewThreads(first:20) { nodes { id isResolved path } } } } }'
+   ```
+3. For each unresolved thread whose comment was addressed, call:
+   ```bash
+   gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<id>"}) { thread { isResolved } } }'
+   ```
+4. Verify `isResolved: true` in the response.
+
+When a GraphQL mutation fails with NOT_FOUND, do not silently move on — investigate: the thread ID was wrong, so query for the correct one first.
+
+**How to apply:** In the post-push step after every PR fix round: reply first, then query for thread IDs, then resolve. If resolution fails, diagnose before giving up.
+
+**Escalated?** no

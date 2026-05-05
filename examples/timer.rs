@@ -1,9 +1,12 @@
-use quartzite::prelude::*;
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
 };
-use std::time::Duration;
+
+use quartzite::prelude::*;
 
 fn main() {
     env_logger::init();
@@ -13,7 +16,7 @@ fn main() {
     let counter2 = Arc::clone(&counter);
 
     let mut timer = Timer::new(Duration::from_millis(50));
-    timer.connect_timeout(move |_| {
+    timer.connect_tick(move |_args| {
         let n = counter2.fetch_add(1, Ordering::SeqCst) + 1;
         println!("tick {n}");
         if n >= 3 {
@@ -22,7 +25,7 @@ fn main() {
                 .quit();
         }
     });
-    timer.start(app.event_loop().sender());
+    timer.start(Arc::new(AppDriver::new()));
 
     app.exec();
     println!("done after {} ticks", counter.load(Ordering::SeqCst));

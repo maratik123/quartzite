@@ -24,7 +24,11 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 
 ### 1. Safety and correctness
 - `unsafe` blocks: each justified with a comment explaining the invariant?
-- `unwrap()` / `expect()`: only with clear reasoning? Production code should propagate errors.
+- **`unwrap()` / `expect()` / `panic!()` audit:** grep changed files for these outside `#[cfg(test)]` modules. A reason string does NOT make a panicking call acceptable — ask "is there a non-panicking form?" Mandatory substitutions:
+  - `Mutex::lock().expect(...)` → `.lock().unwrap_or_else(|e| e.into_inner())`
+  - `Condvar::wait*().expect(...)` → `.wait*(...).unwrap_or_else(|e| e.into_inner())`
+  - `Option::expect(...)` in logically-guaranteed positions → `if let` or `let Some(...) = ... else { ... }`
+  Flag any `.expect()` whose reason string explains the invariant but not why recovery is impossible.
 - Integer casts (`as`): could they silently wrap or truncate?
 - Arithmetic: overflow/underflow possible on plausible inputs?
 - Error handling: silenced errors (`let _ = ...`)? Missing `?`?

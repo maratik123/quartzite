@@ -91,7 +91,8 @@ pub mod prelude {
 
     // quartzite-runtime
     pub use quartzite_runtime::{
-        Application, ApplicationError, EventLoop, ObjectRef, ObjectTree, Timer, WeakRef,
+        AppDriver, Application, ApplicationError, EventLoop, ObjectRef, ObjectTree, PoolDriver,
+        ThreadDriver, Timer, TimerConfig, TimerDriver, WeakRef,
     };
 }
 

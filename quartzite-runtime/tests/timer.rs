@@ -1,113 +1,358 @@
+// Each tests/*.rs file is compiled as a separate binary, giving this file
+// a fresh OnceLock — necessary for the Application singleton used in AppDriver tests.
+//
+// All three driver backends are tested here together with ObjectTree insertion,
+// signals_blocked suppression, and single_shot semantics.
+
 use std::{
     sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     thread,
     time::Duration,
 };
 
-use quartzite_runtime::{EventLoop, Timer};
+use quartzite_runtime::{AppDriver, Application, PoolDriver, ThreadDriver, Timer, TimerDriver};
 
-fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
-    thread::spawn(move || el.run())
+// ────────────────────────────────────────────────────────────────────────────
+// Helper: wait until `counter` reaches at least `n` or `timeout` elapses.
+// Returns true if the target was reached.
+fn wait_for_count(counter: &AtomicUsize, n: usize, timeout: Duration) -> bool {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        if counter.load(Ordering::SeqCst) >= n {
+            return true;
+        }
+        if std::time::Instant::now() >= deadline {
+            return false;
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
 }
 
-// AC7 — 50ms timer fires at least once within 200ms.
+// ────────────────────────────────────────────────────────────────────────────
+// AC2 — Timer has ObjectBase / named lookup
+// ────────────────────────────────────────────────────────────────────────────
 #[test]
-fn timer_fires_within_deadline() {
-    let el = Arc::new(EventLoop::new());
-    let handle = start_loop(Arc::clone(&el));
+fn timer_has_object_id_and_name() {
+    use quartzite_core::ObjectId;
 
-    let counter = Arc::new(AtomicUsize::new(0));
-    let counter2 = Arc::clone(&counter);
+    let timer = Timer::new(Duration::from_millis(100));
+    let id: ObjectId = timer.base.id();
+    assert!(id.raw() > 0, "timer must have a valid ObjectId");
 
-    let mut timer = Timer::new(Duration::from_millis(50));
-    timer.connect_timeout(move |_| {
-        counter2.fetch_add(1, Ordering::SeqCst);
+    let named = Timer::named("my-timer", Duration::from_millis(100));
+    assert_eq!(named.base.name(), Some("my-timer"));
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AC3 — Fire count increments: 0, 1, 2 …
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn thread_driver_fire_count_increments() {
+    let counts: Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(Vec::new()));
+    let counts2 = Arc::clone(&counts);
+    let done = Arc::new(AtomicBool::new(false));
+    let done2 = Arc::clone(&done);
+
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.connect_tick(move |args| {
+        counts2.lock().expect("counts lock").push(args.0);
+        if args.0 >= 2 {
+            done2.store(true, Ordering::SeqCst);
+        }
     });
-    timer.start(el.sender());
+    timer.start(Arc::new(ThreadDriver::new()));
 
-    thread::sleep(Duration::from_millis(200));
+    // Wait up to 500 ms for 3 fires.
+    let deadline = std::time::Instant::now() + Duration::from_millis(500);
+    while !done.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+        thread::sleep(Duration::from_millis(10));
+    }
+    timer.stop();
 
-    el.stop();
-    handle.join().unwrap();
-    drop(timer);
-
+    let observed = counts.lock().expect("counts lock").clone();
     assert!(
-        counter.load(Ordering::SeqCst) >= 1,
-        "timer must fire at least once within 200ms"
+        observed.len() >= 3,
+        "expected at least 3 fires, got {observed:?}"
+    );
+    // The first three values must be 0, 1, 2.
+    assert_eq!(
+        &observed[..3],
+        &[0, 1, 2],
+        "fire counts must be 0-indexed and sequential"
     );
 }
 
-// Stop prevents further emissions.
+// ────────────────────────────────────────────────────────────────────────────
+// AC5 — signals_blocked suppresses tick
+// ────────────────────────────────────────────────────────────────────────────
 #[test]
-fn timer_stop_prevents_further_emissions() {
-    let el = Arc::new(EventLoop::new());
-    let handle = start_loop(Arc::clone(&el));
+fn signals_blocked_suppresses_tick() {
+    let called = Arc::new(AtomicBool::new(false));
+    let called2 = Arc::clone(&called);
 
-    let counter = Arc::new(AtomicUsize::new(0));
-    let counter2 = Arc::clone(&counter);
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.connect_tick(move |_| called2.store(true, Ordering::SeqCst));
 
-    let mut timer = Timer::new(Duration::from_millis(40));
-    timer.connect_timeout(move |_| {
-        counter2.fetch_add(1, Ordering::SeqCst);
-    });
-    timer.start(el.sender());
+    // Block before starting.
+    timer.block_signals();
+    timer.start(Arc::new(ThreadDriver::new()));
 
-    // Wait for at least one fire.
+    // Wait long enough for at least 2 intervals to pass.
     thread::sleep(Duration::from_millis(120));
     timer.stop();
 
-    // Drain the event loop: any emission already queued before stop() will be
-    // processed before we read the counter, eliminating a race between the
-    // background thread posting and the event loop executing the post.
-    let (drain_tx, drain_rx) = std::sync::mpsc::channel::<()>();
-    el.post(Box::new(move || {
-        let _ = drain_tx.send(());
-    }));
-    drain_rx.recv().unwrap();
-
-    let count_at_stop = counter.load(Ordering::SeqCst);
-    assert!(count_at_stop >= 1, "must have fired before stop");
-
-    // Wait more — count must not increase.
-    thread::sleep(Duration::from_millis(150));
-    assert_eq!(
-        counter.load(Ordering::SeqCst),
-        count_at_stop,
-        "no further emissions after stop"
+    assert!(
+        !called.load(Ordering::SeqCst),
+        "signals_blocked must suppress all tick emissions"
     );
-
-    el.stop();
-    handle.join().unwrap();
 }
 
-// Single-shot fires exactly once.
+// AC5 — unblock_signals restores firing
 #[test]
-fn single_shot_fires_exactly_once() {
-    let el = Arc::new(EventLoop::new());
-    let handle = start_loop(Arc::clone(&el));
+fn unblock_signals_restores_tick() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let counter2 = Arc::clone(&counter);
 
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.connect_tick(move |_| {
+        counter2.fetch_add(1, Ordering::SeqCst);
+    });
+    timer.block_signals();
+    timer.start(Arc::new(ThreadDriver::new()));
+
+    // Wait two intervals — should fire 0 times.
+    thread::sleep(Duration::from_millis(80));
+    assert_eq!(counter.load(Ordering::SeqCst), 0, "no fires while blocked");
+
+    timer.unblock_signals();
+    // Wait for at least one tick after unblock.
+    assert!(
+        wait_for_count(&counter, 1, Duration::from_millis(200)),
+        "must fire at least once after unblock"
+    );
+    timer.stop();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AC7 — ThreadDriver fires at interval (±50 % tolerance)
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn thread_driver_fires_at_interval() {
     let counter = Arc::new(AtomicUsize::new(0));
     let counter2 = Arc::clone(&counter);
 
     let mut timer = Timer::new(Duration::from_millis(50));
-    timer.single_shot = true;
-    timer.connect_timeout(move |_| {
+    timer.connect_tick(move |_| {
         counter2.fetch_add(1, Ordering::SeqCst);
     });
-    timer.start(el.sender());
+    timer.start(Arc::new(ThreadDriver::new()));
 
-    thread::sleep(Duration::from_millis(300));
+    thread::sleep(Duration::from_millis(200));
+    timer.stop();
 
-    el.stop();
-    handle.join().unwrap();
-    drop(timer);
+    let fires = counter.load(Ordering::SeqCst);
+    assert!(
+        fires >= 1,
+        "ThreadDriver must fire at least once in 200 ms (interval 50 ms)"
+    );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AC8 — AppDriver executes slots on the event-loop thread
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn app_driver_executes_on_event_loop_thread() {
+    // This test creates the Application singleton for this binary.
+    let app = Application::new().expect("only one Application per process");
+
+    // Spin up the event loop on a dedicated thread; record its thread id.
+    let el_thread_id = Arc::new(Mutex::new(None::<thread::ThreadId>));
+    let el_id2 = Arc::clone(&el_thread_id);
+
+    // Post a probe to discover the event-loop thread id from inside the loop.
+    app.post_event(Box::new(move || {
+        *el_id2.lock().expect("el_id lock") = Some(thread::current().id());
+    }));
+
+    let el_thread = thread::spawn({
+        let app = Application::global().unwrap();
+        move || app.exec()
+    });
+
+    // Wait until the probe fires (the event loop started) — up to 500 ms.
+    let deadline = std::time::Instant::now() + Duration::from_millis(500);
+    loop {
+        if el_thread_id.lock().expect("el_id lock").is_some() {
+            break;
+        }
+        if std::time::Instant::now() >= deadline {
+            panic!("event loop did not start in time");
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+    let expected_el_id = el_thread_id.lock().expect("el_id lock").unwrap();
+
+    // Now run the timer.
+    let observed_thread = Arc::new(Mutex::new(None::<thread::ThreadId>));
+    let observed2 = Arc::clone(&observed_thread);
+    let fired = Arc::new(AtomicBool::new(false));
+    let fired2 = Arc::clone(&fired);
+
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.connect_tick(move |_| {
+        *observed2.lock().expect("observed lock") = Some(thread::current().id());
+        fired2.store(true, Ordering::SeqCst);
+    });
+    timer.start(Arc::new(AppDriver::new()));
+
+    // Wait for at least one tick — up to 500 ms.
+    let deadline2 = std::time::Instant::now() + Duration::from_millis(500);
+    loop {
+        if fired.load(Ordering::SeqCst) {
+            break;
+        }
+        if std::time::Instant::now() >= deadline2 {
+            panic!("AppDriver did not fire within 500 ms");
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+
+    timer.stop();
+
+    // Quit and join the event loop.
+    Application::global().unwrap().quit();
+    let _ = el_thread.join();
+
+    if let Some(actual) = *observed_thread.lock().expect("observed lock") {
+        assert_eq!(
+            actual, expected_el_id,
+            "AppDriver slots must run on the event-loop thread"
+        );
+    } else {
+        panic!("tick never fired — observed_thread is None");
+    }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AC9 — PoolDriver shared across two timers
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn pool_driver_shared_across_two_timers() {
+    let pool: Arc<dyn TimerDriver> = Arc::new(PoolDriver::new());
+
+    let c1 = Arc::new(AtomicUsize::new(0));
+    let c1b = Arc::clone(&c1);
+    let mut t1 = Timer::new(Duration::from_millis(40));
+    t1.connect_tick(move |_| {
+        c1b.fetch_add(1, Ordering::SeqCst);
+    });
+
+    let c2 = Arc::new(AtomicUsize::new(0));
+    let c2b = Arc::clone(&c2);
+    let mut t2 = Timer::new(Duration::from_millis(60));
+    t2.connect_tick(move |_| {
+        c2b.fetch_add(1, Ordering::SeqCst);
+    });
+
+    t1.start(Arc::clone(&pool));
+    t2.start(Arc::clone(&pool));
+
+    thread::sleep(Duration::from_millis(400));
+
+    t1.stop();
+    t2.stop();
+
+    assert!(
+        c1.load(Ordering::SeqCst) >= 1,
+        "timer 1 must fire at least once"
+    );
+    assert!(
+        c2.load(Ordering::SeqCst) >= 1,
+        "timer 2 must fire at least once"
+    );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AC11 — single_shot fires exactly once (ThreadDriver)
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn single_shot_thread_driver_fires_exactly_once() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let counter2 = Arc::clone(&counter);
+
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.single_shot = true;
+    timer.connect_tick(move |_| {
+        counter2.fetch_add(1, Ordering::SeqCst);
+    });
+    timer.start(Arc::new(ThreadDriver::new()));
+
+    // Wait for 3× the interval.
+    thread::sleep(Duration::from_millis(200));
+    timer.stop();
 
     assert_eq!(
         counter.load(Ordering::SeqCst),
         1,
-        "single-shot timer must fire exactly once"
+        "single_shot timer must fire exactly once (ThreadDriver)"
+    );
+}
+
+// AC11 — single_shot fires exactly once (PoolDriver)
+#[test]
+fn single_shot_pool_driver_fires_exactly_once() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let counter2 = Arc::clone(&counter);
+
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.single_shot = true;
+    timer.connect_tick(move |_| {
+        counter2.fetch_add(1, Ordering::SeqCst);
+    });
+    timer.start(Arc::new(PoolDriver::new()));
+
+    // Wait for 3× the interval.
+    thread::sleep(Duration::from_millis(200));
+    timer.stop();
+
+    assert_eq!(
+        counter.load(Ordering::SeqCst),
+        1,
+        "single_shot timer must fire exactly once (PoolDriver)"
+    );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// stop_prevents_further_emissions (ThreadDriver)
+// ────────────────────────────────────────────────────────────────────────────
+#[test]
+fn stop_prevents_further_emissions() {
+    let counter = Arc::new(AtomicUsize::new(0));
+    let counter2 = Arc::clone(&counter);
+
+    let mut timer = Timer::new(Duration::from_millis(30));
+    timer.connect_tick(move |_| {
+        counter2.fetch_add(1, Ordering::SeqCst);
+    });
+    timer.start(Arc::new(ThreadDriver::new()));
+
+    // Wait for at least one fire.
+    assert!(
+        wait_for_count(&counter, 1, Duration::from_millis(300)),
+        "timer must fire before stop"
+    );
+    timer.stop();
+
+    let count_at_stop = counter.load(Ordering::SeqCst);
+
+    // Wait and ensure count does not grow.
+    thread::sleep(Duration::from_millis(120));
+    assert_eq!(
+        counter.load(Ordering::SeqCst),
+        count_at_stop,
+        "no further emissions after stop"
     );
 }

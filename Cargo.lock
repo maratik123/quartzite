@@ -477,6 +477,7 @@ dependencies = [
  "env_logger",
  "itertools",
  "quartzite-core",
+ "quartzite-macros",
  "slotmap",
  "thiserror",
  "tracing",
