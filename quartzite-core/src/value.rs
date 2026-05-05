@@ -212,22 +212,13 @@ impl Value {
 /// assert_eq!(err.expected, "Int");
 /// assert_eq!(err.got, "Bool");
 /// ```
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[error("type error: expected {expected}, got {got}")]
 pub struct TypeError {
     /// The type name that was expected (e.g. `"Int"`).
     pub expected: &'static str,
     /// The type name that was actually found (e.g. `"String"`).
     pub got: &'static str,
-}
-
-impl core::fmt::Display for TypeError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "type error: expected {}, got {}",
-            self.expected, self.got
-        )
-    }
 }
 
 /// Converts a [`Value`] into a concrete Rust type.

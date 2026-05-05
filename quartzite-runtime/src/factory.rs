@@ -21,17 +21,9 @@ static FACTORY: OnceLock<Arc<RwLock<ObjectFactory>>> = OnceLock::new();
 /// let err: FactoryAlreadySet = ObjectFactory::install(ObjectFactory::new()).unwrap_err();
 /// assert_eq!(err, FactoryAlreadySet);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("ObjectFactory is already installed")]
 pub struct FactoryAlreadySet;
-
-impl std::fmt::Display for FactoryAlreadySet {
-    #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ObjectFactory is already installed")
-    }
-}
-
-impl std::error::Error for FactoryAlreadySet {}
 
 /// Creates objects by class name string — used by scripting and serialization.
 ///

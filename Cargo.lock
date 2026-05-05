@@ -286,6 +286,7 @@ dependencies = [
  "indexmap",
  "rstest",
  "serial_test",
+ "thiserror",
 ]
 
 [[package]]

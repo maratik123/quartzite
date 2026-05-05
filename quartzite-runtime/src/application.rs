@@ -16,21 +16,12 @@ use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tre
 ///     _ => panic!("second call must fail with AlreadyExists"),
 /// }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ApplicationError {
     /// An `Application` instance already exists in this process.
+    #[error("Application already exists")]
     AlreadyExists,
 }
-
-impl std::fmt::Display for ApplicationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ApplicationError::AlreadyExists => write!(f, "Application already exists"),
-        }
-    }
-}
-
-impl std::error::Error for ApplicationError {}
 
 struct ApplicationInner {
     /// `Mutex` (not `RwLock`) because `ObjectTree: Send` but not `Sync`.

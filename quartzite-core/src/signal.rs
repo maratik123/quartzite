@@ -132,19 +132,9 @@ static QUEUED_DISPATCHER: std::sync::OnceLock<Arc<dyn QueuedDispatcher>> =
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("queued dispatcher is already installed")]
 pub struct DispatcherAlreadySet;
-
-#[cfg(feature = "std")]
-impl std::fmt::Display for DispatcherAlreadySet {
-    #[inline]
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "queued dispatcher is already installed")
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for DispatcherAlreadySet {}
 
 /// Registers the process-wide queued dispatcher.
 ///
