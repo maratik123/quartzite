@@ -106,10 +106,7 @@ is **not** fine: agents and reviewers check this mechanically.
   module names, build-config tokens like `no_std`, third-party crate
   types — all must be wrapped in backticks (`` `MouseEvent` ``,
   `` `RwLock` ``, `` `no_std` ``). The `clippy::doc_markdown` lint
-  enforces this. The workspace `clippy.toml` `doc-valid-idents` allowlist
-  is reserved for genuine non-code tokens that the lint's heuristic
-  mistakes for identifiers (acronyms, brand names, proper nouns) — see
-  the *Lints* section below.
+  enforces this — see the *Lints* section below.
 - Prefer **intra-doc links** over plain backticks when the reference is a
   navigation target: `` [`Type`] ``, `` [`Type::method`] ``,
   `` [`crate_name::Type`] ``. Rustdoc resolves them at build time, and
@@ -213,19 +210,21 @@ Each crate's `lib.rs` enables:
   fn that can panic.
 - `#![warn(clippy::missing_safety_doc)]` — `# Safety` section on every
   `unsafe fn`.
-- `#![warn(clippy::doc_markdown)]` — flags un-backticked `CamelCase` /
-  acronyms in prose. The workspace-root `clippy.toml` `doc-valid-idents`
-  list **extends** clippy's built-in defaults (it does not replace
-  them) and is **reserved for genuine non-code tokens** that the
-  heuristic mistakes for identifiers — acronyms not covered by the
-  defaults (e.g. `GPU`), brand names, proper nouns. **Project type
-  names, third-party type names, and build-config tokens (like
-  `no_std`) are NOT allow-listed** — they are code references and must
-  be backticked inline at every prose mention. Clippy's default list
-  covers a wide range (storage units, frequencies, Apple/Microsoft
-  frameworks, the `OpenGL` family, JS langs, OSes, `IPv4`/`IPv6`,
-  `OAuth`, `NaN`, `CamelCase`, etc.); see the [clippy lint config
-  docs](https://doc.rust-lang.org/clippy/lint_configuration.html#doc-valid-idents)
+- `#![warn(clippy::doc_markdown)]` — flags un-backticked `CamelCase`
+  identifiers in prose. The lint's heuristic ignores pure all-caps
+  acronyms (`GPU`, `JSON`, `URL` — even bare in prose), so they don't
+  need allow-listing; only `CamelCase` brand names / proper nouns / type
+  names that you genuinely want to write as plain prose would. **Project
+  type names, third-party type names, and build-config tokens (like
+  `no_std`) must be backticked inline at every prose mention** — never
+  allow-listed. The workspace currently ships **no `clippy.toml`**: the
+  default-allow behaviour is sufficient. If a future genuine
+  non-code-token false-positive appears, add a workspace-root
+  `clippy.toml` with the narrowest possible `doc-valid-idents` array.
+  Clippy's default list covers a wide range (storage units, frequencies,
+  Apple/Microsoft frameworks, the `OpenGL` family, JS langs, OSes,
+  `IPv4`/`IPv6`, `OAuth`, `NaN`, `CamelCase`, etc.); see the [clippy
+  lint config docs](https://doc.rust-lang.org/clippy/lint_configuration.html#doc-valid-idents)
   for the authoritative list.
 
 CI runs `cargo clippy -- -D warnings`, so the four `warn`-level lints are
