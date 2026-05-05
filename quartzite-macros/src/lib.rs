@@ -13,6 +13,7 @@
 #![warn(clippy::missing_panics_doc)]
 #![warn(clippy::missing_safety_doc)]
 #![warn(clippy::doc_markdown)]
+#![warn(clippy::undocumented_unsafe_blocks)]
 #![deny(missing_docs)]
 
 use proc_macro::TokenStream;

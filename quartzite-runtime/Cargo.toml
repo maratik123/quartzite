@@ -11,6 +11,7 @@ description = "Application runtime, event loop, and object tree for quartzite"
 [dependencies]
 quartzite-core = { path = "../quartzite-core" }
 slotmap = "1"
+thiserror = "2"
 
 [dev-dependencies]
 

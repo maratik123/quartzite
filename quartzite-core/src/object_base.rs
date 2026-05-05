@@ -95,6 +95,36 @@ impl ObjectBase {
         }
     }
 
+    /// Creates an `ObjectBase` with the given `id` and no name.
+    ///
+    /// The caller is responsible for ensuring `id` is unique among all live objects.
+    /// Duplicate IDs cause incorrect tree lookups.
+    ///
+    /// # Parameters
+    ///
+    /// - `id`: the [`ObjectId`] to assign; must be unique across all live objects.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::{ObjectBase, ObjectId};
+    ///
+    /// let id = ObjectId::new();
+    /// let base = ObjectBase::new_with_id(id);
+    /// assert_eq!(base.id(), id);
+    /// ```
+    pub fn new_with_id(id: ObjectId) -> Self {
+        let (guard, _) = ReceiverGuard::new_pair();
+        Self {
+            id,
+            name: None,
+            receiver_guard: guard,
+            signals_blocked: false,
+            #[cfg(feature = "std")]
+            thread_id: std::thread::current().id(),
+        }
+    }
+
     /// Returns the name of this object, or `None` if it is anonymous.
     ///
     /// To rename or clear the name at runtime, use `ObjectTree::rename` or

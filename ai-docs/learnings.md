@@ -234,6 +234,82 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)
 
+### 2026-05-05 — architecture — prefer AtomicBool + safe OnceLock over AtomicPtr + unsafe for process-global accessors
+
+**What happened:** The `global_tree` process-global accessor used `static TREE_PTR: AtomicPtr<Mutex<ObjectTree>>` with an `unsafe` dereference inside `try_with_tree`. The user pointed out that the `AtomicPtr` + `unsafe` design is unnecessary: since `APP: OnceLock<Arc<ApplicationInner>>` already holds the tree for the process lifetime, a simple `AtomicBool TREE_LIVE` flag (set by `Application::new`, cleared by `Drop`) is sufficient. `try_with_tree` then checks the bool, calls `APP.get()?`, and locks safely — no raw pointers, no unsafe blocks.
+
+**Rule:** When implementing a process-global accessor that tracks whether a singleton is "live", prefer `AtomicBool` (or a similar safe primitive) over `AtomicPtr` to raw memory. Reach for `unsafe` only when there is no safe alternative. An `OnceLock` or `Weak<T>` already in scope can often provide the pointer without raw pointer manipulation.
+
+**How to apply:** Before writing an `AtomicPtr`-based global, ask "can I express the same semantic with a `bool` flag plus an already-existing `OnceLock`?" If yes, use that. Reserve `AtomicPtr` for cases where the pointee's lifetime genuinely cannot be tracked through existing safe constructs.
+
+**Escalated?** no
+
+### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
+
+**What happened:** `try_with_tree` used `mutex.lock().unwrap()`, which panics on a poisoned mutex. Since AGENTS.md mandates non-panicking APIs for libraries, and mutex poisoning (another thread panicking while holding the lock) is not a broken global invariant from the caller's perspective, returning `None` is the correct behaviour. `.lock().ok()?` achieves this with no additional code.
+
+**Rule:** In library code, use `mutex.lock().ok()?` (or `mutex.lock().unwrap_or_else(|e| e.into_inner())` when you want to recover the inner value) rather than `.unwrap()`. Panicking on mutex poisoning is not appropriate for a library — callers should decide how to handle a "tree unavailable" result.
+
+**How to apply:** Any time you write `something.lock().unwrap()` in a function that returns `Option` or `Result`, replace with `.lock().ok()?`. Reserve `.unwrap()` for cases where poisoning truly indicates an unrecoverable program invariant failure.
+
+**Escalated?** no
+
+### 2026-05-05 — process — never ask whether a library API should panic for an avoidable error
+
+**What happened:** During interview for #55 (parent/children accessors), asked "should `parent()` / `children()` panic or return a default when called outside an Application scope?" — AGENTS.md already answers this: "Prefer non-panicking APIs for libraries; panicking is acceptable only when a fundamental invariant is broken." Being outside an Application scope is a recoverable condition, not a broken global invariant, so `None`/empty is the correct answer by rule.
+
+**Rule:** Never ask the user whether a library function should panic for an avoidable error condition. Read AGENTS.md first — the non-panicking default is already mandated. Only ask about panic behavior if the scenario involves a genuinely broken global invariant (e.g., internal data structure corruption, double-free).
+
+**How to apply:** Before formulating interview questions, check whether AGENTS.md already resolves the question. "Should X panic or return None/Err?" is almost always answered by the non-panicking library API rule — apply it silently.
+
+**Escalated?** no
+
+### 2026-05-05 — process — filter to unresolved PR review threads before reading comments
+
+**What happened:** When the user said "I've commented gh pr", all inline comments were fetched and read — including ones already resolved by the reviewer in a prior session. Time was wasted re-reading and re-resolving already-closed threads.
+
+**Rule:** Always fetch PR review threads filtered to `isResolved: false` before reading comments. Use the GraphQL query:
+```
+reviewThreads(first: 20) { nodes { id isResolved comments(first:1) { nodes { databaseId body } } } }
+```
+then filter `isResolved == false` before reading any comment bodies.
+
+**How to apply:** Start every "I've commented gh pr" workflow with the GraphQL unresolved-threads query, not the REST `/pulls/{N}/comments` endpoint (which returns all comments regardless of resolution state).
+
+**Escalated?** no
+
+### 2026-05-05 — process — always run the PR body check after every push, even if no edit seems needed
+
+**What happened:** After pushing AGENTS.md + learnings.md changes to the open PR branch, the PR body check (`gh pr view <N>`) was skipped on the grounds that instruction-only commits can't affect code claims. The rule is unconditional: re-read first, then decide. Reasoning your way out of the check is the failure mode the rule prevents.
+
+**Rule:** After every push to a branch with an open PR, always run `gh pr view <N>` and read the body. Only then decide whether an edit is needed. Never skip the read — only skip the edit if the body is still accurate.
+
+**How to apply:** Post-push checklist: `gh pr view <N> --json title,body`. If the body matches reality → done. If not → `gh pr edit`. The cost is one command; the benefit is catching invisible drift.
+
+**Escalated?** no
+
+### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
+
+**What happened:** After applying fixes and posting an objection reply to a PR review comment, neither type of comment was resolved on GitHub. The user clarified the correct rule: resolve only comments that were fixed; leave comments where an objection was posted so the reviewer can decide whether to accept the objection.
+
+**Rule:** After pushing fixes to a PR:
+- Comments addressed by a code fix → resolve on GitHub (`gh api … -X PUT … {"resolved": true}` or via the UI).
+- Comments where a reply was posted explaining why no change was made (objection) → leave unresolved; it is the reviewer's call to accept or push back.
+
+**How to apply:** After any `git push` that addresses review feedback, iterate over the closed-out comments and resolve only the ones that have a corresponding code change. Objection replies are the reviewer's domain to close.
+
+**Escalated?** AGENTS.md
+
+### 2026-05-05 — code-style — use thiserror for error types; apply undocumented_unsafe_blocks to every crate
+
+**What happened:** `TreeAccessError` was initially hand-rolled with manual `Display` / `std::error::Error` impls. PR review requested `thiserror = "2"` be added. Separately, `#![warn(clippy::undocumented_unsafe_blocks)]` was added only to `quartzite-runtime` when first introduced; review comment pointed out it should be in every crate's `lib.rs`.
+
+**Rule:** Use `thiserror` for any new error enum/struct in this workspace — avoids boilerplate `Display` / `Error` impls. Add `#![warn(clippy::undocumented_unsafe_blocks)]` to every crate `lib.rs` (next to the other clippy attributes), not just the crate where unsafe was first introduced.
+
+**How to apply:** When adding a new crate-level lint attribute, immediately propagate it to all other crate `lib.rs` files in the same PR. When defining an error type, reach for `thiserror` first.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-05 — process — keep PR description in sync after every push to an open PR
 
 **What happened:** While iterating on PR #83 (doc-convention) after it was already open, we landed two follow-up commits — first tightening the "backtick every Rust identifier" rule and shrinking `clippy.toml` to one entry, then deleting `clippy.toml` entirely after an empirical test showed the heuristic ignores all-caps tokens. The original PR body still claimed "New workspace-root `clippy.toml` with a ~60-entry `doc-valid-idents` allowlist…" and the AC6 test-plan line still said "seeded; no growth needed". Neither was true after the follow-ups. The PR description was not synced until the user explicitly asked. The `/task` skill *does* spell out this rule in Step 11 ("If the fixes changed any public API name, scope, or AC referenced in the PR title/body (and the PR is already open), run `gh pr edit --title ... --body ...` to bring the PR description in sync before pushing"), but the rule applies to *any* push that invalidates a claim in the body — not only Step 11 review-fix commits.

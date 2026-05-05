@@ -97,6 +97,9 @@ impl Application {
         // possible) share the first factory via OnceLock semantics.
         let _ = crate::factory::ObjectFactory::install(crate::factory::ObjectFactory::new());
 
+        // Mark the global tree as live so ObjectTreeExt::parent/children work.
+        crate::global_tree::register();
+
         Ok(Application(inner))
     }
 
@@ -223,6 +226,66 @@ impl Application {
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
     }
+}
+
+impl Drop for Application {
+    fn drop(&mut self) {
+        crate::global_tree::deregister();
+    }
+}
+
+/// Error returned by [`try_with_tree`] and [`ObjectTreeExt`](crate::ObjectTreeExt) global
+/// methods when the process-wide [`ObjectTree`] cannot be accessed.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{try_with_tree, TreeAccessError};
+///
+/// // Returns Err(NotLive) before Application::new()
+/// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive));
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum TreeAccessError {
+    /// No [`Application`] is currently live in this process.
+    #[error("no Application is currently live")]
+    NotLive,
+    /// The [`ObjectTree`] mutex is poisoned; contains the description from [`std::sync::PoisonError`].
+    #[error("ObjectTree mutex is poisoned: {0}")]
+    Poisoned(String),
+}
+
+/// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
+/// the result, or a [`TreeAccessError`] if the tree cannot be accessed.
+///
+/// # Parameters
+///
+/// - `f`: closure that receives a shared reference to the active tree.
+///
+/// # Errors
+///
+/// - [`TreeAccessError::NotLive`] — no [`Application`] is currently live.
+/// - [`TreeAccessError::Poisoned`] — the [`ObjectTree`] mutex is poisoned.
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_runtime::{try_with_tree, TreeAccessError};
+///
+/// // Returns Err(NotLive) before Application::new()
+/// assert_eq!(try_with_tree(|_tree| ()), Err(TreeAccessError::NotLive));
+/// ```
+pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAccessError> {
+    if !crate::global_tree::is_live() {
+        return Err(TreeAccessError::NotLive);
+    }
+    let guard = APP
+        .get()
+        .ok_or(TreeAccessError::NotLive)?
+        .object_tree
+        .lock()
+        .map_err(|e| TreeAccessError::Poisoned(e.to_string()))?;
+    Ok(f(&guard))
 }
 
 #[cfg(test)]
