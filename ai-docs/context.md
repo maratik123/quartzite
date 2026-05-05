@@ -144,6 +144,6 @@ Maintenance plans (cross-cutting, all ✅): auto-connection (signal/slot extensi
 
 ## Open Questions
 
-- Async/await integration strategy
+- Async/await integration strategy — `futures-util` was evaluated and **deferred**: the runtime uses raw `std::thread` + `mpsc` channels with no async call sites. `futures-util` should be added only once an async executor strategy (tokio, async-std, or custom) is decided. Tracked in #89.
 - Accessibility (a11y) support
 - No-std support scope (core only, or further? — geometry + events are also no_std + alloc)

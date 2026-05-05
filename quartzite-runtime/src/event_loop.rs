@@ -7,6 +7,7 @@ use std::{
     },
     time::Duration,
 };
+use tracing::{debug, trace};
 
 const TICK_MS: u64 = 1;
 
@@ -68,6 +69,7 @@ impl EventLoop {
     /// el.post(Box::new(|| println!("on loop thread")));
     /// ```
     pub fn post(&self, f: Box<dyn FnOnce() + Send>) {
+        trace!("event loop: posting closure");
         let _ = self.sender.send(f);
     }
 
@@ -137,6 +139,7 @@ impl EventLoop {
     /// el.stop();
     /// ```
     pub fn stop(&self) {
+        debug!("event loop: stop requested");
         self.running.store(false, Ordering::SeqCst);
         // Wake the loop by posting a no-op.
         let _ = self.sender.send(Box::new(|| {}));

@@ -12,8 +12,10 @@ description = "Application runtime, event loop, and object tree for quartzite"
 quartzite-core = { path = "../quartzite-core" }
 slotmap = "1"
 thiserror = "2"
+tracing = "0"
 
 [dev-dependencies]
+itertools = "0"
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
