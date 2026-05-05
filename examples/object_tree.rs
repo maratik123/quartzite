@@ -20,6 +20,7 @@ impl Node {
 }
 
 fn main() {
+    env_logger::init();
     let mut tree = ObjectTree::new();
 
     let root_id = tree.insert(Box::new(Node::named("root")), None);

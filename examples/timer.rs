@@ -6,6 +6,7 @@ use std::sync::{
 use std::time::Duration;
 
 fn main() {
+    env_logger::init();
     let app = Application::new().expect("only one Application per process");
 
     let counter = Arc::new(AtomicUsize::new(0));
