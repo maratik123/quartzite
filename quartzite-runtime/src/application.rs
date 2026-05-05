@@ -97,6 +97,9 @@ impl Application {
         // possible) share the first factory via OnceLock semantics.
         let _ = crate::factory::ObjectFactory::install(crate::factory::ObjectFactory::new());
 
+        // Register the global tree pointer so ObjectTreeExt::parent/children work.
+        crate::global_tree::register(&inner.object_tree);
+
         Ok(Application(inner))
     }
 
@@ -222,6 +225,12 @@ impl Application {
     #[inline]
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
+    }
+}
+
+impl Drop for Application {
+    fn drop(&mut self) {
+        crate::global_tree::deregister();
     }
 }
 
