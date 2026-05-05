@@ -1,13 +1,10 @@
 //! Single-threaded event loop for posting and executing closures.
-use std::{
-    fmt,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-        mpsc::{self, Receiver, Sender},
-    },
-    time::Duration,
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    mpsc::{self, Receiver, Sender},
 };
+use std::time::Duration;
 use tracing::{debug, trace};
 
 /// Error returned by [`EventLoop::run`].
@@ -23,25 +20,13 @@ use tracing::{debug, trace};
 ///     Err(RunError::Poisoned) => eprintln!("event loop poisoned — previous run() panicked"),
 /// }
 /// ```
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, thiserror::Error)]
 pub enum RunError {
     /// The receiver mutex is poisoned: a previous [`EventLoop::run`] call panicked while
     /// dispatching a closure.
+    #[error("event loop receiver mutex is poisoned — a previous run() panicked mid-loop")]
     Poisoned,
 }
-
-impl fmt::Display for RunError {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Poisoned => f.write_str(
-                "event loop receiver mutex is poisoned — a previous run() panicked mid-loop",
-            ),
-        }
-    }
-}
-
-impl std::error::Error for RunError {}
 
 const TICK_MS: u64 = 1;
 
