@@ -100,10 +100,19 @@ is **not** fine: agents and reviewers check this mechanically.
 - **`# See also`** — bulleted list of related items as intra-doc links. Use
   to point readers at sibling APIs that expand on the topic.
 
-## Linking
+## Linking and code references
 
-- Prefer **intra-doc links** (`` [`Type`] ``, `` [`Type::method`] ``,
-  `` [`crate_name::Type`] ``). Rustdoc resolves them at build time, and
+- **Backtick every Rust identifier in prose.** Type names, function names,
+  module names, build-config tokens like `no_std`, third-party crate
+  types — all must be wrapped in backticks (`` `MouseEvent` ``,
+  `` `RwLock` ``, `` `no_std` ``). The `clippy::doc_markdown` lint
+  enforces this. The workspace `clippy.toml` `doc-valid-idents` allowlist
+  is reserved for genuine non-code tokens that the lint's heuristic
+  mistakes for identifiers (acronyms, brand names, proper nouns) — see
+  the *Lints* section below.
+- Prefer **intra-doc links** over plain backticks when the reference is a
+  navigation target: `` [`Type`] ``, `` [`Type::method`] ``,
+  `` [`crate_name::Type`] ``. Rustdoc resolves them at build time, and
   `#![deny(rustdoc::broken_intra_doc_links)]` catches stale links.
 - Use the full generic name in prose (`Option<T>`, not `Option`) where the
   generic parameter is meaningful.
@@ -204,9 +213,14 @@ Each crate's `lib.rs` enables:
   fn that can panic.
 - `#![warn(clippy::missing_safety_doc)]` — `# Safety` section on every
   `unsafe fn`.
-- `#![warn(clippy::doc_markdown)]` — flags un-backticked CamelCase /
-  acronyms in prose. Project-specific identifiers are allow-listed in
-  workspace-root `clippy.toml` (`doc-valid-idents = […]`).
+- `#![warn(clippy::doc_markdown)]` — flags un-backticked `CamelCase` /
+  acronyms in prose. The workspace-root `clippy.toml` `doc-valid-idents`
+  list is **reserved for genuine non-code tokens** that the lint's
+  heuristic mistakes for identifiers — acronyms not covered by clippy's
+  defaults (e.g. `GPU`), brand names, proper nouns. **Project type names,
+  third-party type names, and build-config tokens (like `no_std`) are NOT
+  allow-listed** — they are code references and must be backticked
+  inline at every prose mention.
 
 CI runs `cargo clippy -- -D warnings`, so the four `warn`-level lints are
 hard errors in practice.

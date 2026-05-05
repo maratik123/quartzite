@@ -33,7 +33,7 @@ impl std::fmt::Display for ApplicationError {
 impl std::error::Error for ApplicationError {}
 
 struct ApplicationInner {
-    /// Mutex (not RwLock) because `ObjectTree: Send` but not `Sync`.
+    /// `Mutex` (not `RwLock`) because `ObjectTree: Send` but not `Sync`.
     /// `RwLock<T>` requires `T: Send + Sync`; `Mutex<T>` only requires `T: Send`.
     object_tree: Mutex<ObjectTree>,
     event_loop: Arc<EventLoop>,

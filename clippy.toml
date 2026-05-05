@@ -1,83 +1,15 @@
 # clippy::doc_markdown false-positive allowlist.
 #
-# Identifiers in this list are accepted as plain prose without backticks in
-# `///` doc comments. Clippy's built-in list already covers common acronyms
-# (OpenGL, WebGL, JSON, HTML, CSS, HTTP, HTTPS, URL, XML, YAML, TLS, TCP,
-# UDP, IP, RAM, CPU, CamelCase, etc.) — those are not repeated here.
+# Project policy: Rust identifiers (project types, third-party types,
+# build-config tokens like `no_std`) MUST be backticked in prose — they are
+# code references, and the lint correctly flags missing backticks. This
+# allowlist is reserved for genuine non-code tokens that the heuristic
+# mistakes for identifiers: acronyms, brand names, proper nouns.
 #
-# Grow this list during the audit as new prose mentions surface; keep it
-# alphabetised within each section.
+# Clippy's built-in list already covers common acronyms (OpenGL, WebGL,
+# JSON, HTML, CSS, HTTP, HTTPS, URL, XML, YAML, TLS, TCP, UDP, IP, RAM,
+# CPU, CamelCase, etc.) — those are not repeated here.
 doc-valid-idents = [
-    # quartzite types — exact CamelCase names that appear in `///` prose
-    "AsButton",
-    "AsLayout",
-    "AsObject",
-    "AsWidget",
-    "BitFlags",
-    "CloseEvent",
-    "ConnectionId",
-    "ConnectionTable",
-    "ConnectionType",
-    "CustomValue",
-    "DispatcherAlreadySet",
-    "EnumEntry",
-    "EnumMeta",
-    "EventFilter",
-    "EventLoop",
-    "EventType",
-    "FactoryAlreadySet",
-    "FromValue",
-    "IntoValue",
-    "KeyEvent",
-    "KeyEventKind",
-    "KeyModifier",
-    "KeyModifiers",
-    "LayoutBase",
-    "MetaEnum",
-    "MetaObject",
-    "MethodMeta",
-    "MixinTypeName",
-    "MouseButton",
-    "MouseButtons",
-    "MouseEvent",
-    "MouseEventKind",
-    "ObjectBase",
-    "ObjectExt",
-    "ObjectFactory",
-    "ObjectId",
-    "ObjectRef",
-    "ObjectTree",
-    "ParamMeta",
-    "ParentTypeName",
-    "PointF",
-    "PropertyFlag",
-    "PropertyFlags",
-    "PropertyMeta",
-    "QueuedDispatcher",
-    "ReceiverGuard",
-    "RectF",
-    "ResizeEvent",
-    "SignalCallback",
-    "SignalMeta",
-    "SingleShot",
-    "SizeF",
-    "SlotKey",
-    "SlotMap",
-    "StyleBase",
-    "ThreadId",
-    "ThreadPool",
-    "TimerEvent",
-    "TokenStream",
-    "TypeError",
-    "TypeName",
-    "WeakObjectRef",
-    "WeakRef",
-    "WidgetBase",
-    # third-party crate types in prose
-    "IndexMap",
-    "RwLock",
-    # short acronyms used in prose (not in clippy's defaults)
+    # Acronyms / brand names not in clippy's defaults.
     "GPU",
-    # Rust-/build-config tokens
-    "no_std",
 ]

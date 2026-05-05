@@ -102,7 +102,7 @@ fn bare_generics(generics: &syn::Generics) -> syn::Generics {
 }
 
 /// Emits direct `impl As{Parent} for Self` + `impl AsObject for Self` for a root type.
-/// Uses direct field access for ObjectBase, delegation for higher-level parents.
+/// Uses direct field access for `ObjectBase`, delegation for higher-level parents.
 fn emit_parent_chain_impls(
     self_ident: &Ident,
     base: &BaseField,
@@ -156,7 +156,7 @@ fn emit_as_object_impl(
     }
 }
 
-/// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in AsObject).
+/// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in `AsObject`).
 fn emit_delegation_impl(
     self_ident: &Ident,
     base: &BaseField,
