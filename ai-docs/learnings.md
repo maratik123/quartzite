@@ -264,6 +264,18 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
+
+**What happened:** After applying fixes and posting an objection reply to a PR review comment, neither type of comment was resolved on GitHub. The user clarified the correct rule: resolve only comments that were fixed; leave comments where an objection was posted so the reviewer can decide whether to accept the objection.
+
+**Rule:** After pushing fixes to a PR:
+- Comments addressed by a code fix → resolve on GitHub (`gh api … -X PUT … {"resolved": true}` or via the UI).
+- Comments where a reply was posted explaining why no change was made (objection) → leave unresolved; it is the reviewer's call to accept or push back.
+
+**How to apply:** After any `git push` that addresses review feedback, iterate over the closed-out comments and resolve only the ones that have a corresponding code change. Objection replies are the reviewer's domain to close.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-05 — code-style — use thiserror for error types; apply undocumented_unsafe_blocks to every crate
 
 **What happened:** `TreeAccessError` was initially hand-rolled with manual `Display` / `std::error::Error` impls. PR review requested `thiserror = "2"` be added. Separately, `#![warn(clippy::undocumented_unsafe_blocks)]` was added only to `quartzite-runtime` when first introduced; review comment pointed out it should be in every crate's `lib.rs`.
