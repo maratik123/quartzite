@@ -1,9 +1,11 @@
 //! Fixed-size worker thread pool for background task execution.
 use std::{
-    sync::Mutex,
+    num::NonZeroUsize,
     sync::mpsc::{self, Receiver, Sender},
     thread::{self, JoinHandle},
 };
+
+use parking_lot::Mutex;
 
 type Task = Box<dyn FnOnce() + Send>;
 
@@ -16,9 +18,10 @@ type Task = Box<dyn FnOnce() + Send>;
 /// # Examples
 ///
 /// ```no_run
+/// use std::num::NonZeroUsize;
 /// use quartzite_runtime::ThreadPool;
 ///
-/// let pool = ThreadPool::new(2);
+/// let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
 /// pool.spawn(|| println!("background work"));
 /// ```
 pub struct ThreadPool {
@@ -31,31 +34,27 @@ impl ThreadPool {
     ///
     /// # Parameters
     ///
-    /// - `size`: number of worker threads to spawn; must be at least 1.
-    ///
-    /// # Panics
-    ///
-    /// Panics if `size` is 0.
+    /// - `size`: number of worker threads to spawn.
     ///
     /// # Examples
     ///
     /// ```no_run
+    /// use std::num::NonZeroUsize;
     /// use quartzite_runtime::ThreadPool;
     ///
-    /// let pool = ThreadPool::new(4);
+    /// let pool = ThreadPool::new(NonZeroUsize::new(4).unwrap());
     /// pool.spawn(|| println!("hello from worker"));
     /// ```
-    pub fn new(size: usize) -> Self {
-        assert!(size > 0, "thread pool size must be at least 1");
+    pub fn new(size: NonZeroUsize) -> Self {
         let (sender, receiver) = mpsc::channel::<Task>();
         let receiver = Mutex::new(receiver);
         let receiver = std::sync::Arc::new(receiver);
-        let mut workers = Vec::with_capacity(size);
-        for _ in 0..size {
+        let mut workers = Vec::with_capacity(size.get());
+        for _ in 0..size.get() {
             let rx: std::sync::Arc<Mutex<Receiver<Task>>> = std::sync::Arc::clone(&receiver);
             workers.push(thread::spawn(move || {
                 loop {
-                    let task = rx.lock().unwrap().recv();
+                    let task = rx.lock().recv();
                     match task {
                         Ok(f) => f(),
                         Err(_) => break, // sender dropped — shut down
@@ -78,9 +77,10 @@ impl ThreadPool {
     /// # Examples
     ///
     /// ```no_run
+    /// use std::num::NonZeroUsize;
     /// use quartzite_runtime::ThreadPool;
     ///
-    /// let pool = ThreadPool::new(2);
+    /// let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
     /// pool.spawn(|| println!("running on a worker thread"));
     /// ```
     pub fn spawn(&self, f: impl FnOnce() + Send + 'static) {
@@ -104,13 +104,14 @@ impl Drop for ThreadPool {
 mod tests {
     use super::*;
     use std::{
+        num::NonZeroUsize,
         sync::{Arc, Mutex},
         time::Duration,
     };
 
     #[test]
     fn tasks_execute_on_workers() {
-        let pool = ThreadPool::new(2);
+        let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
         let results: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
 
         for i in 0u32..4 {
@@ -129,7 +130,7 @@ mod tests {
 
     #[test]
     fn drop_joins_workers_gracefully() {
-        let pool = ThreadPool::new(2);
+        let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
         let flag = Arc::new(Mutex::new(false));
         let f = Arc::clone(&flag);
         pool.spawn(move || {

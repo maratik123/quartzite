@@ -9,6 +9,7 @@ repository.workspace = true
 description = "Application runtime, event loop, and object tree for quartzite"
 
 [dependencies]
+parking_lot = "0.12"
 quartzite-core = { path = "../quartzite-core" }
 quartzite-macros = { path = "../quartzite-macros" }
 slotmap = "1"

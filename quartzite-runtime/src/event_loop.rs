@@ -1,12 +1,10 @@
 //! Single-threaded event loop for posting and executing closures.
-use std::{
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-        mpsc::{self, Receiver, Sender},
-    },
-    time::Duration,
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    mpsc::{self, Receiver, Sender},
 };
+use std::time::Duration;
 use tracing::{debug, trace};
 
 const TICK_MS: u64 = 1;
@@ -27,7 +25,7 @@ const TICK_MS: u64 = 1;
 /// ```
 pub struct EventLoop {
     sender: Sender<Box<dyn FnOnce() + Send>>,
-    receiver: std::sync::Mutex<Receiver<Box<dyn FnOnce() + Send>>>,
+    receiver: parking_lot::Mutex<Receiver<Box<dyn FnOnce() + Send>>>,
     running: Arc<AtomicBool>,
 }
 
@@ -48,7 +46,7 @@ impl EventLoop {
         let (sender, receiver) = mpsc::channel();
         Self {
             sender,
-            receiver: std::sync::Mutex::new(receiver),
+            receiver: parking_lot::Mutex::new(receiver),
             running: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -94,9 +92,8 @@ impl EventLoop {
     ///
     /// # Panics
     ///
-    /// Panics if another thread is already inside `run` for this loop — the receiver
-    /// mutex is already held — or if a previous holder panicked while it was held
-    /// (poisoned mutex). In normal use `run` is called once on the main thread.
+    /// If a posted closure panics, the panic propagates through `run` to its caller.
+    /// In normal use `run` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -106,12 +103,15 @@ impl EventLoop {
     ///
     /// let el = Arc::new(EventLoop::new());
     /// let el2 = Arc::clone(&el);
-    /// std::thread::spawn(move || { std::thread::sleep(std::time::Duration::from_millis(10)); el2.stop(); });
+    /// std::thread::spawn(move || {
+    ///     std::thread::sleep(std::time::Duration::from_millis(10));
+    ///     el2.stop();
+    /// });
     /// el.run(); // blocks until stop() is called above
     /// ```
     pub fn run(&self) {
+        let receiver = self.receiver.lock();
         self.running.store(true, Ordering::SeqCst);
-        let receiver = self.receiver.lock().unwrap();
         while self.running.load(Ordering::SeqCst) {
             while let Ok(f) = receiver.try_recv() {
                 f();
@@ -234,7 +234,6 @@ mod tests {
         thread::sleep(Duration::from_millis(5));
         el.stop();
 
-        let result = handle.join();
-        assert!(result.is_ok());
+        assert!(handle.join().is_ok());
     }
 }

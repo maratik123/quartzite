@@ -34,6 +34,7 @@ pub mod object_tree;
 pub mod object_tree_ext;
 pub mod thread_pool;
 pub mod timer;
+pub mod timer_drivers;
 
 pub use application::try_with_tree;
 pub use application::{Application, ApplicationError, TreeAccessError};

@@ -1,5 +1,7 @@
 //! Process-singleton `Application` and `ApplicationError`.
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
+
+use parking_lot::Mutex;
 
 use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tree::ObjectTree};
 
@@ -136,9 +138,8 @@ impl Application {
     ///
     /// # Panics
     ///
-    /// Panics if another thread is already inside [`exec`](Self::exec) for the same
-    /// application — the underlying receiver mutex is already held. In normal use
-    /// `exec` is called once on the main thread.
+    /// If a posted closure panics, the panic propagates through `exec` to its caller.
+    /// In normal use `exec` is called once on the main thread.
     ///
     /// # Examples
     ///
@@ -181,7 +182,7 @@ impl Application {
     /// use quartzite_runtime::Application;
     ///
     /// let app = Application::new().unwrap();
-    /// let _tree = app.object_tree().lock().unwrap();
+    /// let _tree = app.object_tree().lock();
     /// ```
     #[inline]
     pub fn object_tree(&self) -> &Mutex<ObjectTree> {
@@ -226,28 +227,21 @@ impl Drop for Application {
 }
 
 /// Error returned by [`try_with_tree`] and [`ObjectTreeExt`](crate::ObjectTreeExt) global
-/// methods when the process-wide [`ObjectTree`] cannot be accessed.
+/// methods when no [`Application`] is currently live in this process.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use quartzite_runtime::{try_with_tree, TreeAccessError};
 ///
-/// // Returns Err(NotLive) before Application::new()
-/// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError::NotLive));
+/// assert_eq!(try_with_tree(|_| ()), Err(TreeAccessError));
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum TreeAccessError {
-    /// No [`Application`] is currently live in this process.
-    #[error("no Application is currently live")]
-    NotLive,
-    /// The [`ObjectTree`] mutex is poisoned; contains the description from [`std::sync::PoisonError`].
-    #[error("ObjectTree mutex is poisoned: {0}")]
-    Poisoned(String),
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("no Application is currently live")]
+pub struct TreeAccessError;
 
 /// Calls `f` with a shared reference to the active [`ObjectTree`] and returns
-/// the result, or a [`TreeAccessError`] if the tree cannot be accessed.
+/// the result, or [`TreeAccessError`] if no [`Application`] is currently live.
 ///
 /// # Parameters
 ///
@@ -255,27 +249,20 @@ pub enum TreeAccessError {
 ///
 /// # Errors
 ///
-/// - [`TreeAccessError::NotLive`] — no [`Application`] is currently live.
-/// - [`TreeAccessError::Poisoned`] — the [`ObjectTree`] mutex is poisoned.
+/// Returns [`TreeAccessError`] when no [`Application`] is live in this process.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use quartzite_runtime::{try_with_tree, TreeAccessError};
 ///
-/// // Returns Err(NotLive) before Application::new()
-/// assert_eq!(try_with_tree(|_tree| ()), Err(TreeAccessError::NotLive));
+/// assert_eq!(try_with_tree(|_tree| ()), Err(TreeAccessError));
 /// ```
 pub fn try_with_tree<R>(f: impl FnOnce(&ObjectTree) -> R) -> Result<R, TreeAccessError> {
     if !crate::global_tree::is_live() {
-        return Err(TreeAccessError::NotLive);
+        return Err(TreeAccessError);
     }
-    let guard = APP
-        .get()
-        .ok_or(TreeAccessError::NotLive)?
-        .object_tree
-        .lock()
-        .map_err(|e| TreeAccessError::Poisoned(e.to_string()))?;
+    let guard = APP.get().ok_or(TreeAccessError)?.object_tree.lock();
     Ok(f(&guard))
 }
 
