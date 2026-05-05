@@ -264,6 +264,20 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+### 2026-05-05 — process — filter to unresolved PR review threads before reading comments
+
+**What happened:** When the user said "I've commented gh pr", all inline comments were fetched and read — including ones already resolved by the reviewer in a prior session. Time was wasted re-reading and re-resolving already-closed threads.
+
+**Rule:** Always fetch PR review threads filtered to `isResolved: false` before reading comments. Use the GraphQL query:
+```
+reviewThreads(first: 20) { nodes { id isResolved comments(first:1) { nodes { databaseId body } } } }
+```
+then filter `isResolved == false` before reading any comment bodies.
+
+**How to apply:** Start every "I've commented gh pr" workflow with the GraphQL unresolved-threads query, not the REST `/pulls/{N}/comments` endpoint (which returns all comments regardless of resolution state).
+
+**Escalated?** no
+
 ### 2026-05-05 — process — always run the PR body check after every push, even if no edit seems needed
 
 **What happened:** After pushing AGENTS.md + learnings.md changes to the open PR branch, the PR body check (`gh pr view <N>`) was skipped on the grounds that instruction-only commits can't affect code claims. The rule is unconditional: re-read first, then decide. Reasoning your way out of the check is the failure mode the rule prevents.
