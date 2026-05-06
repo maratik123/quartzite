@@ -4,7 +4,7 @@ use alloc::{string::String, sync::Arc};
 #[cfg(feature = "std")]
 use std::{string::String, sync::Arc};
 
-use crate::{id::ObjectId, receiver_guard::ReceiverGuard};
+use crate::{id::ObjectId, receiver_guard::ReceiverGuard, signal::Signal};
 
 /// Core data carried by every object in the quartzite object tree.
 ///
@@ -48,6 +48,13 @@ pub struct ObjectBase {
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     pub thread_id: std::thread::ThreadId,
+    /// Built-in signal emitted by `ObjectTree::rename` and `ObjectTree::clear_name` after
+    /// the name index is updated.
+    ///
+    /// The payload is `(old_name, new_name)` where each is `None` for an anonymous state and
+    /// `Some(name)` for a named one. Do not emit this signal directly — `ObjectTree` is the
+    /// sole emitter so that index and signal stay in sync.
+    pub name_changed: Signal<(Option<String>, Option<String>)>,
 }
 
 impl ObjectBase {
@@ -70,6 +77,7 @@ impl ObjectBase {
             signals_blocked: false,
             #[cfg(feature = "std")]
             thread_id: std::thread::current().id(),
+            name_changed: Signal::default(),
         }
     }
 
@@ -122,6 +130,7 @@ impl ObjectBase {
             signals_blocked: false,
             #[cfg(feature = "std")]
             thread_id: std::thread::current().id(),
+            name_changed: Signal::default(),
         }
     }
 
