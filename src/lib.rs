@@ -81,6 +81,10 @@ pub mod prelude {
     pub use quartzite_core::signal::{ConnectionType, Signal};
     // quartzite-core: emit! macro
     pub use quartzite_core::emit;
+    // quartzite-core: std-only types
+    #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    pub use quartzite_core::Mutex;
     // quartzite-core: std-only dispatcher API
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]

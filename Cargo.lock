@@ -432,6 +432,7 @@ dependencies = [
  "hashbrown",
  "indexmap",
  "itertools",
+ "parking_lot",
  "rstest",
  "serial_test",
  "thiserror",

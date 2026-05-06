@@ -1,6 +1,6 @@
 // Integration tests for signal-to-signal connections (AC1–AC11).
 use std::sync::{
-    Arc, Mutex,
+    Arc,
     atomic::{AtomicI32, Ordering},
 };
 
@@ -122,7 +122,6 @@ fn direct_connection_forwards_synchronously() {
         let c = Arc::clone(&captured);
         relay
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -155,7 +154,6 @@ fn liveness_after_target_drop() {
         let c = Arc::clone(&captured);
         relay
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -192,7 +190,6 @@ fn disconnect_stops_forwarding() {
         let c = Arc::clone(&captured);
         relay
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -230,7 +227,6 @@ fn chain_emitter_to_relay_a_to_relay_b() {
         let c = Arc::clone(&captured);
         relay_b
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -250,7 +246,7 @@ fn chain_emitter_to_relay_a_to_relay_b() {
 
     // Relay A → Relay B (lock relay_a, connect while held, then release)
     {
-        let mut guard = relay_a.lock().unwrap();
+        let mut guard = relay_a.lock();
         let b: Arc<Mutex<dyn Object>> = Arc::clone(&relay_b) as Arc<Mutex<dyn Object>>;
         connect_signal_to_signal(
             &mut *guard,
@@ -281,7 +277,6 @@ fn connect_signals_typed_api_direct() {
         let c = Arc::clone(&captured);
         relay
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -311,7 +306,7 @@ struct TestDispatcher {
 
 impl QueuedDispatcher for TestDispatcher {
     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) {
-        self.posted.lock().unwrap().push(f);
+        self.posted.lock().push(f);
     }
 }
 
@@ -332,7 +327,7 @@ fn install_dispatcher() -> Arc<TestDispatcher> {
 #[serial_test::serial]
 fn auto_cross_thread_posts_to_dispatcher() {
     let dispatcher = install_dispatcher();
-    dispatcher.posted.lock().unwrap().clear();
+    dispatcher.posted.lock().clear();
 
     let mut emitter = new_emitter();
     // Build a relay whose ObjectBase was created on another thread, so its thread_id
@@ -347,7 +342,6 @@ fn auto_cross_thread_posts_to_dispatcher() {
         let c = Arc::clone(&captured);
         relay
             .lock()
-            .unwrap()
             .value_received
             .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
     }
@@ -370,7 +364,7 @@ fn auto_cross_thread_posts_to_dispatcher() {
         "AC6: Auto cross-thread must not fire synchronously"
     );
     // Drain and run posted tasks.
-    let tasks: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+    let tasks: Vec<_> = dispatcher.posted.lock().drain(..).collect();
     assert!(
         !tasks.is_empty(),
         "AC6: at least one task must have been queued"
