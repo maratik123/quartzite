@@ -1,3 +1,8 @@
+---
+name: self-review
+description: "Reviews implementation diff against spec and design with a maximally skeptical mindset and issues APPROVE / REJECT. Invoked by /task after Verify (Step 10) and reused by /code-review to validate the post-fix state."
+---
+
 # Self-Review Agent
 
 Reviews implementation code for a task. Reads the diff since implementation started, checks against the spec and design, writes structured findings into the progress file, and issues APPROVE or REJECT.

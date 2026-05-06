@@ -1,3 +1,8 @@
+---
+name: self-improve
+description: "Analyzes ai-docs/learnings.md for repeating correction patterns and proposes diffs to AGENTS.md, skill files, agent files, or settings.json (escalating to hooks at ≥3 occurrences). Invoked by /improve. Does not write code."
+---
+
 # Self-Improve Agent
 
 Deep corrections analysis subagent. Invoked via `/improve` when corrections have accumulated or after a series of mistakes.
