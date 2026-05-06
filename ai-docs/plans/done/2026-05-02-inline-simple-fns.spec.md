@@ -89,3 +89,26 @@ None.
 ## Open questions
 
 None.
+
+## Errata 2026-05-06
+
+The "exclude generic functions and blanket-impl trait methods — monomorphized,
+no cross-crate inlining benefit" decision recorded above is **superseded**.
+The current rule (see `AGENTS.md` Code Style → `#[inline]` and the
+`_Simple._` doc tag) is recursive: a function is simple iff it has no
+branches/loops AND ≤ 1 call to a *non-simple* fn (apply transitively).
+Generic simple fns and trait methods with simple-by-construction impls are
+in scope; they carry the `_Simple._` doc tag instead of `#[inline]`.
+
+Follow-up implementation tasks tracked separately:
+- Annotate concrete simple fns surfaced by the recursive rule (e.g.
+  `ObjectExt::id`, `ObjectExt::name`, `ObjectExt::is_on_current_thread`)
+  — issue #115.
+- Tag generic simple fns on `Signal<Args>` / `ObjectRef<T>` / `WeakRef<T>`
+  — issue #116.
+- Tag trait method declarations whose codegen-driven impls are always
+  simple (`AsObject::*`, `Object::{meta_object, connect_signal}`); update
+  `quartzite-macros` codegen to emit the tag — issue #117.
+- Split conversion-style generic shells (`ObjectTree::rename`,
+  `ObjectFactory::register`, `Timer::named`, `ObjectBase::named`) into outer
+  + nested `fn inner` — issue #118.

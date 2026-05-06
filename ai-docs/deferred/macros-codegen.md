@@ -15,9 +15,9 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 |------|--------|--------|---------|
 | Runtime-specific code in macros (macros emit code that calls quartzite-core APIs) | [macros spec](../plans/done/2026-05-01-macros.spec.md) | ✅ done | |
 | `#[derive(Extend)]` on enums or tuple structs (named fields only) | [macros spec](../plans/done/2026-05-01-macros.spec.md) | | — |
-| Generic functions and blanket-impl trait methods (`ObjectRef<T>`, `WeakRef<T>`, `Signal<Args>`, `ObjectExt` default methods) — monomorphized, no cross-crate inlining benefit | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) | | — |
 | Test-only `AsObject` impls inside `#[cfg(test)]` modules | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) | | — |
-| Any generated or hand-written function with branches, loops, or more than one function call | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) | | — |
+| Any generated or hand-written function with branches, loops, or more than one call to a non-simple function | [inline-simple-fns spec](../plans/done/2026-05-02-inline-simple-fns.spec.md) (superseded by AGENTS.md Code Style → `#[inline]` recursive rule) | | — |
+| Codegen emission of `/// _Simple._` doc tag for generated generic simple fns and for generated trait-method docs whose impls are always simple | AGENTS.md Code Style → `#[inline]` and the `_Simple._` doc tag | | #117 |
 | Changing `quartzite-macros` codegen (deferred — `proc_macro_crate` is a separate future task) | [examples-crate spec](../plans/done/2026-05-02-examples-crate.spec.md) | | #57 |
 
 ## Open questions
