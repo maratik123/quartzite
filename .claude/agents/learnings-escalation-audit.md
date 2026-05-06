@@ -31,6 +31,7 @@ Per AGENTS.md "Corrections Log":
 | `agent:[name]` | Rule lives in `.claude/agents/<name>.md`. | File exists; rule is there. |
 | `hook` | Rule is a hook in `.claude/settings.json`. | A hook with a matcher + command that addresses the mistake exists. |
 | `settings` | Rule is a non-hook setting (permission allow/deny, env). | Listed in `.claude/settings.json` `permissions.*` or `env`. |
+| `doc-convention` | Rule lives in `ai-docs/doc-convention.md`. | File exists; rule is there. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference. |
 
 Multiple values are comma-separated (`AGENTS.md, hook`). Each must independently verify.
 
@@ -59,6 +60,7 @@ For each entry where `Escalated?` is **not** `no` / `memory`:
   - **`agent:<name>`** — same as `skill:` against `.claude/agents/<name>.md`.
   - **`hook`** — read `.claude/settings.json`, scan `hooks.*[].hooks[].command` for the keyword. If no hook references the relevant tool/behavior → mismatch.
   - **`settings`** — scan `.claude/settings.json` `permissions.allow`, `permissions.deny`, `env`. Mismatch if absent.
+  - **`doc-convention`** — verify `ai-docs/doc-convention.md` exists, then grep for keyword. If file missing → blocker. If keyword absent → mismatch.
 
 Record each entry's status:
 

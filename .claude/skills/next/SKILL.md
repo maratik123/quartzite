@@ -30,6 +30,7 @@ Selection rules:
 - Prefer items that unblock the most other plans — consult the "Dependency order" section of `INDEX.md`.
 - A time-sensitive GitHub issue (bug, regression, security) outranks a plan of comparable readiness.
 - Skip items marked 🔴 blocked or 🟡 spec-only without a design.
+- Skip GitHub issues carrying the `blocked` label (see *Blocked-issues label* below) — body text like "Blocked by: #N" is not visible here, so the label is the canonical signal.
 
 ### Small mode (`/next small`)
 
@@ -39,8 +40,17 @@ Selection rules:
 - Prefer scope: bugfix, refactor, cleanup, docs polish, small dependency upgrade, or a single-crate change.
 - Prefer items that unblock or de-risk a larger plan further down the dependency chain — consult the "Dependency order" section of `INDEX.md` and pick prerequisites of bigger blocked plans.
 - Skip items marked 🔴 blocked or full-milestone plans (multi-crate, design-heavy).
+- Skip GitHub issues carrying the `blocked` label (see *Blocked-issues label* below).
 - 🟡 spec-only items qualify only if writing the design itself is the small task.
 - If an issue bundles one small sub-item with larger ones, recommend it scope-narrowed to the small sub-item and call out that the issue should be split.
+
+### Blocked-issues label
+
+This skill fetches issues via `gh issue list --json number,title,labels,updatedAt` — labels are visible, **issue bodies are not.** A "Blocked by: #N" line in an issue body therefore has no effect on `/next`. The convention is:
+
+- After opening or triaging a new issue that depends on another open issue, run `gh issue edit <N> --add-label blocked` (creating the label first via `gh label create blocked` if the repo doesn't have it yet).
+- When the blocking dependency is resolved, run `gh issue edit <N> --remove-label blocked`.
+- `/next` filters out any issue whose `labels` array contains `blocked` in both default and small modes.
 
 ### Output (both modes)
 

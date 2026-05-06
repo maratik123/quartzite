@@ -49,8 +49,18 @@ Show list to user: in scope / out of scope / deferred.
 
 ### Step 4: Question rounds (max 4)
 
+**MANDATORY GATE — run before every round, no exceptions.** Draft the round's questions in a scratch buffer, then run the substring check from Rule 5:
+
+```bash
+printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers'
+```
+
+- Any hit → discard or rewrite the offending question. Do not send the round until the grep returns empty.
+- Record in your reasoning: "interview Rule 5 grep: clean" before posting the round. If you cannot truthfully record this, you skipped the gate — go back and run it.
+- This gate exists because Rule 5's prose blacklist alone has failed four times (`ai-docs/learnings.md` 2026-05-03, 2026-05-05 ×2, plus a recurrence after escalation). The mechanical check is the enforcement.
+
 - Round 1: scope confirmation, key decisions
-- Round 2: edge cases, API backward compatibility
+- Round 2: edge cases (NOT backward compatibility — see Rule 5; pre-crates.io)
 - Round 3: technical constraints, trade-offs
 - Round 4 (if needed): final clarifications
 

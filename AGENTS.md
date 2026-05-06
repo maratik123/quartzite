@@ -63,6 +63,7 @@ Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic
 - **Library safety idioms.** Concrete forms of the "non-panicking APIs for libraries" rule (see *API Naming*):
   - **Mutex locks in `Option`/`Result`-returning fns:** use `mutex.lock().ok()?` (or `.unwrap_or_else(|e| e.into_inner())` to recover the inner value). Reserve `.lock().unwrap()` for cases where poisoning genuinely indicates an unrecoverable broken global invariant — and even then prefer `.expect("reason")`.
   - **Prefer safe primitives over raw pointers.** If a `OnceLock` / `Arc` / `Weak` already in scope holds the value, an `AtomicBool` flag is enough to track liveness — do not reach for `AtomicPtr` + `unsafe`. Reserve `unsafe` for cases where no safe construct expresses the semantic.
+- **Error types.** Use `thiserror` for any new error enum/struct in this workspace — it eliminates boilerplate `Display` / `std::error::Error` impls and keeps error definitions concise. Hand-rolled `Display` / `Error` impls are reserved for cases where `thiserror`'s derive cannot express the required behaviour.
 - **File size.** Target **200–400 lines per `.rs` file excluding `#[cfg(test)]`** (readability sweet spot — fits in mental RAM, supports cohesive grouping of a struct + its `impl` blocks + related errors).
   - **Soft limit:** 500 lines excl. tests / 800 incl. tests. Trigger a split-by-responsibility check (e.g. `models.rs` / `db.rs` / `handlers.rs`) — do **not** split mechanically by line count.
   - **Hard limit:** 1000 lines excl. tests / 1500 incl. tests. Refactor before merge unless an exemption applies.
@@ -82,7 +83,7 @@ When adding or editing dependencies in `Cargo.toml`:
 ## Workflow
 
 - Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
-- **Never commit to local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any commits. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
+- **Never edit on local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any file edit — not just before commit. Accumulating uncommitted edits on `master` is the failure mode this rule guards: it leaves the working tree dirty on the wrong branch and forces a reactive switch later. The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch before any `Edit`/`Write`. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
   - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
 - Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
@@ -158,9 +159,10 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 ### YYYY-MM-DD — [category] — [short description]
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
-**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | memory (comma-separate multiple)
+**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | memory (comma-separate multiple)
 
-> `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (AGENTS.md / skill / agent / hook / settings). `settings.local` does NOT count as project-level.
+> `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (AGENTS.md / skill / agent / hook / settings / doc-convention). `settings.local` does NOT count as project-level.
+> `doc-convention` = the rule landed in `ai-docs/doc-convention.md`. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference rather than in AGENTS.md or a skill.
 ```
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`

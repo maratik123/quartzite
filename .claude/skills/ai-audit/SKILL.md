@@ -113,7 +113,7 @@ Per the official docs:
 - `allowed-tools` syntax matches `ToolName(pattern)` form documented at `code.claude.com/docs/en/skills`.
 
 #### E. Frontmatter conformance (agents)
-- Every `.claude/agents/*.md` starts with frontmatter (post-2026-05-06 fix per recent learning entry — verify all five files conform).
+- Every `.claude/agents/*.md` starts with YAML frontmatter (`---`-delimited block at top of file). An agent without frontmatter is not a subagent — it's a stray document. Enumerate the directory at audit time rather than baking in a count.
 - `name` field equals the file basename.
 - `description` is one line and tells the orchestrator when to spawn this agent.
 
