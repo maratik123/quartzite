@@ -130,6 +130,13 @@ is **not** fine: agents and reviewers check this mechanically.
       impls (e.g. `Object::read_property` contains `match` branches in the
       generated impl). Tagging here would overclaim simplicity and mislead
       callers.
+- **Maintenance.** Strip `_Simple._` (and the parallel `#[inline]` attribute
+  on concrete fns) in the same edit that makes a previously-simple fn
+  non-simple. A stale tag is actively misleading because callers count
+  calls into the fn as "free" in the recursive budget rule. After
+  de-tagging, `rg` for callers and re-evaluate each — cascade until
+  quiescent. See `AGENTS.md` Code Style → "Marker maintenance" for the
+  full rule.
 - **Conforming example:**
 
   ```rust

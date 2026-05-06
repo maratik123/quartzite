@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — code-style — strip `#[inline]` / `_Simple._` when a fn stops being simple, and cascade to callers
+
+**What happened:** During design discussion of the recursive `#[inline]` rule, the user surfaced a maintenance gap: when a previously-simple fn grows branches/loops or a second non-simple call, its marker (`#[inline]` or `_Simple._`) becomes a lie, and any caller that was simple only because this callee was treated as free may itself no longer qualify. The original rule covered when to *add* the marker; it said nothing about when to *strip* it.
+
+**Rule:** When an edit makes a previously-simple fn non-simple, strip its `#[inline]` attribute or `_Simple._` doc tag in the same edit. Then `rg <fn-name>` for callers and re-test each by the recursive simple definition; de-mark any caller that no longer qualifies. Cascade until quiescent. For trait methods: if a new conforming impl (hand-written or codegen) cannot be simple, strip `_Simple._` from the trait *declaration*, not the impl — the contract is what changed.
+
+**Why:** A stale `_Simple._` is actively misleading because callers count calls into the tagged fn as "free" in the recursive budget rule, so a stale tag silently mis-classifies callers as simple too. The cascade is cheap in practice — the simple class is small (leaves and trivial wrappers) and rarely goes more than 2 levels deep.
+
+**How to apply:** When editing any fn body, re-run the recursive simple test on it before committing. If the marker no longer matches, strip it and walk callers with one `rg`. Reviewer/self-reviewer flags stale markers as REJECT/`major` because the misleading effect propagates.
+
+**Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
+
 ### 2026-05-06 — code-style — `#[inline]` rule is recursive; three markers by fn shape
 
 **What happened:** `ObjectExt::id` (and other simple wrappers, including generic methods on `Signal<Args>` / `ObjectRef<T>` / `WeakRef<T>` and codegen-driven trait methods such as `AsObject::object_base`) was left without `#[inline]` because the rule (a) counted source-level calls flatly with a "≤ 1 fn call" budget that did not see through other `#[inline]` callees, and (b) blanket-excluded generic / blanket-impl fns as "monomorphized, no benefit". Even after relaxing those, generic simple fns and trait method declarations had no visible marker, so the recursive budget rule was not auditable from a fn or trait surface.
