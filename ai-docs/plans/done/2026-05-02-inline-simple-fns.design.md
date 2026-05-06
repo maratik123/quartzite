@@ -582,3 +582,12 @@ each codegen file. No new test files are required.
 ## Open questions
 
 None.
+
+## Errata 2026-05-06
+
+The design's "no generic function is touched" stance is **superseded** by the
+recursive `#[inline]` rule in `AGENTS.md` Code Style → `#[inline]` and the
+`_Simple._` doc tag. Generic simple fns and codegen-driven trait methods with
+simple-by-construction impls are now in scope; they carry the `_Simple._` doc
+tag instead of `#[inline]`. See the matching errata note in
+`2026-05-02-inline-simple-fns.spec.md` for the follow-up implementation list.
