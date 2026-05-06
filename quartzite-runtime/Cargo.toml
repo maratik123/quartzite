@@ -1,3 +1,8 @@
+[features]
+## Enable span instrumentation on high-frequency paths (e.g. signal emit, event loop post).
+## Off by default to keep hot paths zero-cost.
+verbose-tracing = ["quartzite-core/verbose-tracing"]
+
 [package]
 name = "quartzite-runtime"
 version.workspace = true

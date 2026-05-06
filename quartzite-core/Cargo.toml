@@ -13,6 +13,9 @@ default = ["std"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments.
 std = ["indexmap/std", "tracing/log", "dep:parking_lot"]
+## Enable span instrumentation on high-frequency paths (e.g. signal emit).
+## Off by default to keep hot paths zero-cost.
+verbose-tracing = []
 
 [dependencies]
 parking_lot = { version = "0.12", optional = true }

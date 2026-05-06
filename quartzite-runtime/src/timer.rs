@@ -14,7 +14,7 @@ use std::{
 };
 
 use parking_lot::Mutex;
-use tracing::debug;
+use tracing::debug_span;
 
 use quartzite_core::{
     ConnectionId, ObjectBase, ObjectId, receiver_guard::ReceiverGuard, signal::Signal,
@@ -483,10 +483,10 @@ impl Timer {
     /// timer.stop();
     /// ```
     pub fn start(&mut self, driver: Arc<dyn TimerDriver>) {
+        let _span = debug_span!("timer::start", timer_id = ?self.base.id()).entered();
         if self.state.running.load(Ordering::SeqCst) {
             return;
         }
-        debug!(timer_id = ?self.base.id(), "timer: start");
         self.state.running.store(true, Ordering::SeqCst);
         self.state.fire_count.store(0, Ordering::SeqCst);
 
@@ -536,10 +536,10 @@ impl Timer {
     /// assert!(!timer.is_running());
     /// ```
     pub fn stop(&mut self) {
+        let _span = debug_span!("timer::stop", timer_id = ?self.base.id()).entered();
         if !self.state.running.swap(false, Ordering::SeqCst) {
             return;
         }
-        debug!(timer_id = ?self.base.id(), "timer: stop");
         if let Some(driver) = self.driver.take() {
             driver.stop(self.base.id());
         }

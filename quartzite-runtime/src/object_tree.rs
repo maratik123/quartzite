@@ -3,7 +3,7 @@ use std::collections::{HashMap, VecDeque};
 
 use quartzite_core::{ObjectId, Value, traits::Object};
 use slotmap::{DefaultKey, SlotMap};
-use tracing::debug;
+use tracing::{debug_span, trace_span};
 
 use crate::object_id::SlotKey;
 
@@ -72,6 +72,8 @@ impl ObjectTree {
     /// ```
     pub fn insert(&mut self, obj: Box<dyn Object>, parent_id: Option<ObjectId>) -> ObjectId {
         let id = obj.object_base().id();
+        let _span =
+            debug_span!("object_tree::insert", object_id = ?id, parent_id = ?parent_id).entered();
         // Register in the by_name index if the object has a name.
         if let Some(name) = obj.object_base().name() {
             self.by_name.entry(name.to_owned()).or_default().push(id);
@@ -84,7 +86,6 @@ impl ObjectTree {
             self.parent_map.insert(id, pid);
             self.children_map.entry(pid).or_default().push(id);
         }
-        debug!(object_id = ?id, parent_id = ?parent_id, "object tree: inserted");
         id
     }
 
@@ -215,7 +216,9 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn reparent(&mut self, id: ObjectId, new_parent: Option<ObjectId>) {
-        debug!(object_id = ?id, new_parent_id = ?new_parent, "object tree: reparent");
+        let _span =
+            debug_span!("object_tree::reparent", object_id = ?id, new_parent_id = ?new_parent)
+                .entered();
         self.detach_from_parent(id);
         if let Some(pid) = new_parent {
             self.parent_map.insert(id, pid);
@@ -314,7 +317,8 @@ impl ObjectTree {
     /// ```
     pub fn rename(&mut self, id: ObjectId, new_name: impl Into<String>) {
         let new_name = new_name.into();
-        debug!(object_id = ?id, new_name, "object tree: rename");
+        let _span =
+            trace_span!("object_tree::rename", object_id = ?id, new_name = %new_name).entered();
         // Remove from old name bucket; capture old name for signal payload.
         let old_name_opt: Option<String>;
         if let Some(old_name) = self.with(id, |obj| obj.object_base().name().map(str::to_owned)) {
@@ -362,7 +366,7 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn clear_name(&mut self, id: ObjectId) {
-        debug!(object_id = ?id, "object tree: clear_name");
+        let _span = trace_span!("object_tree::clear_name", object_id = ?id).entered();
         // Remove from old name bucket.
         let old_name = self.with(id, |obj| obj.object_base().name().map(str::to_owned));
         match old_name {
@@ -395,7 +399,7 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn destroy(&mut self, id: ObjectId) {
-        debug!(object_id = ?id, "object tree: destroy");
+        let _span = debug_span!("object_tree::destroy", object_id = ?id).entered();
         // Collect subtree in depth-first post-order (leaves first).
         let mut order: Vec<ObjectId> = Vec::new();
         self.collect_post_order(id, &mut order);
