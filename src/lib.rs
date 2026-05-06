@@ -32,7 +32,10 @@ pub mod core {
 
 /// Re-exports derive macros and attribute macros from [`quartzite_macros`].
 ///
-/// Prefer `use quartzite::macros::MetaEnum` over adding a direct `quartzite-macros` dependency.
+/// Adding `quartzite` (with the `derive` feature, which is on by default) is sufficient — there
+/// is no need for a direct dependency on `quartzite-macros` or `quartzite-core`. The macros
+/// resolve all generated paths through `::quartzite::core` automatically.
+///
 /// Most macros (`Extend`, `Object`, `object_impl`, `object_part`) are already included in [`prelude`].
 ///
 /// Requires the `derive` feature (enabled by default).
