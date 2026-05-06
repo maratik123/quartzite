@@ -68,6 +68,10 @@ required-features = ["derive"]
 name = "combined"
 required-features = ["derive"]
 
+[[test]]
+name = "single_dep"
+required-features = ["derive"]
+
 [dev-dependencies]
 env_logger = "0.11"
 
