@@ -27,7 +27,7 @@ fn main() {
     g.connect_signal(
         "greeted",
         Box::new(|vals| println!("dynamic slot received {} value(s)", vals.len())),
-        quartzite::core::signal::ConnectionType::Direct,
+        ConnectionType::Direct,
     );
 
     // Generated emit_greeted wrapper uses emit! internally — checks signals_blocked
