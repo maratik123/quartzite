@@ -286,6 +286,14 @@ pub struct Signal<Args: 'static> {
     auto_slots: IndexMap<ConnectionId, Box<dyn DynAutoSlot<Args>>>,
 }
 
+impl<Args: 'static> core::fmt::Debug for Signal<Args> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Signal")
+            .field("connections", &self.slots.len())
+            .finish_non_exhaustive()
+    }
+}
+
 impl<Args: 'static> Default for Signal<Args> {
     fn default() -> Self {
         Signal {

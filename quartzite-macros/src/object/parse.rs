@@ -24,10 +24,13 @@ pub(crate) struct PropField {
     pub constant: bool,
 }
 
+#[derive(Clone)]
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct SignalField {
     pub ident: Ident,
     pub args_ty: Type,
+    /// `true` for the synthesised `name_changed` built-in; `false` for user-declared signals.
+    pub builtin: bool,
 }
 
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput> {
@@ -73,6 +76,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
             signals.push(SignalField {
                 ident: field_ident,
                 args_ty,
+                builtin: false,
             });
         }
     }
