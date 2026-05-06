@@ -7,6 +7,7 @@ use crate::{
     id::{ConnectionId, ObjectId},
     meta::MetaObject,
     object_base::ObjectBase,
+    signal::ConnectionType,
     value::Value,
 };
 
@@ -155,20 +156,32 @@ pub trait Object: AsObject + Send {
     ///
     /// Returns `None` if `name` does not match any signal on this object.
     ///
+    /// Only [`ConnectionType::Direct`] and [`ConnectionType::SingleShot`] are meaningful here.
+    /// `Queued` and `Auto` connections require additional context (a dispatcher or a thread id)
+    /// that the dynamic API does not carry; callers must encode that logic in the callback and
+    /// pass [`ConnectionType::Direct`].
+    ///
     /// # Parameters
     ///
     /// - `signal`: meta-system signal name to subscribe to.
     /// - `callback`: type-erased slot receiving the emit-time argument values.
+    /// - `conn_type`: whether the slot fires once and auto-disconnects (`SingleShot`) or
+    ///   persists until explicitly disconnected (`Direct`).
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use quartzite_core::Object;
+    /// use quartzite_core::{Object, signal::ConnectionType};
     /// # fn example(obj: &mut impl Object) {
-    /// let _id = obj.connect_signal("clicked", Box::new(|_args| {}));
+    /// let _id = obj.connect_signal("clicked", Box::new(|_args| {}), ConnectionType::Direct);
     /// # }
     /// ```
-    fn connect_signal(&mut self, signal: &str, callback: SignalCallback) -> Option<ConnectionId>;
+    fn connect_signal(
+        &mut self,
+        signal: &str,
+        callback: SignalCallback,
+        conn_type: ConnectionType,
+    ) -> Option<ConnectionId>;
 
     /// Emits signal `signal` with `args` and returns `Some(())` when successful.
     ///
@@ -368,6 +381,7 @@ mod tests {
             &mut self,
             _signal: &str,
             _callback: SignalCallback,
+            _conn_type: ConnectionType,
         ) -> Option<ConnectionId> {
             None
         }

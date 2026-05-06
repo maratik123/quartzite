@@ -1,8 +1,5 @@
 //! Signal-to-signal connection utilities.
-use std::sync::{
-    Arc, Mutex, Weak,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, Mutex, Weak};
 
 /// Re-exported so callers can name the bound: `Args: connect::ArgsToValues`.
 #[doc(hidden)]
@@ -164,20 +161,14 @@ pub fn connect_signal_to_signal(
                     .emit_signal(&to_signal_name, args);
             }
         }),
-        ConnectionType::SingleShot => {
-            let fired = Arc::new(AtomicBool::new(false));
-            Box::new(move |args: &[Value]| {
-                if fired.swap(true, Ordering::Relaxed) {
-                    return;
-                }
-                if let Some(arc) = to_weak.upgrade() {
-                    let _ = arc
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .emit_signal(&to_signal_name, args);
-                }
-            })
-        }
+        ConnectionType::SingleShot => Box::new(move |args: &[Value]| {
+            if let Some(arc) = to_weak.upgrade() {
+                let _ = arc
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .emit_signal(&to_signal_name, args);
+            }
+        }),
         ConnectionType::Queued => Box::new(move |args: &[Value]| {
             let Some(arc) = to_weak.upgrade() else {
                 return;
@@ -217,7 +208,14 @@ pub fn connect_signal_to_signal(
         }),
     };
 
-    from.connect_signal(from_signal, callback)
+    // Queued and Auto encode their delivery logic in the closure; at the signal level they
+    // register as Direct so the slot persists. SingleShot propagates so Signal::emit_unconditionally
+    // removes the slot after first delivery via its `retain` pass.
+    let slot_type = match conn_type {
+        ConnectionType::SingleShot => ConnectionType::SingleShot,
+        _ => ConnectionType::Direct,
+    };
+    from.connect_signal(from_signal, callback, slot_type)
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))
 }
 
@@ -472,13 +470,15 @@ mod tests {
             &mut self,
             signal: &str,
             callback: crate::traits::SignalCallback,
+            conn_type: ConnectionType,
         ) -> Option<ConnectionId> {
             match signal {
                 "sig_a" => {
                     let cb = Arc::new(callback);
-                    Some(self.sig_a.connect(move |args: &(i32,)| {
-                        (*cb)(&[crate::IntoValue::into_value(args.0)])
-                    }))
+                    Some(self.sig_a.connect_typed(
+                        move |args: &(i32,)| (*cb)(&[crate::IntoValue::into_value(args.0)]),
+                        conn_type,
+                    ))
                 }
                 _ => None,
             }
@@ -565,13 +565,15 @@ mod tests {
             &mut self,
             signal: &str,
             callback: crate::traits::SignalCallback,
+            conn_type: ConnectionType,
         ) -> Option<ConnectionId> {
             match signal {
                 "sig_b" => {
                     let cb = Arc::new(callback);
-                    Some(self.sig_b.connect(move |args: &(i32,)| {
-                        (*cb)(&[crate::IntoValue::into_value(args.0)])
-                    }))
+                    Some(self.sig_b.connect_typed(
+                        move |args: &(i32,)| (*cb)(&[crate::IntoValue::into_value(args.0)]),
+                        conn_type,
+                    ))
                 }
                 _ => None,
             }
@@ -684,6 +686,7 @@ mod tests {
                 &mut self,
                 _signal: &str,
                 _callback: crate::traits::SignalCallback,
+                _conn_type: ConnectionType,
             ) -> Option<ConnectionId> {
                 None
             }
@@ -760,6 +763,7 @@ mod tests {
                 &mut self,
                 _signal: &str,
                 _callback: crate::traits::SignalCallback,
+                _conn_type: ConnectionType,
             ) -> Option<ConnectionId> {
                 None
             }
@@ -819,6 +823,44 @@ mod tests {
             counter.load(Ordering::Relaxed),
             42,
             "value must not change after disconnect"
+        );
+    }
+
+    #[test]
+    fn single_shot_fires_once_and_slot_is_removed() {
+        let mut sender = Sender::new();
+        let receiver = Arc::new(Mutex::new(Receiver::new()));
+        let counter = Arc::new(AtomicI32::new(0));
+        {
+            let c = Arc::clone(&counter);
+            receiver
+                .lock()
+                .unwrap()
+                .sig_b
+                .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
+        }
+        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
+        connect_signal_to_signal(
+            &mut sender,
+            "sig_a",
+            to,
+            "sig_b",
+            ConnectionType::SingleShot,
+        )
+        .expect("connection must succeed");
+
+        sender.sig_a.emit_unconditionally(&(1,));
+        assert_eq!(
+            counter.load(Ordering::Relaxed),
+            1,
+            "must fire on first emit"
+        );
+
+        sender.sig_a.emit_unconditionally(&(2,));
+        assert_eq!(
+            counter.load(Ordering::Relaxed),
+            1,
+            "slot must not fire on second emit — auto-disconnected after first delivery"
         );
     }
 

@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use quartzite::core::{AsObject, FromValue, Object, ObjectBase, PropertyFlag, Signal, Value};
+use quartzite::core::{
+    AsObject, FromValue, Object, ObjectBase, PropertyFlag, Signal, Value, signal::ConnectionType,
+};
 use quartzite_macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
@@ -76,7 +78,7 @@ fn ac10_connect_signal_and_emit() {
         }
     });
 
-    let id = c.connect_signal("count_changed", cb);
+    let id = c.connect_signal("count_changed", cb, ConnectionType::Direct);
     assert!(id.is_some());
 
     c.count_changed.emit_unconditionally(&(7,));
