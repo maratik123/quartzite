@@ -29,5 +29,18 @@ fn main() {
         Box::new(|vals| println!("dynamic slot received {} value(s)", vals.len())),
     );
 
-    g.greeted.emit_unconditionally(&(String::from("world"),));
+    // Generated emit_greeted wrapper uses emit! internally — checks signals_blocked
+    // before firing any slots.
+    println!("--- emit (not blocked) ---");
+    g.emit_greeted(String::from("world"));
+
+    // Block signals: emit_greeted is now a no-op.
+    g.object_base.block_signals();
+    println!("--- emit (blocked — no output expected) ---");
+    g.emit_greeted(String::from("suppressed"));
+
+    // Unblock: emission resumes.
+    g.object_base.unblock_signals();
+    println!("--- emit (unblocked) ---");
+    g.emit_greeted(String::from("back"));
 }
