@@ -1,4 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use parking_lot::Mutex;
 
 use itertools::Itertools;
 use quartzite_core::{
@@ -97,7 +99,6 @@ impl Drop for LogObj {
     fn drop(&mut self) {
         self.log
             .lock()
-            .unwrap()
             .push(self.base.name().unwrap_or("").to_owned());
     }
 }
@@ -260,7 +261,7 @@ fn destroy_is_depth_first_post_order() {
 
     tree.destroy(root);
 
-    let order = log.lock().unwrap().clone();
+    let order = log.lock().clone();
     assert_eq!(order.len(), 4, "all 4 nodes must be destroyed");
 
     let positions: Vec<usize> = ["gc", "c1", "root"]
