@@ -529,6 +529,7 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
                 F: ::core::ops::Fn(#args_ty) + ::core::marker::Send + ::core::marker::Sync + 'static,
             {
                 self.#field.connect_queued(
+                    receiver.thread_id,
                     f,
                     ::std::sync::Arc::downgrade(receiver.receiver_guard()),
                 )
@@ -1110,6 +1111,10 @@ mod tests {
         assert!(
             out.contains("receiver . receiver_guard ()"),
             "wrapper must pass receiver.receiver_guard() to connect_queued: {out}"
+        );
+        assert!(
+            out.contains("receiver . thread_id"),
+            "wrapper must pass receiver.thread_id to connect_queued: {out}"
         );
         assert!(
             out.contains("allow (unexpected_cfgs)"),

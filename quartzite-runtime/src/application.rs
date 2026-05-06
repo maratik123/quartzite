@@ -31,6 +31,7 @@ struct ApplicationInner {
     object_tree: Mutex<ObjectTree>,
     event_loop: Arc<EventLoop>,
     connection_table: Arc<ConnectionTable>,
+    main_thread_id: std::thread::ThreadId,
 }
 
 static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
@@ -66,16 +67,25 @@ impl Application {
     /// let app = Application::new().expect("only one Application per process");
     /// ```
     pub fn new() -> Result<Self, ApplicationError> {
+        let main_thread_id = std::thread::current().id();
         let event_loop = Arc::new(EventLoop::new());
-        let connection_table = ConnectionTable::new(Arc::clone(&event_loop));
+        let connection_table = ConnectionTable::new();
         let inner = Arc::new(ApplicationInner {
             object_tree: Mutex::new(ObjectTree::new()),
             event_loop,
             connection_table,
+            main_thread_id,
         });
 
         APP.set(Arc::clone(&inner))
             .map_err(|_| ApplicationError::AlreadyExists)?;
+
+        // Install the main-thread event loop in the registry so queued signals
+        // targeting objects on this thread are routed correctly.
+        // APP.set above guarantees no Application existed before, so the only way
+        // this can fail is if the caller pre-installed a loop on this thread —
+        // that is a caller bug; ignore it rather than failing Application::new().
+        let _ = Arc::clone(&inner.event_loop).install_for_current_thread();
 
         // Register ConnectionTable as the queued dispatcher. Ignore if already
         // set — only one Application can exist per process, so the only way
@@ -217,6 +227,24 @@ impl Application {
     #[inline]
     pub fn event_loop(&self) -> &Arc<EventLoop> {
         &self.0.event_loop
+    }
+
+    /// Returns the [`ThreadId`](std::thread::ThreadId) of the thread that called
+    /// [`Application::new`].
+    ///
+    /// The main-thread [`EventLoop`] is registered for this thread automatically.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().unwrap();
+    /// assert_eq!(app.main_thread_id(), std::thread::current().id());
+    /// ```
+    #[inline]
+    pub fn main_thread_id(&self) -> std::thread::ThreadId {
+        self.0.main_thread_id
     }
 }
 

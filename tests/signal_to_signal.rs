@@ -305,7 +305,7 @@ struct TestDispatcher {
 }
 
 impl QueuedDispatcher for TestDispatcher {
-    fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) {
+    fn post(&self, _target: std::thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>) {
         self.posted.lock().push(f);
     }
 }

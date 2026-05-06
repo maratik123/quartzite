@@ -169,9 +169,12 @@ pub fn connect_signal_to_signal(
             let args_owned: Vec<Value> = args.to_vec();
             let sig_name = to_signal_name.clone();
             if let Some(d) = queued_dispatcher() {
-                d.post(Box::new(move || {
-                    let _ = arc.lock().emit_signal(&sig_name, &args_owned);
-                }));
+                d.post(
+                    to_thread_id,
+                    Box::new(move || {
+                        let _ = arc.lock().emit_signal(&sig_name, &args_owned);
+                    }),
+                );
             }
         }),
         ConnectionType::Auto => Box::new(move |args: &[Value]| {
@@ -184,9 +187,12 @@ pub fn connect_signal_to_signal(
                 let args_owned: Vec<Value> = args.to_vec();
                 let sig_name = to_signal_name.clone();
                 if let Some(d) = queued_dispatcher() {
-                    d.post(Box::new(move || {
-                        let _ = arc.lock().emit_signal(&sig_name, &args_owned);
-                    }));
+                    d.post(
+                        to_thread_id,
+                        Box::new(move || {
+                            let _ = arc.lock().emit_signal(&sig_name, &args_owned);
+                        }),
+                    );
                 }
             }
         }),
@@ -327,12 +333,14 @@ where
             )
         }
         ConnectionType::Queued => {
-            let (to_weak, guard_weak) = {
+            let (to_weak, guard_weak, thread_id) = {
                 let guard = to.lock();
                 let w: Weak<ReceiverGuard> = Arc::downgrade(guard.object_base().receiver_guard());
-                (Arc::downgrade(&to), w)
+                let tid = guard.object_base().thread_id;
+                (Arc::downgrade(&to), w, tid)
             };
             sig.connect_queued(
+                thread_id,
                 move |args: Args| {
                     let Some(arc) = to_weak.upgrade() else {
                         return;

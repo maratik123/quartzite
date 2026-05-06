@@ -8,7 +8,7 @@ use quartzite_core::{
     signal::{DispatcherAlreadySet, QueuedDispatcher, set_queued_dispatcher},
 };
 
-use crate::event_loop::EventLoop;
+use crate::loop_registry::LoopRegistry;
 
 /// Index of which connection ids belong to a given signal.
 type SignalIndex = usize;
@@ -41,48 +41,43 @@ pub struct ConnectionRecord {
 ///
 /// Two secondary indices allow O(m) cleanup when an object is destroyed.
 /// Locks are released before invoking slots to prevent deadlock on re-entrant emit.
+/// Queued dispatch routes invocations to the per-thread [`EventLoop`](crate::EventLoop)
+/// registered in `LoopRegistry`.
 ///
 /// # Examples
 ///
 /// ```
-/// use std::sync::Arc;
-/// use quartzite_runtime::{ConnectionTable, EventLoop};
+/// use quartzite_runtime::ConnectionTable;
 ///
-/// let table = ConnectionTable::new(Arc::new(EventLoop::new()));
+/// let table = ConnectionTable::new();
 /// assert!(table.receivers_for_signal(quartzite_core::ObjectId::new(), 0).is_empty());
 /// ```
 pub struct ConnectionTable {
     connections: RwLock<HashMap<ConnectionId, ConnectionRecord>>,
     by_receiver: RwLock<HashMap<ObjectId, Vec<ConnectionId>>>,
     by_signal: RwLock<HashMap<(ObjectId, SignalIndex), Vec<ConnectionId>>>,
-    event_loop: Arc<EventLoop>,
 }
 
 impl ConnectionTable {
-    /// Creates a new, empty `ConnectionTable` backed by `event_loop` for queued dispatch.
+    /// Creates a new, empty `ConnectionTable`.
     ///
     /// Returns an `Arc` because the table is shared between the application and the
-    /// queued-dispatcher registration.
-    ///
-    /// # Parameters
-    ///
-    /// - `event_loop`: shared event loop to which queued slot invocations are posted.
+    /// queued-dispatcher registration. Queued dispatch routes to per-thread event loops
+    /// via `LoopRegistry`.
     ///
     /// # Examples
     ///
-    /// ```no_run
-    /// use std::sync::Arc;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
-    ///
-    /// let event_loop = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(event_loop);
     /// ```
-    pub fn new(event_loop: Arc<EventLoop>) -> Arc<Self> {
+    /// use quartzite_runtime::ConnectionTable;
+    ///
+    /// let table = ConnectionTable::new();
+    /// assert!(table.receivers_for_signal(quartzite_core::ObjectId::new(), 0).is_empty());
+    /// ```
+    pub fn new() -> Arc<Self> {
         Arc::new(Self {
             connections: RwLock::new(HashMap::new()),
             by_receiver: RwLock::new(HashMap::new()),
             by_signal: RwLock::new(HashMap::new()),
-            event_loop,
         })
     }
 
@@ -96,11 +91,9 @@ impl ConnectionTable {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::sync::Arc;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::ConnectionTable;
     ///
-    /// let el = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(el);
+    /// let table = ConnectionTable::new();
     /// table.install_as_dispatcher().expect("no dispatcher registered yet");
     /// ```
     pub fn install_as_dispatcher(self: &Arc<Self>) -> Result<(), DispatcherAlreadySet> {
@@ -118,12 +111,10 @@ impl ConnectionTable {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::sync::Arc;
     /// use quartzite_core::ObjectId;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::ConnectionTable;
     ///
-    /// let el = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(el);
+    /// let table = ConnectionTable::new();
     /// let _id = table.register(ObjectId::new(), 0, ObjectId::new());
     /// ```
     pub fn register(
@@ -161,12 +152,10 @@ impl ConnectionTable {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::sync::Arc;
     /// use quartzite_core::ObjectId;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::ConnectionTable;
     ///
-    /// let el = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(el);
+    /// let table = ConnectionTable::new();
     /// let id = table.register(ObjectId::new(), 0, ObjectId::new());
     /// table.remove(id);
     /// ```
@@ -194,12 +183,10 @@ impl ConnectionTable {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::sync::Arc;
     /// use quartzite_core::ObjectId;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::ConnectionTable;
     ///
-    /// let el = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(el);
+    /// let table = ConnectionTable::new();
     /// let receiver_id = ObjectId::new();
     /// table.register(ObjectId::new(), 0, receiver_id);
     /// table.remove_by_receiver(receiver_id); // removes all slots for this receiver
@@ -227,12 +214,10 @@ impl ConnectionTable {
     /// # Examples
     ///
     /// ```no_run
-    /// use std::sync::Arc;
     /// use quartzite_core::ObjectId;
-    /// use quartzite_runtime::{ConnectionTable, EventLoop};
+    /// use quartzite_runtime::ConnectionTable;
     ///
-    /// let el = Arc::new(EventLoop::new());
-    /// let table = ConnectionTable::new(el);
+    /// let table = ConnectionTable::new();
     /// let ids = table.receivers_for_signal(ObjectId::new(), 0);
     /// assert!(ids.is_empty());
     /// ```
@@ -250,8 +235,15 @@ impl ConnectionTable {
 }
 
 impl QueuedDispatcher for ConnectionTable {
-    fn post(&self, f: Box<dyn FnOnce() + Send>) {
-        self.event_loop.post(f);
+    fn post(&self, target: std::thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>) {
+        if let Some(el) = LoopRegistry::get(target) {
+            el.post(f);
+        } else {
+            tracing::warn!(
+                thread_id = ?target,
+                "no EventLoop registered for target thread; queued invocation dropped"
+            );
+        }
     }
 }
 
@@ -261,8 +253,7 @@ mod tests {
     use quartzite_core::ObjectId;
 
     fn make_table() -> Arc<ConnectionTable> {
-        let el = Arc::new(EventLoop::new());
-        ConnectionTable::new(el)
+        ConnectionTable::new()
     }
 
     #[test]
