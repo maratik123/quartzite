@@ -46,36 +46,38 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
-| [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | `quartzite-paint` needs geometry-events · `quartzite-style` additionally needs widgets |
-| [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | runtime · macros · geometry-events |
+| [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🔴 blocked, 🟡 spec-only | graphics-stack #73 (paint-api supplies `Painter`/`Color`/etc. for `quartzite-paint`); style portion additionally blocked on widgets #46 — tracked in #47 |
+| [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🔴 blocked, 🟡 spec-only | graphics-stack #73 (paint-api supplies the `Painter` trait used by `WidgetExt::paint`) — tracked in #46 |
+
+> Tracking issues for further deferred items not represented as plans here:
+> #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on #51), #51 (per-thread loops), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #54 (ObjectTree query), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
 
 ## Dependency order
 
 ```
 core-types ✅
 ├── geometry-events ✅
-│   ├── graphics-stack     (ready to start — paint-api needs Point/Rect)
-│   └── paint-style/paint  (ready; depends on quartzite-paint-api)
+│   └── graphics-stack             🟢 ready (no blocker — paint-api needs Point/Rect; both available)
+│       ├── quartzite-paint-api    (new thin crate; no_std; supplies Painter trait)
+│       ├── quartzite-paint        🔴 blocked on paint-api (issue #47)
+│       └── quartzite-renderer     (vello + wgpu + winit; part of graphics-stack #73)
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets            (ready — geometry-events done)
-│   │   └── paint-style/style  (ready after widgets)
-│   └── paint-style/style  (same)
-└── github-workflow ✅     (independent)
-
-graphics-stack (ready — no blocker)
-├── quartzite-paint-api    (new thin crate; no_std)
-├── quartzite-paint        (depends on quartzite-paint-api; see paint-style plan)
-└── quartzite-renderer     (depends on quartzite-paint-api; vello+wgpu+winit)
+│   ├── widgets (#46)              🔴 blocked on graphics-stack #73 (Painter trait lives in paint-api)
+│   │   └── paint-style/style      🔴 blocked on widgets #46 (needs AsWidget) + paint #47
+│   └── paint-style/paint (#47)    🔴 blocked on graphics-stack #73 (paint-api types)
+└── github-workflow ✅              (independent)
 ```
+
+Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
 
 Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
-1. **Start** graphics-stack (unblocked — geometry-events done; needs `quartzite-paint-api` thin crate then `quartzite-renderer`)
-2. **Start** widgets (unblocked — geometry-events done; needs `WidgetBase`, layouts, basic widgets)
+1. **Start** graphics-stack (the only 🟢 ready plan — geometry-events done; needs `quartzite-paint-api` thin crate then `quartzite-renderer`). This is the **single bottleneck** unblocking widgets (#46), paint+style (#47), and multi-window (#53).
+2. **After paint-api lands**, widgets (#46) and the paint portion of #47 unblock; paint-style/style and multi-window (#53) follow once widgets is done.
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
