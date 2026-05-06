@@ -58,8 +58,9 @@ fn thread_driver_fire_count_increments() {
 
     let mut timer = Timer::new(Duration::from_millis(30));
     timer.connect_tick(move |args| {
-        counts2.lock().expect("counts lock").push(args.0);
-        if args.0 >= 2 {
+        let fc = args.0.fire_count();
+        counts2.lock().expect("counts lock").push(fc);
+        if fc >= 2 {
             done2.store(true, Ordering::SeqCst);
         }
     });

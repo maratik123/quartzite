@@ -11,9 +11,10 @@ description = "Event model (MouseEvent, KeyEvent, EventFilter, …) for quartzit
 # No [features] — always no_std + alloc (String for KeyEvent::text; no std required)
 
 [dependencies]
-quartzite-core     = { path = "../quartzite-core", default-features = false }
-quartzite-geometry = { path = "../quartzite-geometry" }
-enumflags2         = "0.7"
+quartzite-core        = { path = "../quartzite-core", default-features = false }
+quartzite-event-types = { path = "../quartzite-event-types" }
+quartzite-geometry    = { path = "../quartzite-geometry" }
+enumflags2            = "0.7"
 
 [dev-dependencies]
 rstest            = "0.26"
