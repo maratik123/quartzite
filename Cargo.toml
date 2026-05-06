@@ -59,6 +59,14 @@ required-features = ["derive"]
 name = "timer"
 required-features = ["std", "derive"]
 
+[[example]]
+name = "emit_macro"
+required-features = ["derive"]
+
+[[example]]
+name = "combined"
+required-features = ["derive"]
+
 [dev-dependencies]
 env_logger = "0.11"
 
