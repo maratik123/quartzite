@@ -29,5 +29,5 @@ fn main() {
         Box::new(|vals| println!("dynamic slot received {} value(s)", vals.len())),
     );
 
-    g.greeted.emit(false, &(String::from("world"),));
+    g.greeted.emit(&(String::from("world"),));
 }

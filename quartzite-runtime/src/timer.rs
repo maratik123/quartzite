@@ -381,9 +381,10 @@ impl Timer {
     /// timer.emit_tick(0);
     /// ```
     pub fn emit_tick(&self, fire_count: usize) {
-        self.tick
-            .lock()
-            .emit(self.base.signals_blocked(), &(fire_count,));
+        let blocked = self.base.signals_blocked();
+        if !blocked {
+            self.tick.lock().emit(&(fire_count,));
+        }
     }
 
     // ── signal-block wrappers ────────────────────────────────────────────────
@@ -494,10 +495,9 @@ impl Timer {
                 return;
             }
             let count = state.fire_count.fetch_add(1, Ordering::SeqCst);
-            state
-                .signal
-                .lock()
-                .emit(state.signals_blocked.load(Ordering::Relaxed), &(count,));
+            if !state.signals_blocked.load(Ordering::Relaxed) {
+                state.signal.lock().emit(&(count,));
+            }
             if single_shot {
                 state.running.store(false, Ordering::SeqCst);
             }
@@ -671,7 +671,7 @@ mod tests {
         timer.connect_tick(move |args| count2.store(args.0 + 1, Ordering::SeqCst));
 
         // Emit via TimerState's signal Arc (same underlying Mutex).
-        timer.state.signal.lock().emit(false, &(41,));
+        timer.state.signal.lock().emit(&(41,));
         assert_eq!(count.load(Ordering::SeqCst), 42);
     }
 

@@ -28,7 +28,7 @@ use tracing::trace;
 ///
 /// let mut sig: Signal<()> = Signal::new();
 /// sig.connect_typed(|_| {}, ConnectionType::Direct);
-/// sig.emit(false, &());
+/// sig.emit(&());
 /// ```
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ConnectionType {
@@ -41,7 +41,7 @@ pub enum ConnectionType {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect_typed(|args| println!("direct: {}", args.0), ConnectionType::Direct);
-    /// sig.emit(false, &(42,));
+    /// sig.emit(&(42,));
     /// ```
     Direct,
     /// Invoke the slot exactly once, then automatically disconnect.
@@ -53,8 +53,8 @@ pub enum ConnectionType {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect_typed(|_| {}, ConnectionType::SingleShot);
-    /// sig.emit(false, &(1,)); // fires once
-    /// sig.emit(false, &(2,)); // slot already disconnected; no-op
+    /// sig.emit(&(1,)); // fires once
+    /// sig.emit(&(2,)); // slot already disconnected; no-op
     /// ```
     SingleShot,
     /// Post the slot to the event loop; requires `std` and an active dispatcher.
@@ -275,7 +275,7 @@ impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
 ///
 /// let mut sig: Signal<(i32,)> = Signal::new();
 /// let id = sig.connect(|args| println!("got {}", args.0));
-/// sig.emit(false, &(7,));
+/// sig.emit(&(7,));
 /// sig.disconnect(id);
 /// ```
 pub struct Signal<Args: 'static> {
@@ -363,7 +363,7 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// let id = sig.connect_typed(|args| println!("{}", args.0), ConnectionType::SingleShot);
-    /// sig.emit(false, &(1,)); // fires once, then disconnects
+    /// sig.emit(&(1,)); // fires once, then disconnects
     /// sig.disconnect(id); // safe to call even after auto-disconnect
     /// ```
     pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
@@ -493,12 +493,12 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
-    /// Invokes all connected slots with `args`, unless `blocked` is `true`.
+    /// Invokes all connected slots with `args` unconditionally.
     ///
-    /// Pass `object_base.signals_blocked()` as `blocked`; the signal fires only
-    /// when the owning object has not suppressed emissions. Generated
-    /// `emit_<signal>` wrappers (from `#[derive(Object)]`) call this method
-    /// automatically with the correct flag.
+    /// To suppress emission when the owning object has blocked signals, use the
+    /// [`crate::emit!`] macro instead — it extracts `signals_blocked()` automatically.
+    /// Generated `emit_<signal>` wrappers (from `#[derive(Object)]`) use the macro
+    /// internally and are the recommended call path for object-owned signals.
     ///
     /// `SingleShot` slots are called once and then removed in-place.
     /// `Queued` slots are posted to the event-loop thread via the registered
@@ -513,7 +513,6 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// # Parameters
     ///
-    /// - `blocked`: when `true`, the call is a no-op and no slot is invoked.
     /// - `args`: arguments forwarded to every slot as a shared reference;
     ///   cloned per slot only on the queued/auto-cross-thread paths.
     ///
@@ -524,27 +523,24 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect(|_| {});
-    /// sig.emit(false, &(42,)); // fires — not blocked
-    /// sig.emit(true,  &(99,)); // suppressed — blocked
+    /// sig.emit(&(42,));
     /// ```
-    pub fn emit(&mut self, blocked: bool, args: &Args) {
-        if !blocked {
-            trace!(direct_slots = self.slots.len(), "signal emit");
-            for entry in self.slots.values() {
-                (entry.callback)(args);
+    pub fn emit(&mut self, args: &Args) {
+        trace!(direct_slots = self.slots.len(), "signal emit");
+        for entry in self.slots.values() {
+            (entry.callback)(args);
+        }
+        self.slots
+            .retain(|_, e| e.conn_type != ConnectionType::SingleShot);
+        #[cfg(feature = "std")]
+        {
+            for slot in self.queued_slots.values() {
+                slot.post_if_alive(args);
             }
-            self.slots
-                .retain(|_, e| e.conn_type != ConnectionType::SingleShot);
-            #[cfg(feature = "std")]
-            {
-                for slot in self.queued_slots.values() {
-                    slot.post_if_alive(args);
-                }
-                if !self.auto_slots.is_empty() {
-                    let emit_thread_id = std::thread::current().id();
-                    for slot in self.auto_slots.values() {
-                        slot.dispatch(emit_thread_id, args);
-                    }
+            if !self.auto_slots.is_empty() {
+                let emit_thread_id = std::thread::current().id();
+                for slot in self.auto_slots.values() {
+                    slot.dispatch(emit_thread_id, args);
                 }
             }
         }
@@ -567,7 +563,7 @@ impl<Args: 'static> Signal<Args> {
     /// let mut sig: Signal<()> = Signal::new();
     /// let id = sig.connect(|_| {});
     /// sig.disconnect(id);
-    /// sig.emit(false, &()); // slot no longer called
+    /// sig.emit(&()); // slot no longer called
     /// ```
     pub fn disconnect(&mut self, id: ConnectionId) {
         trace!(conn_id = ?id, "signal disconnected");
@@ -577,6 +573,64 @@ impl<Args: 'static> Signal<Args> {
         #[cfg(feature = "std")]
         self.auto_slots.shift_remove(&id);
     }
+}
+
+/// Emits `$field` on `$receiver` unless signals are blocked.
+///
+/// Extracts `signals_blocked()` from `$receiver` via [`crate::AsObject::object_base`],
+/// then calls [`Signal::emit`] only when not blocked. The blocked flag is bound
+/// to a local before the signal borrow begins, satisfying the borrow checker.
+///
+/// `$receiver` must implement [`crate::AsObject`]. `$field` must be a [`Signal`] field
+/// directly on `$receiver` (single-level path only).
+///
+/// For signals behind `Arc<Mutex<Signal<…>>>` (e.g. `Timer::tick`), use an
+/// explicit `if !blocked { sig.emit(…) }` guard instead.
+///
+/// # Parameters
+///
+/// - `$receiver`: an expression of a type implementing [`crate::AsObject`].
+/// - `$field`: the name of a [`Signal`] field on `$receiver`.
+/// - `$args`: the args tuple reference forwarded to [`Signal::emit`].
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_core::{
+///     AsObject, ObjectBase,
+///     emit,
+///     signal::Signal,
+/// };
+///
+/// #[derive(Default)]
+/// struct Counter {
+///     base: ObjectBase,
+///     ticked: Signal<(u32,)>,
+/// }
+/// impl AsObject for Counter {
+///     fn object_base(&self) -> &ObjectBase { &self.base }
+///     fn object_base_mut(&mut self) -> &mut ObjectBase { &mut self.base }
+///     fn as_any(&self) -> &dyn core::any::Any { self }
+///     fn as_any_mut(&mut self) -> &mut dyn core::any::Any { self }
+/// }
+///
+/// let mut c = Counter::default();
+/// c.ticked.connect(|args| println!("tick {}", args.0));
+/// emit!(c.ticked, &(1,)); // fires — not blocked
+/// c.base.block_signals();
+/// emit!(c.ticked, &(2,)); // suppressed — blocked
+/// ```
+#[macro_export]
+macro_rules! emit {
+    ($receiver:ident . $field:ident, $args:expr) => {{
+        // Brings AsObject into scope for method call; caller may already have it imported.
+        #[allow(unused_imports)]
+        use $crate::AsObject as _;
+        let __blocked = $receiver.object_base().signals_blocked();
+        if !__blocked {
+            $receiver.$field.emit($args);
+        }
+    }};
 }
 
 #[cfg(test)]
@@ -657,7 +711,7 @@ mod tests {
         sig.connect(move |args| a2.store(args.0, Ordering::Relaxed));
         sig.connect(move |args| b2.store(args.0, Ordering::Relaxed));
 
-        sig.emit(false, &(42,));
+        sig.emit(&(42,));
 
         assert_eq!(a.load(Ordering::Relaxed), 42);
         assert_eq!(b.load(Ordering::Relaxed), 42);
@@ -676,7 +730,7 @@ mod tests {
 
         let id = sig.connect(move |_args| called2.store(true, Ordering::Relaxed));
         sig.disconnect(id);
-        sig.emit(false, &(1,));
+        sig.emit(&(1,));
 
         assert!(
             !called.load(Ordering::Relaxed),
@@ -703,7 +757,7 @@ mod tests {
         sig.connect(move |_| l3.lock().unwrap().push(3)); // slot C
 
         sig.disconnect(id_b);
-        sig.emit(false, &());
+        sig.emit(&());
 
         assert_eq!(
             *log.lock().unwrap(),
@@ -738,8 +792,8 @@ mod tests {
             d2.fetch_add(1, Ordering::Relaxed);
         });
 
-        sig.emit(false, &());
-        sig.emit(false, &());
+        sig.emit(&());
+        sig.emit(&());
 
         assert_eq!(
             ss_count.load(Ordering::Relaxed),
@@ -771,9 +825,9 @@ mod tests {
             ConnectionType::SingleShot,
         );
 
-        sig.emit(false, &());
-        sig.emit(false, &());
-        sig.emit(false, &());
+        sig.emit(&());
+        sig.emit(&());
+        sig.emit(&());
 
         assert_eq!(
             count.load(Ordering::Relaxed),
@@ -782,42 +836,9 @@ mod tests {
         );
     }
 
-    // ---------------------------------------------------------------------------
-    // AC2/AC3: emit suppressed when blocked, fires when not blocked
-    // ---------------------------------------------------------------------------
-
     #[test]
     #[cfg(feature = "std")]
-    fn emit_suppressed_when_blocked() {
-        let mut sig: Signal<()> = Signal::new();
-        let called = Arc::new(AtomicBool::new(false));
-        let called2 = Arc::clone(&called);
-        sig.connect(move |_| called2.store(true, Ordering::Relaxed));
-        sig.emit(true, &());
-        assert!(
-            !called.load(Ordering::Relaxed),
-            "emit with blocked=true must not invoke any slot"
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn emit_fires_when_not_blocked() {
-        let mut sig: Signal<(i32,)> = Signal::new();
-        let value = Arc::new(AtomicI32::new(0));
-        let value2 = Arc::clone(&value);
-        sig.connect(move |args| value2.store(args.0, Ordering::Relaxed));
-        sig.emit(false, &(99,));
-        assert_eq!(
-            value.load(Ordering::Relaxed),
-            99,
-            "emit with blocked=false must invoke all slots"
-        );
-    }
-
-    #[test]
-    #[cfg(feature = "std")]
-    fn emit_single_shot_fires_once_when_not_blocked() {
+    fn emit_single_shot_fires_once() {
         let count = Arc::new(AtomicU32::new(0));
         let count2 = Arc::clone(&count);
         let mut sig: Signal<(i32,)> = Signal::new();
@@ -827,12 +848,12 @@ mod tests {
             },
             ConnectionType::SingleShot,
         );
-        sig.emit(false, &(1,));
-        sig.emit(false, &(2,)); // slot already removed — must not fire again
+        sig.emit(&(1,));
+        sig.emit(&(2,)); // slot already removed — must not fire again
         assert_eq!(
             count.load(Ordering::Relaxed),
             1,
-            "SingleShot through emit must fire exactly once"
+            "SingleShot must fire exactly once"
         );
     }
 
@@ -841,7 +862,7 @@ mod tests {
     #[test]
     fn emit_with_no_slots_does_not_panic() {
         let mut sig: Signal<(bool,)> = Signal::new();
-        sig.emit(false, &(true,)); // must not panic
+        sig.emit(&(true,)); // must not panic
     }
 
     #[test]
@@ -851,7 +872,7 @@ mod tests {
         let id = sig.connect(|_| {});
         sig.disconnect(id);
         sig.disconnect(id); // second disconnect must be a no-op
-        sig.emit(false, &());
+        sig.emit(&());
     }
 
     #[test]
@@ -868,7 +889,7 @@ mod tests {
         sig.connect(move |_| {
             c2.fetch_add(1, Ordering::Relaxed);
         });
-        sig.emit(false, &());
+        sig.emit(&());
 
         assert_eq!(count.load(Ordering::Relaxed), 2);
     }
@@ -879,7 +900,7 @@ mod tests {
         let mut sig: Signal<()> = Signal::new();
         let fake_id = ConnectionId::new();
         sig.disconnect(fake_id); // must not panic
-        sig.emit(false, &()); // must not panic
+        sig.emit(&()); // must not panic
     }
 
     // ---------------------------------------------------------------------------
@@ -906,7 +927,7 @@ mod tests {
         drop(guard_arc);
 
         // Emit after receiver is destroyed — must NOT post.
-        sig.emit(false, &99);
+        sig.emit(&99);
         assert_eq!(
             dispatcher.posted.lock().unwrap().len(),
             pre_len,
@@ -937,7 +958,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(false, &(1,));
+        sig.emit(&(1,));
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -975,7 +996,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(false, &(42,));
+        sig.emit(&(42,));
 
         // Slot must NOT have been called directly during emit.
         assert!(
@@ -1017,7 +1038,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(false, &());
+        sig.emit(&());
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -1055,7 +1076,7 @@ mod tests {
         });
         let _guard = guard_arc;
 
-        sig.emit(false, &());
+        sig.emit(&());
 
         // Dispatch is governed by the foreign receiver_thread_id, not the emitting thread.
         assert!(
@@ -1098,7 +1119,7 @@ mod tests {
         );
 
         sig.disconnect(id);
-        sig.emit(false, &());
+        sig.emit(&());
 
         assert!(
             !called.load(Ordering::SeqCst),
@@ -1131,7 +1152,7 @@ mod tests {
             std::sync::Weak::new(),
             move |_| {},
         );
-        sig.emit(false, &(1,));
+        sig.emit(&(1,));
 
         // Queue must not grow — the foreign entry is still there, but our emit
         // must not have added anything.
@@ -1166,7 +1187,7 @@ mod tests {
 
         drop(guard_arc); // receiver destroyed
 
-        sig.emit(false, &(1,));
+        sig.emit(&(1,));
 
         assert!(
             !called.load(Ordering::SeqCst),
@@ -1202,13 +1223,90 @@ mod tests {
 
         drop(guard_arc); // receiver destroyed
 
-        sig.emit(false, &(99,));
+        sig.emit(&(99,));
 
         assert_eq!(
             dispatcher.posted.lock().unwrap().len(),
             pre_len,
             "no closure must be posted after receiver is destroyed"
         );
+    }
+
+    // ---------------------------------------------------------------------------
+    // emit! macro: AC2, AC3, borrow-split compile check
+    // ---------------------------------------------------------------------------
+
+    /// Minimal AsObject implementor for macro tests.
+    #[cfg(feature = "std")]
+    struct SigHolder {
+        base: crate::ObjectBase,
+        sig: Signal<(i32,)>,
+    }
+
+    #[cfg(feature = "std")]
+    impl crate::AsObject for SigHolder {
+        fn object_base(&self) -> &crate::ObjectBase {
+            &self.base
+        }
+        fn object_base_mut(&mut self) -> &mut crate::ObjectBase {
+            &mut self.base
+        }
+        fn as_any(&self) -> &dyn core::any::Any {
+            self
+        }
+        fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+            self
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_macro_suppressed_when_signals_blocked() {
+        let called = Arc::new(AtomicBool::new(false));
+        let called2 = Arc::clone(&called);
+        let mut obj = SigHolder {
+            base: crate::ObjectBase::new(),
+            sig: Signal::new(),
+        };
+        obj.sig
+            .connect(move |_| called2.store(true, Ordering::Relaxed));
+        obj.base.block_signals();
+        emit!(obj.sig, &(1,));
+        assert!(
+            !called.load(Ordering::Relaxed),
+            "emit! must not invoke any slot when signals are blocked"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_macro_fires_when_not_blocked() {
+        let value = Arc::new(AtomicI32::new(0));
+        let value2 = Arc::clone(&value);
+        let mut obj = SigHolder {
+            base: crate::ObjectBase::new(),
+            sig: Signal::new(),
+        };
+        obj.sig
+            .connect(move |args| value2.store(args.0, Ordering::Relaxed));
+        emit!(obj.sig, &(42,));
+        assert_eq!(
+            value.load(Ordering::Relaxed),
+            42,
+            "emit! must invoke all slots when not blocked"
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn emit_macro_releases_borrow() {
+        // Compile-time check: verifies the let-binding in emit! ends the immutable
+        // borrow of obj before the mutable borrow of obj.sig is taken.
+        let mut obj = SigHolder {
+            base: crate::ObjectBase::new(),
+            sig: Signal::new(),
+        };
+        emit!(obj.sig, &(0,)); // must compile without borrow-checker error
     }
 
     // ---------------------------------------------------------------------------

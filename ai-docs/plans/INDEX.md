@@ -38,6 +38,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [parent-children-accessors](done/2026-05-05-parent-children-accessors.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (1 integration test covering AC1–AC9, 1 unit test) | — |
 | [timer-object](done/2026-05-05-timer-object.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (36 new tests) | — |
 | [signal-emit-rename](done/2026-05-05-signal-emit-rename.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (3 renamed tests; 0 new) | — |
+| [signal-emit-macro](done/2026-05-06-emit-macro.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` `quartzite` | ✅ implemented (3 new tests) | — |
 
 ## Deferred plans
 
@@ -67,7 +68,7 @@ graphics-stack (ready — no blocker)
 └── quartzite-renderer     (depends on quartzite-paint-api; vello+wgpu+winit)
 ```
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename. These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
