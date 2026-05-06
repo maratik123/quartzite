@@ -66,6 +66,10 @@ impl Object for Stub {
     fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
         None
     }
+
+    fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
+        None
+    }
 }
 
 /// Records its own name into a shared log when dropped — used to verify destruction order.
@@ -133,6 +137,10 @@ impl Object for LogObj {
         None
     }
     fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+        None
+    }
+
+    fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
         None
     }
 }

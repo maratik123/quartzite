@@ -635,7 +635,7 @@ macro_rules! emit {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     #[cfg(feature = "std")]
     use serial_test::serial;
@@ -652,8 +652,8 @@ mod tests {
     /// A `QueuedDispatcher` stub that stores posted closures for inspection.
     /// All auto/queued tests that need a dispatcher call `install_test_dispatcher()`.
     #[cfg(feature = "std")]
-    struct TestDispatcher {
-        posted: Mutex<Vec<Box<dyn FnOnce() + Send + 'static>>>,
+    pub(crate) struct TestDispatcher {
+        pub(crate) posted: Mutex<Vec<Box<dyn FnOnce() + Send + 'static>>>,
     }
 
     #[cfg(feature = "std")]
@@ -665,14 +665,14 @@ mod tests {
 
     /// Process-wide singleton. Set exactly once; reused by all tests in this binary.
     #[cfg(feature = "std")]
-    static TEST_DISPATCHER: OnceLock<Arc<TestDispatcher>> = OnceLock::new();
+    pub(crate) static TEST_DISPATCHER: OnceLock<Arc<TestDispatcher>> = OnceLock::new();
 
     /// Install the shared `TestDispatcher` as the process-wide `QueuedDispatcher`.
     /// Safe to call from multiple tests in the same binary: only the first call
     /// registers the dispatcher; subsequent calls are no-ops.
     /// Returns the shared `Arc<TestDispatcher>` so callers can drain `posted`.
     #[cfg(feature = "std")]
-    fn install_test_dispatcher() -> Arc<TestDispatcher> {
+    pub(crate) fn install_test_dispatcher() -> Arc<TestDispatcher> {
         Arc::clone(TEST_DISPATCHER.get_or_init(|| {
             let d = Arc::new(TestDispatcher {
                 posted: Mutex::new(vec![]),

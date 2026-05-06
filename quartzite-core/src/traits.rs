@@ -169,6 +169,28 @@ pub trait Object: AsObject + Send {
     /// # }
     /// ```
     fn connect_signal(&mut self, signal: &str, callback: SignalCallback) -> Option<ConnectionId>;
+
+    /// Emits signal `signal` with `args` and returns `Some(())` when successful.
+    ///
+    /// Returns `None` when `signal` is unknown on this object or when `args` length does not
+    /// match the signal's declared parameter count. Emission is suppressed when signals are
+    /// blocked on this object (identical to the behaviour of the `emit!` macro).
+    ///
+    /// # Parameters
+    ///
+    /// - `signal`: meta-system signal name to emit (e.g. `"clicked"`).
+    /// - `args`: slice of [`Value`]s ordered by signal parameter position; must match
+    ///   the signal's declared arity exactly.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_core::Object;
+    /// # fn example(obj: &mut impl Object) {
+    /// let _ok = obj.emit_signal("clicked", &[]);
+    /// # }
+    /// ```
+    fn emit_signal(&mut self, signal: &str, args: &[Value]) -> Option<()>;
 }
 
 /// Ergonomic blanket-impl extension. Methods here are not object-safe (e.g., generics
@@ -347,6 +369,10 @@ mod tests {
             _signal: &str,
             _callback: SignalCallback,
         ) -> Option<ConnectionId> {
+            None
+        }
+
+        fn emit_signal(&mut self, _signal: &str, _args: &[Value]) -> Option<()> {
             None
         }
     }

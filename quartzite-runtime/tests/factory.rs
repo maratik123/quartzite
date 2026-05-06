@@ -62,6 +62,10 @@ impl Object for FooObj {
     fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
         None
     }
+
+    fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
+        None
+    }
 }
 
 // AC8 — registered class creates an instance.

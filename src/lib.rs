@@ -87,6 +87,10 @@ pub mod prelude {
     pub use quartzite_core::{
         DispatcherAlreadySet, QueuedDispatcher, queued_dispatcher, set_queued_dispatcher,
     };
+    // quartzite-core: signal-to-signal connection API
+    #[cfg(feature = "std")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    pub use quartzite_core::{SignalConnectionError, connect_signal_to_signal, connect_signals};
 
     // quartzite-macros: derive macros (requires derive feature)
     // `Object` is re-exported as `DeriveObject` to avoid shadowing the `Object` trait above.
