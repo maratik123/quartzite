@@ -1,6 +1,10 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use quartzite::core::{AsObject, FromValue, Object, ObjectBase, PropertyFlag, Signal, Value};
+use quartzite::core::Mutex;
+
+use quartzite::core::{
+    AsObject, FromValue, Object, ObjectBase, PropertyFlag, Signal, Value, signal::ConnectionType,
+};
 use quartzite_macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
@@ -35,13 +39,13 @@ fn ac6_read_write_property_with_notify() {
     let notified = Arc::new(Mutex::new(false));
     let notified_clone = Arc::clone(&notified);
     c.count_changed.connect(move |_args: &(i32,)| {
-        *notified_clone.lock().unwrap() = true;
+        *notified_clone.lock() = true;
     });
 
     let written = c.write_property("count", Value::Int(42));
     assert!(written);
     assert_eq!(c.count, 42);
-    assert!(*notified.lock().unwrap());
+    assert!(*notified.lock());
 }
 
 // AC7: read_only property returns false from write_property.
@@ -72,15 +76,15 @@ fn ac10_connect_signal_and_emit() {
     let received_clone = Arc::clone(&received);
     let cb = Box::new(move |args: &[Value]| {
         if let Some(v) = args.first() {
-            *received_clone.lock().unwrap() = i32::from_value(v.clone()).ok();
+            *received_clone.lock() = i32::from_value(v.clone()).ok();
         }
     });
 
-    let id = c.connect_signal("count_changed", cb);
+    let id = c.connect_signal("count_changed", cb, ConnectionType::Direct);
     assert!(id.is_some());
 
     c.count_changed.emit_unconditionally(&(7,));
-    assert_eq!(*received.lock().unwrap(), Some(7));
+    assert_eq!(*received.lock(), Some(7));
 }
 
 fn make_counter() -> Counter {
@@ -99,12 +103,12 @@ fn emit_wrapper_suppressed_when_blocked() {
     let called = Arc::new(Mutex::new(false));
     let called_clone = Arc::clone(&called);
     c.count_changed
-        .connect(move |_: &(i32,)| *called_clone.lock().unwrap() = true);
+        .connect(move |_: &(i32,)| *called_clone.lock() = true);
 
     c.object_base_mut().block_signals();
     c.emit_count_changed(42);
 
-    assert!(!*called.lock().unwrap(), "slot must not fire when blocked");
+    assert!(!*called.lock(), "slot must not fire when blocked");
 }
 
 // AC4: emit_<signal> wrapper delivers normally when not blocked.
@@ -114,11 +118,11 @@ fn emit_wrapper_delivers_when_unblocked() {
     let received = Arc::new(Mutex::new(None::<i32>));
     let received_clone = Arc::clone(&received);
     c.count_changed
-        .connect(move |args: &(i32,)| *received_clone.lock().unwrap() = Some(args.0));
+        .connect(move |args: &(i32,)| *received_clone.lock() = Some(args.0));
 
     c.emit_count_changed(7);
 
-    assert_eq!(*received.lock().unwrap(), Some(7));
+    assert_eq!(*received.lock(), Some(7));
 }
 
 // AC5: write_property does not emit notify when signals are blocked, but still writes value.
@@ -128,17 +132,14 @@ fn write_property_notify_suppressed_when_blocked() {
     let notified = Arc::new(Mutex::new(false));
     let notified_clone = Arc::clone(&notified);
     c.count_changed
-        .connect(move |_: &(i32,)| *notified_clone.lock().unwrap() = true);
+        .connect(move |_: &(i32,)| *notified_clone.lock() = true);
 
     c.object_base_mut().block_signals();
     let written = c.write_property("count", Value::Int(99));
 
     assert!(written, "write_property must return true");
     assert_eq!(c.count, 99, "value must be updated even when blocked");
-    assert!(
-        !*notified.lock().unwrap(),
-        "notify must not fire when blocked"
-    );
+    assert!(!*notified.lock(), "notify must not fire when blocked");
 }
 
 // Regression: write_property notify fires normally when not blocked.
@@ -148,11 +149,11 @@ fn write_property_notify_fires_when_unblocked() {
     let notified = Arc::new(Mutex::new(false));
     let notified_clone = Arc::clone(&notified);
     c.count_changed
-        .connect(move |_: &(i32,)| *notified_clone.lock().unwrap() = true);
+        .connect(move |_: &(i32,)| *notified_clone.lock() = true);
 
     c.write_property("count", Value::Int(5));
 
-    assert!(*notified.lock().unwrap(), "notify must fire when unblocked");
+    assert!(*notified.lock(), "notify must fire when unblocked");
 }
 
 // Property flag values: readable/writable/notify/constant from generated metadata.
@@ -180,13 +181,42 @@ fn unblock_restores_emit_wrapper() {
     let called = Arc::new(Mutex::new(false));
     let called_clone = Arc::clone(&called);
     c.count_changed
-        .connect(move |_: &(i32,)| *called_clone.lock().unwrap() = true);
+        .connect(move |_: &(i32,)| *called_clone.lock() = true);
 
     c.object_base_mut().block_signals();
     c.emit_count_changed(1);
-    assert!(!*called.lock().unwrap(), "must be suppressed while blocked");
+    assert!(!*called.lock(), "must be suppressed while blocked");
 
     c.object_base_mut().unblock_signals();
     c.emit_count_changed(2);
-    assert!(*called.lock().unwrap(), "must fire after unblock");
+    assert!(*called.lock(), "must fire after unblock");
+}
+
+// SingleShot: slot is removed after first delivery via macro-generated connect_signal path.
+// emit_unconditionally is used directly (not emit_count_changed) to bypass the signals_blocked
+// check — we want to observe slot removal in isolation without block/unblock interactions.
+#[test]
+fn single_shot_fires_once_via_object_trait() {
+    let mut c = make_counter();
+    let call_count = Arc::new(Mutex::new(0u32));
+    let call_count_clone = Arc::clone(&call_count);
+    let cb = Box::new(move |_args: &[Value]| {
+        *call_count_clone.lock() += 1;
+    });
+
+    let id = c.connect_signal("count_changed", cb, ConnectionType::SingleShot);
+    assert!(
+        id.is_some(),
+        "connect_signal must return Some for a known signal"
+    );
+
+    c.count_changed.emit_unconditionally(&(1,));
+    assert_eq!(*call_count.lock(), 1, "slot must fire on first emit");
+
+    c.count_changed.emit_unconditionally(&(2,));
+    assert_eq!(
+        *call_count.lock(),
+        1,
+        "slot must not fire after SingleShot removal"
+    );
 }

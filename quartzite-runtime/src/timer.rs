@@ -14,6 +14,7 @@ use std::{
 };
 
 use parking_lot::Mutex;
+use tracing::debug;
 
 use quartzite_core::{
     ConnectionId, ObjectBase, ObjectId, receiver_guard::ReceiverGuard, signal::Signal,
@@ -485,6 +486,7 @@ impl Timer {
         if self.state.running.load(Ordering::SeqCst) {
             return;
         }
+        debug!(timer_id = ?self.base.id(), "timer: start");
         self.state.running.store(true, Ordering::SeqCst);
         self.state.fire_count.store(0, Ordering::SeqCst);
 
@@ -537,6 +539,7 @@ impl Timer {
         if !self.state.running.swap(false, Ordering::SeqCst) {
             return;
         }
+        debug!(timer_id = ?self.base.id(), "timer: stop");
         if let Some(driver) = self.driver.take() {
             driver.stop(self.base.id());
         }

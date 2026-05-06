@@ -17,6 +17,7 @@ use std::{
 };
 
 use parking_lot::{Condvar, Mutex};
+use tracing::debug;
 
 use quartzite_core::ObjectId;
 
@@ -231,6 +232,7 @@ struct PoolInner {
     state: Mutex<PoolState>,
     condvar: Condvar,
     running: AtomicBool,
+    handle: Mutex<Option<JoinHandle<()>>>,
 }
 
 /// Single shared background thread + min-heap, driving multiple timers.
@@ -278,10 +280,12 @@ impl PoolDriver {
             state: Mutex::new(PoolState::new()),
             condvar: Condvar::new(),
             running: AtomicBool::new(true),
+            handle: Mutex::new(None),
         });
 
         let inner_clone = Arc::clone(&inner);
-        thread::spawn(move || Self::pool_loop(&inner_clone));
+        let join = thread::spawn(move || Self::pool_loop(&inner_clone));
+        *inner.handle.lock() = Some(join);
 
         Self { inner }
     }
@@ -387,9 +391,12 @@ impl TimerDriver for PoolDriver {
 
 impl Drop for PoolDriver {
     fn drop(&mut self) {
+        debug!("pool driver: shutdown");
         self.inner.running.store(false, Ordering::SeqCst);
         self.inner.condvar.notify_all();
-        // Background thread exits on next condvar wake.
+        if let Some(handle) = self.inner.handle.lock().take() {
+            let _ = handle.join();
+        }
     }
 }
 

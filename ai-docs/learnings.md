@@ -1,5 +1,15 @@
 # Learnings
 
+### 2026-05-06 — process — do not object to "breaking API change" on an unpublished crate
+
+**What happened:** Code review finding #2 (dynamic `SingleShot` slot leak) was objected to with "breaking API change" as the reason. The user rejected this immediately — the project has not been published to crates.io and AGENTS.md explicitly allows freely changing the public API before the first `cargo publish`.
+
+**Rule:** "Breaking API change" is not a valid objection reason on this codebase until after the first `cargo publish`. API can be freely renamed, removed, or restructured. When a finding is technically fixable but would require an API change, implement the change rather than deferring.
+
+**How to apply:** Before objecting to any finding citing API stability, check AGENTS.md § "API Stability". If the crate is unpublished, remove that objection and implement the fix.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-03 — process — /interview has no "too small for a spec" off-ramp; flag and ask instead of silently switching to implementation
 
 **What happened:** `/interview errors should iml Error` was started. Mid-interview the user redirected: "ok, add the two impl blocks under the same cfg." Instead of completing the interview (producing a spec) or explicitly flagging the pivot, execution switched silently to direct implementation. The `/interview` skill produced code changes rather than a spec.

@@ -442,12 +442,15 @@ impl ObjectTree {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use itertools::{Itertools, assert_equal};
     use quartzite_core::{
         id::ConnectionId,
         meta::MetaObject,
         object_base::ObjectBase,
+        signal::ConnectionType,
         traits::{AsObject, Object, SignalCallback},
         value::Value,
     };
@@ -504,7 +507,12 @@ mod tests {
         fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
             None
         }
-        fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+        fn connect_signal(
+            &mut self,
+            _: &str,
+            _: SignalCallback,
+            _: ConnectionType,
+        ) -> Option<ConnectionId> {
             None
         }
 
@@ -752,7 +760,7 @@ mod tests {
 
     struct RecordingObject {
         base: ObjectBase,
-        emissions: std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<Value>)>>>,
+        emissions: std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
     }
 
     impl RecordingObject {
@@ -760,24 +768,24 @@ mod tests {
             name: &str,
         ) -> (
             Box<dyn Object>,
-            std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<Value>)>>>,
+            std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
         ) {
-            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let log = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
             let obj = Box::new(Self {
                 base: ObjectBase::named(name),
-                emissions: std::sync::Arc::clone(&log),
+                emissions: Arc::clone(&log),
             });
             (obj, log)
         }
 
         fn anonymous() -> (
             Box<dyn Object>,
-            std::sync::Arc<std::sync::Mutex<Vec<(String, Vec<Value>)>>>,
+            std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
         ) {
-            let log = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let log = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
             let obj = Box::new(Self {
                 base: ObjectBase::new(),
-                emissions: std::sync::Arc::clone(&log),
+                emissions: Arc::clone(&log),
             });
             (obj, log)
         }
@@ -823,14 +831,16 @@ mod tests {
         fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
             None
         }
-        fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+        fn connect_signal(
+            &mut self,
+            _: &str,
+            _: SignalCallback,
+            _: ConnectionType,
+        ) -> Option<ConnectionId> {
             None
         }
         fn emit_signal(&mut self, name: &str, args: &[Value]) -> Option<()> {
-            self.emissions
-                .lock()
-                .unwrap_or_else(|e| e.into_inner())
-                .push((name.to_owned(), args.to_vec()));
+            self.emissions.lock().push((name.to_owned(), args.to_vec()));
             Some(())
         }
     }
@@ -914,7 +924,7 @@ mod tests {
         let (obj, log) = RecordingObject::named("old");
         let id = tree.insert(obj, None);
         tree.rename(id, "new");
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert_eq!(emissions.len(), 1, "expected one emission: {emissions:?}");
         assert_eq!(emissions[0].0, "name_changed");
         assert_eq!(
@@ -930,7 +940,7 @@ mod tests {
         let (obj, log) = RecordingObject::named("same");
         let id = tree.insert(obj, None);
         tree.rename(id, "same");
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert!(
             emissions.is_empty(),
             "no-op rename must not emit: {emissions:?}"
@@ -944,7 +954,7 @@ mod tests {
         let (obj, log) = RecordingObject::anonymous();
         let id = tree.insert(obj, None);
         tree.rename(id, "named");
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert_eq!(emissions.len(), 1, "expected one emission: {emissions:?}");
         assert_eq!(
             emissions[0].1,
@@ -959,7 +969,7 @@ mod tests {
         let (obj, log) = RecordingObject::named("old");
         let id = tree.insert(obj, None);
         tree.clear_name(id);
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert_eq!(emissions.len(), 1, "expected one emission: {emissions:?}");
         assert_eq!(emissions[0].0, "name_changed");
         assert_eq!(
@@ -975,7 +985,7 @@ mod tests {
         let (obj, log) = RecordingObject::anonymous();
         let id = tree.insert(obj, None);
         tree.clear_name(id);
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert!(
             emissions.is_empty(),
             "anonymous clear_name must not emit: {emissions:?}"
@@ -989,7 +999,7 @@ mod tests {
         let (obj, log) = RecordingObject::named("target");
         let id = tree.insert(obj, None);
         tree.destroy(id);
-        let emissions = log.lock().unwrap();
+        let emissions = log.lock();
         assert!(
             emissions.iter().all(|(name, _)| name != "name_changed"),
             "destroy must not emit name_changed: {emissions:?}"

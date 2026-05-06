@@ -53,6 +53,9 @@ pub use meta::{
     PropertyMeta, SignalMeta,
 };
 pub use object_base::ObjectBase;
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub use parking_lot::Mutex;
 pub use receiver_guard::ReceiverGuard;
 pub use signal::{ConnectionType, Signal};
 #[cfg(feature = "std")]

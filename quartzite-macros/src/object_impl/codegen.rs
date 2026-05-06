@@ -248,8 +248,9 @@ pub(crate) fn emit_object_impl(
                 &mut self,
                 signal: &str,
                 callback: #cr::SignalCallback,
+                conn_type: #cr::signal::ConnectionType,
             ) -> ::core::option::Option<#cr::ConnectionId> {
-                #mod_ident::#connect_fn(self, signal, callback)
+                #mod_ident::#connect_fn(self, signal, callback, conn_type)
             }
             #[inline]
             fn emit_signal(

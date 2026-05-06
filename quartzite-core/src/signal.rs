@@ -646,10 +646,12 @@ macro_rules! emit {
 pub(crate) mod tests {
     use super::*;
     #[cfg(feature = "std")]
+    use parking_lot::Mutex;
+    #[cfg(feature = "std")]
     use serial_test::serial;
     #[cfg(feature = "std")]
     use std::sync::{
-        Arc, Mutex, OnceLock,
+        Arc, OnceLock,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
     };
 
@@ -667,7 +669,7 @@ pub(crate) mod tests {
     #[cfg(feature = "std")]
     impl QueuedDispatcher for TestDispatcher {
         fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) {
-            self.posted.lock().unwrap().push(f);
+            self.posted.lock().push(f);
         }
     }
 
@@ -761,15 +763,15 @@ pub(crate) mod tests {
         let l2 = Arc::clone(&log);
         let l3 = Arc::clone(&log);
 
-        sig.connect(move |_| l1.lock().unwrap().push(1)); // slot A
-        let id_b = sig.connect(move |_| l2.lock().unwrap().push(2)); // slot B
-        sig.connect(move |_| l3.lock().unwrap().push(3)); // slot C
+        sig.connect(move |_| l1.lock().push(1)); // slot A
+        let id_b = sig.connect(move |_| l2.lock().push(2)); // slot B
+        sig.connect(move |_| l3.lock().push(3)); // slot C
 
         sig.disconnect(id_b);
         sig.emit_unconditionally(&());
 
         assert_eq!(
-            *log.lock().unwrap(),
+            *log.lock(),
             vec![1, 3],
             "A and C must fire in insertion order; B must be absent"
         );
@@ -923,14 +925,14 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
 
         let mut sig: Signal<i32> = Signal::new();
         let posted_values: Arc<Mutex<Vec<i32>>> = Arc::new(Mutex::new(Vec::new()));
         let pv = Arc::clone(&posted_values);
-        sig.connect_queued(move |v| pv.lock().unwrap().push(v), guard_weak.clone());
+        sig.connect_queued(move |v| pv.lock().push(v), guard_weak.clone());
 
         // Drop receiver guard to invalidate.
         drop(guard_arc);
@@ -938,7 +940,7 @@ pub(crate) mod tests {
         // Emit after receiver is destroyed — must NOT post.
         sig.emit_unconditionally(&99);
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "no post must occur after receiver is destroyed"
         );
@@ -955,7 +957,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -974,7 +976,7 @@ pub(crate) mod tests {
             "Auto same-thread slot must be called synchronously before emit returns"
         );
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "Auto same-thread must not post to dispatcher"
         );
@@ -991,7 +993,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -1014,7 +1016,7 @@ pub(crate) mod tests {
         );
 
         // Drain only entries added by our emit; leave any foreign entries untouched.
-        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(pre_len..).collect();
+        let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
         posted.into_iter().for_each(|f| f());
 
@@ -1035,7 +1037,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -1054,7 +1056,7 @@ pub(crate) mod tests {
             "same-thread Auto slot must be called directly"
         );
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "no closure must be posted for same-thread Auto"
         );
@@ -1071,7 +1073,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -1094,7 +1096,7 @@ pub(crate) mod tests {
         );
 
         // Drain only entries added by our emit; leave any foreign entries untouched.
-        let posted: Vec<_> = dispatcher.posted.lock().unwrap().drain(pre_len..).collect();
+        let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
         posted.into_iter().for_each(|f| f());
 
@@ -1113,7 +1115,7 @@ pub(crate) mod tests {
     #[serial]
     fn auto_disconnect_removes_slot() {
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -1135,7 +1137,7 @@ pub(crate) mod tests {
             "disconnected Auto slot must not be called"
         );
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "disconnected Auto slot must not post to dispatcher"
         );
@@ -1152,8 +1154,8 @@ pub(crate) mod tests {
         let dispatcher = install_test_dispatcher();
 
         // Simulate a concurrent test having already posted to the shared dispatcher.
-        dispatcher.posted.lock().unwrap().push(Box::new(|| {}));
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        dispatcher.posted.lock().push(Box::new(|| {}));
+        let pre_len = dispatcher.posted.lock().len();
 
         let mut sig: Signal<(i32,)> = Signal::new();
         sig.connect_auto(
@@ -1166,7 +1168,7 @@ pub(crate) mod tests {
         // Queue must not grow — the foreign entry is still there, but our emit
         // must not have added anything.
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "same-thread auto emit must not grow the dispatcher queue"
         );
@@ -1183,7 +1185,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let called = Arc::new(AtomicBool::new(false));
         let called2 = Arc::clone(&called);
@@ -1203,7 +1205,7 @@ pub(crate) mod tests {
             "same-thread Auto slot must not be called after receiver is destroyed"
         );
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "no post must occur after receiver is destroyed"
         );
@@ -1220,7 +1222,7 @@ pub(crate) mod tests {
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
-        let pre_len = dispatcher.posted.lock().unwrap().len();
+        let pre_len = dispatcher.posted.lock().len();
 
         let foreign_id = other_thread_id();
 
@@ -1235,7 +1237,7 @@ pub(crate) mod tests {
         sig.emit_unconditionally(&(99,));
 
         assert_eq!(
-            dispatcher.posted.lock().unwrap().len(),
+            dispatcher.posted.lock().len(),
             pre_len,
             "no closure must be posted after receiver is destroyed"
         );

@@ -1,8 +1,7 @@
 //! Signal-to-signal connection utilities.
-use std::sync::{
-    Arc, Mutex, Weak,
-    atomic::{AtomicBool, Ordering},
-};
+use std::sync::{Arc, Weak};
+
+use parking_lot::Mutex;
 
 /// Re-exported so callers can name the bound: `Args: connect::ArgsToValues`.
 #[doc(hidden)]
@@ -94,7 +93,8 @@ pub enum SignalConnectionError {
 /// # Examples
 ///
 /// ```no_run
-/// use std::sync::{Arc, Mutex};
+/// use std::sync::Arc;
+/// use parking_lot::Mutex;
 /// use quartzite_core::{Object, connect::{connect_signal_to_signal, SignalConnectionError}};
 /// use quartzite_core::signal::ConnectionType;
 /// # fn example(from: &mut impl Object, to: Arc<Mutex<impl Object + Send + 'static>>) {
@@ -115,7 +115,7 @@ pub fn connect_signal_to_signal(
 
     let to_signal_name = to_signal.to_owned();
     let to_meta = {
-        let guard = to.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = to.lock();
         guard
             .meta_object()
             .signal(to_signal)
@@ -148,36 +148,20 @@ pub fn connect_signal_to_signal(
         }
     }
 
-    let to_thread_id = to
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .object_base()
-        .thread_id;
+    let to_thread_id = to.lock().object_base().thread_id;
     let to_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(&to);
 
     let callback: SignalCallback = match conn_type {
         ConnectionType::Direct => Box::new(move |args: &[Value]| {
             if let Some(arc) = to_weak.upgrade() {
-                let _ = arc
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, args);
             }
         }),
-        ConnectionType::SingleShot => {
-            let fired = Arc::new(AtomicBool::new(false));
-            Box::new(move |args: &[Value]| {
-                if fired.swap(true, Ordering::Relaxed) {
-                    return;
-                }
-                if let Some(arc) = to_weak.upgrade() {
-                    let _ = arc
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .emit_signal(&to_signal_name, args);
-                }
-            })
-        }
+        ConnectionType::SingleShot => Box::new(move |args: &[Value]| {
+            if let Some(arc) = to_weak.upgrade() {
+                let _ = arc.lock().emit_signal(&to_signal_name, args);
+            }
+        }),
         ConnectionType::Queued => Box::new(move |args: &[Value]| {
             let Some(arc) = to_weak.upgrade() else {
                 return;
@@ -186,10 +170,7 @@ pub fn connect_signal_to_signal(
             let sig_name = to_signal_name.clone();
             if let Some(d) = queued_dispatcher() {
                 d.post(Box::new(move || {
-                    let _ = arc
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .emit_signal(&sig_name, &args_owned);
+                    let _ = arc.lock().emit_signal(&sig_name, &args_owned);
                 }));
             }
         }),
@@ -198,26 +179,28 @@ pub fn connect_signal_to_signal(
                 return;
             };
             if std::thread::current().id() == to_thread_id {
-                let _ = arc
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, args);
             } else {
                 let args_owned: Vec<Value> = args.to_vec();
                 let sig_name = to_signal_name.clone();
                 if let Some(d) = queued_dispatcher() {
                     d.post(Box::new(move || {
-                        let _ = arc
-                            .lock()
-                            .unwrap_or_else(|e| e.into_inner())
-                            .emit_signal(&sig_name, &args_owned);
+                        let _ = arc.lock().emit_signal(&sig_name, &args_owned);
                     }));
                 }
             }
         }),
     };
 
-    from.connect_signal(from_signal, callback)
+    // Queued and Auto encode their delivery logic in the closure; at the signal level they
+    // register as Direct so the slot persists. SingleShot propagates so Signal::emit_unconditionally
+    // removes the slot after first delivery via its `retain` pass.
+    let slot_type = if matches!(conn_type, ConnectionType::SingleShot) {
+        ConnectionType::SingleShot
+    } else {
+        ConnectionType::Direct
+    };
+    from.connect_signal(from_signal, callback, slot_type)
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))
 }
 
@@ -252,7 +235,8 @@ pub fn connect_signal_to_signal(
 /// # Examples
 ///
 /// ```no_run
-/// use std::sync::{Arc, Mutex};
+/// use std::sync::Arc;
+/// use parking_lot::Mutex;
 /// use quartzite_core::signal::{ConnectionType, Signal};
 /// use quartzite_core::connect::{connect_signals, SignalConnectionError};
 /// # use quartzite_core::Object;
@@ -292,7 +276,7 @@ where
     // Validate to_signal.
     let to_signal_str = to_signal_name.to_owned();
     let to_meta = {
-        let guard = to.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = to.lock();
         guard
             .meta_object()
             .signal(to_signal_name)
@@ -337,17 +321,14 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
                 },
                 ct,
             )
         }
         ConnectionType::Queued => {
             let (to_weak, guard_weak) = {
-                let guard = to.lock().unwrap_or_else(|e| e.into_inner());
+                let guard = to.lock();
                 let w: Weak<ReceiverGuard> = Arc::downgrade(guard.object_base().receiver_guard());
                 (Arc::downgrade(&to), w)
             };
@@ -357,17 +338,14 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
                 },
                 guard_weak,
             )
         }
         ConnectionType::Auto => {
             let (to_weak, guard_weak, thread_id) = {
-                let guard = to.lock().unwrap_or_else(|e| e.into_inner());
+                let guard = to.lock();
                 let w: Weak<ReceiverGuard> = Arc::downgrade(guard.object_base().receiver_guard());
                 let tid = guard.object_base().thread_id;
                 (Arc::downgrade(&to), w, tid)
@@ -377,10 +355,7 @@ where
                     return;
                 };
                 let values = args.to_values();
-                let _ = arc
-                    .lock()
-                    .unwrap_or_else(|e| e.into_inner())
-                    .emit_signal(&to_signal_str, &values);
+                let _ = arc.lock().emit_signal(&to_signal_str, &values);
             })
         }
     };
@@ -391,9 +366,11 @@ where
 mod tests {
     use super::*;
     use std::sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicI32, Ordering},
     };
+
+    use parking_lot::Mutex;
 
     use crate::{
         id::ConnectionId,
@@ -472,13 +449,15 @@ mod tests {
             &mut self,
             signal: &str,
             callback: crate::traits::SignalCallback,
+            conn_type: ConnectionType,
         ) -> Option<ConnectionId> {
             match signal {
                 "sig_a" => {
                     let cb = Arc::new(callback);
-                    Some(self.sig_a.connect(move |args: &(i32,)| {
-                        (*cb)(&[crate::IntoValue::into_value(args.0)])
-                    }))
+                    Some(self.sig_a.connect_typed(
+                        move |args: &(i32,)| (*cb)(&[crate::IntoValue::into_value(args.0)]),
+                        conn_type,
+                    ))
                 }
                 _ => None,
             }
@@ -565,13 +544,15 @@ mod tests {
             &mut self,
             signal: &str,
             callback: crate::traits::SignalCallback,
+            conn_type: ConnectionType,
         ) -> Option<ConnectionId> {
             match signal {
                 "sig_b" => {
                     let cb = Arc::new(callback);
-                    Some(self.sig_b.connect(move |args: &(i32,)| {
-                        (*cb)(&[crate::IntoValue::into_value(args.0)])
-                    }))
+                    Some(self.sig_b.connect_typed(
+                        move |args: &(i32,)| (*cb)(&[crate::IntoValue::into_value(args.0)]),
+                        conn_type,
+                    ))
                 }
                 _ => None,
             }
@@ -684,6 +665,7 @@ mod tests {
                 &mut self,
                 _signal: &str,
                 _callback: crate::traits::SignalCallback,
+                _conn_type: ConnectionType,
             ) -> Option<ConnectionId> {
                 None
             }
@@ -760,6 +742,7 @@ mod tests {
                 &mut self,
                 _signal: &str,
                 _callback: crate::traits::SignalCallback,
+                _conn_type: ConnectionType,
             ) -> Option<ConnectionId> {
                 None
             }
@@ -792,13 +775,9 @@ mod tests {
         let counter = Arc::new(AtomicI32::new(0));
         {
             let c = Arc::clone(&counter);
-            receiver
-                .lock()
-                .unwrap()
-                .sig_b
-                .connect(move |args: &(i32,)| {
-                    c.store(args.0, Ordering::Relaxed);
-                });
+            receiver.lock().sig_b.connect(move |args: &(i32,)| {
+                c.store(args.0, Ordering::Relaxed);
+            });
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
         let id =
@@ -823,7 +802,7 @@ mod tests {
     }
 
     #[test]
-    fn liveness_silently_drops_when_to_arc_released() {
+    fn single_shot_fires_once_and_slot_is_removed() {
         let mut sender = Sender::new();
         let receiver = Arc::new(Mutex::new(Receiver::new()));
         let counter = Arc::new(AtomicI32::new(0));
@@ -831,11 +810,44 @@ mod tests {
             let c = Arc::clone(&counter);
             receiver
                 .lock()
-                .unwrap()
                 .sig_b
-                .connect(move |args: &(i32,)| {
-                    c.store(args.0, Ordering::Relaxed);
-                });
+                .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
+        }
+        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
+        connect_signal_to_signal(
+            &mut sender,
+            "sig_a",
+            to,
+            "sig_b",
+            ConnectionType::SingleShot,
+        )
+        .expect("connection must succeed");
+
+        sender.sig_a.emit_unconditionally(&(1,));
+        assert_eq!(
+            counter.load(Ordering::Relaxed),
+            1,
+            "must fire on first emit"
+        );
+
+        sender.sig_a.emit_unconditionally(&(2,));
+        assert_eq!(
+            counter.load(Ordering::Relaxed),
+            1,
+            "slot must not fire on second emit — auto-disconnected after first delivery"
+        );
+    }
+
+    #[test]
+    fn liveness_silently_drops_when_to_arc_released() {
+        let mut sender = Sender::new();
+        let receiver = Arc::new(Mutex::new(Receiver::new()));
+        let counter = Arc::new(AtomicI32::new(0));
+        {
+            let c = Arc::clone(&counter);
+            receiver.lock().sig_b.connect(move |args: &(i32,)| {
+                c.store(args.0, Ordering::Relaxed);
+            });
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
         connect_signal_to_signal(&mut sender, "sig_a", to, "sig_b", ConnectionType::Direct)
@@ -861,13 +873,9 @@ mod tests {
         let counter = Arc::new(AtomicI32::new(0));
         {
             let c = Arc::clone(&counter);
-            receiver
-                .lock()
-                .unwrap()
-                .sig_b
-                .connect(move |args: &(i32,)| {
-                    c.store(args.0, Ordering::Relaxed);
-                });
+            receiver.lock().sig_b.connect(move |args: &(i32,)| {
+                c.store(args.0, Ordering::Relaxed);
+            });
         }
         let id = connect_signals(
             &mut sender,
@@ -897,13 +905,9 @@ mod tests {
         let counter = Arc::new(AtomicI32::new(0));
         {
             let c = Arc::clone(&counter);
-            receiver
-                .lock()
-                .unwrap()
-                .sig_b
-                .connect(move |args: &(i32,)| {
-                    c.store(args.0, Ordering::Relaxed);
-                });
+            receiver.lock().sig_b.connect(move |args: &(i32,)| {
+                c.store(args.0, Ordering::Relaxed);
+            });
         }
         connect_signals(
             &mut sender,
@@ -935,7 +939,6 @@ mod tests {
             let c = Arc::clone(&counter);
             receiver
                 .lock()
-                .unwrap()
                 .sig_b
                 .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
         }
@@ -959,7 +962,7 @@ mod tests {
 
         let dispatcher = install_test_dispatcher();
         // Drain any leftovers from earlier tests.
-        dispatcher.posted.lock().unwrap().clear();
+        dispatcher.posted.lock().clear();
 
         let mut sender = Sender::new();
         // Build receiver on a different thread so its thread_id != current().
@@ -977,7 +980,6 @@ mod tests {
             let c = Arc::clone(&counter);
             receiver
                 .lock()
-                .unwrap()
                 .sig_b
                 .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
         }
@@ -993,7 +995,7 @@ mod tests {
             "AC6 cross-thread Auto must not fire synchronously"
         );
         // Drain dispatcher and verify the closure was posted.
-        let tasks: Vec<_> = dispatcher.posted.lock().unwrap().drain(..).collect();
+        let tasks: Vec<_> = dispatcher.posted.lock().drain(..).collect();
         assert!(!tasks.is_empty(), "AC6: at least one task must be posted");
         for task in tasks {
             task();

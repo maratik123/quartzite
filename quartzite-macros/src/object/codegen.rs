@@ -293,9 +293,9 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
                 let cb = #cr::__macro::Arc::clone(&cb);
                 #builtin_use
                 // Omit the closure type annotation for built-ins: inferred from the field type.
-                ::core::option::Option::Some(#signal_access.connect(move |args| {
+                ::core::option::Option::Some(#signal_access.connect_typed(move |args| {
                     (*cb)(&[#(#conversions),*])
-                }))
+                }, conn_type))
             }
         }
     });
@@ -304,6 +304,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
             this: &mut super::#type_ident,
             name: &str,
             cb: #cr::SignalCallback,
+            conn_type: #cr::signal::ConnectionType,
         ) -> ::core::option::Option<#cr::ConnectionId> {
             let cb: #cr::__macro::Arc<
                 dyn ::core::ops::Fn(&[#cr::Value]) + Send + Sync,

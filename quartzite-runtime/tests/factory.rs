@@ -2,6 +2,7 @@ use quartzite_core::{
     id::ConnectionId,
     meta::MetaObject,
     object_base::ObjectBase,
+    signal::ConnectionType,
     traits::{AsObject, Object, SignalCallback},
     value::Value,
 };
@@ -59,7 +60,12 @@ impl Object for FooObj {
     fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
         None
     }
-    fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+    fn connect_signal(
+        &mut self,
+        _: &str,
+        _: SignalCallback,
+        _: ConnectionType,
+    ) -> Option<ConnectionId> {
         None
     }
 

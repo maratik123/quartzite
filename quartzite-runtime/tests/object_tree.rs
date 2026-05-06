@@ -1,4 +1,6 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use parking_lot::Mutex;
 
 use itertools::Itertools;
 use quartzite_core::{
@@ -6,6 +8,7 @@ use quartzite_core::{
     id::ConnectionId,
     meta::MetaObject,
     object_base::ObjectBase,
+    signal::ConnectionType,
     traits::{AsObject, Object, SignalCallback},
     value::Value,
 };
@@ -63,7 +66,12 @@ impl Object for Stub {
     fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
         None
     }
-    fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+    fn connect_signal(
+        &mut self,
+        _: &str,
+        _: SignalCallback,
+        _: ConnectionType,
+    ) -> Option<ConnectionId> {
         None
     }
 
@@ -91,7 +99,6 @@ impl Drop for LogObj {
     fn drop(&mut self) {
         self.log
             .lock()
-            .unwrap()
             .push(self.base.name().unwrap_or("").to_owned());
     }
 }
@@ -136,7 +143,12 @@ impl Object for LogObj {
     fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
         None
     }
-    fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
+    fn connect_signal(
+        &mut self,
+        _: &str,
+        _: SignalCallback,
+        _: ConnectionType,
+    ) -> Option<ConnectionId> {
         None
     }
 
@@ -249,7 +261,7 @@ fn destroy_is_depth_first_post_order() {
 
     tree.destroy(root);
 
-    let order = log.lock().unwrap().clone();
+    let order = log.lock().clone();
     assert_eq!(order.len(), 4, "all 4 nodes must be destroyed");
 
     let positions: Vec<usize> = ["gc", "c1", "root"]
