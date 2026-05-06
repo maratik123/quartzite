@@ -406,6 +406,62 @@ impl IntoValue for String {
     }
 }
 
+impl FromValue for Option<String> {
+    /// Attempts to convert `val` into an `Option<String>`.
+    ///
+    /// # Parameters
+    ///
+    /// - `val`: must be `Value::Null` (yields `None`) or `Value::String` (yields `Some`);
+    ///   any other variant returns `Err`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(TypeError)` when `val` is neither `Value::Null` nor `Value::String`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::{FromValue, Value};
+    ///
+    /// assert_eq!(Option::<String>::from_value(Value::Null), Ok(None));
+    /// assert_eq!(
+    ///     Option::<String>::from_value(Value::String("hi".into())),
+    ///     Ok(Some("hi".to_owned()))
+    /// );
+    /// assert!(Option::<String>::from_value(Value::Int(0)).is_err());
+    /// ```
+    fn from_value(val: Value) -> Result<Self, TypeError> {
+        match val {
+            Value::Null => Ok(None),
+            Value::String(s) => Ok(Some(s)),
+            _ => Err(TypeError {
+                expected: "String or Null",
+                got: val.type_name(),
+            }),
+        }
+    }
+}
+
+impl IntoValue for Option<String> {
+    /// Wraps `self` in `Value::String` when `Some`, or `Value::Null` when `None`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_core::value::{IntoValue, Value};
+    ///
+    /// assert_eq!(None::<String>.into_value(), Value::Null);
+    /// assert_eq!(Some("hi".to_owned()).into_value(), Value::String("hi".into()));
+    /// ```
+    #[inline]
+    fn into_value(self) -> Value {
+        match self {
+            None => Value::Null,
+            Some(s) => Value::String(s),
+        }
+    }
+}
+
 impl FromValue for core::time::Duration {
     /// Attempts to convert `val` into a [`core::time::Duration`].
     ///
@@ -632,6 +688,48 @@ mod tests {
     #[test]
     fn usize_rejects_negative() {
         assert!(usize::from_value(Value::Int(-1)).is_err());
+    }
+
+    // --- Option<String> ---
+
+    #[test]
+    fn option_string_none_into_value_is_null() {
+        assert_eq!(None::<String>.into_value(), Value::Null);
+    }
+
+    #[test]
+    fn option_string_some_into_value_is_string() {
+        assert_eq!(
+            Some("hello".to_owned()).into_value(),
+            Value::String("hello".into())
+        );
+    }
+
+    #[test]
+    fn option_string_from_null_is_none() {
+        assert_eq!(Option::<String>::from_value(Value::Null), Ok(None));
+    }
+
+    #[test]
+    fn option_string_from_string_is_some() {
+        assert_eq!(
+            Option::<String>::from_value(Value::String("world".into())),
+            Ok(Some("world".to_owned()))
+        );
+    }
+
+    #[test]
+    fn option_string_from_int_is_err() {
+        let err = Option::<String>::from_value(Value::Int(1)).unwrap_err();
+        assert_eq!(err.expected, "String or Null");
+        assert_eq!(err.got, "Int");
+    }
+
+    #[rstest]
+    #[case(None)]
+    #[case(Some("round-trip".to_owned()))]
+    fn option_string_round_trip(#[case] v: Option<String>) {
+        assert_eq!(Option::<String>::from_value(v.clone().into_value()), Ok(v));
     }
 
     #[test]

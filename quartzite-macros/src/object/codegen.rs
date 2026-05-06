@@ -1,26 +1,46 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Ident, Index, Type};
 
 use super::parse::{ObjectInput, PropField, SignalField};
 use crate::util::{crate_root, hidden_mod_ident};
 
+/// Constructs the synthesised `name_changed` built-in signal prepended to every `#[object]` type.
+fn make_name_changed_builtin() -> SignalField {
+    let ident = Ident::new("name_changed", Span::call_site());
+    let args_ty: Type = syn::parse_quote!((
+        ::core::option::Option<::std::string::String>,
+        ::core::option::Option<::std::string::String>
+    ));
+    SignalField {
+        ident,
+        args_ty,
+        builtin: true,
+    }
+}
+
 pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
     let mod_ident = hidden_mod_ident(type_ident);
 
+    // Prepend the built-in name_changed signal; all dispatch functions receive the full list.
+    // Wrapper functions (emit_<sig>, connect_<sig>_auto, connect_<sig>_queued) skip built-ins.
+    let builtin = make_name_changed_builtin();
+    let mut signals_all: Vec<SignalField> = vec![builtin];
+    signals_all.extend(ir.signals.iter().cloned());
+
     let props_static = emit_props_static(type_ident, &ir.props);
-    let signals_static = emit_signals_static(type_ident, &ir.signals);
+    let signals_static = emit_signals_static(type_ident, &signals_all);
     let read_fn = emit_read_property(type_ident, &ir.props);
     let write_fn = emit_write_property(type_ident, &ir.props);
-    let connect_fn = emit_connect_signal_dynamic(type_ident, &ir.signals);
+    let connect_fn = emit_connect_signal_dynamic(type_ident, &signals_all);
     let lookup_prop_fn = emit_lookup_prop_fn(type_ident, &ir.props);
-    let lookup_signal_fn = emit_lookup_signal_fn(type_ident, &ir.signals);
-    let emit_wrappers = emit_signal_wrappers(type_ident, &ir.signals);
-    let connect_auto_wrappers = emit_connect_auto_wrappers(type_ident, &ir.signals);
-    let connect_queued_wrappers = emit_connect_queued_wrappers(type_ident, &ir.signals);
-    let emit_signal_fn = emit_emit_signal(type_ident, &ir.signals);
+    let lookup_signal_fn = emit_lookup_signal_fn(type_ident, &signals_all);
+    let emit_wrappers = emit_signal_wrappers(type_ident, &signals_all);
+    let connect_auto_wrappers = emit_connect_auto_wrappers(type_ident, &signals_all);
+    let connect_queued_wrappers = emit_connect_queued_wrappers(type_ident, &signals_all);
+    let emit_signal_fn = emit_emit_signal(type_ident, &signals_all);
 
     quote! {
         #[doc(hidden)]
@@ -248,22 +268,32 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
     );
     let arms = signals.iter().map(|s| {
         let name = s.ident.to_string();
-        let field = &s.ident;
         let args_ty = &s.args_ty;
-        let conversions: Vec<TokenStream> = tuple_elems(args_ty)
-            .into_iter()
-            .enumerate()
-            .map(|(i, _ty)| {
+        let n = tuple_elems(args_ty).len();
+        let conversions: Vec<TokenStream> = (0..n)
+            .map(|i| {
                 let idx = Index::from(i);
                 quote! {
                     #cr::IntoValue::into_value(args.#idx.clone())
                 }
             })
             .collect();
+        // Built-in signals live on ObjectBase; user signals are direct struct fields.
+        let (builtin_use, signal_access) = if s.builtin {
+            (
+                quote! { use #cr::AsObject as _; },
+                quote! { this.object_base_mut().name_changed },
+            )
+        } else {
+            let field = &s.ident;
+            (quote! {}, quote! { this.#field })
+        };
         quote! {
             #name => {
                 let cb = #cr::__macro::Arc::clone(&cb);
-                ::core::option::Option::Some(this.#field.connect(move |args: &#args_ty| {
+                #builtin_use
+                // Omit the closure type annotation for built-ins: inferred from the field type.
+                ::core::option::Option::Some(#signal_access.connect(move |args| {
                     (*cb)(&[#(#conversions),*])
                 }))
             }
@@ -288,10 +318,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
 
 fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if signals.is_empty() {
-        return quote! {};
-    }
-    let methods = signals.iter().map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("emit_{field}"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -341,7 +368,10 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
                 #cr::emit!(self.#field, &(#(#arg_idents,)*));
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         impl #type_ident {
             #(#methods)*
@@ -354,29 +384,42 @@ fn emit_emit_signal(type_ident: &Ident, signals: &[SignalField]) -> TokenStream 
     let fn_name = Ident::new(&format!("__emit_signal_{type_ident}"), type_ident.span());
     let arms = signals.iter().map(|s| {
         let name = s.ident.to_string();
-        let field = &s.ident;
         let args_ty = &s.args_ty;
         let elems = tuple_elems(args_ty);
         let n = elems.len();
+        let span = s.ident.span();
         let bindings: Vec<TokenStream> = (0..n)
             .map(|i| {
                 let idx = Index::from(i);
-                let binding = Ident::new(&format!("__arg{i}"), field.span());
+                let binding = Ident::new(&format!("__arg{i}"), span);
                 quote! {
                     let #binding = #cr::FromValue::from_value(args[#idx].clone()).ok()?;
                 }
             })
             .collect();
         let arg_idents: Vec<Ident> = (0..n)
-            .map(|i| Ident::new(&format!("__arg{i}"), field.span()))
+            .map(|i| Ident::new(&format!("__arg{i}"), span))
             .collect();
+        // Built-in signals are on ObjectBase; inline the signals_blocked guard since emit!
+        // macro only accepts `receiver.field` syntax (two identifier levels).
+        let emit_call = if s.builtin {
+            quote! {
+                use #cr::AsObject as _;
+                if !this.object_base().signals_blocked() {
+                    this.object_base_mut().name_changed.emit_unconditionally(&(#(#arg_idents,)*));
+                }
+            }
+        } else {
+            let field = &s.ident;
+            quote! { #cr::emit!(this.#field, &(#(#arg_idents,)*)); }
+        };
         quote! {
             #name => {
                 if args.len() != #n {
                     return ::core::option::Option::None;
                 }
                 #(#bindings)*
-                #cr::emit!(this.#field, &(#(#arg_idents,)*));
+                #emit_call
                 ::core::option::Option::Some(())
             }
         }
@@ -397,10 +440,7 @@ fn emit_emit_signal(type_ident: &Ident, signals: &[SignalField]) -> TokenStream 
 
 fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if signals.is_empty() {
-        return quote! {};
-    }
-    let methods = signals.iter().map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("connect_{field}_auto"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -438,7 +478,10 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
                 )
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         // `#[cfg(feature = "std")]` is evaluated against the destination crate.
         // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates
@@ -452,10 +495,7 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
 
 fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if signals.is_empty() {
-        return quote! {};
-    }
-    let methods = signals.iter().map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("connect_{field}_queued"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -493,7 +533,10 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
                 )
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         // `#[cfg(feature = "std")]` is evaluated against the destination crate.
         // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates
@@ -699,9 +742,15 @@ mod tests {
             out.contains("\"version\" => false"),
             "missing false arm: {out}"
         );
+        // Verify the write_property fn itself has no FromValue (it may appear elsewhere in the
+        // output now that the name_changed built-in adds a FromValue call in __emit_signal_).
+        let write_fn_start = out
+            .find("fn __write_property_Foo")
+            .expect("fn __write_property_Foo not found");
+        let write_fn_section = &out[write_fn_start..write_fn_start + 500];
         assert!(
-            !out.contains("FromValue"),
-            "unexpected FromValue for read_only: {out}"
+            !write_fn_section.contains("FromValue"),
+            "unexpected FromValue in __write_property_Foo for read_only: {write_fn_section}"
         );
     }
 
@@ -737,9 +786,15 @@ mod tests {
             out.contains("emit !"),
             "missing emit! macro call in write_property notify: {out}"
         );
+        // The signals_blocked guard lives inside the name_changed built-in arm of
+        // __emit_signal_Foo, not in __write_property_Foo — narrow the assertion.
+        let write_fn_start = out
+            .find("fn __write_property_Foo")
+            .expect("fn __write_property_Foo not found");
+        let write_fn_section = &out[write_fn_start..write_fn_start + 1000];
         assert!(
-            !out.contains("signals_blocked"),
-            "unexpected signals_blocked in write_property notify (guard is in emit! macro): {out}"
+            !write_fn_section.contains("signals_blocked"),
+            "unexpected signals_blocked in write_property notify (guard is in emit! macro): {write_fn_section}"
         );
     }
 
@@ -752,9 +807,15 @@ mod tests {
                 pub val: i32,
             }
         });
+        // signals_blocked appears in __emit_signal_Foo for the name_changed built-in;
+        // narrow the assertion to just the write_property function.
+        let write_fn_start = out
+            .find("fn __write_property_Foo")
+            .expect("fn __write_property_Foo not found");
+        let write_fn_section = &out[write_fn_start..write_fn_start + 500];
         assert!(
-            !out.contains("signals_blocked"),
-            "unexpected signals_blocked guard for prop without notify: {out}"
+            !write_fn_section.contains("signals_blocked"),
+            "unexpected signals_blocked guard for prop without notify: {write_fn_section}"
         );
     }
 
@@ -808,8 +869,9 @@ mod tests {
             out.contains("fn __lookup_signal_Foo"),
             "missing lookup fn: {out}"
         );
+        // name_changed built-in is prepended at index 0; user signals start at index 1.
         assert!(
-            out.contains("\"ticked\"") && out.contains("__SIGNALS__Foo [0]"),
+            out.contains("\"ticked\"") && out.contains("__SIGNALS__Foo [1]"),
             "missing match arm or index: {out}"
         );
     }
@@ -845,9 +907,15 @@ mod tests {
             out.contains("emit !"),
             "missing emit! macro call in emit wrapper: {out}"
         );
+        // signals_blocked appears in __emit_signal_Foo for the name_changed built-in;
+        // narrow to just the emit_value_changed wrapper function.
+        let wrapper_start = out
+            .find("pub fn emit_value_changed")
+            .expect("pub fn emit_value_changed not found");
+        let wrapper_section = &out[wrapper_start..wrapper_start + 500];
         assert!(
-            !out.contains("signals_blocked"),
-            "unexpected signals_blocked in emit wrapper (guard is in emit! macro): {out}"
+            !wrapper_section.contains("signals_blocked"),
+            "unexpected signals_blocked in emit wrapper (guard is in emit! macro): {wrapper_section}"
         );
     }
 
@@ -893,9 +961,15 @@ mod tests {
             out.contains("pub fn emit_activated"),
             "missing emit wrapper: {out}"
         );
+        // name_changed built-in has 2 args (arg0, arg1) in __emit_signal_Foo and
+        // __SIGNALS__ static; narrow the assertion to just the emit_activated wrapper.
+        let wrapper_start = out
+            .find("pub fn emit_activated")
+            .expect("pub fn emit_activated not found");
+        let wrapper_section = &out[wrapper_start..wrapper_start + 500];
         assert!(
-            !out.contains("arg0"),
-            "unexpected arg for zero-arg signal: {out}"
+            !wrapper_section.contains("arg0"),
+            "unexpected arg for zero-arg signal in emit_activated wrapper: {wrapper_section}"
         );
     }
 
@@ -1190,9 +1264,19 @@ mod tests {
             out.contains("args . len () != 0usize"),
             "missing zero-arity guard: {out}"
         );
+        // The name_changed built-in arm has 2 Option<String> args → FromValue appears there;
+        // narrow the assertion to just the "clicked" arm.
+        let emit_fn_start = out
+            .find("fn __emit_signal_Foo")
+            .expect("fn __emit_signal_Foo not found");
+        let emit_fn_section = &out[emit_fn_start..];
+        let clicked_arm_start = emit_fn_section
+            .find("\"clicked\"")
+            .expect("\"clicked\" arm not found");
+        let clicked_arm_section = &emit_fn_section[clicked_arm_start..clicked_arm_start + 500];
         assert!(
-            !out.contains("FromValue :: from_value"),
-            "unexpected FromValue in zero-arg emit_signal: {out}"
+            !clicked_arm_section.contains("FromValue :: from_value"),
+            "unexpected FromValue in zero-arg clicked arm: {clicked_arm_section}"
         );
         assert!(
             out.contains("\"clicked\""),
@@ -1238,6 +1322,117 @@ mod tests {
         assert!(
             mod_section.contains("__emit_signal_Foo"),
             "__emit_signal_Foo must be inside the hidden mod: {mod_section}"
+        );
+    }
+
+    // --- name_changed built-in signal tests (AC4, Subtask 6) ---
+
+    // __SIGNALS__ always contains "name_changed" even with no user signals.
+    #[test]
+    fn signals_static_contains_name_changed_builtin_no_user_signals() {
+        let out = emit(quote! { struct Foo {} });
+        assert!(
+            out.contains("\"name_changed\""),
+            "__SIGNALS__ must contain name_changed even without user signals: {out}"
+        );
+    }
+
+    // __SIGNALS__ contains "name_changed" AND a user signal when user signal declared.
+    #[test]
+    fn signals_static_contains_name_changed_and_user_signal() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        assert!(
+            out.contains("\"name_changed\""),
+            "missing name_changed in __SIGNALS__: {out}"
+        );
+        assert!(
+            out.contains("\"ticked\""),
+            "missing user signal in __SIGNALS__: {out}"
+        );
+    }
+
+    // __emit_signal_Foo has a "name_changed" dispatch arm.
+    #[test]
+    fn emit_signal_dispatch_has_name_changed_arm() {
+        let out = emit(quote! { struct Foo {} });
+        let emit_fn_start = out
+            .find("fn __emit_signal_Foo")
+            .expect("fn __emit_signal_Foo not found");
+        let emit_fn_section = &out[emit_fn_start..];
+        assert!(
+            emit_fn_section.contains("\"name_changed\""),
+            "__emit_signal_Foo must have a name_changed arm: {emit_fn_section}"
+        );
+    }
+
+    // __emit_signal_Foo routes name_changed through object_base_mut().name_changed.
+    #[test]
+    fn emit_signal_name_changed_routes_through_object_base() {
+        let out = emit(quote! { struct Foo {} });
+        let emit_fn_start = out
+            .find("fn __emit_signal_Foo")
+            .expect("fn __emit_signal_Foo not found");
+        let emit_fn_section = &out[emit_fn_start..];
+        assert!(
+            emit_fn_section.contains("object_base_mut"),
+            "name_changed arm must route through object_base_mut: {emit_fn_section}"
+        );
+    }
+
+    // No typed emit_name_changed public wrapper is generated.
+    #[test]
+    fn no_emit_name_changed_public_wrapper() {
+        let out = emit(quote! { struct Foo {} });
+        assert!(
+            !out.contains("pub fn emit_name_changed"),
+            "must not generate typed emit_name_changed wrapper: {out}"
+        );
+    }
+
+    // __connect_signal_dynamic_ has a "name_changed" arm.
+    #[test]
+    fn connect_signal_dynamic_has_name_changed_arm() {
+        let out = emit(quote! { struct Foo {} });
+        let connect_fn_start = out
+            .find("fn __connect_signal_dynamic_Foo")
+            .expect("fn __connect_signal_dynamic_Foo not found");
+        let connect_fn_section = &out[connect_fn_start..];
+        assert!(
+            connect_fn_section.contains("\"name_changed\""),
+            "__connect_signal_dynamic_Foo must have a name_changed arm: {connect_fn_section}"
+        );
+    }
+
+    // __connect_signal_dynamic_ routes name_changed through object_base_mut().
+    #[test]
+    fn connect_signal_dynamic_name_changed_routes_through_object_base() {
+        let out = emit(quote! { struct Foo {} });
+        let connect_fn_start = out
+            .find("fn __connect_signal_dynamic_Foo")
+            .expect("fn __connect_signal_dynamic_Foo not found");
+        let connect_fn_section = &out[connect_fn_start..];
+        assert!(
+            connect_fn_section.contains("object_base_mut"),
+            "name_changed arm must route through object_base_mut: {connect_fn_section}"
+        );
+    }
+
+    // No connect_name_changed_auto / _queued wrappers generated.
+    #[test]
+    fn no_connect_name_changed_typed_wrappers() {
+        let out = emit(quote! { struct Foo {} });
+        assert!(
+            !out.contains("connect_name_changed_auto"),
+            "must not generate connect_name_changed_auto: {out}"
+        );
+        assert!(
+            !out.contains("connect_name_changed_queued"),
+            "must not generate connect_name_changed_queued: {out}"
         );
     }
 }
