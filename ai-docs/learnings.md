@@ -1,5 +1,19 @@
 # Learnings
 
+### 2026-05-07 — code-style — methods inside `impl<T> Trait for Foo<T>` are generic-shaped and need `_Simple._`, not `#[inline]`; and use `// _Simple._` (not `///`) on trait-impl methods
+
+**What happened:** PR #120 (issue #115 implementation) added `#[inline]` to `Signal<Args>::default`, `ObjectRef<T>::clone`/`eq`, `WeakRef<T>::clone`/`eq`. All five methods sit inside `impl<T> Trait for Foo<T>` blocks and have no own type parameters, but `Self` is parametrised by the impl block's generics. The original carve-out wording was ambiguous enough to be read as covering this case. The first fix replaced `#[inline]` with `/// _Simple._`, but rendered rustdoc revealed `///` *overrides* the trait-inherited docstring — `Clone::clone`'s actual doc ("Returns a copy of the value...") was wiped out and replaced by just `_Simple._` on the rustdoc page.
+
+**Rule (combined):**
+1. From the Rust compiler's point of view, methods inside `impl<T> ...` / `impl<T> Trait for Foo<T>` blocks are generic-shaped — the body is monomorphized per concrete `T` even when the method declares no extra type parameters. They go to the **generic** row → use `_Simple._`. The carve-out for default trait methods applies *only* to default methods inside a `pub trait` body (where the body lives in the trait declaration, a single source location).
+2. **Marker form by position:** `/// _Simple._` (doc line) for generic free fns, inherent generic methods, and trait method declarations — these need their own docs. `// _Simple._` (regular line comment) for methods inside `impl<T> Trait for Foo<T>` blocks — these inherit the trait's docs and a `///` line would silently replace them on the rustdoc page. Audit grep `rg '_Simple\._'` matches both forms.
+
+**Why:** `#[inline]` on a generic `impl<T>` method is redundant (monomorphization already makes the body cross-crate-available); the marker should be `_Simple._`. But `///` on a trait-impl method is a documentation regression (overrides inherited rustdoc). `//` keeps the marker as a human-only signal in source while leaving the trait-inherited rustdoc intact. Verified against rendered HTML in `target/doc/`.
+
+**How to apply:** When deciding the marker for a method, look at the surrounding `impl` block's generic parameter list, not just the method's own. If the impl block introduces generics that parametrise `Self`, use `_Simple._`. If you're inside a trait-impl block (`impl<T> Trait for Foo<T> { fn ... }`), use `//` not `///`. Reviewer/self-reviewer rejects `#[inline]` on generic-shape methods AND rejects `///` on trait-impl methods.
+
+**Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
+
 ### 2026-05-07 — code-style — strip `#[inline]` / `_Simple._` when a fn stops being simple, and cascade to callers
 
 **What happened:** During design discussion of the recursive `#[inline]` rule, the user surfaced a maintenance gap: when a previously-simple fn grows branches/loops or a second non-simple call, its marker (`#[inline]` or `_Simple._`) becomes a lie, and any caller that was simple only because this callee was treated as free may itself no longer qualify. The original rule covered when to *add* the marker; it said nothing about when to *strip* it.
