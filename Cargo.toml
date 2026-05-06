@@ -5,6 +5,7 @@ members = [
     "quartzite-runtime",
     "quartzite-geometry",
     "quartzite-events",
+    "quartzite-event-types",
 ]
 resolver = "2"
 

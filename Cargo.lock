@@ -438,6 +438,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-event-types"
+version = "0.1.0"
+dependencies = [
+ "pretty_assertions",
+ "quartzite-core",
+ "rstest",
+]
+
+[[package]]
 name = "quartzite-events"
 version = "0.1.0"
 dependencies = [
@@ -445,6 +454,7 @@ dependencies = [
  "hashbrown",
  "pretty_assertions",
  "quartzite-core",
+ "quartzite-event-types",
  "quartzite-geometry",
  "rstest",
 ]
@@ -478,6 +488,7 @@ dependencies = [
  "itertools",
  "parking_lot",
  "quartzite-core",
+ "quartzite-event-types",
  "quartzite-macros",
  "slotmap",
  "thiserror",

@@ -38,7 +38,7 @@ use crate::timer::{TimerConfig, TimerDriver};
 /// use quartzite_runtime::timer::{Timer, ThreadDriver};
 ///
 /// let mut timer = Timer::new(Duration::from_millis(50));
-/// timer.connect_tick(|args| println!("tick #{}", args.0));
+/// timer.connect_tick(|args| println!("tick #{}", args.0.fire_count()));
 /// timer.start(Arc::new(ThreadDriver::new()));
 /// std::thread::sleep(Duration::from_millis(200));
 /// timer.stop();
@@ -126,7 +126,7 @@ impl TimerDriver for ThreadDriver {
 ///
 /// let app = Application::new().unwrap();
 /// let mut timer = Timer::new(Duration::from_millis(50));
-/// timer.connect_tick(|args| println!("app-thread tick #{}", args.0));
+/// timer.connect_tick(|args| println!("app-thread tick #{}", args.0.fire_count()));
 /// timer.start(Arc::new(AppDriver::new()));
 /// std::thread::sleep(Duration::from_millis(200));
 /// timer.stop();
@@ -248,11 +248,11 @@ struct PoolInner {
 /// let pool: Arc<dyn TimerDriver> = Arc::new(PoolDriver::new());
 ///
 /// let mut t1 = Timer::new(Duration::from_millis(50));
-/// t1.connect_tick(|args| println!("t1 tick #{}", args.0));
+/// t1.connect_tick(|args| println!("t1 tick #{}", args.0.fire_count()));
 /// t1.start(Arc::clone(&pool));
 ///
 /// let mut t2 = Timer::new(Duration::from_millis(80));
-/// t2.connect_tick(|args| println!("t2 tick #{}", args.0));
+/// t2.connect_tick(|args| println!("t2 tick #{}", args.0.fire_count()));
 /// t2.start(Arc::clone(&pool));
 ///
 /// std::thread::sleep(Duration::from_millis(400));

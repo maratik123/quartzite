@@ -14,7 +14,8 @@
 | `quartzite-macros` | Proc-macro crate: `#[derive(Extend)]`, `#[derive(Object)]`, `#[object_part]`, `#[object_impl]` |
 | `quartzite-runtime` | Application, EventLoop, ObjectTree, ObjectRef, Timer, ObjectTreeExt, try_with_tree |
 | `quartzite-geometry` | Point/PointF, Size/SizeF, Rect/RectF, Margins — no_std, no alloc |
-| `quartzite-events` | Event\<T\>, MouseEvent, KeyEvent, EventFilter\<T\>, ResizeEvent, CloseEvent, TimerEvent — no_std + alloc |
+| `quartzite-event-types` | Event\<T\>, EventType\<T\>, EventFilter\<T\>, KeyEventKind, MouseEventKind, TimerEvent — no_std + alloc; intermediate crate between `quartzite-core` and `quartzite-events` |
+| `quartzite-events` | MouseEvent, KeyEvent, ResizeEvent, CloseEvent; re-exports from `quartzite-event-types` — no_std + alloc |
 | `quartzite-paint` | Painter, Color, Font, Pen, Brush, Image, Path |
 | `quartzite-style` | Style trait, Palette, StyleRegistry |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout, Button, Label, LineEdit, … |

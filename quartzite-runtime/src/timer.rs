@@ -18,6 +18,7 @@ use parking_lot::Mutex;
 use quartzite_core::{
     ConnectionId, ObjectBase, ObjectId, receiver_guard::ReceiverGuard, signal::Signal,
 };
+use quartzite_event_types::TimerEvent;
 use quartzite_macros::{Extend, Object, object_impl};
 
 pub use crate::timer_drivers::{AppDriver, PoolDriver, ThreadDriver};
@@ -63,11 +64,11 @@ pub struct TimerConfig {
 ///
 /// `Timer` owns an `Arc<TimerState>` and the driver callback captures a clone of
 /// that same `Arc`. The atomic flags let both sides coordinate without holding
-/// the full timer lock. The `signal` field shares the same `Arc<Mutex<Signal<(usize,)>>>`
+/// the full timer lock. The `signal` field shares the same `Arc<Mutex<Signal<(TimerEvent,)>>>`
 /// as `Timer::tick` so both sides emit through the same `Signal` instance.
 pub(crate) struct TimerState {
     /// Shared tick signal — the same `Arc` as `Timer::tick`.
-    pub(crate) signal: Arc<Mutex<Signal<(usize,)>>>,
+    pub(crate) signal: Arc<Mutex<Signal<(TimerEvent,)>>>,
     /// Monotonically increasing count; 0 on the first fire, 1 on the second, etc.
     pub(crate) fire_count: AtomicUsize,
     /// Set to `true` while the driver is running; cleared by [`TimerDriver::stop`] / single-shot.
@@ -80,7 +81,7 @@ pub(crate) struct TimerState {
 
 impl TimerState {
     /// Creates a `TimerState` sharing the given `signal` Arc.
-    pub(crate) fn new(signal: Arc<Mutex<Signal<(usize,)>>>) -> Arc<Self> {
+    pub(crate) fn new(signal: Arc<Mutex<Signal<(TimerEvent,)>>>) -> Arc<Self> {
         Arc::new(Self {
             signal,
             fire_count: AtomicUsize::new(0),
@@ -153,7 +154,7 @@ pub trait TimerDriver: Send + Sync + 'static {
 /// use quartzite_runtime::timer::{Timer, ThreadDriver};
 ///
 /// let mut timer = Timer::new(Duration::from_millis(100));
-/// timer.connect_tick(|args| println!("tick {}", args.0));
+/// timer.connect_tick(|args| println!("tick {}", args.0.fire_count()));
 /// timer.start(Arc::new(ThreadDriver::new()));
 /// // … later …
 /// timer.stop();
@@ -179,7 +180,7 @@ pub struct Timer {
     #[prop]
     pub single_shot: bool,
     /// Shared tick signal — the same `Arc` as `TimerState::signal`.
-    tick: Arc<Mutex<Signal<(usize,)>>>,
+    tick: Arc<Mutex<Signal<(TimerEvent,)>>>,
     /// Shared state accessed by the driver callback.
     state: Arc<TimerState>,
     /// Active driver handle — `None` when stopped.
@@ -250,7 +251,8 @@ impl Timer {
 
     /// Connects a `Direct` slot to the `tick` signal.
     ///
-    /// The slot receives a reference to `(usize,)` where the `usize` is the 0-indexed fire count.
+    /// The slot receives a reference to `(TimerEvent,)` where [`TimerEvent`] carries
+    /// the timer id and the 0-indexed fire count.
     ///
     /// # Parameters
     ///
@@ -263,10 +265,10 @@ impl Timer {
     /// use quartzite_runtime::timer::Timer;
     ///
     /// let mut timer = Timer::new(Duration::from_millis(100));
-    /// let id = timer.connect_tick(|args| println!("fire #{}", args.0));
+    /// let id = timer.connect_tick(|args| println!("fire #{}", args.0.fire_count()));
     /// timer.disconnect_tick(id);
     /// ```
-    pub fn connect_tick<F: Fn(&(usize,)) + Send + 'static>(&self, f: F) -> ConnectionId {
+    pub fn connect_tick<F: Fn(&(TimerEvent,)) + Send + 'static>(&self, f: F) -> ConnectionId {
         self.tick.lock().connect(f)
     }
 
@@ -290,7 +292,10 @@ impl Timer {
     ///
     /// let timer = Timer::new(Duration::from_millis(100));
     /// let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
-    /// let id = timer.connect_tick_queued(|args: (usize,)| println!("queued #{}", args.0), guard_weak);
+    /// let id = timer.connect_tick_queued(
+    ///     |args: (quartzite_event_types::TimerEvent,)| println!("queued #{}", args.0.fire_count()),
+    ///     guard_weak,
+    /// );
     /// drop(guard_arc);
     /// timer.disconnect_tick(id);
     /// ```
@@ -300,7 +305,7 @@ impl Timer {
         guard: std::sync::Weak<ReceiverGuard>,
     ) -> ConnectionId
     where
-        F: Fn((usize,)) + Send + Sync + 'static,
+        F: Fn((TimerEvent,)) + Send + Sync + 'static,
     {
         self.tick.lock().connect_queued(f, guard)
     }
@@ -328,7 +333,7 @@ impl Timer {
     /// let id = timer.connect_tick_auto(
     ///     thread::current().id(),
     ///     guard_weak,
-    ///     |args: (usize,)| println!("auto #{}", args.0),
+    ///     |args: (quartzite_event_types::TimerEvent,)| println!("auto #{}", args.0.fire_count()),
     /// );
     /// drop(guard_arc);
     /// timer.disconnect_tick(id);
@@ -340,7 +345,7 @@ impl Timer {
         f: F,
     ) -> ConnectionId
     where
-        F: Fn((usize,)) + Send + Sync + 'static,
+        F: Fn((TimerEvent,)) + Send + Sync + 'static,
     {
         self.tick.lock().connect_auto(receiver_thread_id, guard, f)
     }
@@ -365,25 +370,27 @@ impl Timer {
         self.tick.lock().disconnect(id);
     }
 
-    /// Emits the `tick` signal with `fire_count` unless signals are blocked.
+    /// Emits the `tick` signal with the given [`TimerEvent`] unless signals are blocked.
     ///
     /// # Parameters
     ///
-    /// - `fire_count`: the 0-indexed count to deliver to slots.
+    /// - `event`: the timer event to deliver to connected slots.
     ///
     /// # Examples
     ///
     /// ```
     /// use std::time::Duration;
+    /// use quartzite_core::ObjectId;
+    /// use quartzite_event_types::TimerEvent;
     /// use quartzite_runtime::timer::Timer;
     ///
     /// let timer = Timer::new(Duration::from_millis(100));
-    /// timer.emit_tick(0);
+    /// timer.emit_tick(TimerEvent::new(timer.base.id(), 0));
     /// ```
-    pub fn emit_tick(&self, fire_count: usize) {
+    pub fn emit_tick(&self, event: TimerEvent) {
         let blocked = self.base.signals_blocked();
         if !blocked {
-            self.tick.lock().emit_unconditionally(&(fire_count,));
+            self.tick.lock().emit_unconditionally(&(event,));
         }
     }
 
@@ -488,6 +495,7 @@ impl Timer {
             single_shot,
         };
 
+        let timer_id = self.base.id();
         let state = Arc::clone(&self.state);
         let callback: Box<dyn Fn() + Send + Sync + 'static> = Box::new(move || {
             // Exit if stop() was called or single_shot already fired.
@@ -496,7 +504,10 @@ impl Timer {
             }
             let count = state.fire_count.fetch_add(1, Ordering::SeqCst);
             if !state.signals_blocked.load(Ordering::Relaxed) {
-                state.signal.lock().emit_unconditionally(&(count,));
+                state
+                    .signal
+                    .lock()
+                    .emit_unconditionally(&(TimerEvent::new(timer_id, count),));
             }
             if single_shot {
                 state.running.store(false, Ordering::SeqCst);
@@ -590,7 +601,7 @@ mod tests {
         let called2 = Arc::clone(&called);
         timer.connect_tick(move |_| called2.store(true, Ordering::SeqCst));
         timer.block_signals();
-        timer.emit_tick(0);
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 0));
         assert!(!called.load(Ordering::SeqCst));
     }
 
@@ -599,8 +610,8 @@ mod tests {
         let timer = Timer::new(Duration::from_millis(50));
         let count = Arc::new(AtomicUsize::new(0));
         let count2 = Arc::clone(&count);
-        timer.connect_tick(move |args| count2.store(args.0, Ordering::SeqCst));
-        timer.emit_tick(7);
+        timer.connect_tick(move |args| count2.store(args.0.fire_count(), Ordering::SeqCst));
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 7));
         assert_eq!(count.load(Ordering::SeqCst), 7);
     }
 
@@ -612,11 +623,11 @@ mod tests {
         timer.connect_tick(move |_| called2.store(true, Ordering::SeqCst));
 
         timer.block_signals();
-        timer.emit_tick(0);
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 0));
         assert!(!called.load(Ordering::SeqCst));
 
         timer.unblock_signals();
-        timer.emit_tick(1);
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 1));
         assert!(called.load(Ordering::SeqCst));
     }
 
@@ -666,12 +677,17 @@ mod tests {
         // Connecting through Timer.tick and emitting through TimerState.signal must
         // reach the same slot because both point at the same Arc<Mutex<Signal>>.
         let timer = Timer::new(Duration::from_millis(100));
+        let id = timer.base.id();
         let count = Arc::new(AtomicUsize::new(0));
         let count2 = Arc::clone(&count);
-        timer.connect_tick(move |args| count2.store(args.0 + 1, Ordering::SeqCst));
+        timer.connect_tick(move |args| count2.store(args.0.fire_count() + 1, Ordering::SeqCst));
 
         // Emit via TimerState's signal Arc (same underlying Mutex).
-        timer.state.signal.lock().emit_unconditionally(&(41,));
+        timer
+            .state
+            .signal
+            .lock()
+            .emit_unconditionally(&(TimerEvent::new(id, 41),));
         assert_eq!(count.load(Ordering::SeqCst), 42);
     }
 
@@ -692,12 +708,12 @@ mod tests {
 
         // Connect from the current thread — same-thread emit will use Direct delivery.
         let receiver_thread = std::thread::current().id();
-        timer.connect_tick_auto(receiver_thread, guard_weak, move |args: (usize,)| {
-            count2.fetch_add(args.0 + 1, Ordering::SeqCst);
+        timer.connect_tick_auto(receiver_thread, guard_weak, move |args: (TimerEvent,)| {
+            count2.fetch_add(args.0.fire_count() + 1, Ordering::SeqCst);
         });
 
         // Emit on the same thread — Direct path, no queued dispatcher required.
-        timer.emit_tick(5);
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 5));
         assert_eq!(
             count.load(Ordering::SeqCst),
             6,
@@ -718,13 +734,13 @@ mod tests {
         let count2 = Arc::clone(&count);
 
         let receiver_thread = std::thread::current().id();
-        timer.connect_tick_auto(receiver_thread, guard_weak, move |_: (usize,)| {
+        timer.connect_tick_auto(receiver_thread, guard_weak, move |_: (TimerEvent,)| {
             count2.fetch_add(1, Ordering::SeqCst);
         });
 
         // Drop the guard — slot must be silently skipped.
         drop(guard_arc);
-        timer.emit_tick(0);
+        timer.emit_tick(TimerEvent::new(timer.base.id(), 0));
         assert_eq!(
             count.load(Ordering::SeqCst),
             0,
