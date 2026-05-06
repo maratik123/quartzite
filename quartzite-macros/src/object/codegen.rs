@@ -318,10 +318,7 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
 
 fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if !signals.iter().any(|s| !s.builtin) {
-        return quote! {};
-    }
-    let methods = signals.iter().filter(|s| !s.builtin).map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("emit_{field}"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -371,7 +368,10 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
                 #cr::emit!(self.#field, &(#(#arg_idents,)*));
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         impl #type_ident {
             #(#methods)*
@@ -440,10 +440,7 @@ fn emit_emit_signal(type_ident: &Ident, signals: &[SignalField]) -> TokenStream 
 
 fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if !signals.iter().any(|s| !s.builtin) {
-        return quote! {};
-    }
-    let methods = signals.iter().filter(|s| !s.builtin).map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("connect_{field}_auto"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -481,7 +478,10 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
                 )
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         // `#[cfg(feature = "std")]` is evaluated against the destination crate.
         // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates
@@ -495,10 +495,7 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
 
 fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    if !signals.iter().any(|s| !s.builtin) {
-        return quote! {};
-    }
-    let methods = signals.iter().filter(|s| !s.builtin).map(|s| {
+    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
         let field = &s.ident;
         let fn_name = Ident::new(&format!("connect_{field}_queued"), field.span());
         let fn_name_str = fn_name.to_string();
@@ -536,7 +533,10 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
                 )
             }
         }
-    });
+    }).collect();
+    if methods.is_empty() {
+        return quote! {};
+    }
     quote! {
         // `#[cfg(feature = "std")]` is evaluated against the destination crate.
         // `#[allow(unexpected_cfgs)]` prevents a check-cfg warning in crates

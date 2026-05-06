@@ -362,6 +362,7 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn clear_name(&mut self, id: ObjectId) {
+        debug!(object_id = ?id, "object tree: clear_name");
         // Remove from old name bucket.
         let old_name = self.with(id, |obj| obj.object_base().name().map(str::to_owned));
         match old_name {
