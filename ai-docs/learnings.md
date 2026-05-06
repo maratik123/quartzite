@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — code-style — methods inside `impl<T> Trait for Foo<T>` are generic-shaped and need `_Simple._`, not `#[inline]`
+
+**What happened:** PR #120 (issue #115 implementation) added `#[inline]` to `Signal<Args>::default`, `ObjectRef<T>::clone`/`eq`, `WeakRef<T>::clone`/`eq`. All five methods sit inside `impl<T> Trait for Foo<T>` blocks and have no own type parameters, but `Self` is parametrised by the impl block's generics. The original "concrete vs generic" carve-out wording (*"default trait methods on a generic blanket impl whose own bodies are non-generic stay in the concrete row — the generic context is only `Self`; the body has no own type parameters"*) was ambiguous enough to be read as covering this case.
+
+**Rule:** From the Rust compiler's point of view, methods inside `impl<T> ...` / `impl<T> Trait for Foo<T>` blocks are generic-shaped — the body is monomorphized per concrete `T` even when the method declares no extra type parameters. They go to the **generic** row → use `_Simple._`. The carve-out for default trait methods applies *only* to default methods inside a `pub trait` body (where the body lives in the trait declaration, a single source location). For methods inside an `impl<T> Trait for Foo<T>` block, place `/// _Simple._` directly above the `fn` keyword inside the impl block — this is allowed despite the doc-convention's trait-impl exemption (the exemption removes the requirement to satisfy the full convention, not the right to add a doc tag).
+
+**Why:** `#[inline]` on a method in a generic `impl<T>` block is redundant for cross-crate inlining (monomorphization already makes the body cross-crate-available), and a stale "concrete-row" classification mis-applies the marker rules. Sharpening the carve-out wording to explicitly distinguish *default methods in a `pub trait` body* (concrete row) from *methods in an `impl<T> ...` block* (generic row) prevents the same drift in future implementations.
+
+**How to apply:** When deciding the marker for a method, look at the surrounding `impl` block's generic parameter list, not just the method's own. If the impl block introduces generics that parametrise `Self`, use `_Simple._` placed inside the impl block. Reviewer/self-reviewer rejects `#[inline]` on such methods.
+
+**Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
+
 ### 2026-05-07 — code-style — strip `#[inline]` / `_Simple._` when a fn stops being simple, and cascade to callers
 
 **What happened:** During design discussion of the recursive `#[inline]` rule, the user surfaced a maintenance gap: when a previously-simple fn grows branches/loops or a second non-simple call, its marker (`#[inline]` or `_Simple._`) becomes a lie, and any caller that was simple only because this callee was treated as free may itself no longer qualify. The original rule covered when to *add* the marker; it said nothing about when to *strip* it.
