@@ -86,7 +86,7 @@ struct LimitedCounter {
     pub max: i32,
 }
 
-#[object_part]
+#[object_impl]
 impl LimitedCounter {
     #[slot]
     fn increment(&mut self) {
@@ -96,9 +96,6 @@ impl LimitedCounter {
         }
     }
 }
-
-#[object_impl]
-impl LimitedCounter {}
 
 // ── Demo ──────────────────────────────────────────────────────────────────────
 
