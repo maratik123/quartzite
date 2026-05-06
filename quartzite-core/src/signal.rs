@@ -315,6 +315,7 @@ impl<Args: 'static> core::fmt::Debug for Signal<Args> {
 }
 
 impl<Args: 'static> Default for Signal<Args> {
+    #[inline]
     fn default() -> Self {
         Signal {
             #[cfg(feature = "std")]
@@ -347,6 +348,8 @@ impl<Args: 'static> Signal<Args> {
 
     /// Connects a `Direct` slot and returns its `ConnectionId` for later disconnect.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `f`: slot callback invoked with a shared reference to the args tuple
@@ -361,7 +364,6 @@ impl<Args: 'static> Signal<Args> {
     /// let id = sig.connect(|args| println!("value = {}", args.0));
     /// sig.disconnect(id);
     /// ```
-    #[inline]
     pub fn connect<F: Fn(&Args) + Send + 'static>(&mut self, f: F) -> ConnectionId {
         self.connect_typed(f, ConnectionType::Direct)
     }

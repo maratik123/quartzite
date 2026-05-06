@@ -96,12 +96,14 @@ impl<T> ObjectRef<T> {
 
 impl<T> Copy for ObjectRef<T> {}
 impl<T> Clone for ObjectRef<T> {
+    #[inline]
     fn clone(&self) -> Self {
         *self
     }
 }
 
 impl<T> PartialEq for ObjectRef<T> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
@@ -205,12 +207,14 @@ impl<T> WeakRef<T> {
 
 impl<T> Copy for WeakRef<T> {}
 impl<T> Clone for WeakRef<T> {
+    #[inline]
     fn clone(&self) -> Self {
         *self
     }
 }
 
 impl<T> PartialEq for WeakRef<T> {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
