@@ -7,6 +7,8 @@ use std::sync::{
 use std::time::Duration;
 use tracing::debug_span;
 
+use crate::loop_registry::{LoopAlreadyInstalled, LoopRegistry, RegistryGuard};
+
 const TICK_MS: u64 = 1;
 
 /// Single-threaded event loop.
@@ -111,6 +113,9 @@ impl EventLoop {
     /// el.run(); // blocks until stop() is called above
     /// ```
     pub fn run(&self) {
+        // `RegistryGuard` deregisters the current thread from `LoopRegistry` on drop,
+        // ensuring cleanup even when a posted closure panics and unwinds through `run`.
+        let _guard = RegistryGuard;
         let receiver = self.receiver.lock();
         self.running.store(true, Ordering::SeqCst);
         while self.running.load(Ordering::SeqCst) {
@@ -159,6 +164,100 @@ impl EventLoop {
     #[inline]
     pub fn is_running(&self) -> bool {
         self.running.load(Ordering::SeqCst)
+    }
+
+    /// Registers this loop in the process-wide `LoopRegistry`
+    /// for the calling thread.
+    ///
+    /// After installation, queued signal invocations targeting the calling thread will be routed
+    /// to this loop. Call [`run`](Self::run) on the same thread afterward to start processing.
+    ///
+    /// # Parameters
+    ///
+    /// - `self`: `Arc`-wrapped loop to register; the registry holds a clone of this `Arc`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoopAlreadyInstalled`] if a loop is already registered for the calling thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// el.clone().install_for_current_thread().expect("no loop installed yet");
+    /// ```
+    pub fn install_for_current_thread(self: Arc<Self>) -> Result<(), LoopAlreadyInstalled> {
+        let _span = debug_span!("event_loop::install_for_current_thread").entered();
+        LoopRegistry::install(std::thread::current().id(), self)
+    }
+
+    /// Removes the current thread's `LoopRegistry` entry.
+    ///
+    /// No-op if the calling thread has no registered loop. Typically called automatically by
+    /// [`run`](Self::run) via `RegistryGuard` on exit.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let el = Arc::new(EventLoop::new());
+    /// el.clone().install_for_current_thread().unwrap();
+    /// EventLoop::uninstall_for_current_thread();
+    /// ```
+    pub fn uninstall_for_current_thread() {
+        let _span = debug_span!("event_loop::uninstall_for_current_thread").entered();
+        LoopRegistry::uninstall(std::thread::current().id());
+    }
+
+    /// Spawns a new thread with an installed, running [`EventLoop`].
+    ///
+    /// The thread installs a fresh loop, calls `f`, then runs the loop until
+    /// [`stop`](Self::stop) is called. Returns the `Arc<EventLoop>` for the new thread
+    /// (usable to post closures or stop the loop) and the [`JoinHandle`](std::thread::JoinHandle).
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: callback invoked on the new thread before the loop starts; use it to post initial
+    ///   work or pass the `Arc<EventLoop>` to other parts of the program.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`LoopAlreadyInstalled`] if the spawned thread's [`ThreadId`](std::thread::ThreadId)
+    /// is already registered in the loop registry. In practice this cannot happen because
+    /// `ThreadId` values are guaranteed never to be reused within a process lifetime.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::EventLoop;
+    ///
+    /// let (el, handle) = EventLoop::spawn(|| {}).unwrap();
+    /// el.post(Box::new(|| println!("on worker thread")));
+    /// el.stop();
+    /// handle.join().unwrap();
+    /// ```
+    pub fn spawn(
+        f: impl FnOnce() + Send + 'static,
+    ) -> Result<(Arc<Self>, std::thread::JoinHandle<()>), LoopAlreadyInstalled> {
+        let el = Arc::new(EventLoop::new());
+        let el_thread = Arc::clone(&el);
+        let (tx, rx) = mpsc::channel::<Result<(), LoopAlreadyInstalled>>();
+        let handle = std::thread::spawn(move || {
+            let result = Arc::clone(&el_thread).install_for_current_thread();
+            let ok = result.is_ok();
+            let _ = tx.send(result);
+            if ok {
+                f();
+                el_thread.run();
+            }
+        });
+        rx.recv().unwrap_or(Ok(()))?;
+        Ok((el, handle))
     }
 }
 

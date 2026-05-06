@@ -7,6 +7,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
+| [per-thread-event-loops](done/2026-05-06-per-thread-event-loops.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (7 new tests) | — |
 | [tracing-spans](done/2026-05-06-tracing-spans.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
 | [object-tree-query](done/2026-05-06-object-tree-query.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (28 new tests) | — |
 | [signal-to-signal](done/2026-05-06-signal-to-signal.spec.md) | `quartzite-core` `quartzite-macros` `quartzite` | ✅ implemented (23 new tests) | — |
@@ -52,7 +53,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🔴 blocked, 🟡 spec-only | graphics-stack #73 (paint-api supplies the `Painter` trait used by `WidgetExt::paint`) — tracked in #46 |
 
 > Tracking issues for further deferred items not represented as plans here:
-> #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on #51), #51 (per-thread loops), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
+> #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on per-thread loops ✅ done), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
 
 ## Dependency order
 
@@ -74,7 +75,7 @@ core-types ✅
 
 Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal. These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 

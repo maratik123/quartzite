@@ -79,42 +79,59 @@ struct SlotEntry<Args: 'static> {
     conn_type: ConnectionType,
 }
 
-/// Receives closures posted by queued signal connections and executes them on
-/// the event-loop thread. Implemented by `ConnectionTable` in `quartzite-runtime`.
+/// Routes queued signal invocations to the correct per-thread event loop.
+///
+/// Implemented by `ConnectionTable` in `quartzite-runtime`. When a `Queued` or cross-thread
+/// `Auto` signal fires, the runtime calls [`post`](Self::post) with the receiver's `ThreadId`
+/// so the closure executes on the right thread's loop.
+///
+/// If no loop is registered for `target`, implementations must emit a `tracing::warn!` and
+/// drop `f` — silent dispatch to a fallback thread is not permitted.
 ///
 /// # Examples
 ///
 /// ```
+/// use std::thread;
 /// use quartzite_core::signal::QueuedDispatcher;
 ///
 /// struct ImmediateDispatcher;
 /// impl QueuedDispatcher for ImmediateDispatcher {
-///     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) { f(); }
+///     fn post(&self, _target: thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>) {
+///         f();
+///     }
 /// }
 /// ```
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub trait QueuedDispatcher: Send + Sync {
-    /// Posts a closure to be executed on the event-loop thread.
+    /// Posts a closure to be executed on the event loop of `target`.
+    ///
+    /// If no loop is registered for `target`, the implementation must emit a `tracing::warn!`
+    /// diagnostic and drop `f` without executing it.
     ///
     /// # Parameters
     ///
+    /// - `target`: the [`ThreadId`](std::thread::ThreadId) of the thread whose loop should
+    ///   execute `f`.
     /// - `f`: boxed closure to enqueue; ownership transfers to the dispatcher.
     ///
     /// # Examples
     ///
     /// ```
+    /// use std::thread;
     /// use quartzite_core::signal::QueuedDispatcher;
     ///
     /// struct ImmediateDispatcher;
     /// impl QueuedDispatcher for ImmediateDispatcher {
-    ///     fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) { f(); }
+    ///     fn post(&self, _target: thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>) {
+    ///         f();
+    ///     }
     /// }
     ///
     /// let d = ImmediateDispatcher;
-    /// d.post(Box::new(|| { let _ = 1 + 1; }));
+    /// d.post(thread::current().id(), Box::new(|| { let _ = 1 + 1; }));
     /// ```
-    fn post(&self, f: Box<dyn FnOnce() + Send + 'static>);
+    fn post(&self, target: std::thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>);
 }
 
 #[cfg(feature = "std")]
@@ -175,10 +192,11 @@ pub fn set_queued_dispatcher(d: Arc<dyn QueuedDispatcher>) -> Result<(), Dispatc
 /// # Examples
 ///
 /// ```no_run
+/// use std::thread;
 /// use quartzite_core::signal::queued_dispatcher;
 ///
 /// if let Some(d) = queued_dispatcher() {
-///     d.post(Box::new(|| println!("posted to event loop")));
+///     d.post(thread::current().id(), Box::new(|| println!("posted to event loop")));
 /// }
 /// ```
 #[cfg(feature = "std")]
@@ -198,6 +216,7 @@ trait DynQueuedSlot<Args: 'static>: Send + Sync {
 /// the arguments into a cross-thread closure.
 #[cfg(feature = "std")]
 struct QueuedSlotInner<Args: Clone + Send + 'static> {
+    receiver_thread_id: std::thread::ThreadId,
     callback: Arc<dyn Fn(Args) + Send + Sync>,
     guard: std::sync::Weak<ReceiverGuard>,
 }
@@ -211,7 +230,7 @@ impl<Args: Clone + Send + 'static> DynQueuedSlot<Args> for QueuedSlotInner<Args>
         let args_owned = args.clone();
         let cb = Arc::clone(&self.callback);
         if let Some(dispatcher) = queued_dispatcher() {
-            dispatcher.post(Box::new(move || cb(args_owned)));
+            dispatcher.post(self.receiver_thread_id, Box::new(move || cb(args_owned)));
         }
     }
 }
@@ -245,7 +264,8 @@ impl<Args: Clone + Send + 'static> DynAutoSlot<Args> for AutoSlotInner<Args> {
         } else if let Some(dispatcher) = queued_dispatcher() {
             let args_owned = args.clone();
             let cb = Arc::clone(&self.callback);
-            dispatcher.post(Box::new(move || cb(args_owned)));
+            let target = self.receiver_thread_id;
+            dispatcher.post(target, Box::new(move || cb(args_owned)));
         }
         // No dispatcher installed → silent drop (AC3).
     }
@@ -396,7 +416,7 @@ impl<Args: 'static> Signal<Args> {
         id
     }
 
-    /// Connects a `Queued` slot that is invoked on the event-loop thread.
+    /// Connects a `Queued` slot that is invoked on the receiver's thread loop.
     ///
     /// The receiver guard is checked before posting: if the guard has expired
     /// (receiver destroyed), the closure is silently discarded. Requires
@@ -404,7 +424,9 @@ impl<Args: 'static> Signal<Args> {
     ///
     /// # Parameters
     ///
-    /// - `f`: slot callback; invoked on the dispatcher thread with an owned
+    /// - `receiver_thread_id`: [`ThreadId`](std::thread::ThreadId) of the thread that owns the
+    ///   receiver; captured once and used to route invocations to the correct event loop.
+    /// - `f`: slot callback; invoked on the receiver's event-loop thread with an owned
     ///   clone of the emit-time args.
     /// - `guard`: weak handle to the receiver's [`ReceiverGuard`]; used to
     ///   short-circuit posting once the receiver has been dropped.
@@ -412,16 +434,26 @@ impl<Args: 'static> Signal<Args> {
     /// # Examples
     ///
     /// ```
+    /// use std::thread;
     /// use quartzite_core::{receiver_guard::ReceiverGuard, signal::Signal};
     ///
     /// let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
     /// let mut sig: Signal<(i32,)> = Signal::new();
-    /// let _id = sig.connect_queued(|args: (i32,)| println!("queued: {}", args.0), guard_weak);
+    /// let _id = sig.connect_queued(
+    ///     thread::current().id(),
+    ///     |args: (i32,)| println!("queued: {}", args.0),
+    ///     guard_weak,
+    /// );
     /// drop(guard_arc); // receiver destroyed; subsequent emits silently skip this slot
     /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    pub fn connect_queued<F>(&mut self, f: F, guard: std::sync::Weak<ReceiverGuard>) -> ConnectionId
+    pub fn connect_queued<F>(
+        &mut self,
+        receiver_thread_id: std::thread::ThreadId,
+        f: F,
+        guard: std::sync::Weak<ReceiverGuard>,
+    ) -> ConnectionId
     where
         F: Fn(Args) + Send + Sync + 'static,
         Args: Clone + Send,
@@ -430,6 +462,7 @@ impl<Args: 'static> Signal<Args> {
         self.queued_slots.insert(
             id,
             Box::new(QueuedSlotInner {
+                receiver_thread_id,
                 callback: Arc::new(f),
                 guard,
             }),
@@ -669,7 +702,7 @@ pub(crate) mod tests {
 
     #[cfg(feature = "std")]
     impl QueuedDispatcher for TestDispatcher {
-        fn post(&self, f: Box<dyn FnOnce() + Send + 'static>) {
+        fn post(&self, _target: std::thread::ThreadId, f: Box<dyn FnOnce() + Send + 'static>) {
             self.posted.lock().push(f);
         }
     }
@@ -933,7 +966,11 @@ pub(crate) mod tests {
         let mut sig: Signal<i32> = Signal::new();
         let posted_values: Arc<Mutex<Vec<i32>>> = Arc::new(Mutex::new(Vec::new()));
         let pv = Arc::clone(&posted_values);
-        sig.connect_queued(move |v| pv.lock().push(v), guard_weak.clone());
+        sig.connect_queued(
+            std::thread::current().id(),
+            move |v| pv.lock().push(v),
+            guard_weak.clone(),
+        );
 
         // Drop receiver guard to invalidate.
         drop(guard_arc);

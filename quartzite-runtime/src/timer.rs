@@ -275,25 +275,29 @@ impl Timer {
 
     /// Connects a `Queued` slot to the `tick` signal.
     ///
-    /// The slot is posted to the active queued dispatcher and invoked on the dispatcher thread.
-    /// The `guard` is checked before posting; if the receiver has been dropped the slot is
-    /// silently skipped.
+    /// The slot is posted to the per-thread event loop of `receiver_thread_id` and invoked
+    /// there. The `guard` is checked before posting; if the receiver has been dropped the
+    /// slot is silently skipped.
     ///
     /// # Parameters
     ///
-    /// - `f`: callback invoked on the dispatcher thread with an owned clone of the args.
+    /// - `receiver_thread_id`: the [`ThreadId`](std::thread::ThreadId) of the thread that
+    ///   owns the receiver; used to route the invocation to the correct event loop.
+    /// - `f`: callback invoked on the receiver's event-loop thread with an owned clone of
+    ///   the args.
     /// - `guard`: weak handle to the receiver's [`ReceiverGuard`].
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use std::time::Duration;
+    /// use std::{thread, time::Duration};
     /// use quartzite_core::receiver_guard::ReceiverGuard;
     /// use quartzite_runtime::timer::Timer;
     ///
     /// let timer = Timer::new(Duration::from_millis(100));
     /// let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
     /// let id = timer.connect_tick_queued(
+    ///     thread::current().id(),
     ///     |args: (quartzite_event_types::TimerEvent,)| println!("queued #{}", args.0.fire_count()),
     ///     guard_weak,
     /// );
@@ -302,13 +306,16 @@ impl Timer {
     /// ```
     pub fn connect_tick_queued<F>(
         &self,
+        receiver_thread_id: std::thread::ThreadId,
         f: F,
         guard: std::sync::Weak<ReceiverGuard>,
     ) -> ConnectionId
     where
         F: Fn((TimerEvent,)) + Send + Sync + 'static,
     {
-        self.tick.lock().connect_queued(f, guard)
+        self.tick
+            .lock()
+            .connect_queued(receiver_thread_id, f, guard)
     }
 
     /// Connects an `Auto` slot to the `tick` signal.
