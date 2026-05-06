@@ -425,6 +425,16 @@ Concrete substitutions:
 
 **Escalated?** no
 
+### 2026-05-06 — process — `/next` skill cannot see "Blocked by:" in issue bodies; use a GitHub label instead
+
+**What happened:** `/next small` recommended issue #48 (BlockingQueued) as a runner-up even though its body says "Blocked by: Per-thread event loops (#51, still open)". The skill fetches issues via `gh issue list --json number,title,labels,updatedAt` — it gets labels but never reads issue bodies. The "Skip blocked items" selection rule in the skill refers to the plan index (🔴 flags) and does not cross-reference GitHub issue bodies.
+
+**Rule:** When a GitHub issue has a "Blocked by:" dependency on another open issue, add a `blocked` label to it on GitHub. The `/next` skill can then filter it out by label without fetching issue bodies. Do not rely on the "Blocked by:" section in the body being visible to the skill.
+
+**How to apply:** After opening or triaging a new issue that depends on another open issue, immediately run `gh issue edit <N> --add-label blocked`. When the blocker is resolved, remove the label. This keeps the `/next` recommendation list accurate without requiring body reads.
+
+**Escalated?** skill:next
+
 ### 2026-05-06 — process — resolve fixed PR review comments via GraphQL after pushing the fix
 
 **What happened:** After fixing the panicking mutex ops (commits 543bb4f, 2ddece7), I replied to each comment but did not resolve the conversations. I attempted `resolveReviewThread` via GraphQL but used a guessed thread ID (`PRRT_kwDOSR5chs5UHUwU`) that did not exist, got NOT_FOUND, printed "resolve via graphql not available", and moved on. AGENTS.md says: "After pushing fixes, resolve only the comments that were addressed by a code change" — this was not done.

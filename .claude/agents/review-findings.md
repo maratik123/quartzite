@@ -1,3 +1,8 @@
+---
+name: review-findings
+description: "Walks the entire codebase on the current branch (no diff, no spec) and produces a findings table written to a progress file. Invoked by /code-review at the start of a whole-branch review."
+---
+
 # Review Findings Agent
 
 Reviews the entire codebase on the current branch. No diff, no spec — reads source files directly. Produces a findings table and writes it into the progress file.
