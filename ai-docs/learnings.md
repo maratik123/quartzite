@@ -456,3 +456,15 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 **How to apply:** In the post-push step after every PR fix round: reply first, then query for thread IDs, then resolve. If resolution fails, diagnose before giving up.
 
 **Escalated?** AGENTS.md (GraphQL recipe added to "PR review comment resolution" bullet)
+
+### 2026-05-06 — code-style — significant state-mutating fns should open with a debug! trace
+
+**What happened:** `ObjectTree::rename` had a `debug!` call but `clear_name` was added without one. The reviewer caught the inconsistency.
+
+**Rule:** Any function that makes a meaningful, traceable change to application state should open with a `debug!` call. This is at the writer's discretion — the threshold is "would someone debugging a live system want to see this in a log?" Minor field setters and high-frequency paths (e.g. every signal emit) do not qualify; high-frequency tracing should be gated behind a dedicated feature flag (e.g. `debug` or `trace-emit`) rather than always-on.
+
+**Why:** Consistent traceability — when debugging lifecycle or state issues, log output should cover all significant mutations. Omitting a trace on one sibling method while its peers are traced breaks the log story.
+
+**How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard. Canonical feature name for high-frequency tracing: `verbose-tracing`.
+
+**Escalated?** AGENTS.md, agent:self-review, agent:review-findings
