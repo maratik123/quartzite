@@ -5,6 +5,8 @@
 //! [`TimerDriver`] (the pluggable backend trait), and the three built-in drivers —
 //! [`ThreadDriver`], [`AppDriver`], and [`PoolDriver`].
 
+use tracing::debug;
+
 use std::{
     sync::{
         Arc,
@@ -485,6 +487,7 @@ impl Timer {
         if self.state.running.load(Ordering::SeqCst) {
             return;
         }
+        debug!(timer_id = ?self.base.id(), "timer: start");
         self.state.running.store(true, Ordering::SeqCst);
         self.state.fire_count.store(0, Ordering::SeqCst);
 
@@ -537,6 +540,7 @@ impl Timer {
         if !self.state.running.swap(false, Ordering::SeqCst) {
             return;
         }
+        debug!(timer_id = ?self.base.id(), "timer: stop");
         if let Some(driver) = self.driver.take() {
             driver.stop(self.base.id());
         }

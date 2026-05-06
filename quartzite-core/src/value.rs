@@ -303,7 +303,7 @@ impl IntoValue for i64 {
 
 // For other integer types, use a checked conversion so that out-of-range values
 // produce a `TypeError` instead of silently wrapping or truncating.
-macro_rules! impl_int_checked {
+macro_rules! impl_from_value_checked {
     ($t:ty) => {
         impl FromValue for $t {
             fn from_value(val: Value) -> Result<Self, TypeError> {
@@ -321,7 +321,15 @@ macro_rules! impl_int_checked {
                 }
             }
         }
+    };
+}
+
+// i32 and u32 always fit in i64, so `as i64` is lossless.
+macro_rules! impl_int_checked {
+    ($t:ty) => {
+        impl_from_value_checked!($t);
         impl IntoValue for $t {
+            #[inline]
             fn into_value(self) -> Value {
                 Value::Int(self as i64)
             }
@@ -331,8 +339,23 @@ macro_rules! impl_int_checked {
 
 impl_int_checked!(i32);
 impl_int_checked!(u32);
-impl_int_checked!(u64);
-impl_int_checked!(usize);
+
+// u64 and usize can exceed i64::MAX; saturate rather than wrap silently.
+impl_from_value_checked!(u64);
+impl IntoValue for u64 {
+    #[inline]
+    fn into_value(self) -> Value {
+        Value::Int(i64::try_from(self).unwrap_or(i64::MAX))
+    }
+}
+
+impl_from_value_checked!(usize);
+impl IntoValue for usize {
+    #[inline]
+    fn into_value(self) -> Value {
+        Value::Int(i64::try_from(self).unwrap_or(i64::MAX))
+    }
+}
 
 impl FromValue for f64 {
     fn from_value(val: Value) -> Result<Self, TypeError> {
@@ -654,6 +677,18 @@ mod tests {
     #[test]
     fn u64_accepts_zero() {
         assert_eq!(u64::from_value(Value::Int(0)), Ok(0u64));
+    }
+
+    #[test]
+    fn u64_max_saturates_to_i64_max() {
+        assert_eq!(u64::MAX.into_value(), Value::Int(i64::MAX));
+    }
+
+    #[test]
+    fn usize_max_saturates_to_i64_max() {
+        if usize::BITS >= 64 {
+            assert_eq!(usize::MAX.into_value(), Value::Int(i64::MAX));
+        }
     }
 
     #[test]
