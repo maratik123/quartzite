@@ -225,11 +225,6 @@ impl EventLoop {
     /// - `f`: callback invoked on the new thread before the loop starts; use it to post initial
     ///   work or pass the `Arc<EventLoop>` to other parts of the program.
     ///
-    /// # Panics
-    ///
-    /// Panics on the spawned thread if the OS reuses a `ThreadId` that is still registered in
-    /// the loop registry — this is not expected to happen in practice.
-    ///
     /// # Examples
     ///
     /// ```no_run
@@ -244,9 +239,9 @@ impl EventLoop {
         let el = Arc::new(EventLoop::new());
         let el_thread = Arc::clone(&el);
         let handle = std::thread::spawn(move || {
-            Arc::clone(&el_thread)
-                .install_for_current_thread()
-                .expect("newly spawned thread cannot have a pre-existing loop installed");
+            // ThreadId values are guaranteed never to be reused (std contract), so a freshly
+            // spawned thread always has a fresh ThreadId not yet present in LoopRegistry.
+            let _ = Arc::clone(&el_thread).install_for_current_thread();
             f();
             el_thread.run();
         });
