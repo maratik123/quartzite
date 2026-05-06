@@ -315,7 +315,7 @@ impl<Args: 'static> core::fmt::Debug for Signal<Args> {
 }
 
 impl<Args: 'static> Default for Signal<Args> {
-    /// _Simple._
+    // _Simple._
     fn default() -> Self {
         Signal {
             #[cfg(feature = "std")]

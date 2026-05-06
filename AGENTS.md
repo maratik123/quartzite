@@ -78,7 +78,16 @@ Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic
 
   **Carve-out: default trait methods inside a `pub trait` body** (e.g. `ObjectExt::{id, name, is_on_current_thread}`) stay in the **concrete** row when their own bodies declare no type parameters. The body lives in a single source location (the trait declaration); only `Self` varies. Use `#[inline]`. This carve-out does **not** apply to methods inside an `impl<T> Trait for Foo<T>` block — those go to the **generic** row, even when the method itself declares no extra type parameters, because `Self = Foo<T>` is parametrised by the impl block's generics and the body is monomorphized per concrete `T`.
 
-  **Where to place `_Simple._` for methods inside an `impl<T> Trait for Foo<T>` block.** Add the line `/// _Simple._` directly above the `fn` keyword inside the impl block. This is allowed despite the doc-convention's trait-impl exemption — that exemption removes the *requirement* to satisfy the full convention (summary line, `# Parameters`, etc.) but does not forbid doc comments. Example: `Signal<Args>::default`, `ObjectRef<T>::clone`, `WeakRef<T>::eq`.
+  **Where to place `_Simple._` for methods inside an `impl<T> Trait for Foo<T>` block.** Add the line `// _Simple._` (regular line comment, **not** a `///` doc comment) directly above the `fn` keyword inside the impl block. Rustdoc treats a `///` line on a trait-impl method as overriding the trait's inherited docstring — `/// _Simple._` on `ObjectRef<T>::clone` would replace `Clone::clone`'s actual docstring with just `_Simple._` on the rustdoc page. A regular `//` comment is invisible to rustdoc, stays a human-only marker visible in source, and preserves the trait-inherited docs. Audit grep `rg '_Simple\._'` matches both forms. Example: `Signal<Args>::default`, `ObjectRef<T>::clone`, `WeakRef<T>::eq`.
+
+  **Marker-form decision tree:**
+
+  | Position | Marker form |
+  |---|---|
+  | Concrete fn (no own type params, concrete `Self`) | `#[inline]` attribute |
+  | Generic free fn / inherent generic method (`impl<T> Foo<T> { fn ... }`) | `/// _Simple._` doc line |
+  | Trait method declaration (default method or method decl in a `pub trait` body) | `/// _Simple._` doc line — becomes part of the trait's docs and is inherited by all impls |
+  | Method inside an `impl<T> Trait for Foo<T>` block (inherits docs from the trait) | `// _Simple._` line comment — avoids overriding inherited rustdoc |
 
   **Decision rule for tagging a trait method:** tag only when *every* conforming impl is required to be simple. If some valid impls are non-simple (different by-value shape, branches, loops), do **not** tag — callers cannot rely on it.
 
