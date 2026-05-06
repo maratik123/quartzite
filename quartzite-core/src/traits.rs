@@ -159,7 +159,9 @@ pub trait Object: AsObject + Send {
     /// Only [`ConnectionType::Direct`] and [`ConnectionType::SingleShot`] are meaningful here.
     /// `Queued` and `Auto` connections require additional context (a dispatcher or a thread id)
     /// that the dynamic API does not carry; callers must encode that logic in the callback and
-    /// pass [`ConnectionType::Direct`].
+    /// pass [`ConnectionType::Direct`]. Passing `Queued` or `Auto` is caught by a
+    /// `debug_assert!` in the underlying `Signal::connect_typed` implementation and silently
+    /// degrades to `Direct` in release builds.
     ///
     /// # Parameters
     ///

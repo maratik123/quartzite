@@ -194,6 +194,8 @@ fn unblock_restores_emit_wrapper() {
 }
 
 // SingleShot: slot is removed after first delivery via macro-generated connect_signal path.
+// emit_unconditionally is used directly (not emit_count_changed) to bypass the signals_blocked
+// check — we want to observe slot removal in isolation without block/unblock interactions.
 #[test]
 fn single_shot_fires_once_via_object_trait() {
     let mut c = make_counter();
