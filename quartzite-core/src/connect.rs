@@ -211,9 +211,10 @@ pub fn connect_signal_to_signal(
     // Queued and Auto encode their delivery logic in the closure; at the signal level they
     // register as Direct so the slot persists. SingleShot propagates so Signal::emit_unconditionally
     // removes the slot after first delivery via its `retain` pass.
-    let slot_type = match conn_type {
-        ConnectionType::SingleShot => ConnectionType::SingleShot,
-        _ => ConnectionType::Direct,
+    let slot_type = if matches!(conn_type, ConnectionType::SingleShot) {
+        ConnectionType::SingleShot
+    } else {
+        ConnectionType::Direct
     };
     from.connect_signal(from_signal, callback, slot_type)
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))

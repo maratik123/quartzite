@@ -684,11 +684,10 @@ mod tests {
         assert_eq!(u64::MAX.into_value(), Value::Int(i64::MAX));
     }
 
+    #[cfg(target_pointer_width = "64")]
     #[test]
     fn usize_max_saturates_to_i64_max() {
-        if usize::BITS >= 64 {
-            assert_eq!(usize::MAX.into_value(), Value::Int(i64::MAX));
-        }
+        assert_eq!(usize::MAX.into_value(), Value::Int(i64::MAX));
     }
 
     #[test]

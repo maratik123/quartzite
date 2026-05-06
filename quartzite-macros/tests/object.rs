@@ -192,3 +192,34 @@ fn unblock_restores_emit_wrapper() {
     c.emit_count_changed(2);
     assert!(*called.lock().unwrap(), "must fire after unblock");
 }
+
+// SingleShot: slot is removed after first delivery via macro-generated connect_signal path.
+#[test]
+fn single_shot_fires_once_via_object_trait() {
+    let mut c = make_counter();
+    let call_count = Arc::new(Mutex::new(0u32));
+    let call_count_clone = Arc::clone(&call_count);
+    let cb = Box::new(move |_args: &[Value]| {
+        *call_count_clone.lock().unwrap() += 1;
+    });
+
+    let id = c.connect_signal("count_changed", cb, ConnectionType::SingleShot);
+    assert!(
+        id.is_some(),
+        "connect_signal must return Some for a known signal"
+    );
+
+    c.count_changed.emit_unconditionally(&(1,));
+    assert_eq!(
+        *call_count.lock().unwrap(),
+        1,
+        "slot must fire on first emit"
+    );
+
+    c.count_changed.emit_unconditionally(&(2,));
+    assert_eq!(
+        *call_count.lock().unwrap(),
+        1,
+        "slot must not fire after SingleShot removal"
+    );
+}

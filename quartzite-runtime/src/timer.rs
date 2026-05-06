@@ -5,8 +5,6 @@
 //! [`TimerDriver`] (the pluggable backend trait), and the three built-in drivers —
 //! [`ThreadDriver`], [`AppDriver`], and [`PoolDriver`].
 
-use tracing::debug;
-
 use std::{
     sync::{
         Arc,
@@ -16,6 +14,7 @@ use std::{
 };
 
 use parking_lot::Mutex;
+use tracing::debug;
 
 use quartzite_core::{
     ConnectionId, ObjectBase, ObjectId, receiver_guard::ReceiverGuard, signal::Signal,
