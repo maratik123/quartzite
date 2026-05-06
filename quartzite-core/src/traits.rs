@@ -24,6 +24,8 @@ pub type SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>;
 pub trait AsObject {
     /// Returns a shared reference to this object's `ObjectBase`.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -36,6 +38,8 @@ pub trait AsObject {
     fn object_base(&self) -> &ObjectBase;
 
     /// Returns a mutable reference to this object's `ObjectBase`.
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -50,6 +54,8 @@ pub trait AsObject {
 
     /// Upcast to `&dyn Any` to enable checked downcasting via `downcast_ref`.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -63,6 +69,8 @@ pub trait AsObject {
     fn as_any(&self) -> &dyn core::any::Any;
 
     /// Upcast to `&mut dyn Any` to enable checked downcasting via `downcast_mut`.
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -82,6 +90,8 @@ pub trait AsObject {
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject + Send {
     /// Returns the static `MetaObject` descriptor for this type.
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -163,6 +173,8 @@ pub trait Object: AsObject + Send {
     /// `debug_assert!` in the underlying `Signal::connect_typed` implementation and silently
     /// degrades to `Direct` in release builds.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `signal`: meta-system signal name to subscribe to.
@@ -190,6 +202,8 @@ pub trait Object: AsObject + Send {
     /// Returns `None` when `signal` is unknown on this object or when `args` length does not
     /// match the signal's declared parameter count. Emission is suppressed when signals are
     /// blocked on this object (identical to the behaviour of the `emit!` macro).
+    ///
+    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -224,6 +238,7 @@ pub trait ObjectExt: AsObject {
     /// let id = obj.id();
     /// # }
     /// ```
+    #[inline]
     fn id(&self) -> ObjectId {
         self.object_base().id()
     }
@@ -241,6 +256,7 @@ pub trait ObjectExt: AsObject {
     /// let name: Option<&str> = obj.name();
     /// # }
     /// ```
+    #[inline]
     fn name(&self) -> Option<&str> {
         self.object_base().name()
     }
@@ -258,12 +274,15 @@ pub trait ObjectExt: AsObject {
     /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+    #[inline]
     fn is_on_current_thread(&self) -> bool {
         self.object_base().is_on_current_thread()
     }
 
     /// Attempts a checked downcast to a concrete type. Returns `Some(&T)` when the
     /// underlying type is exactly `T`, `None` otherwise (AC8).
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -281,6 +300,8 @@ pub trait ObjectExt: AsObject {
 
     /// Mutable variant of `downcast_ref`.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -296,6 +317,8 @@ pub trait ObjectExt: AsObject {
     }
 
     /// Returns `true` when the underlying concrete type is `T`.
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///

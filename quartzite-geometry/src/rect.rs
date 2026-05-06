@@ -201,6 +201,7 @@ impl Rect {
     /// assert_eq!(u.origin(), Point::new(0, 0));
     /// assert_eq!(u.size(), Size::new(8, 8));
     /// ```
+    #[inline]
     pub fn united(self, other: Rect) -> Rect {
         let left = self.left().min(other.left());
         let top = self.top().min(other.top());
@@ -249,6 +250,7 @@ impl Rect {
     /// assert_eq!(adjusted.origin(), Point::new(8, 8));
     /// assert_eq!(adjusted.size(), Size::new(24, 24));
     /// ```
+    #[inline]
     pub fn adjusted(self, dx1: i32, dy1: i32, dx2: i32, dy2: i32) -> Rect {
         let left = self.left() + dx1;
         let top = self.top() + dy1;
@@ -459,6 +461,7 @@ impl RectF {
     /// assert_eq!(u.origin(), PointF::new(0.0, 0.0));
     /// assert_eq!(u.size(), SizeF::new(8.0, 8.0));
     /// ```
+    #[inline]
     pub fn united(self, other: RectF) -> RectF {
         let left = self.left().min(other.left());
         let top = self.top().min(other.top());
@@ -510,6 +513,7 @@ impl RectF {
     /// assert_eq!(adjusted.origin(), PointF::new(0.5, 0.5));
     /// assert_eq!(adjusted.size(), SizeF::new(5.0, 5.0));
     /// ```
+    #[inline]
     pub fn adjusted(self, dx1: f32, dy1: f32, dx2: f32, dy2: f32) -> RectF {
         let left = self.left() + dx1;
         let top = self.top() + dy1;
