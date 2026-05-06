@@ -465,6 +465,6 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Why:** Consistent traceability — when debugging lifecycle or state issues, log output should cover all significant mutations. Omitting a trace on one sibling method while its peers are traced breaks the log story.
 
-**How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard.
+**How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard. Canonical feature name for high-frequency tracing: `verbose-tracing`.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:self-review, agent:review-findings
