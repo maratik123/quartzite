@@ -212,6 +212,10 @@ mod tests {
         fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
             None
         }
+
+        fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
+            None
+        }
     }
 
     #[test]

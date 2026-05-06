@@ -20,6 +20,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
     let emit_wrappers = emit_signal_wrappers(type_ident, &ir.signals);
     let connect_auto_wrappers = emit_connect_auto_wrappers(type_ident, &ir.signals);
     let connect_queued_wrappers = emit_connect_queued_wrappers(type_ident, &ir.signals);
+    let emit_signal_fn = emit_emit_signal(type_ident, &ir.signals);
 
     quote! {
         #[doc(hidden)]
@@ -33,6 +34,7 @@ pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
             #connect_fn
             #lookup_prop_fn
             #lookup_signal_fn
+            #emit_signal_fn
         }
 
         #emit_wrappers
@@ -343,6 +345,52 @@ fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStr
     quote! {
         impl #type_ident {
             #(#methods)*
+        }
+    }
+}
+
+fn emit_emit_signal(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
+    let cr = crate_root();
+    let fn_name = Ident::new(&format!("__emit_signal_{type_ident}"), type_ident.span());
+    let arms = signals.iter().map(|s| {
+        let name = s.ident.to_string();
+        let field = &s.ident;
+        let args_ty = &s.args_ty;
+        let elems = tuple_elems(args_ty);
+        let n = elems.len();
+        let bindings: Vec<TokenStream> = (0..n)
+            .map(|i| {
+                let idx = Index::from(i);
+                let binding = Ident::new(&format!("__arg{i}"), field.span());
+                quote! {
+                    let #binding = #cr::FromValue::from_value(args[#idx].clone()).ok()?;
+                }
+            })
+            .collect();
+        let arg_idents: Vec<Ident> = (0..n)
+            .map(|i| Ident::new(&format!("__arg{i}"), field.span()))
+            .collect();
+        quote! {
+            #name => {
+                if args.len() != #n {
+                    return ::core::option::Option::None;
+                }
+                #(#bindings)*
+                #cr::emit!(this.#field, &(#(#arg_idents,)*));
+                ::core::option::Option::Some(())
+            }
+        }
+    });
+    quote! {
+        pub fn #fn_name(
+            this: &mut super::#type_ident,
+            name: &str,
+            args: &[#cr::Value],
+        ) -> ::core::option::Option<()> {
+            match name {
+                #(#arms)*
+                _ => ::core::option::Option::None,
+            }
         }
     }
 }
@@ -803,7 +851,8 @@ mod tests {
         );
     }
 
-    // No signals → no emit_ wrappers emitted.
+    // No signals → no emit_<signal> public wrappers emitted (the internal
+    // __emit_signal helper is still generated but produces only a `None` branch).
     #[test]
     fn emit_wrappers_no_signals_no_block() {
         let out = emit(quote! {
@@ -812,7 +861,10 @@ mod tests {
                 pub count: i32,
             }
         });
-        assert!(!out.contains("emit_"), "unexpected emit_ wrapper: {out}");
+        assert!(
+            !out.contains("pub fn emit_"),
+            "unexpected public emit_ wrapper: {out}"
+        );
     }
 
     // Multi-arg signal: individual parameters are flattened.
@@ -1117,6 +1169,75 @@ mod tests {
         assert!(
             auto_section.contains("# Examples"),
             "missing # Examples in connect_<sig>_auto wrapper doc: {auto_section}"
+        );
+    }
+
+    // __emit_signal helper: generated inside the hidden mod for a named signal.
+    #[test]
+    fn emit_signal_helper_generated_in_hidden_mod() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub clicked: Signal<()>,
+            }
+        });
+        assert!(
+            out.contains("fn __emit_signal_Foo"),
+            "missing __emit_signal_Foo fn: {out}"
+        );
+        // Zero-arg: arity guard checks 0, no FromValue calls.
+        assert!(
+            out.contains("args . len () != 0usize"),
+            "missing zero-arity guard: {out}"
+        );
+        assert!(
+            !out.contains("FromValue :: from_value"),
+            "unexpected FromValue in zero-arg emit_signal: {out}"
+        );
+        assert!(
+            out.contains("\"clicked\""),
+            "missing signal name arm: {out}"
+        );
+    }
+
+    // __emit_signal helper: multi-arg signal generates arity guard and FromValue bindings.
+    #[test]
+    fn emit_signal_helper_multi_arg_generates_from_value() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub moved: Signal<(i32, bool)>,
+            }
+        });
+        assert!(
+            out.contains("args . len () != 2usize"),
+            "missing two-arg arity guard: {out}"
+        );
+        assert!(
+            out.contains("FromValue :: from_value"),
+            "missing FromValue for typed args: {out}"
+        );
+        assert!(out.contains("__arg0"), "missing __arg0 binding: {out}");
+        assert!(out.contains("__arg1"), "missing __arg1 binding: {out}");
+    }
+
+    // __emit_signal helper lives inside the hidden mod, not in an outer impl block.
+    #[test]
+    fn emit_signal_helper_inside_hidden_mod() {
+        let out = emit(quote! {
+            struct Foo {
+                #[signal]
+                pub ticked: Signal<(i32,)>,
+            }
+        });
+        let mod_start = out
+            .find("mod __quartzite_Foo")
+            .expect("hidden mod not found");
+        let first_impl = out.find("impl Foo").expect("outer impl block not found");
+        let mod_section = &out[mod_start..first_impl];
+        assert!(
+            mod_section.contains("__emit_signal_Foo"),
+            "__emit_signal_Foo must be inside the hidden mod: {mod_section}"
         );
     }
 }

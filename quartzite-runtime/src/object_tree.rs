@@ -452,6 +452,10 @@ mod tests {
         fn connect_signal(&mut self, _: &str, _: SignalCallback) -> Option<ConnectionId> {
             None
         }
+
+        fn emit_signal(&mut self, _: &str, _: &[quartzite_core::Value]) -> Option<()> {
+            None
+        }
     }
 
     #[test]

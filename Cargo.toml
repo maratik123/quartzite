@@ -72,8 +72,13 @@ required-features = ["derive"]
 name = "single_dep"
 required-features = ["derive"]
 
+[[test]]
+name = "signal_to_signal"
+required-features = ["std", "derive"]
+
 [dev-dependencies]
 env_logger = "0.11"
+serial_test = "3"
 
 [package.metadata.docs.rs]
 features = ["std", "derive"]

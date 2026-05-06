@@ -17,6 +17,10 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
+pub mod args_to_values;
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub mod connect;
 pub mod id;
 pub mod meta;
 pub mod object_base;
@@ -37,6 +41,9 @@ pub mod __macro {
 
 // --- Top-level re-exports ---
 
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+pub use connect::{SignalConnectionError, connect_signal_to_signal, connect_signals};
 /// Re-exported solely for use by quartzite proc-macro generated code; not part of the public API.
 #[doc(hidden)]
 pub use enumflags2;

@@ -420,6 +420,7 @@ dependencies = [
  "quartzite-geometry",
  "quartzite-macros",
  "quartzite-runtime",
+ "serial_test",
 ]
 
 [[package]]

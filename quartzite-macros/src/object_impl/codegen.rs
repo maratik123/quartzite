@@ -218,6 +218,7 @@ pub(crate) fn emit_object_impl(
         &format!("__connect_signal_dynamic_{type_ident}"),
         type_ident.span(),
     );
+    let emit_signal_fn = Ident::new(&format!("__emit_signal_{type_ident}"), type_ident.span());
     let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     quote! {
@@ -249,6 +250,14 @@ pub(crate) fn emit_object_impl(
                 callback: #cr::SignalCallback,
             ) -> ::core::option::Option<#cr::ConnectionId> {
                 #mod_ident::#connect_fn(self, signal, callback)
+            }
+            #[inline]
+            fn emit_signal(
+                &mut self,
+                signal: &str,
+                args: &[#cr::Value],
+            ) -> ::core::option::Option<()> {
+                #mod_ident::#emit_signal_fn(self, signal, args)
             }
         }
     }
@@ -488,9 +497,9 @@ mod tests {
         );
     }
 
-    // impl Object: all five trait method delegations are present.
+    // impl Object: all six trait method delegations are present.
     #[test]
-    fn object_impl_emits_all_five_delegations() {
+    fn object_impl_emits_all_six_delegations() {
         let out = emit(quote! {
             impl Foo {}
         });
@@ -511,6 +520,7 @@ mod tests {
             out.contains("fn connect_signal"),
             "missing connect_signal: {out}"
         );
+        assert!(out.contains("fn emit_signal"), "missing emit_signal: {out}");
     }
 
     // Trait impl block is re-emitted with `impl Trait for Type { … }` header.
