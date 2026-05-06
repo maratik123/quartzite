@@ -11,7 +11,7 @@ was not used at the time, and the preferred fix when this is eventually hardened
 
 | # | File | Line | Call | Invariant asserted | Preferred fix |
 |---|------|------|------|--------------------|---------------|
-| P1 | `quartzite-runtime/src/event_loop.rs` | `spawn` closure | `.expect("newly spawned thread cannot have a pre-existing loop installed")` | Rust's `ThreadId` is a monotonically-incrementing counter never reused within a process, so a freshly spawned thread cannot already be in `LoopRegistry` | Replace `spawn` with a channel-based `try_spawn` that propagates `LoopAlreadyInstalled` synchronously: spawn thread → thread sends install result over `mpsc` → caller receives `Result<(Arc<Self>, JoinHandle<()>), LoopAlreadyInstalled>` |
+| P1 | `quartzite-runtime/src/event_loop.rs` | `spawn` closure | `.expect("newly spawned thread cannot have a pre-existing loop installed")` | `ThreadId` values are guaranteed never to be reused within a process lifetime (documented `std` contract), so a freshly spawned thread's `ThreadId` is guaranteed fresh and cannot already be in `LoopRegistry` | Replace `spawn` with a channel-based `try_spawn` that propagates `LoopAlreadyInstalled` synchronously: spawn thread → thread sends install result over `mpsc` → caller receives `Result<(Arc<Self>, JoinHandle<()>), LoopAlreadyInstalled>` |
 
 ---
 
