@@ -5,7 +5,7 @@ use std::sync::{
     mpsc::{self, Receiver, Sender},
 };
 use std::time::Duration;
-use tracing::{debug, trace};
+use tracing::debug_span;
 
 const TICK_MS: u64 = 1;
 
@@ -67,7 +67,8 @@ impl EventLoop {
     /// el.post(Box::new(|| println!("on loop thread")));
     /// ```
     pub fn post(&self, f: Box<dyn FnOnce() + Send>) {
-        trace!("event loop: posting closure");
+        #[cfg(feature = "verbose-tracing")]
+        let _span = tracing::trace_span!("event_loop::post").entered();
         let _ = self.sender.send(f);
     }
 
@@ -139,7 +140,7 @@ impl EventLoop {
     /// el.stop();
     /// ```
     pub fn stop(&self) {
-        debug!("event loop: stop requested");
+        let _span = debug_span!("event_loop::stop").entered();
         self.running.store(false, Ordering::SeqCst);
         // Wake the loop by posting a no-op.
         let _ = self.sender.send(Box::new(|| {}));

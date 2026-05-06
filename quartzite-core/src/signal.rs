@@ -535,7 +535,8 @@ impl<Args: 'static> Signal<Args> {
     /// sig.emit_unconditionally(&(42,));
     /// ```
     pub fn emit_unconditionally(&mut self, args: &Args) {
-        trace!(direct_slots = self.slots.len(), "signal emit");
+        #[cfg(feature = "verbose-tracing")]
+        let _span = tracing::trace_span!("signal::emit", direct_slots = self.slots.len()).entered();
         for entry in self.slots.values() {
             (entry.callback)(args);
         }

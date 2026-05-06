@@ -17,7 +17,7 @@ use std::{
 };
 
 use parking_lot::{Condvar, Mutex};
-use tracing::debug;
+use tracing::debug_span;
 
 use quartzite_core::ObjectId;
 
@@ -391,7 +391,7 @@ impl TimerDriver for PoolDriver {
 
 impl Drop for PoolDriver {
     fn drop(&mut self) {
-        debug!("pool driver: shutdown");
+        let _span = debug_span!("pool_driver::shutdown").entered();
         self.inner.running.store(false, Ordering::SeqCst);
         self.inner.condvar.notify_all();
         if let Some(handle) = self.inner.handle.lock().take() {
