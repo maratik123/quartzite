@@ -68,6 +68,12 @@ pub enum SignalConnectionError {
 /// Type compatibility is validated at connection time by comparing
 /// [`SignalMeta::params`](crate::meta::SignalMeta) arity and `type_name` strings.
 ///
+/// # Cycles
+///
+/// Cycle detection is **not** performed. A `Direct` cycle (A emits → B emits → A)
+/// causes unbounded recursion and a stack overflow. A `Queued` cycle posts tasks
+/// indefinitely. It is the caller's responsibility to avoid cyclic topologies.
+///
 /// # Parameters
 ///
 /// - `from`: source object whose signal will be forwarded.

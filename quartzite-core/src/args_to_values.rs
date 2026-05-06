@@ -28,149 +28,29 @@ pub trait ArgsToValues: 'static {
 impl ArgsToValues for () {
     #[inline]
     fn to_values(&self) -> Vec<Value> {
-        Vec::new()
+        vec![]
     }
 }
 
-impl<A: IntoValue + Clone + 'static> ArgsToValues for (A,) {
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![IntoValue::into_value(self.0.clone())]
-    }
+macro_rules! impl_args_to_values {
+    ($($T:ident: $idx:tt),+) => {
+        impl<$($T: IntoValue + Clone + 'static),+> ArgsToValues for ($($T,)+) {
+            #[inline]
+            fn to_values(&self) -> Vec<Value> {
+                vec![$(IntoValue::into_value(self.$idx.clone()),)+]
+            }
+        }
+    };
 }
 
-impl<A: IntoValue + Clone + 'static, B: IntoValue + Clone + 'static> ArgsToValues for (A, B) {
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-        ]
-    }
-}
-
-impl<A: IntoValue + Clone + 'static, B: IntoValue + Clone + 'static, C: IntoValue + Clone + 'static>
-    ArgsToValues for (A, B, C)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-        ]
-    }
-}
-
-impl<
-    A: IntoValue + Clone + 'static,
-    B: IntoValue + Clone + 'static,
-    C: IntoValue + Clone + 'static,
-    D: IntoValue + Clone + 'static,
-> ArgsToValues for (A, B, C, D)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-            IntoValue::into_value(self.3.clone()),
-        ]
-    }
-}
-
-impl<
-    A: IntoValue + Clone + 'static,
-    B: IntoValue + Clone + 'static,
-    C: IntoValue + Clone + 'static,
-    D: IntoValue + Clone + 'static,
-    E: IntoValue + Clone + 'static,
-> ArgsToValues for (A, B, C, D, E)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-            IntoValue::into_value(self.3.clone()),
-            IntoValue::into_value(self.4.clone()),
-        ]
-    }
-}
-
-impl<
-    A: IntoValue + Clone + 'static,
-    B: IntoValue + Clone + 'static,
-    C: IntoValue + Clone + 'static,
-    D: IntoValue + Clone + 'static,
-    E: IntoValue + Clone + 'static,
-    F: IntoValue + Clone + 'static,
-> ArgsToValues for (A, B, C, D, E, F)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-            IntoValue::into_value(self.3.clone()),
-            IntoValue::into_value(self.4.clone()),
-            IntoValue::into_value(self.5.clone()),
-        ]
-    }
-}
-
-impl<
-    A: IntoValue + Clone + 'static,
-    B: IntoValue + Clone + 'static,
-    C: IntoValue + Clone + 'static,
-    D: IntoValue + Clone + 'static,
-    E: IntoValue + Clone + 'static,
-    F: IntoValue + Clone + 'static,
-    G: IntoValue + Clone + 'static,
-> ArgsToValues for (A, B, C, D, E, F, G)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-            IntoValue::into_value(self.3.clone()),
-            IntoValue::into_value(self.4.clone()),
-            IntoValue::into_value(self.5.clone()),
-            IntoValue::into_value(self.6.clone()),
-        ]
-    }
-}
-
-impl<
-    A: IntoValue + Clone + 'static,
-    B: IntoValue + Clone + 'static,
-    C: IntoValue + Clone + 'static,
-    D: IntoValue + Clone + 'static,
-    E: IntoValue + Clone + 'static,
-    F: IntoValue + Clone + 'static,
-    G: IntoValue + Clone + 'static,
-    H: IntoValue + Clone + 'static,
-> ArgsToValues for (A, B, C, D, E, F, G, H)
-{
-    #[inline]
-    fn to_values(&self) -> Vec<Value> {
-        vec![
-            IntoValue::into_value(self.0.clone()),
-            IntoValue::into_value(self.1.clone()),
-            IntoValue::into_value(self.2.clone()),
-            IntoValue::into_value(self.3.clone()),
-            IntoValue::into_value(self.4.clone()),
-            IntoValue::into_value(self.5.clone()),
-            IntoValue::into_value(self.6.clone()),
-            IntoValue::into_value(self.7.clone()),
-        ]
-    }
-}
+impl_args_to_values!(A: 0);
+impl_args_to_values!(A: 0, B: 1);
+impl_args_to_values!(A: 0, B: 1, C: 2);
+impl_args_to_values!(A: 0, B: 1, C: 2, D: 3);
+impl_args_to_values!(A: 0, B: 1, C: 2, D: 3, E: 4);
+impl_args_to_values!(A: 0, B: 1, C: 2, D: 3, E: 4, F: 5);
+impl_args_to_values!(A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6);
+impl_args_to_values!(A: 0, B: 1, C: 2, D: 3, E: 4, F: 5, G: 6, H: 7);
 
 #[cfg(test)]
 mod tests {
