@@ -216,7 +216,7 @@ impl EventLoop {
 
     /// Spawns a new thread with an installed, running [`EventLoop`].
     ///
-    /// The thread: installs a fresh loop, calls `f`, then runs the loop until
+    /// The thread installs a fresh loop, calls `f`, then runs the loop until
     /// [`stop`](Self::stop) is called. Returns the `Arc<EventLoop>` for the new thread
     /// (usable to post closures or stop the loop) and the [`JoinHandle`](std::thread::JoinHandle).
     ///
@@ -225,27 +225,39 @@ impl EventLoop {
     /// - `f`: callback invoked on the new thread before the loop starts; use it to post initial
     ///   work or pass the `Arc<EventLoop>` to other parts of the program.
     ///
+    /// # Errors
+    ///
+    /// Returns [`LoopAlreadyInstalled`] if the spawned thread's [`ThreadId`](std::thread::ThreadId)
+    /// is already registered in the loop registry. In practice this cannot happen because
+    /// `ThreadId` values are guaranteed never to be reused within a process lifetime.
+    ///
     /// # Examples
     ///
     /// ```no_run
     /// use quartzite_runtime::EventLoop;
     ///
-    /// let (el, handle) = EventLoop::spawn(|| {});
+    /// let (el, handle) = EventLoop::spawn(|| {}).unwrap();
     /// el.post(Box::new(|| println!("on worker thread")));
     /// el.stop();
     /// handle.join().unwrap();
     /// ```
-    pub fn spawn(f: impl FnOnce() + Send + 'static) -> (Arc<Self>, std::thread::JoinHandle<()>) {
+    pub fn spawn(
+        f: impl FnOnce() + Send + 'static,
+    ) -> Result<(Arc<Self>, std::thread::JoinHandle<()>), LoopAlreadyInstalled> {
         let el = Arc::new(EventLoop::new());
         let el_thread = Arc::clone(&el);
+        let (tx, rx) = mpsc::channel::<Result<(), LoopAlreadyInstalled>>();
         let handle = std::thread::spawn(move || {
-            // ThreadId values are guaranteed never to be reused (std contract), so a freshly
-            // spawned thread always has a fresh ThreadId not yet present in LoopRegistry.
-            let _ = Arc::clone(&el_thread).install_for_current_thread();
-            f();
-            el_thread.run();
+            let result = Arc::clone(&el_thread).install_for_current_thread();
+            let ok = result.is_ok();
+            let _ = tx.send(result);
+            if ok {
+                f();
+                el_thread.run();
+            }
         });
-        (el, handle)
+        rx.recv().unwrap_or(Ok(()))?;
+        Ok((el, handle))
     }
 }
 

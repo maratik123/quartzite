@@ -19,7 +19,8 @@ fn queued_dispatch_executes_on_worker_thread() {
     let (tid_tx, tid_rx) = mpsc::sync_channel::<thread::ThreadId>(1);
     let (el, handle) = EventLoop::spawn(move || {
         tid_tx.send(thread::current().id()).unwrap();
-    });
+    })
+    .unwrap();
 
     let worker_tid = tid_rx.recv_timeout(Duration::from_secs(2)).unwrap();
     assert_ne!(
@@ -59,7 +60,8 @@ fn queued_dispatch_to_deregistered_thread_drops_closure() {
     let (tid_tx, tid_rx) = mpsc::sync_channel::<thread::ThreadId>(1);
     let (el, handle) = EventLoop::spawn(move || {
         tid_tx.send(thread::current().id()).unwrap();
-    });
+    })
+    .unwrap();
 
     let worker_tid = tid_rx.recv_timeout(Duration::from_secs(2)).unwrap();
 
