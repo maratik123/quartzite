@@ -6,6 +6,7 @@ use crate::util::extract_attr;
 pub(crate) struct ObjectImplInput {
     pub self_ty: Type,
     pub self_ty_ident: Ident,
+    pub generics: syn::Generics,
     pub trait_path: Option<syn::Path>,
     pub methods: Vec<MethodItem>,
     pub other_items: Vec<ImplItem>,
@@ -38,6 +39,7 @@ pub(crate) fn parse(
     }
     let mut item: ItemImpl = parse2(input)?;
 
+    let generics = item.generics.clone();
     let trait_path = item.trait_.as_ref().map(|(_, path, _)| path.clone());
     let self_ty = *item.self_ty;
     let self_ty_ident = extract_self_ty_ident(&self_ty)?;
@@ -73,6 +75,7 @@ pub(crate) fn parse(
     Ok(ObjectImplInput {
         self_ty,
         self_ty_ident,
+        generics,
         trait_path,
         methods,
         other_items,

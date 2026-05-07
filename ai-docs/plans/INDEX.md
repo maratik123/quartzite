@@ -79,7 +79,7 @@ core-types ✅
 
 Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, recursive-inline-annotations, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops, generic-fn-split, codegen-simple-marker (dropped `#[inline]` from generated trait-impl methods; added missing `/// _Simple._` to `IntoValue::into_value` trait declaration; 10 codegen tests updated). These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, recursive-inline-annotations, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops, generic-fn-split, codegen-simple-marker (dropped `#[inline]` from generated trait-impl methods; added missing `/// _Simple._` to `IntoValue::into_value` trait declaration; 10 codegen tests updated), codegen-inline-concrete-trait-impls (restored `#[inline]` on concrete-struct trait-impl method emissions in all three macro codegen modules; adds `generics` field to `ObjectImplInput`/`MetaEnumInput`; 11 new codegen tests). These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 

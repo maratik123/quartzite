@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Ident, Index, ReturnType};
 
 use super::parse::{MethodItem, ObjectImplInput};
-use crate::util::{crate_root, hidden_mod_ident};
+use crate::util::{crate_root, hidden_mod_ident, inline_if_concrete};
 
 pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
@@ -15,7 +15,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let invoke_fn = emit_invoke_method(type_ident, &ir.methods);
     let lookup_fns = emit_lookup_fns(type_ident, &ir.methods);
     let meta_static = emit_meta_static(type_ident, &mod_ident);
-    let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident);
+    let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident, &ir.generics);
 
     let impl_block = emit_impl_block(&ir.trait_path, self_ty, other_items);
 
@@ -210,6 +210,7 @@ pub(crate) fn emit_object_impl(
     self_ty: &syn::Type,
     type_ident: &Ident,
     mod_ident: &Ident,
+    generics: &syn::Generics,
 ) -> TokenStream {
     let cr = crate_root();
     let read_fn = Ident::new(&format!("__read_property_{type_ident}"), type_ident.span());
@@ -221,8 +222,10 @@ pub(crate) fn emit_object_impl(
     let emit_signal_fn = Ident::new(&format!("__emit_signal_{type_ident}"), type_ident.span());
     let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
+    let inline = inline_if_concrete(generics);
     quote! {
         impl #cr::Object for #self_ty {
+            #inline
             fn meta_object(&self) -> &'static #cr::MetaObject {
                 #meta_init()
             }
@@ -239,6 +242,7 @@ pub(crate) fn emit_object_impl(
             ) -> ::core::option::Option<#cr::Value> {
                 #invoke_fn(self, name, args)
             }
+            #inline
             fn connect_signal(
                 &mut self,
                 signal: &str,
@@ -247,6 +251,7 @@ pub(crate) fn emit_object_impl(
             ) -> ::core::option::Option<#cr::ConnectionId> {
                 #mod_ident::#connect_fn(self, signal, callback, conn_type)
             }
+            #inline
             fn emit_signal(
                 &mut self,
                 signal: &str,
@@ -568,10 +573,21 @@ mod tests {
         assert!(out.contains("fn helper"), "helper not re-emitted: {out}");
     }
 
-    // AC2/AC3: Object trait-impl methods must not carry #[inline]; only __meta_init_Foo does.
+    // AC2: concrete struct — meta_object/connect_signal/emit_signal carry #[inline]; __meta_init also.
     #[test]
-    fn object_trait_methods_have_no_inline_meta_init_has_one() {
+    fn object_trait_methods_concrete_have_inline_meta_init_too() {
         let out = emit(quote! { impl Foo {} });
+        let count = out.matches("# [inline]").count();
+        assert!(
+            count == 4,
+            "expected 4 #[inline] (meta_object + connect_signal + emit_signal + __meta_init_Foo), got {count}: {out}"
+        );
+    }
+
+    // AC2: generic struct — Object trait-impl methods carry no #[inline]; only __meta_init_Foo does.
+    #[test]
+    fn object_trait_methods_generic_only_meta_init_has_one() {
+        let out = emit(quote! { impl<T> Foo<T> {} });
         let count = out.matches("# [inline]").count();
         assert!(
             count == 1,

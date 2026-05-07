@@ -2,11 +2,12 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::parse::MetaEnumInput;
-use crate::util::crate_root;
+use crate::util::{crate_root, inline_if_concrete};
 
 pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
+    let inline = inline_if_concrete(&ir.generics);
     let enum_static_name =
         proc_macro2::Ident::new(&format!("__ENUM_{type_ident}"), type_ident.span());
     let lookup_by_name_fn = proc_macro2::Ident::new(
@@ -83,6 +84,7 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         );
 
         impl #cr::IntoValue for #type_ident {
+            #inline
             fn into_value(self) -> #cr::Value {
                 #cr::Value::Int(self as i64)
             }
@@ -247,14 +249,25 @@ mod tests {
         );
     }
 
-    // AC4: IntoValue::into_value must not carry #[inline] (trait-impl position); FromValue::from_value does not either.
+    // AC3: concrete enum — IntoValue::into_value carries #[inline]; FromValue::from_value does not.
     #[test]
-    fn into_value_and_from_value_have_no_inline() {
+    fn into_value_concrete_has_inline_from_value_does_not() {
         let out = emit(quote! { enum Color { Red, Green } });
         let count = out.matches("# [inline]").count();
         assert!(
+            count == 1,
+            "expected exactly 1 #[inline] (IntoValue::into_value only), got {count}: {out}"
+        );
+    }
+
+    // AC3: generic enum — neither IntoValue::into_value nor FromValue::from_value carries #[inline].
+    #[test]
+    fn into_value_generic_has_no_inline_from_value_does_not() {
+        let out = emit(quote! { enum Color<T> { Red, Green } });
+        let count = out.matches("# [inline]").count();
+        assert!(
             count == 0,
-            "unexpected #[inline] in output, got {count}: {out}"
+            "unexpected #[inline] in generic enum output, got {count}: {out}"
         );
     }
 }

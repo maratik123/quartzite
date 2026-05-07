@@ -15,6 +15,7 @@ pub(crate) fn parse(
     }
     let mut item: ItemImpl = parse2(input)?;
 
+    let generics = item.generics.clone();
     let trait_path = item.trait_.as_ref().map(|(_, path, _)| path.clone());
     let self_ty = *item.self_ty;
     let self_ty_ident = extract_self_ty_ident_from(&self_ty)?;
@@ -49,6 +50,7 @@ pub(crate) fn parse(
     Ok(ObjectImplInput {
         self_ty,
         self_ty_ident,
+        generics,
         trait_path,
         methods,
         other_items,

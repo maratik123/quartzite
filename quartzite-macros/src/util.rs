@@ -49,6 +49,15 @@ pub(crate) fn extract_attr(attrs: &mut Vec<syn::Attribute>, name: &str) -> bool 
     }
 }
 
+/// Returns `#[inline]` when the user struct/enum is concrete (`generics.params` empty), else `{}`.
+pub(crate) fn inline_if_concrete(generics: &syn::Generics) -> TokenStream {
+    if generics.params.is_empty() {
+        quote! { #[inline] }
+    } else {
+        quote! {}
+    }
+}
+
 /// Emits a `compile_error!` at the given span.
 pub(crate) fn emit_compile_error(span: Span, msg: &str) -> TokenStream {
     let msg_lit = syn::LitStr::new(msg, span);
@@ -147,6 +156,20 @@ mod tests {
     #[test]
     fn crate_root_fallback() {
         assert_eq!(ts(None, None), ":: quartzite_core");
+    }
+
+    #[test]
+    fn inline_if_concrete_no_params_returns_inline() {
+        let generics: syn::Generics = syn::parse_quote! {};
+        let out = super::inline_if_concrete(&generics).to_string();
+        assert_eq!(out, "# [inline]");
+    }
+
+    #[test]
+    fn inline_if_concrete_type_param_returns_empty() {
+        let generics: syn::Generics = syn::parse_quote! { <T> };
+        let out = super::inline_if_concrete(&generics).to_string();
+        assert!(out.is_empty(), "expected empty, got: {out}");
     }
 
     fn ident(s: &str) -> Ident {

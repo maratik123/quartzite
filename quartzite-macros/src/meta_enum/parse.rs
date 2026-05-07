@@ -3,6 +3,7 @@ use syn::{Data, DeriveInput, Expr, Fields, Ident, Lit, parse2, spanned::Spanned}
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct MetaEnumInput {
     pub ident: Ident,
+    pub generics: syn::Generics,
     pub variants: Vec<EnumVariant>,
 }
 
@@ -15,6 +16,7 @@ pub(crate) struct EnumVariant {
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInput> {
     let derive: DeriveInput = parse2(input)?;
 
+    let generics = derive.generics.clone();
     let variants_data = match derive.data {
         Data::Enum(e) => e.variants,
         _ => {
@@ -78,6 +80,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<MetaEnumInpu
 
     Ok(MetaEnumInput {
         ident: derive.ident,
+        generics,
         variants,
     })
 }
