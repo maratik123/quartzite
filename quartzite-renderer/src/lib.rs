@@ -4,11 +4,11 @@
 #![warn(clippy::pedantic)]
 #![deny(missing_docs)]
 
-/// Application module (stub; implemented in Task 7).
 pub mod application;
 mod error;
-/// VelloPainter module (stub; implemented in Task 7).
 pub mod vello_painter;
 
+pub use application::WindowedApplication;
 pub use error::RendererError;
+pub use vello_painter::VelloPainter;
 pub use winit::application::ApplicationHandler;

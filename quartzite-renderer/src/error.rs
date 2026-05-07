@@ -12,6 +12,10 @@
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum RendererError {
+    /// The application singleton is already live in this process.
+    #[error(transparent)]
+    Application(#[from] quartzite_runtime::ApplicationError),
+
     /// The winit event loop returned an error.
     #[error("event loop error: {0}")]
     EventLoop(#[from] winit::error::EventLoopError),

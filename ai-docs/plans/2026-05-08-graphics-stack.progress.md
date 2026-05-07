@@ -1,17 +1,17 @@
 # Progress: Graphics Stack (quartzite-paint-api + quartzite-renderer) — ACTIVE
-_Updated: 2026-05-08 (after Task 6)_
+_Updated: 2026-05-08 (after Task 7)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** feat/2026-05-08-graphics-stack
 **base_commit:** 10762960d63f35b3ddf0e22683fae9d19006f676
-**Last build:** PASS (Task 6)
+**Last build:** PASS (Task 7)
 **Issue:** #73
 **Spec:** ai-docs/plans/2026-05-03-graphics-stack.spec.md
 
 ## Next action
 
-**Do this immediately:** Task 7 — implement `WindowedApplication` + `VelloPainter` skeleton + integration test.
+**All tasks done — proceed to Step 9 (Verify) in the /task workflow.**
 
 ## Subtasks
 
@@ -21,7 +21,7 @@ _Updated: 2026-05-08 (after Task 6)_
 - [x] 4. `quartzite-paint` stub crate (`Cargo.toml`, `src/lib.rs`, `src/path.rs`, workspace registration)
 - [x] 5. Facade wiring + doc updates (`quartzite` root `Cargo.toml`, `src/lib.rs`, `context.md`, `INDEX.md`)
 - [x] 6. `quartzite-renderer` crate scaffold (`Cargo.toml`, `src/lib.rs`, workspace registration)
-- [ ] 7. `WindowedApplication` + `VelloPainter` skeleton + integration test
+- [x] 7. `WindowedApplication` + `VelloPainter` skeleton + integration test
 
 ## Key discoveries (don't re-investigate)
 
@@ -32,14 +32,18 @@ _Updated: 2026-05-08 (after Task 6)_
 - `winit::event_loop::EventLoopError` is private re-export; the public path is `winit::error::EventLoopError` (verified winit 0.30.13).
 - Workspace `Cargo.toml` currently lists: `quartzite-paint-api`, `quartzite-paint`. `quartzite-renderer` is NOT yet added.
 - Design doc is at `ai-docs/plans/2026-05-03-graphics-stack.design.md` (note: design uses 2026-05-03 date).
+- `quartzite_runtime::ApplicationError` is re-exported directly at crate root — there is no `quartzite_runtime::error` module. Import as `use quartzite_runtime::ApplicationError;`.
+- `WindowedApplication::new()` returns `Result<Self, RendererError>` (not `ApplicationError`), because `EventLoop::new()` can also fail. `RendererError` gained an `Application(ApplicationError)` variant via `#[from]`.
+- `quartzite-geometry` must be added explicitly to `quartzite-renderer/Cargo.toml` — `quartzite-paint-api` does not re-export geometry types publicly enough for the renderer's `vello_painter.rs` to see them.
+- `VelloPainter::new()` needs `#[must_use]` — clippy `must_use_candidate` fires on `pub fn new() -> Self` (caught by `--workspace` clippy run; not by per-crate run since the crate isn't in the default dep tree).
 
 ## AC Status
 
 | AC | Status |
 |----|--------|
-| AC1 — `quartzite-paint-api` compiles with `no_default_features` | PASS (cargo build -p quartzite-paint-api --no-default-features not yet run; crate is unconditionally `#![no_std]` with no `std` feature) |
+| AC1 — `quartzite-paint-api` compiles with `no_default_features` | PASS (cargo build -p quartzite-paint-api --no-default-features) |
 | AC2 — `quartzite-paint` has no wgpu/vello/winit dep | PASS |
-| AC3 — `quartzite-renderer` has winit/wgpu/vello | PASS (cargo build + clippy -D warnings) |
+| AC3 — `quartzite-renderer` has winit/wgpu/vello | PASS (cargo build --workspace + clippy -D warnings) |
 | AC4 — `quartzite-runtime` no graphics dep | NOT_TESTED |
 | AC5 — Mock `Painter` compiles against `quartzite-paint-api` alone | PASS (17 unit tests + 16 doctests in `quartzite-paint-api`) |
 | AC6 — No dep cycles | PASS (paint-api ← paint, paint-api ← renderer; no cycle) |
@@ -62,8 +66,9 @@ _Updated: 2026-05-08 (after Task 6)_
 - `ai-docs/context.md` — added `quartzite-paint-api` to crate table + plans list
 - `ai-docs/plans/INDEX.md` — updated dependency tree to show paint-api done
 - `Cargo.toml` — added `quartzite-renderer` to workspace members
-- `quartzite-renderer/Cargo.toml` — new crate (quartzite-paint-api, quartzite-runtime, winit, wgpu, vello, peniko, pollster, thiserror)
-- `quartzite-renderer/src/lib.rs` — crate root, lint gates, mod declarations, re-exports ApplicationHandler + RendererError
-- `quartzite-renderer/src/error.rs` — `RendererError` (EventLoop + Paint variants via thiserror)
-- `quartzite-renderer/src/application.rs` — empty stub module with doc comment (Task 7)
-- `quartzite-renderer/src/vello_painter.rs` — empty stub module with doc comment (Task 7)
+- `quartzite-renderer/Cargo.toml` — added `quartzite-geometry` dep (Task 7)
+- `quartzite-renderer/src/lib.rs` — added `pub use WindowedApplication`, `pub use VelloPainter`; removed stub module comments
+- `quartzite-renderer/src/error.rs` — added `Application(ApplicationError)` variant (Task 7)
+- `quartzite-renderer/src/application.rs` — `WindowedApplication` struct + `new()` + `run()` + unit tests (Task 7)
+- `quartzite-renderer/src/vello_painter.rs` — `VelloPainter` struct implementing `Painter` skeleton + tests (Task 7)
+- `quartzite-renderer/tests/application.rs` — integration test: `AlreadyExists` on second call (Task 7)

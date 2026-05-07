@@ -9,6 +9,7 @@ repository.workspace = true
 description = "Windowed rendering backend for quartzite (vello + wgpu + winit)"
 
 [dependencies]
+quartzite-geometry  = { path = "../quartzite-geometry", default-features = false }
 quartzite-paint-api = { path = "../quartzite-paint-api", default-features = false }
 quartzite-runtime   = { path = "../quartzite-runtime" }
 winit    = "0.30"
