@@ -1,5 +1,63 @@
 # Learnings
 
+### 2026-05-08 — documentation — doctests that reference items behind a `#[cfg(feature = "X")]` re-export must be feature-gated via `#![cfg_attr(feature = "X", doc = r#"…"#)]` injection, not just `no_run`
+
+**What happened:** PR #156 / `/task #60` shipped a `# Quickstart` doctest in `quartzite/src/lib.rs` modelled on `tokio` — `no_run`-annotated, using `#[derive(Extend, DeriveObject)]` + `#[object_impl]` + `#[slot]`. Local `cargo test --doc -p quartzite` passed (default features include `derive`, prelude re-exports the derive macros, doctest compile-checks fine). CI failed under the `Feature matrix (--no-default-features --features std)` job: under `--no-default-features --features std`, the `derive` feature is OFF, the prelude doesn't re-export the derive macros, and the doctest fails to resolve `Extend` / `DeriveObject` / `#[object_impl]` / `#[slot]` / `Object::write_property` / `Object::invoke_method`. **The `no_run` annotation does not skip compilation** — rustdoc still feeds the doctest source through `rustc` to check it; `no_run` only skips the run-the-resulting-binary step.
+
+**Rule:** When a doctest references types, traits, or macros that are gated behind a cargo feature (typically via a `#[cfg(feature = "X")] pub use …` in the prelude or facade), the doctest itself must be **conditionally injected** so it only exists for builds where that feature is enabled. The clean way is to feature-gate the entire `# Heading` + code block via `cfg_attr` injection at the crate level:
+
+```rust
+#![cfg_attr(
+    feature = "derive",
+    doc = r#"# Quickstart
+
+```no_run
+use crate_name::prelude::*;
+
+#[derive(SomeMacro)]
+struct Foo { … }
+
+fn main() { … }
+```"#
+)]
+```
+
+When the feature is enabled, the `cfg_attr` expands to `#![doc = "…"]` and the doctest is injected into the crate doc; rustdoc extracts it and compile-checks it. When the feature is disabled, the `cfg_attr` expands to nothing — no doc string, no extracted doctest, no compile failure under `--no-default-features`.
+
+This pattern preserves the bit-rot guard under the feature-on path (compile-check still happens) AND keeps the section visible in rustdoc on `docs.rs` / GitHub Pages (both build with default features, so the `cfg_attr` injects).
+
+**Why:** `no_run` is misleadingly named — readers (and authors) reasonably assume "no_run" means "rustdoc doesn't touch this", but rustdoc still parses, type-checks, name-resolves, and trait-resolves the doctest body. Anything reachable in the doctest's source must be reachable in the *current* feature configuration, not just one well-known configuration. CI matrices that test multiple feature combinations will surface this gap; a single-config local `cargo test --doc` will not.
+
+**How to apply:**
+
+- When writing a new doctest in a crate that has feature-gated re-exports (e.g., `quartzite` facade with the `derive` feature gating the macros), check whether the doctest's symbols are unconditionally available. If not, wrap the section in `#![cfg_attr(feature = "X", doc = r#"…"#)]`.
+- Alternative for a fragment-only doctest where bit-rot guard is not load-bearing: use ```` ```ignore ```` instead of `no_run` — rustdoc skips it entirely under all configs. Loses compile-check; only acceptable when a runnable example elsewhere in the project (`examples/<thing>.rs` built by every CI matrix entry) covers the API surface.
+- Reviewer / `self-review` agent obligation: when reviewing a PR that touches a doctest in a feature-gated crate, the doctest's feature configuration must match the symbols it uses. Spot-check by mentally running `cargo test --doc -p <crate> --no-default-features --features <minimal>` — if the doctest relies on a feature not in the minimal set, it must be `cfg_attr`-gated.
+
+The mistake also exposes that explicit `fn main()` (used in the same doctest to defeat rustdoc's auto-`fn main` wrapping for derive-macro path resolution) does NOT itself gate the body — the macros are still referenced at parse time.
+
+**Escalated?** no
+
+> Candidate for escalation to `ai-docs/doc-convention.md` (a "Doctests + features" sub-section) and to `.claude/agents/self-review.md` / `.claude/agents/review-findings.md` checklist (under feature-gated re-exports, doctest must be feature-gated). `/improve` should consider on recurrence.
+
+### 2026-05-08 — process — `/task` Step 12 finalise commit must regenerate every auto-derived file whose source is among the artefacts the step touches
+
+**What happened:** PR #156's finalise commit (`977739d`) updated `ai-docs/plans/INDEX.md` (added the `project-docs` row to the Active table) but did NOT regenerate `ROADMAP.md` — the auto-generated file produced from `INDEX.md` by `scripts/gen-roadmap.sh`. The CI sync-gate landing in the same PR caught the drift on the very first run after push: `git diff --exit-code ROADMAP.md` failed because the committed `ROADMAP.md` (from subtask 5) was stale relative to the now-updated `INDEX.md`. The implementer ran the generator, regenerated `ROADMAP.md`, and committed in a follow-up (`887a11f`) — fix worked, but it cost an extra round-trip through CI.
+
+**Rule:** During `/task` Step 12 (the finalise commit that moves spec/design to `done/` and updates `INDEX.md` / `context.md`), **identify every auto-generated file in the workspace whose source includes one of the files being modified**, regenerate them in the same commit. For quartzite the current set is:
+
+- `ai-docs/plans/INDEX.md` → drives `ROADMAP.md` via `scripts/gen-roadmap.sh` → regenerate `ROADMAP.md` whenever INDEX changes.
+
+The workspace may grow more such relationships (e.g., a future tool that generates a public-API surface listing from rustdoc JSON, a feature-matrix matrix file generated from `Cargo.toml`, etc.). Track them in `ai-docs/context.md` if it gets non-trivial.
+
+**Why:** Each auto-generated file lands its own CI gate (the sync-gate pattern). The PR that introduces both the source change and the gate cannot merge until the artefact is in sync. Skipping the regenerate step turns a one-commit PR into a two-commit PR with a CI-failure round-trip in the middle. The sync-gate's *job* is to catch this — but the goal is for the implementer to land sync correctly the first time so the gate runs green.
+
+**How to apply:** in the `/task` Step 12 checklist (or its skill prose), add a *Regenerate dependent artefacts* sub-step that lists the known auto-generation triggers. Today: "if `ai-docs/plans/INDEX.md` or `ai-docs/plans/done/**` changed in this commit, run `./scripts/gen-roadmap.sh` and stage `ROADMAP.md`". When new generators land, append to the list.
+
+**Escalated?** no
+
+> Candidate for escalation to `.claude/skills/task/SKILL.md` Step 12 — adding a "Regenerate dependent artefacts" bullet between "update INDEX.md" and "stage all changed files". `/improve` should consider when ≥ 2 occurrences accumulate; the sync-gate caught this one, so the cost was bounded.
+
 ### 2026-05-07 — documentation — `document_features::document_features!()` invocation must sit inline within the `//!` crate doc, immediately after a `## Feature flags` heading; main vs diagnostic features must be sectioned in Cargo.toml
 
 **What happened:** Two related bugs in our `document_features` integration, both surfaced once `cargo doc` was published live to GitHub Pages (PR #148, #137):
