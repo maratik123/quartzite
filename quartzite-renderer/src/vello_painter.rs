@@ -45,25 +45,25 @@ impl Default for VelloPainter {
 }
 
 impl Painter for VelloPainter {
-    // _Simple._
+    #[inline]
     fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
 
-    // _Simple._
+    #[inline]
     fn fill_rect(&mut self, _rect: Rect, _brush: &Brush) {}
 
-    // _Simple._
+    #[inline]
     fn draw_line(&mut self, _from: Point, _to: Point, _pen: &Pen) {}
 
-    // _Simple._
+    #[inline]
     fn clip_rect(&mut self, _rect: Rect) {}
 
-    // _Simple._
+    #[inline]
     fn translate(&mut self, _delta: Point) {}
 
-    // _Simple._
+    #[inline]
     fn save(&mut self) {}
 
-    // _Simple._
+    #[inline]
     fn restore(&mut self) {}
 }
 

@@ -15,19 +15,19 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 - **Signals/slots:** typed `Signal<Args>`, dynamic dispatch via `Object::invoke_method`, cross-thread queued connections.
 - **Event loop:** `Application` singleton, per-thread `EventLoop`, queued dispatcher.
 - **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
+- **Painting API** (`quartzite-paint-api`) — `Painter` trait, `Color`, `Pen`, `Brush` — `no_std`-compatible.
+- **Renderer scaffold** (`quartzite-renderer`) — `WindowedApplication` + `VelloPainter` skeleton (vello + wgpu + winit).
 
 ## Forward scope
 
-- **Painting API** (`quartzite-paint-api`) — `Painter` trait + thin abstraction layer.
-- **Renderer** (`quartzite-renderer`) — `vello` + `wgpu` + `winit` integration.
 - **Widgets** (`quartzite-widgets`) — `Widget` trait built on the painting API.
 - **Style system** (`quartzite-style`) — declarative styling on top of widgets.
+- **Full renderer** — complete `VelloPainter` wgpu/vello surface setup.
 
 ## Non-goals
 
 - Not a Qt port or a Qt binding — Qt is design lineage, not API surface.
 - No FFI / native dependencies — pure-Rust toolchain.
-- No GPU rendering yet — arrives with the renderer ([#73](https://github.com/maratik123/quartzite/issues/73)).
 
 ## Status
 
@@ -41,8 +41,11 @@ Early development. Core crates are implemented; widget and painting layers are n
 | `quartzite-runtime` | ✅ implemented |
 | `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
-| `quartzite-widgets` | planned |
-| `quartzite-paint` / `quartzite-style` | planned |
+| `quartzite-paint-api` | ✅ implemented |
+| `quartzite-paint` | ✅ stub (full impl planned #47) |
+| `quartzite-renderer` | ✅ scaffold (WindowedApplication + VelloPainter skeleton) |
+| `quartzite-widgets` | planned (#46) |
+| `quartzite-style` | planned (#47) |
 
 ## Usage
 

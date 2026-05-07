@@ -46,15 +46,19 @@ impl WindowedApplication {
 
     /// Runs the winit event loop, handing control to `handler`.
     ///
+    /// # Parameters
+    ///
+    /// - `handler`: winit [`ApplicationHandler`] that receives window and lifecycle events.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RendererError`] if the winit event loop exits with an error.
+    ///
     /// # Panics
     ///
     /// Panics on some platforms (notably macOS) if not called from the main
     /// thread. Do not call from inside an async runtime — use a sync main
     /// entry point instead.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`RendererError`] if the winit event loop exits with an error.
     pub fn run(self, mut handler: impl ApplicationHandler) -> Result<(), RendererError> {
         self.event_loop
             .run_app(&mut handler)
