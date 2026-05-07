@@ -24,15 +24,15 @@ Go through `ai-docs/learnings.md` and group entries:
 - By category (`code-style`, `process`, `architecture`, `testing`, `search`, `other`)
 - By recurrence (how many times the same mistake)
 - By escalation status:
-  - **Unescalated** (`no`, `memory`): `memory` is global cross-project only — not a project-level fix
-  - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`, `doc-convention`, `code-style`): rule is in project instructions; `settings.local` does NOT count (user-local, not project)
+  - **Unescalated** (`no`): no project-level rule was added. The entry may also have been saved to user-local persistence (`~/.claude/.../MEMORY.md`, `settings.local.json`), but neither counts as project-level escalation — those are private to one developer.
+  - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`, `doc-convention`, `code-style`): rule is in project instructions visible to every contributor.
 
 ### Step 2: Determine actions
 
 | Occurrences | Current status | Action |
 |---|---|---|
-| 1 | no / memory | Nothing — wait for recurrence |
-| ≥2 | no / memory | Update `AGENTS.md` or skill/agent/settings file — add/strengthen rule |
+| 1 | no | Nothing — wait for recurrence |
+| ≥2 | no | Update `AGENTS.md` or skill/agent/settings file — add/strengthen rule |
 | ≥2 | AGENTS.md / skill / agent / settings | Rule exists but isn't working → move closer to the point of execution |
 | ≥3 | rule in place | Propose a hook in `.claude/settings.json` |
 

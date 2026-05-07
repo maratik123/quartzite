@@ -24,14 +24,14 @@ Per AGENTS.md "Corrections Log":
 
 | Value | Means | Verification |
 |---|---|---|
-| `no` | Not yet acted on. | Nothing to verify — but flag if the same mistake repeats ≥2 times unescalated. |
-| `memory` | Saved to global cross-project memory only. | Treated as `no` for project-level audit. |
+| `no` | Not yet acted on (no project-level rule). May also have been saved to user-local persistence (`~/.claude/.../MEMORY.md`, `settings.local.json`) — those are private to one developer and DO NOT count as project-level escalation. | Nothing to verify — but flag if the same mistake repeats ≥2 times unescalated. |
 | `AGENTS.md` | Rule lives in `AGENTS.md`. | Find a section/sentence in `AGENTS.md` that addresses the mistake. |
 | `skill:[name]` | Rule lives in `.claude/skills/<name>/SKILL.md`. | File exists; rule is there. |
 | `agent:[name]` | Rule lives in `.claude/agents/<name>.md`. | File exists; rule is there. |
 | `hook` | Rule is a hook in `.claude/settings.json`. | A hook with a matcher + command that addresses the mistake exists. |
 | `settings` | Rule is a non-hook setting (permission allow/deny, env). | Listed in `.claude/settings.json` `permissions.*` or `env`. |
 | `doc-convention` | Rule lives in `ai-docs/doc-convention.md`. | File exists; rule is there. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference. |
+| `code-style` | Rule lives in `ai-docs/code-style.md`. | File exists; rule is there. Use only for code-style rules that genuinely belong in the workspace code-style reference. |
 
 Multiple values are comma-separated (`AGENTS.md, hook`). Each must independently verify.
 
@@ -52,7 +52,7 @@ Extract `(date, category, description, rule, escalated)` for each entry.
 
 ### Step 2: Verify each escalation target
 
-For each entry where `Escalated?` is **not** `no` / `memory`:
+For each entry where `Escalated?` is **not** `no`:
 
 - For each target in the comma-separated list:
   - **`AGENTS.md`** — `rg -n "<keyword from rule>" AGENTS.md`. The rule keyword should be a distinctive phrase from the `Rule:` field, not generic (avoid "test", "commit"). If no match → mismatch.
@@ -61,6 +61,7 @@ For each entry where `Escalated?` is **not** `no` / `memory`:
   - **`hook`** — read `.claude/settings.json`, scan `hooks.*[].hooks[].command` for the keyword. If no hook references the relevant tool/behavior → mismatch.
   - **`settings`** — scan `.claude/settings.json` `permissions.allow`, `permissions.deny`, `env`. Mismatch if absent.
   - **`doc-convention`** — verify `ai-docs/doc-convention.md` exists, then grep for keyword. If file missing → blocker. If keyword absent → mismatch.
+  - **`code-style`** — verify `ai-docs/code-style.md` exists, then grep for keyword. If file missing → blocker. If keyword absent → mismatch.
 
 Record each entry's status:
 
