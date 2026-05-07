@@ -94,7 +94,7 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **How to apply:** After writing a learning entry, mark `Escalated? no` and stop. Do not touch AGENTS.md, skill files, or agent files as a follow-up to writing the entry. Wait for `/improve`.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
@@ -106,7 +106,7 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **How to apply:** When writing a criterion bench file (`harness = false`), do not add a `#[cfg(test)] mod tests` block. The AGENTS.md test-coverage rule applies to library and application source (`src/`), not to criterion bench binaries.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
 ### 2026-05-07 — code-style — concrete trait-impl methods take `#[inline]`, not `// _Simple._` (PR #129 follow-up)
 
@@ -632,7 +632,7 @@ Concrete substitutions:
 
 **How to apply:** When the user says "add to learnings" (or "note this", "remember this"), write the entry and stop. If the learnings entry merits escalation to project instructions, mark `Escalated? no` and let the user trigger `/improve` when ready. Never escalate to agents/skills on the same turn as a learnings-only request.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-06 — process — `/next` skill cannot see "Blocked by:" in issue bodies; use a GitHub label instead
 
@@ -704,7 +704,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** Files under `benches/` are criterion bench binaries, not library code. Like `examples/`, they are runnable binaries and do not require a `#[cfg(test)] mod tests` block regardless of line count. Both existing workspace bench files (`quartzite-core/benches/signal_property.rs`, `quartzite-runtime/benches/object_tree.rs`) follow this pattern.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
@@ -712,4 +712,4 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** When writing to `ai-docs/learnings.md` during `/task` (or any non-`/improve` skill), always set `Escalated? no`. Do not touch `AGENTS.md`, `.claude/agents/**`, or `.claude/skills/**` on the basis of a new learnings entry. The Propagation Rule only triggers when you are *already* editing an instruction file for a separate reason — it does not authorize pre-emptive escalation. Run `/improve` when ≥3 unescalated entries accumulate.
 
-**Escalated?** no
+**Escalated?** AGENTS.md

@@ -44,7 +44,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 3. Test coverage
 - Every non-trivial function / branch has a test?
-- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `examples/` are runnable demos — no test block required)
+- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exceptions: files under `examples/` are runnable demos — no test block required; files under `benches/` declared with `[[bench]] harness = false` are criterion bench binaries — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never run — no test block required.)
 - Tests verify invariants, not cosmetics?
   - Mental test: comment out the production fix → does the test fail? If not → cosmetic → **REJECT**
 - No `unwrap()` in tests without justification?
