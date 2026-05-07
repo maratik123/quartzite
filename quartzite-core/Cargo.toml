@@ -30,6 +30,11 @@ tracing = { version = "0.1", default-features = false }
 rstest = "0.26"
 serial_test = "3"
 itertools = "0.14"
+criterion = "0.8"
+
+[[bench]]
+name = "signal_property"
+harness = false
 
 [package.metadata.docs.rs]
 features = ["std"]

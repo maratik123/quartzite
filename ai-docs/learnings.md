@@ -1,5 +1,39 @@
 # Learnings
 
+### 2026-05-07 — process — run actionlint on every new or modified GitHub Actions workflow file
+
+**What happened:** Three new workflow files were created for Bencher CI integration and committed without running actionlint. The user had to ask explicitly. actionlint caught `actions/github-script@v6` being too old for the current GitHub Actions runner; fixing it required an extra commit.
+
+**Rule:** Run `actionlint <file>` on every GitHub Actions workflow file that is created or modified before committing. A clean actionlint pass is a required gate alongside `cargo build` / `cargo clippy`.
+
+**Why:** actionlint catches runner-version mismatches, deprecated action versions, expression syntax errors, and shell quoting issues that are invisible to `cargo` checks.
+
+**How to apply:** After writing or editing any `.github/workflows/*.yml` file, run `actionlint <file>` before staging. If multiple files changed, pass all of them in one invocation. Fix all errors before committing.
+
+**Escalated?** no
+
+### 2026-05-07 — process — do not escalate learnings without being asked; escalation is triggered only by /improve
+
+**What happened:** After writing a learning entry about actionlint, I immediately escalated it to AGENTS.md and task/SKILL.md without being asked. The user had to point out the mistake.
+
+**Rule:** Writing a learning entry (`ai-docs/learnings.md`) and escalating it to project instruction files are two separate actions. The learning entry is written automatically on any non-obvious correction. Escalation (updating AGENTS.md, skills, agents, hooks, code-style.md, doc-convention.md) is done only when the user runs `/improve`. Do not escalate on your own initiative.
+
+**How to apply:** After writing a learning entry, mark `Escalated? no` and stop. Do not touch AGENTS.md, skill files, or agent files as a follow-up to writing the entry. Wait for `/improve`.
+
+**Escalated?** no
+
+### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
+
+**What happened:** Self-review of the criterion benchmarks task flagged that `quartzite-core/benches/signal_property.rs` and `quartzite-runtime/benches/object_tree.rs` have no `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/`, not `benches/`.
+
+**Rule:** Criterion bench files with `[[bench]] harness = false` compile as standalone criterion-driver binaries where the Rust test framework is entirely replaced. `#[cfg(test)]` code is never compiled into these binaries (there is no `rustc --test` invocation). Adding a test block is dead code and not meaningful. These files belong to the same category as `examples/` for the purposes of the `#[cfg(test)]` rule.
+
+**Why:** `harness = false` disables the default test runner; only the `criterion_main!`-generated entry point runs. There is no mechanism to invoke `#[test]` items even if they were written.
+
+**How to apply:** When writing a criterion bench file (`harness = false`), do not add a `#[cfg(test)] mod tests` block. The AGENTS.md test-coverage rule applies to library and application source (`src/`), not to criterion bench binaries.
+
+**Escalated?** no
+
 ### 2026-05-07 — code-style — concrete trait-impl methods take `#[inline]`, not `// _Simple._` (PR #129 follow-up)
 
 **What happened:** PR #129 stripped `#[inline]` uniformly from all generated trait-impl methods in `extend/codegen.rs`, `object_impl/codegen.rs`, and `meta_enum/codegen.rs` — including emissions inside `impl AsObject for ConcreteFoo` (concrete user struct). The `/interview` discussion treated all trait-impl methods as one bucket, picked option (c) "emit no marker; rely on rustdoc inheritance from the trait declaration", and concluded that the change was rule hygiene with no codegen effect. The actual rule in `ai-docs/code-style.md` L131-138 already split the trait-impl case into two rows by impl-block genericity — concrete impl falls in the **concrete** row (`#[inline]`), only generic impl falls in the **generic** row (`_Simple._`). The marker-form decision tree at L165-170 omitted the concrete-impl row entirely, which is what primed the misreading.
@@ -569,16 +603,6 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 **How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard. Canonical feature name for high-frequency tracing: `verbose-tracing`.
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
-
-### 2026-05-07 — tooling — run actionlint on new/modified GitHub Actions workflow files
-
-**What happened:** `coverage.yml` was written and committed without running `actionlint`. The user asked after the fact whether it had been run.
-
-**Rule:** Run `actionlint <workflow-file>` on every new or modified `.github/workflows/*.yml` file as part of Step 9 (Verify), before the self-review agent.
-
-**How to apply:** Add `actionlint .github/workflows/<changed>.yml` to the Step 9 checklist whenever a task touches workflow files. `actionlint` is installed locally and available in `$PATH`. Must produce no output (exit 0) before proceeding.
-
-**Escalated?** no
 
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
