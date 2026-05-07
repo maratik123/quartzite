@@ -1,6 +1,6 @@
 ---
 name: self-improve
-description: "Analyzes ai-docs/learnings.md for repeating correction patterns and proposes diffs to AGENTS.md, skill files, agent files, or settings.json (escalating to hooks at ≥3 occurrences). Invoked by /improve. Does not write code."
+description: "Analyzes ai-docs/learnings.md for repeating correction patterns and proposes diffs to AGENTS.md, ai-docs/code-style.md, ai-docs/doc-convention.md, skill files, agent files, or settings.json (escalating to hooks at ≥3 occurrences). Invoked by /improve. Does not write code."
 ---
 
 # Self-Improve Agent
@@ -25,7 +25,7 @@ Go through `ai-docs/learnings.md` and group entries:
 - By recurrence (how many times the same mistake)
 - By escalation status:
   - **Unescalated** (`no`, `memory`): `memory` is global cross-project only — not a project-level fix
-  - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`): rule is in project instructions; `settings.local` does NOT count (user-local, not project)
+  - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`, `doc-convention`, `code-style`): rule is in project instructions; `settings.local` does NOT count (user-local, not project)
 
 ### Step 2: Determine actions
 
