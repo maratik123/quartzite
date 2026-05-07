@@ -30,6 +30,8 @@ pub struct ObjectRef<T> {
 impl<T> ObjectRef<T> {
     /// Wraps `id` in a typed `ObjectRef`.
     ///
+    /// _Simple._
+    ///
     /// No liveness check is performed here; the caller must ensure the object
     /// exists in the tree.
     ///
@@ -47,7 +49,6 @@ impl<T> ObjectRef<T> {
     /// let r: ObjectRef<()> = ObjectRef::new(id);
     /// assert_eq!(r.id(), id);
     /// ```
-    #[inline]
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,
@@ -56,6 +57,8 @@ impl<T> ObjectRef<T> {
     }
 
     /// Returns the underlying [`ObjectId`].
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -67,12 +70,13 @@ impl<T> ObjectRef<T> {
     /// let r: ObjectRef<()> = ObjectRef::new(id);
     /// assert_eq!(r.id(), id);
     /// ```
-    #[inline]
     pub fn id(&self) -> ObjectId {
         self.id
     }
 
     /// Converts this `ObjectRef` into a [`WeakRef`] with no liveness guarantee.
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -85,7 +89,6 @@ impl<T> ObjectRef<T> {
     /// let w = r.downgrade();
     /// assert_eq!(w.id(), id);
     /// ```
-    #[inline]
     pub fn downgrade(self) -> WeakRef<T> {
         WeakRef {
             id: self.id,
@@ -140,6 +143,8 @@ pub struct WeakRef<T> {
 impl<T> WeakRef<T> {
     /// Wraps `id` in a typed `WeakRef`.
     ///
+    /// _Simple._
+    ///
     /// No liveness check is performed here. Use [`is_valid`](Self::is_valid) before
     /// accessing the object.
     ///
@@ -157,7 +162,6 @@ impl<T> WeakRef<T> {
     /// let w: WeakRef<()> = WeakRef::new(id);
     /// assert_eq!(w.id(), id);
     /// ```
-    #[inline]
     pub fn new(id: ObjectId) -> Self {
         Self {
             id,
@@ -166,6 +170,8 @@ impl<T> WeakRef<T> {
     }
 
     /// Returns the underlying [`ObjectId`].
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -177,12 +183,13 @@ impl<T> WeakRef<T> {
     /// let w: WeakRef<()> = WeakRef::new(id);
     /// assert_eq!(w.id(), id);
     /// ```
-    #[inline]
     pub fn id(&self) -> ObjectId {
         self.id
     }
 
     /// Returns `true` if the referenced object is still present in `tree`.
+    ///
+    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -199,7 +206,6 @@ impl<T> WeakRef<T> {
     /// let w: WeakRef<()> = WeakRef::new(id);
     /// assert!(!w.is_valid(&tree)); // id was never inserted
     /// ```
-    #[inline]
     pub fn is_valid(&self, tree: &ObjectTree) -> bool {
         tree.contains(self.id)
     }

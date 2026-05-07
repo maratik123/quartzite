@@ -54,6 +54,8 @@ pub trait ObjectTreeExt: AsObject {
     /// Returns the [`ObjectId`] of this object's parent in `tree`, or `None`
     /// when this object is a root.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `tree`: the [`ObjectTree`] to query.
@@ -68,7 +70,6 @@ pub trait ObjectTreeExt: AsObject {
     /// let _parent = obj.parent_in(tree);
     /// # }
     /// ```
-    #[inline]
     fn parent_in(&self, tree: &ObjectTree) -> Option<ObjectId> {
         tree.parent_of(self.object_base().id())
     }
@@ -97,6 +98,8 @@ pub trait ObjectTreeExt: AsObject {
     /// Returns a slice of this object's children in insertion order, with
     /// lifetime tied to `tree`.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `tree`: the [`ObjectTree`] to query.
@@ -111,7 +114,6 @@ pub trait ObjectTreeExt: AsObject {
     /// let _children: &[ObjectId] = obj.children_in(tree);
     /// # }
     /// ```
-    #[inline]
     fn children_in<'t>(&self, tree: &'t ObjectTree) -> &'t [ObjectId] {
         tree.children_of(self.object_base().id())
     }
