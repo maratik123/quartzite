@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — code-style — nested `fn inner` inside a generic-fn split must carry `#[inline]` when simple
+
+**What happened:** Applied the "Generic-fn split for binary size" pattern to four fns. The issue spec said "no `_Simple._` on `inner` (it is generally non-simple by construction)" and was taken to mean no marker at all. Two of the four inner fns (`ObjectFactory::register`'s inner — single `HashMap::insert` call; `ObjectBase::named`'s inner — single `ObjectBase::new()` call) are concrete and simple by the recursive definition (no branches, at most one non-simple call). They were left without `#[inline]` until the user caught it in review.
+
+**Rule:** The "usually won't be simple" qualifier in AGENTS.md is a prediction, not a blanket exemption. Apply the recursive simplicity test to every `fn inner` body: if it is concrete and simple, add `#[inline]`. If it is not simple (branches, loops, or > 1 non-simple call), leave it unmarked.
+
+**Why:** A nested `fn inner` is a concrete free function — the concrete-row rule applies. Skipping the test because the function is nested or because the parent is a generic-fn split violates the marker rule.
+
+**How to apply:** After writing a `fn inner(...)` as part of a generic-fn split, run the recursive simplicity check: (1) no branches/loops in the body? (2) at most one call to a non-simple callee? If both yes → `#[inline]` above the `fn`. If not → no marker.
+
+**Escalated?** no
+
 ### 2026-05-07 — code-style — methods inside `impl<T> Trait for Foo<T>` are generic-shaped and need `_Simple._`, not `#[inline]`; and use `// _Simple._` (not `///`) on trait-impl methods
 
 **What happened:** PR #120 (issue #115 implementation) added `#[inline]` to `Signal<Args>::default`, `ObjectRef<T>::clone`/`eq`, `WeakRef<T>::clone`/`eq`. All five methods sit inside `impl<T> Trait for Foo<T>` blocks and have no own type parameters, but `Self` is parametrised by the impl block's generics. The original carve-out wording was ambiguous enough to be read as covering this case. The first fix replaced `#[inline]` with `/// _Simple._`, but rendered rustdoc revealed `///` *overrides* the trait-inherited docstring — `Clone::clone`'s actual doc ("Returns a copy of the value...") was wiped out and replaced by just `_Simple._` on the rustdoc page.

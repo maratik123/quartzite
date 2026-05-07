@@ -301,6 +301,8 @@ impl ObjectTree {
     ///
     /// Has no effect if `id` is not in the tree.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `id`: identifier of the object to rename.
@@ -316,36 +318,39 @@ impl ObjectTree {
     /// # }
     /// ```
     pub fn rename(&mut self, id: ObjectId, new_name: impl Into<String>) {
-        let new_name = new_name.into();
-        let _span =
-            trace_span!("object_tree::rename", object_id = ?id, new_name = %new_name).entered();
-        // Remove from old name bucket; capture old name for signal payload.
-        let old_name_opt: Option<String>;
-        if let Some(old_name) = self.with(id, |obj| obj.object_base().name().map(str::to_owned)) {
-            if let Some(ref old_name) = old_name {
-                if *old_name == new_name {
-                    return; // no-op: name unchanged
+        fn inner(this: &mut ObjectTree, id: ObjectId, new_name: String) {
+            let _span =
+                trace_span!("object_tree::rename", object_id = ?id, new_name = %new_name).entered();
+            // Remove from old name bucket; capture old name for signal payload.
+            let old_name_opt: Option<String>;
+            if let Some(old_name) = this.with(id, |obj| obj.object_base().name().map(str::to_owned))
+            {
+                if let Some(ref old_name) = old_name {
+                    if *old_name == new_name {
+                        return; // no-op: name unchanged
+                    }
+                    ObjectTree::remove_from_by_name(&mut this.by_name, old_name, id);
                 }
-                Self::remove_from_by_name(&mut self.by_name, old_name, id);
+                old_name_opt = old_name;
+            } else {
+                return; // id not in tree
             }
-            old_name_opt = old_name;
-        } else {
-            return; // id not in tree
+            // Update the object's name.
+            this.with_mut(id, |obj| {
+                obj.object_base_mut().set_name_raw(Some(new_name.clone()))
+            });
+            // Insert into new name bucket.
+            this.by_name.entry(new_name.clone()).or_default().push(id);
+            // Emit name_changed after index is consistent. old = None means was anonymous.
+            let old_val = match old_name_opt {
+                Some(s) => Value::String(s),
+                None => Value::Null,
+            };
+            this.with_mut(id, |obj| {
+                obj.emit_signal("name_changed", &[old_val, Value::String(new_name)]);
+            });
         }
-        // Update the object's name.
-        self.with_mut(id, |obj| {
-            obj.object_base_mut().set_name_raw(Some(new_name.clone()))
-        });
-        // Insert into new name bucket.
-        self.by_name.entry(new_name.clone()).or_default().push(id);
-        // Emit name_changed after index is consistent. old = None means was anonymous.
-        let old_val = match old_name_opt {
-            Some(s) => Value::String(s),
-            None => Value::Null,
-        };
-        self.with_mut(id, |obj| {
-            obj.emit_signal("name_changed", &[old_val, Value::String(new_name)]);
-        });
+        inner(self, id, new_name.into())
     }
 
     /// Clears the name of object `id`, making it anonymous and removing it from the

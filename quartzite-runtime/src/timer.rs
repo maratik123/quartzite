@@ -221,6 +221,8 @@ impl Timer {
     ///
     /// The name is visible in the [`ObjectTree`](crate::ObjectTree) for lookup by name.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `name`: human-readable identifier registered with the object base.
@@ -236,16 +238,19 @@ impl Timer {
     /// assert_eq!(timer.base.name(), Some("heartbeat"));
     /// ```
     pub fn named(name: impl Into<std::string::String>, interval: Duration) -> Self {
-        let tick = Arc::new(Mutex::new(Signal::new()));
-        let state = TimerState::new(Arc::clone(&tick));
-        Self {
-            base: ObjectBase::named(name),
-            interval,
-            single_shot: false,
-            tick,
-            state,
-            driver: None,
+        fn inner(name: String, interval: Duration) -> Timer {
+            let tick = Arc::new(Mutex::new(Signal::new()));
+            let state = TimerState::new(Arc::clone(&tick));
+            Timer {
+                base: ObjectBase::named(name),
+                interval,
+                single_shot: false,
+                tick,
+                state,
+                driver: None,
+            }
         }
+        inner(name.into(), interval)
     }
 
     // ── signal wrappers ──────────────────────────────────────────────────────
