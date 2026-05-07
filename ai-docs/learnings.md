@@ -697,3 +697,19 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 **How to apply:** Before writing any implementation code under `/task`, confirm that `ai-docs/plans/YYYY-MM-DD-name.design.md` exists and carries a GO verdict. If it does not exist, run the design agent (Step 6) regardless of how simple the task appears. Only skip with explicit user approval.
 
 **Escalated?** no
+
+### 2026-05-07 — process — bench binaries are exempt from the `#[cfg(test)]` requirement
+
+**What happened:** Self-review flagged that `benches/macro_object.rs` (~90 lines) lacked a `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/` explicitly. In practice, criterion bench binaries cannot host a test module — `criterion_main!` generates `main`, making the binary incompatible with the test runner.
+
+**Rule:** Files under `benches/` are criterion bench binaries, not library code. Like `examples/`, they are runnable binaries and do not require a `#[cfg(test)] mod tests` block regardless of line count. Both existing workspace bench files (`quartzite-core/benches/signal_property.rs`, `quartzite-runtime/benches/object_tree.rs`) follow this pattern.
+
+**Escalated?** no
+
+### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
+
+**What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.
+
+**Rule:** When writing to `ai-docs/learnings.md` during `/task` (or any non-`/improve` skill), always set `Escalated? no`. Do not touch `AGENTS.md`, `.claude/agents/**`, or `.claude/skills/**` on the basis of a new learnings entry. The Propagation Rule only triggers when you are *already* editing an instruction file for a separate reason — it does not authorize pre-emptive escalation. Run `/improve` when ≥3 unescalated entries accumulate.
+
+**Escalated?** no

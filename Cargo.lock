@@ -671,6 +671,7 @@ dependencies = [
 name = "quartzite"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "document-features",
  "env_logger",
  "quartzite-core",
