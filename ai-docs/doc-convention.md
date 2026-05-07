@@ -147,6 +147,15 @@ is **not** fine: agents and reviewers check this mechanically.
     - Concrete simple fns (no own type parameters AND `Self` is concrete —
       i.e. the surrounding `impl` block introduces no generics) — they
       use the `#[inline]` attribute, which is itself the visible marker.
+      **This includes methods inside `impl Trait for ConcreteFoo` blocks**
+      (concrete impl on a concrete struct): they take `#[inline]` per the
+      concrete row, **not** `// _Simple._`. The comment form has no
+      codegen effect, so a concrete trait-impl method marked with only
+      `// _Simple._` would lose cross-crate inlining without LTO. The
+      `// _Simple._` form is reserved for `impl<T> Trait for Foo<T>`
+      (generic-impl) — there it avoids overriding rustdoc inheritance,
+      and `#[inline]` would be redundant because monomorphization
+      already exports the body per concrete `T`.
     - Default trait methods inside a `pub trait` body whose own bodies
       declare no type parameters (e.g. `ObjectExt::id`,
       `ObjectExt::is_on_current_thread`) — carve-out keeps them in the

@@ -164,10 +164,25 @@ matches both forms. Example: `Signal<Args>::default`,
 
 | Position | Marker form |
 |---|---|
-| Concrete fn (no own type params, concrete `Self`) | `#[inline]` attribute |
+| Concrete fn (free fn / inherent method on a concrete type, no own type params) | `#[inline]` attribute |
+| Method inside `impl Trait for ConcreteFoo` block — concrete impl on a concrete struct, impl block introduces **no** generics | `#[inline]` attribute (concrete-row equivalent) — load-bearing for cross-crate inlining without LTO; `// _Simple._` is *not* a substitute because it has no codegen effect |
 | Generic free fn / inherent generic method (`impl<T> Foo<T> { fn ... }`) | `/// _Simple._` doc line |
 | Trait method declaration (default method or method decl in a `pub trait` body) | `/// _Simple._` doc line — becomes part of the trait's docs and is inherited by all impls |
-| Method inside an `impl<T> Trait for Foo<T>` block (inherits docs from the trait) | `// _Simple._` line comment — avoids overriding inherited rustdoc |
+| Method inside an `impl<T> Trait for Foo<T>` block (impl block introduces generics; inherits docs from the trait) | `// _Simple._` line comment — `#[inline]` is redundant (monomorphization already exports MIR per concrete `T`); `///` would override the inherited rustdoc |
+
+**Why concrete trait-impl methods get `#[inline]`, not `// _Simple._`:**
+the comment form is just a human marker with zero codegen or rustdoc
+effect. For a method inside `impl Trait for ConcreteFoo`, the body is
+**not** monomorphized into downstream crates (the impl is a single
+non-generic symbol), so without `#[inline]` its MIR is not exported
+across the crate boundary — downstream callers get a real function
+call. `#[inline]` is the only marker that does the cross-crate
+inlining work in this position. The trait-declaration tag (when
+present) covers the human signal via rustdoc inheritance, so no
+additional `// _Simple._` is needed on the impl method; if the trait
+declaration is *not* tagged, neither marker is appropriate on the
+impl method (consider whether the trait contract should be tagged
+instead).
 
 **Decision rule for tagging a trait method:** tag only when *every*
 conforming impl is required to be simple. If some valid impls are
@@ -188,9 +203,24 @@ struct-literal constructors, wrappers whose body is one call into
 another simple fn (e.g. `ObjectExt::id` → `self.object_base().id()`).
 
 **Codegen mirroring:** emit `#[inline]` before each generated simple
-**concrete** `fn`; emit a `/// _Simple._` doc line before each
-generated simple **generic** `fn` and before each generated trait
-method whose conforming impls are always simple.
+fn whose position falls in the concrete row of the decision tree —
+this includes both free fns / inherent methods on concrete types
+**and** methods inside `impl Trait for ConcreteFoo` blocks (concrete
+impl on a concrete struct). Emit a `/// _Simple._` doc line before
+each generated simple **generic** fn and before each generated trait
+method declaration whose conforming impls are always simple. For
+generated methods inside an `impl<T> Trait for Foo<T>` block the
+trait declaration's `/// _Simple._` already publishes the contract
+via rustdoc inheritance, so no additional marker on the impl method
+is needed (and `#[inline]` would be redundant — monomorphization
+already exports MIR per concrete `T`). Codegen that emits trait-impl
+methods must therefore branch on whether the user struct introduces
+type/const params: emit `#[inline]` for concrete-struct emission,
+emit nothing for generic-struct emission. `// _Simple._` cannot be
+emitted via `quote!` (Rust strips comments before token-stream
+parsing), and is unnecessary on the concrete-struct branch (where
+`#[inline]` is the canonical marker) and on the generic-struct
+branch (where rustdoc inheritance covers the signal).
 
 **Marker maintenance.** When an edit makes a previously-simple fn
 non-simple (gains branches or loops, or > 1 call to a non-simple fn),
