@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — process — run actionlint on every new or modified GitHub Actions workflow file
+
+**What happened:** Three new workflow files were created for Bencher CI integration and committed without running actionlint. The user had to ask explicitly. actionlint caught `actions/github-script@v6` being too old for the current GitHub Actions runner; fixing it required an extra commit.
+
+**Rule:** Run `actionlint <file>` on every GitHub Actions workflow file that is created or modified before committing. A clean actionlint pass is a required gate alongside `cargo build` / `cargo clippy`.
+
+**Why:** actionlint catches runner-version mismatches, deprecated action versions, expression syntax errors, and shell quoting issues that are invisible to `cargo` checks.
+
+**How to apply:** After writing or editing any `.github/workflows/*.yml` file, run `actionlint <file>` before staging. If multiple files changed, pass all of them in one invocation. Fix all errors before committing.
+
+**Escalated?** AGENTS.md
+
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
 **What happened:** Self-review of the criterion benchmarks task flagged that `quartzite-core/benches/signal_property.rs` and `quartzite-runtime/benches/object_tree.rs` have no `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/`, not `benches/`.
