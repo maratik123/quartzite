@@ -24,7 +24,11 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
@@ -43,7 +47,11 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
@@ -62,7 +70,11 @@ jobs:
 
   clippy:
     name: Clippy
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust toolchain
@@ -80,6 +92,42 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
+
+  features-pass:
+    name: Feature matrix
+    needs: features
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.features.result }}" != "success" ]]; then exit 1; fi
+
+  build-pass:
+    name: Build
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.build.result }}" != "success" ]]; then exit 1; fi
+
+  test-pass:
+    name: Test
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then exit 1; fi
+
+  clippy-pass:
+    name: Clippy
+    needs: clippy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.clippy.result }}" != "success" ]]; then exit 1; fi
 
   docs:
     name: Docs
