@@ -8,6 +8,7 @@ members = [
     "quartzite-event-types",
     "quartzite-paint-api",
     "quartzite-paint",
+    "quartzite-renderer",
 ]
 resolver = "2"
 

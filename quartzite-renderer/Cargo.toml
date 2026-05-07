@@ -1,0 +1,26 @@
+[package]
+name = "quartzite-renderer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Windowed rendering backend for quartzite (vello + wgpu + winit)"
+
+[dependencies]
+quartzite-paint-api = { path = "../quartzite-paint-api", default-features = false }
+quartzite-runtime   = { path = "../quartzite-runtime" }
+winit    = "0.30"
+wgpu     = "29"
+vello    = "0.8"
+peniko   = "0.6"
+pollster = "0.4"
+thiserror = "2"
+
+[dev-dependencies]
+# nothing needed yet; GPU tests are #[ignore]-gated
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]
