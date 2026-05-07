@@ -28,7 +28,11 @@ const TICK_MS: u64 = 1;
 pub struct EventLoop {
     sender: Sender<Box<dyn FnOnce() + Send>>,
     receiver: parking_lot::Mutex<Receiver<Box<dyn FnOnce() + Send>>>,
+    /// Set to `true` while `run` is executing; `false` before and after.
     running: Arc<AtomicBool>,
+    /// Set to `true` by `stop`; checked by `run` to decide when to exit.
+    /// Decoupled from `running` so that `stop` called before `run` is visible.
+    stop_requested: AtomicBool,
 }
 
 impl EventLoop {
@@ -50,6 +54,7 @@ impl EventLoop {
             sender,
             receiver: parking_lot::Mutex::new(receiver),
             running: Arc::new(AtomicBool::new(false)),
+            stop_requested: AtomicBool::new(false),
         }
     }
 
@@ -118,7 +123,11 @@ impl EventLoop {
         let _guard = RegistryGuard;
         let receiver = self.receiver.lock();
         self.running.store(true, Ordering::SeqCst);
-        while self.running.load(Ordering::SeqCst) {
+        // Check `stop_requested` (set by `stop()`) rather than `running` (set by us):
+        // this makes a `stop()` call that arrived before `run()` visible on the first
+        // iteration, preventing the loop from running forever when the caller calls
+        // `stop()` before the worker thread enters `run()`.
+        while !self.stop_requested.load(Ordering::SeqCst) {
             while let Ok(f) = receiver.try_recv() {
                 f();
             }
@@ -128,6 +137,7 @@ impl EventLoop {
                 Err(mpsc::RecvTimeoutError::Disconnected) => break,
             }
         }
+        self.running.store(false, Ordering::SeqCst);
         // Drain any remaining messages before exiting.
         while let Ok(f) = receiver.try_recv() {
             f();
@@ -146,8 +156,8 @@ impl EventLoop {
     /// ```
     pub fn stop(&self) {
         let _span = debug_span!("event_loop::stop").entered();
-        self.running.store(false, Ordering::SeqCst);
-        // Wake the loop by posting a no-op.
+        self.stop_requested.store(true, Ordering::SeqCst);
+        // Wake the loop by posting a no-op so recv_timeout returns immediately.
         let _ = self.sender.send(Box::new(|| {}));
     }
 
@@ -335,5 +345,21 @@ mod tests {
         el.stop();
 
         assert!(handle.join().is_ok());
+    }
+
+    #[test]
+    fn stop_before_run_exits_immediately() {
+        use std::sync::mpsc;
+        let el = Arc::new(EventLoop::new());
+        // stop() fires before run() is entered; the loop must not start.
+        el.stop();
+        let el2 = Arc::clone(&el);
+        let (tx, rx) = mpsc::channel();
+        thread::spawn(move || {
+            el2.run();
+            let _ = tx.send(());
+        });
+        rx.recv_timeout(Duration::from_millis(500))
+            .expect("run() must exit within 500 ms when stop() was called before run()");
     }
 }
