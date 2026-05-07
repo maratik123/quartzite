@@ -1,6 +1,7 @@
 # quartzite
 
 [![codecov](https://codecov.io/gh/maratik123/quartzite/branch/master/graph/badge.svg)](https://codecov.io/gh/maratik123/quartzite)
+[![docs](https://img.shields.io/badge/docs-master-blue)](https://maratik123.github.io/quartzite/)
 
 A GUI and object framework for Rust built around signals/slots,
 a rich object model, and a declarative UI layer — implemented as idiomatic Rust with no native
