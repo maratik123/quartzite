@@ -3,7 +3,7 @@ name: task
 description: "Full task workflow from a user description OR a GitHub issue number: interview → spec → design → design-review → impl → verify → self-review. Steps are strictly ordered and cannot be skipped."
 disable-model-invocation: true
 argument-hint: "[issue-number | task description]"
-allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh issue create *) Bash(gh issue comment *) Bash(gh pr create *) Bash(gh pr view *)
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git rev-parse *) Bash(git checkout *) Bash(git branch *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh issue create *) Bash(gh issue comment *) Bash(gh pr create *) Bash(gh pr view *)
 ---
 
 Full workflow for a task. Steps execute **strictly in sequence** — proceeding to N+1 before N is complete is FORBIDDEN.
@@ -165,7 +165,8 @@ finding (Step 11) requires a design change rather than a code fix:
 3. `cargo fmt -- --check` — no formatting drift
 4. `cargo clippy -- -D warnings` — clean
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
-6. For each AC — confirm covered by test or manual verification
+6. If any `.github/workflows/*.yml` files were created or modified: `actionlint <files>` — clean
+7. For each AC — confirm covered by test or manual verification
 7. Show summary table:
 
 ```
@@ -268,7 +269,7 @@ After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Work
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? `actionlint` clean (if workflow files changed)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |

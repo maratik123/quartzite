@@ -36,6 +36,8 @@ cargo build -p quartzite --no-default-features   # verify derive-free / no_std p
 
 Search: `rg <pattern> --type rust [-l | -C 3]`
 
+For GitHub Actions workflow files (`.github/workflows/*.yml`): run `actionlint <file>` before staging. Fix all errors before committing.
+
 ## API Stability
 
 The project has **not yet been published to crates.io** and has no downstream clients. Public API may be freely renamed, removed, or restructured without backward-compat shims or deprecation layers. Do not add old-name aliases or `#[deprecated]` wrappers "for compatibility" — just make the clean change. Revisit this rule before the first `cargo publish`.

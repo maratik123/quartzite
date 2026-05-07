@@ -10,7 +10,7 @@
 
 **How to apply:** After writing or editing any `.github/workflows/*.yml` file, run `actionlint <file>` before staging. If multiple files changed, pass all of them in one invocation. Fix all errors before committing.
 
-**Escalated?** AGENTS.md
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
@@ -593,16 +593,6 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 **How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard. Canonical feature name for high-frequency tracing: `verbose-tracing`.
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
-
-### 2026-05-07 — tooling — run actionlint on new/modified GitHub Actions workflow files
-
-**What happened:** `coverage.yml` was written and committed without running `actionlint`. The user asked after the fact whether it had been run.
-
-**Rule:** Run `actionlint <workflow-file>` on every new or modified `.github/workflows/*.yml` file as part of Step 9 (Verify), before the self-review agent.
-
-**How to apply:** Add `actionlint .github/workflows/<changed>.yml` to the Step 9 checklist whenever a task touches workflow files. `actionlint` is installed locally and available in `$PATH`. Must produce no output (exit 0) before proceeding.
-
-**Escalated?** no
 
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
