@@ -1,16 +1,16 @@
 # Learnings
 
-### 2026-05-07 — code-style — nested `fn inner` inside a generic-fn split must carry `#[inline]` when simple
+### 2026-05-07 — code-style — if the `fn inner` of a generic-fn split is simple, unwrap it (don't `#[inline]` it)
 
-**What happened:** Applied the "Generic-fn split for binary size" pattern to four fns. The issue spec said "no `_Simple._` on `inner` (it is generally non-simple by construction)" and was taken to mean no marker at all. Two of the four inner fns (`ObjectFactory::register`'s inner — single `HashMap::insert` call; `ObjectBase::named`'s inner — single `ObjectBase::new()` call) are concrete and simple by the recursive definition (no branches, at most one non-simple call). They were left without `#[inline]` until the user caught it in review.
+**What happened:** Applied the "Generic-fn split for binary size" pattern to four fns. Two of the four inner fns (`ObjectFactory::register`'s inner — single `HashMap::insert`; `ObjectBase::named`'s inner — single `ObjectBase::new()` call + struct literal) are concrete and simple by the recursive definition. The first reaction was to add `#[inline]` to those two simple inners, matching the concrete-row marker rule. User then pointed out that `#[inline]` on a simple inner causes the compiler to inline it back into the (per-`T`-monomorphized) outer fn, which **defeats the split entirely** — the body ends up duplicated per concrete `T` anyway, just with extra source indirection. The right answer is to unwrap a simple inner, not to mark it.
 
-**Rule:** The "usually won't be simple" qualifier in AGENTS.md is a prediction, not a blanket exemption. Apply the recursive simplicity test to every `fn inner` body: if it is concrete and simple, add `#[inline]`. If it is not simple (branches, loops, or > 1 non-simple call), leave it unmarked.
+**Rule:** Run the recursive simplicity test on every `fn inner` body of a generic-fn split. If the inner qualifies as simple (no branches/loops, ≤ 1 non-simple call), **delete the wrapper and put the body directly in the outer fn**. Then re-evaluate the outer's `_Simple._` marker per the marker-maintenance rule — unwrapping moves the inner's non-simple calls (≤ 1) into the outer, which can flip the outer from simple to non-simple, requiring the tag to be stripped. Keep the split only when `inner` is non-simple, which is the case the rule was designed for. An `#[inline]` simple `fn inner` inside a generic-fn split is a code smell: either the split was unnecessary (unwrap), or the inner is mis-marked.
 
-**Why:** A nested `fn inner` is a concrete free function — the concrete-row rule applies. Skipping the test because the function is nested or because the parent is a generic-fn split violates the marker rule.
+**Why:** The split's value is exactly to keep the body out of the per-`T` monomorphization. `#[inline]` on a simple inner re-inlines it back into the outer, so the body lands in every `T` instantiation — same binary cost as never-having-split, but with extra source noise. A simple inner is by definition ≤ ~2 lines, so unwrapping never re-triggers the "> 3 lines → split" threshold.
 
-**How to apply:** After writing a `fn inner(...)` as part of a generic-fn split, run the recursive simplicity check: (1) no branches/loops in the body? (2) at most one call to a non-simple callee? If both yes → `#[inline]` above the `fn`. If not → no marker.
+**How to apply:** After writing a `fn inner(...)`, run the recursive simplicity check on its body. If simple → unwrap (delete the inner, hoist the body into the outer). If non-simple → keep the split, no marker on the inner. Do NOT add `#[inline]` to a simple inner inside a split — the split is the wrong tool for that body.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:review-findings, agent:self-review
 
 ### 2026-05-07 — code-style — methods inside `impl<T> Trait for Foo<T>` are generic-shaped and need `_Simple._`, not `#[inline]`; and use `// _Simple._` (not `///`) on trait-impl methods
 
