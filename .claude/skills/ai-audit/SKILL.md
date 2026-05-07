@@ -127,7 +127,7 @@ Per the official docs:
 #### G. AGENTS.md "Propagation Rule" coherence
 - Every "sync group" listed in AGENTS.md still has all listed members present and cross-referenced.
 - Behaviors described in AGENTS.md and replicated in agent checklists agree (e.g., file-size hard/soft limits in `review-findings.md` match AGENTS.md).
-- Exemptions in AGENTS.md (e.g., `examples/` no-test exemption, trait-impl doc-convention exemption) appear in every enforcement file.
+- Exemptions in AGENTS.md (e.g., `examples/` and `benches/` no-test exemptions, trait-impl doc-convention exemption) appear in every enforcement file.
 
 #### H. Documentation conformance pointers
 - `ai-docs/doc-convention.md` is referenced by `review-findings.md` and `self-review.md`. Confirm the relative paths resolve.

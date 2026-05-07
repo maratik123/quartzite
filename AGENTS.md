@@ -99,7 +99,9 @@ Per source:
   - `git cherry-pick` — moves specific commits to another branch
   - Backup branch — `git checkout -b backup/...` before any destructive operation
 - Plan first. Tests before prod code (TDD). Lint changed files.
-- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exception:** files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
+- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:**
+  - Files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
+  - Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
 - `.gitignore` (not `.arcignore`).
 - After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
 - **PR review comment resolution:** After pushing fixes, resolve only the comments that were addressed by a code change. Comments where you posted an objection (explaining why no change was made) must **not** be resolved — leave them for the reviewer to accept or push back on. **Mechanics (GitHub stores review threads, not just comments — REST `/pulls/{N}/comments` does not expose `isResolved`; use GraphQL):**
@@ -174,6 +176,8 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
 Run `/improve` when ≥3 unescalated entries accumulate.
+
+**Writing a learning entry is not authorisation to escalate.** Writing to `ai-docs/learnings.md` and editing project instruction files (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`) are two distinct actions with different triggers. Writing a learning is automatic on any non-obvious correction; escalation happens only when the user runs `/improve` (or explicitly asks). After writing a learning entry, mark `Escalated? no` and stop. Do not edit instruction files in the same turn as a follow-up to the entry. The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh learnings entry.
 
 ## Rust Test Conventions
 
