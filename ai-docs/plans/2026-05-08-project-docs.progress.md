@@ -1,63 +1,98 @@
-# Progress: Project docs (#60)
+# Progress: Project docs (#60) — ACTIVE
+_Updated: 2026-05-08 00:55_
+
+> Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** `feat/2026-05-08-project-docs`
 **base_commit:** `48324555a9aaa083ca8ee2b705c31ef60a861977`
+**Last build:** PASS (subtask 4; `cargo build` clean — no Rust changes; `Cargo.lock` unchanged)
 **Issue:** #60
-**Spec:** [`2026-05-08-project-docs.spec.md`](2026-05-08-project-docs.spec.md)
-**Design:** [`2026-05-08-project-docs.design.md`](2026-05-08-project-docs.design.md)
+**Spec:** [`ai-docs/plans/2026-05-08-project-docs.spec.md`](2026-05-08-project-docs.spec.md)
+**Design:** [`ai-docs/plans/2026-05-08-project-docs.design.md`](2026-05-08-project-docs.design.md)
 **Design-review:** GO (Round 2 of max 3) — one informational Note: quickstart auto-emit comment isn't runtime-verified under `no_run`; implementer to spot-check.
-**Last build:** clean (subtask 3; CONTRIBUTING.md added, no Rust changes)
-
-## Files touched
-
-| File | Subtask | Status |
-|---|---|---|
-| `README.md` | 1 | ✅ done |
-| `src/lib.rs` | 2 | ✅ done |
-| `CONTRIBUTING.md` | 3 | ✅ done |
-| `scripts/gen-roadmap.sh` | 4 | ⬜ pending |
-| `ROADMAP.md` | 5 | ⬜ pending |
-| `.github/workflows/ci.yml` | 6 | ⬜ pending |
-
-## Subtasks
-
-| # | Task | Status |
-|---|---|---|
-| 1 | README description block + CI/license badges (badge order: CI, docs, codecov, license) | ✅ done |
-| 2 | `src/lib.rs` rewrite: overview + `no_run` quickstart + 5 per-concept sections + ecosystem map + design notes; preserves `# Feature flags` + `document_features!()` | ✅ done |
-| 3 | `CONTRIBUTING.md` at repo root, standard depth (10-section AGENTS.md excerpt) | ✅ done |
-| 4 | `scripts/gen-roadmap.sh` (POSIX bash + awk/sed; comment banner of banned constructs) | ⬜ pending |
-| 5 | Generated `ROADMAP.md` at repo root | ⬜ pending |
-| 6 | CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator (ubuntu-latest only) | ⬜ pending |
-
-> M = 6 subtasks (≥ 5). Per `/task` Step 8 rule, after subtask 3 hand off via `/context-reset`.
 
 ## Next action
 
-**Hand off via `/context-reset`** per `/task` Step 8 rule (N=3 of M=6 ≥ 5). The next session resumes from **Subtask 4**: create `scripts/gen-roadmap.sh` (POSIX bash + awk/sed) per the design's *Open questions resolved → 5*.
+**Do this immediately:** run `./scripts/gen-roadmap.sh` once on Linux to regenerate `ROADMAP.md`, then perform the macOS / BSD-awk-container portability cross-check per design *Test Design → AC5/AC6 implementer responsibility* (alpine container example at design line 293) — confirm `sha256sum ROADMAP.md` matches between Linux and BSD-awk runs (the Linux-side hash to compare against is in *Key discoveries → Subtask 4 outputs* below). Document the verification result in this progress file's Subtask 5 notes, then stage and commit `ROADMAP.md` (only — `scripts/gen-roadmap.sh` is already committed). Note: a fresh `ROADMAP.md` is already on disk from subtask 4's run-once step but is unstaged; the cross-check supersedes that artifact, so re-running first is fine. Do NOT touch `.github/workflows/ci.yml` yet — that is subtask 6.
 
-### Notes from subtask 2
+## Subtasks
 
-- Three intra-doc links needed explicit path qualifiers (`[Foo](core::Foo)`) because the implicit `[`Foo`]` form doesn't resolve from the facade scope. Fixed: `Object::read_property`/`write_property` (initially mis-attributed to `ObjectExt`), `Value`, `Object`. Dead-link gate caught all of them.
-- Quickstart doctest required an explicit `fn main()` because rustdoc's auto-`fn main` wrapping puts the `Counter` struct inside `main()`, breaking the derive macro's generated `super::Counter` references. Comment in the doctest documents why.
-- Auto-emit comment ("Writing the property emits count_changed automatically") preserved per design Round-2 note. Runtime semantics not verified under `no_run`; left as informational claim per AC9 contract (compile-only).
+- [x] 1. README description block + CI/license badges (commit `136e29b`)
+- [x] 2. `src/lib.rs` rewrite — overview + `no_run` quickstart + 5 per-concept sections + ecosystem map + design notes (commit `4afa02f`)
+- [x] 3. `CONTRIBUTING.md` at standard depth — 10-section AGENTS.md excerpt (commit `7465fa9`)
+- [x] 4. `scripts/gen-roadmap.sh` — POSIX bash + awk/sed generator with comment-banner of banned constructs (commit pending below)
+- [ ] 5. Run the generator and commit `ROADMAP.md` at repo root; macOS / BSD-awk-container portability cross-check ← **CURRENT**
+- [ ] 6. CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator in `.github/workflows/ci.yml` (ubuntu-latest only)
 
-### Notes from subtask 3
+## Key discoveries (don't re-investigate)
 
-- 120 lines — at the upper bound of the design's 80–120 target.
-- Excluded from the 10-section list: /task workflow steps, Propagation Rule, Corrections Log format, Permissions section, PR review-comment-resolution mechanics, Communication semantics — these are agent-internal.
-- Bench-file exemption from `#[cfg(test)] mod tests` (escalated to AGENTS.md in PR #153) added to the Tests section as a small bonus clarification — external contributors will hit this gap if they add benches.
+- **Intra-doc-link path qualifiers required from the facade scope.** The implicit `[`Foo`]` form does not resolve from `quartzite/src/lib.rs` through `pub use quartzite_core::*`. Use explicit `[`Foo`](core::Foo)` form. Caught by `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc`. The doctest in `src/lib.rs` already uses this pattern.
+- **Doctest needs explicit `fn main()`.** The quickstart in `src/lib.rs` uses an explicit `fn main()` because rustdoc's auto-`fn main` wrapping puts the `Counter` struct inside `main()`, breaking the derive macro's generated `super::Counter` references. Same gotcha applies to any future doctest with `#[derive(Extend, DeriveObject)]`.
+- **`Object::read_property` / `write_property`, NOT `ObjectExt`.** The reflection methods are on the `Object` trait (in `quartzite-core/src/traits.rs`); `ObjectExt` is for blanket helpers (`id`, `name`, `is_on_current_thread`, downcast_*, is). The CONTRIBUTING and lib.rs prose was corrected during subtask 2.
+- **Bench-file `#[cfg(test)]` exemption escalated in PR #153.** Files under `benches/` declared with `[[bench]] harness = false` are exempt — already in AGENTS.md `## Rust Test Conventions` and reflected in CONTRIBUTING.md Tests section.
+- **INDEX.md heading triggers verbatim.** `## Active plans`, `## Completed plans`, `## Deferred plans`, `## Dependency order` (input). Terminator: `## Suggested next steps`. ROADMAP.md output renames `## Dependency order` → `## Dependency tree`. Verified via `grep -n '^## ' ai-docs/plans/INDEX.md` at design time.
+- **Sed link-rewrite scope.** Only `](done/` / `](deferred/` / `](2026-` prefixes appear in the three plan tables and the dependency-tree code-block. Parent-up `](../code-style.md…)` and `](../doc-convention.md)` references live ONLY in the `## Suggested next steps` section, which is dropped — so no parent-up rewrite class needed.
+- **Action version pinning.** Per AGENTS.md `## Dependency Versions`, query `gh api /repos/actions/checkout/releases --jq '.[0].tag_name'` before pinning the new `roadmap-sync` job's `actions/checkout` major. Existing CI jobs use `@v6`; if unchanged, match.
+- **CI sync-gate ubuntu-only rationale.** Content equality is platform-independent in spirit; Windows bash-via-Git-Bash awk/sed flavour drift produces false negatives. Linux-only avoids that, at the cost of not catching GNU-only constructs slipping into the generator. Compensate via macOS / BSD-awk-container cross-check at implementation time per design AC6.
+- **Subtask 4 outputs (load-bearing for subtask 5).** `scripts/gen-roadmap.sh` is 249 lines (POSIX bash + awk/sed; banned-constructs comment banner present; `LC_ALL=C`; `set -eu`; mktemp tmpdir cleaned via trap). Generated `ROADMAP.md` is 87 lines. Linux-side determinism: `sha256sum ROADMAP.md` = **`53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b`** (verified across two consecutive runs on this Gentoo box; this is the value the BSD-awk container run in subtask 5 must match byte-for-byte). `shellcheck scripts/gen-roadmap.sh` is clean — three SC2016 false positives on the markdown-backtick header literals are silenced via a single `# shellcheck disable=SC2016` directive on the printf block, with a short comment explaining the silencing rationale.
+- **Awk state-machine refinement found in subtask 4.** Naïve "extract everything between `## Deferred plans` and the next `## ` heading" captured the trailing `> Tracking issues for further deferred items not represented as plans here:` blockquote (INDEX.md lines 64–65) — which the design *What the generator drops* list (lines 242–243) explicitly drops. Fix: each plan-table state captures **only** lines beginning with `|`, treats blank lines as no-ops, and closes the state on the first non-blank, non-pipe line. This implicitly drops the tracking-issues blockquote, the maintenance-plans paragraph, and any future prose injected between the deferred table and the next H2 — robust against further INDEX.md prose drift in the same gap.
+- **Cargo.lock not refreshed.** `cargo build` after subtask 4 was a no-op rebuild (no Rust source touched); `Cargo.lock` is unchanged, nothing to stage from `Cargo.lock`. Subtasks 5 and 6 (ROADMAP.md content + workflow YAML) likewise won't touch Rust sources, so the same applies — but still run `cargo build` per AGENTS.md `## Workflow`.
 
-### Subtasks remaining (4–6) for the resume session
+## AC Status
 
-- **Subtask 4** — `scripts/gen-roadmap.sh`: POSIX bash + awk/sed parsing `ai-docs/plans/INDEX.md`. Comment-banner of banned constructs at top. Awk state machine matches `## Active plans` / `## Completed plans` / `## Deferred plans` / `## Dependency order` (input headings — verify by `grep -n '^## ' ai-docs/plans/INDEX.md`). Terminator: `## Suggested next steps`. Sed pass rewrites `](done/` / `](deferred/` / `](2026-` link prefixes only. Output skeleton at design lines 196–222. `LC_ALL=C` at script top.
-- **Subtask 5** — Run `./scripts/gen-roadmap.sh > ROADMAP.md` (or whatever invocation the script uses) and commit the produced `ROADMAP.md` at repo root. Includes the macOS / BSD-awk-container portability cross-check (alpine container example at design line 293) — verify `sha256sum ROADMAP.md` matches between Linux and macOS runs. Document the verification in this progress file.
-- **Subtask 6** — `.github/workflows/ci.yml`: add a `roadmap-sync` job (ubuntu-latest only) that runs `./scripts/gen-roadmap.sh` and `git diff --exit-code ROADMAP.md`; add a `roadmap-sync-pass` aggregator alongside the existing `*-pass` aggregators. Workflow snippet at design lines 142–161. Query `gh api /repos/actions/checkout/releases --jq '.[0].tag_name'` for the current major before pinning. Run `actionlint .github/workflows/ci.yml` before staging.
+| AC | Status |
+|----|--------|
+| AC1 (README description block) | PASS — covered by subtask 1, commit `136e29b` |
+| AC2 (README badges) | PASS — covered by subtask 1, commit `136e29b` |
+| AC3 (lib.rs comprehensive doc) | PASS — covered by subtask 2, commit `4afa02f` |
+| AC4 (CONTRIBUTING.md) | PASS — covered by subtask 3, commit `7465fa9` |
+| AC5 (ROADMAP.md) | NOT_TESTED — pending subtask 5 (script written + run-once produced ROADMAP.md, but commit + content review is subtask 5) |
+| AC6 (gen-roadmap.sh portable) | PARTIAL — script written with comment-banner of banned constructs; Linux-side determinism verified (two runs, identical sha256); shellcheck clean; macOS / BSD-awk container cross-check pending in subtask 5 |
+| AC7 (CI sync-gate) | NOT_TESTED — pending subtask 6 |
+| AC8 (doc-gate) | PASS — verified after subtask 2 |
+| AC9 (quickstart doctest) | PASS — `cargo test --doc -p quartzite` green after subtask 2 |
+| AC10 (standard gates) | PASS — verified after subtask 2; re-run after each remaining subtask |
+| AC11 (actionlint) | NOT_TESTED — pending subtask 6 (no workflow file touched yet) |
+| AC12 (`document_features` placement) | PASS — verified after subtask 2; new content lands BEFORE the `# Feature flags` heading |
 
-### Step 9 / 9.5 / 10 / 11 / 12 reminders
+## Files touched
 
-After subtask 6:
-- **Step 9 verify**: build / test / clippy / fmt / no-default-features / doc-gate / actionlint — all clean. Per-AC summary table.
-- **Step 9.5**: update `ai-docs/context.md` (docs-and-facade plan progress) and verify README is updated (already done in subtask 1).
-- **Step 10**: spawn self-review agent. On APPROVE delete the progress file FIRST, then Step 12.
-- **Step 12**: move spec/design to `ai-docs/plans/done/`, update `INDEX.md`, commit + push + open PR with `Closes #60`.
+- `README.md` — subtask 1: project-description block + CI/license badges (commit `136e29b`)
+- `src/lib.rs` — subtask 2: comprehensive crate-level rustdoc (commit `4afa02f`)
+- `CONTRIBUTING.md` — subtask 3: NEW, 120 lines (commit `7465fa9`)
+- `ai-docs/plans/2026-05-08-project-docs.spec.md` — added in subtask 1 commit
+- `ai-docs/plans/2026-05-08-project-docs.design.md` — added in subtask 1 commit
+- `ai-docs/plans/2026-05-08-project-docs.progress.md` — this file
+- `scripts/gen-roadmap.sh` — subtask 4: NEW, 249 lines, +x bit set (commit pending below)
+- `ROADMAP.md` — subtask 5: produced on disk by subtask 4's run-once; NOT staged yet (commit is subtask 5's deliverable)
+- `.github/workflows/ci.yml` — pending subtask 6
+
+## Subtask 5 implementation brief
+
+The agent picking up subtask 5 should:
+
+1. Re-run `./scripts/gen-roadmap.sh` on Linux. Confirm `sha256sum ROADMAP.md` matches the Linux-side hash recorded in *Key discoveries → Subtask 4 outputs* (`53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b`). If different, the input INDEX.md changed — investigate before proceeding.
+2. **Portability cross-check** (per design *Test Design → AC5/AC6 implementer responsibility*, line 293): run the generator inside a BSD-awk-flavoured container, e.g.:
+   ```
+   docker run --rm -v "$PWD":/w -w /w alpine:latest sh -c 'apk add --no-cache bash && ./scripts/gen-roadmap.sh'
+   ```
+   Then `sha256sum ROADMAP.md` from the host. Confirm the hash matches the Linux/GNU-awk hash byte-for-byte. Document the cross-check command, container image (with digest if practical), and the matching hashes in this progress file under a new "Subtask 5 cross-check log" section. If the hash differs, the script has a portability bug (likely a GNU-awk-only construct slipped past the comment banner) — fix the script, repeat, then commit `scripts/gen-roadmap.sh` again as a fix-up commit before proceeding.
+3. Visual-review the generated `ROADMAP.md`:
+   - `## Dependency tree` heading present (renamed from INDEX.md's `## Dependency order`).
+   - Three plan tables present: `## Active plans`, `## Completed plans`, `## Deferred plans` (verbatim from INDEX.md).
+   - Dropped sections **absent**: no `## Suggested next steps`, no maintenance-plans paragraph, no tracking-issues blockquote, no "Serialization-layer track" footnote.
+   - Plan-table links rewritten: `](ai-docs/plans/done/...)`, `](ai-docs/plans/deferred/...)`, `](ai-docs/plans/2026-...)`. No bare `](done/` or `](deferred/` or `](2026-` prefixes remain.
+4. Determinism re-check: run the generator again; `sha256sum ROADMAP.md` unchanged.
+5. `cargo build` (no Rust changes expected; `Cargo.lock` should not change).
+6. Stage `ROADMAP.md` and this progress file (NOT `.github/workflows/ci.yml` — that is subtask 6). Stage explicitly by name; never `git add -A`.
+7. Update this progress file: mark subtask 5 ✅, set Next action to subtask 6, update `_Updated:` timestamp and Last build, AC5 and AC6 → PASS, append "Subtask 5 cross-check log" with hashes.
+8. Commit (suggested message):
+   ```
+   docs(roadmap): add generated ROADMAP.md + macOS/BSD-awk portability cross-check
+
+   Subtask 5 of #60. Re-runs scripts/gen-roadmap.sh and commits the byte-stable output.
+   Cross-check: alpine:latest (busybox awk) produces byte-identical ROADMAP.md
+   (sha256: <recorded-hash>) — confirms no GNU-awk-only constructs leaked past
+   the banned-constructs banner in scripts/gen-roadmap.sh.
+   ```
+9. Stop. Do NOT proceed to subtask 6 — that is a separate handoff.
