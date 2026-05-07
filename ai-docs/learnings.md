@@ -627,6 +627,16 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+### 2026-05-07 — process — actionlint skipped again on docs.yml despite existing learnings entry
+
+**What happened:** `.github/workflows/docs.yml` was created, committed, and pushed without running `actionlint`. The user had to ask explicitly — same pattern as the previous entry (2026-05-07, line ~26). The existing learning is `Escalated? no` and has not been enforced.
+
+**Rule:** Run `actionlint <file>` on every GitHub Actions workflow file created or modified, before staging. This is a required gate, same as `cargo build` and `cargo clippy`.
+
+**Why:** Two occurrences in the same session with the rule already written confirms the rule needs to live in AGENTS.md and the task skill, not just in learnings.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
 **What happened:** `/task 116` was a pure annotation task (replace `#[inline]` with `/// _Simple._` at 12 sites). I skipped Steps 6–7 (design agent + design review) on the grounds that no design decision existed. The user called out the omission.
