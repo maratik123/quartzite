@@ -576,7 +576,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** Run `actionlint <workflow-file>` on every new or modified `.github/workflows/*.yml` file as part of Step 9 (Verify), before the self-review agent.
 
-**How to apply:** Add `actionlint .github/workflows/<changed>.yml` to the Step 9 checklist whenever a task touches workflow files. `actionlint` is available in `$PATH`. Must produce no output (exit 0) before proceeding.
+**How to apply:** Add `actionlint .github/workflows/<changed>.yml` to the Step 9 checklist whenever a task touches workflow files. `actionlint` is installed locally and available in `$PATH`. Must produce no output (exit 0) before proceeding.
 
 **Escalated?** no
 
