@@ -16,53 +16,62 @@
 //! through per-thread event loops. The [`prelude`] is a single glob-import
 //! that brings the most-used types into scope.
 //!
-//! # Quickstart
-//!
-//! ```no_run
-//! use quartzite::prelude::*;
-//!
-//! #[derive(Extend, DeriveObject)]
-//! #[root]
-//! struct Counter {
-//!     #[base]
-//!     object_base: ObjectBase,
-//!     #[prop(notify = count_changed)]
-//!     pub count: i32,
-//!     #[signal]
-//!     pub count_changed: Signal<(i32,)>,
-//! }
-//!
-//! #[object_impl]
-//! impl Counter {
-//!     #[slot]
-//!     fn reset(&mut self) {
-//!         self.count = 0;
-//!     }
-//! }
-//!
-//! // Explicit `fn main` keeps the type definitions at module level — the
-//! // `#[derive]` codegen emits paths that resolve relative to the containing
-//! // module, which would not resolve under rustdoc's implicit-main wrapper.
-//! fn main() {
-//!     let mut c = Counter {
-//!         object_base: ObjectBase::new(),
-//!         count: 0,
-//!         count_changed: Signal::new(),
-//!     };
-//!
-//!     // Connect a slot to the count_changed signal.
-//!     c.count_changed.connect(|args| println!("count is now {}", args.0));
-//!
-//!     // Writing the property emits count_changed automatically.
-//!     c.write_property("count", Value::Int(42));
-//!
-//!     // Invoke the slot dynamically through the reflection layer.
-//!     c.invoke_method("reset", &[]);
-//! }
-//! ```
-//!
-//! `Application::run` is intentionally not shown above — it would block the
-//! example. The [`runtime`] section below covers it.
+// Quickstart is gated on the `derive` feature: the example uses the
+// `#[derive(Extend, DeriveObject)]` and `#[object_impl]` macros from
+// `quartzite-macros`, which the prelude only re-exports when `derive` is on.
+// Under `cargo test --doc --no-default-features --features std` the doctest
+// would otherwise fail to compile-check. `cfg_attr(..., doc = ...)` injects
+// the section only when the macros are actually available.
+#![cfg_attr(
+    feature = "derive",
+    doc = r#"# Quickstart
+
+```no_run
+use quartzite::prelude::*;
+
+#[derive(Extend, DeriveObject)]
+#[root]
+struct Counter {
+    #[base]
+    object_base: ObjectBase,
+    #[prop(notify = count_changed)]
+    pub count: i32,
+    #[signal]
+    pub count_changed: Signal<(i32,)>,
+}
+
+#[object_impl]
+impl Counter {
+    #[slot]
+    fn reset(&mut self) {
+        self.count = 0;
+    }
+}
+
+// Explicit `fn main` keeps the type definitions at module level — the
+// `#[derive]` codegen emits paths that resolve relative to the containing
+// module, which would not resolve under rustdoc's implicit-main wrapper.
+fn main() {
+    let mut c = Counter {
+        object_base: ObjectBase::new(),
+        count: 0,
+        count_changed: Signal::new(),
+    };
+
+    // Connect a slot to the count_changed signal.
+    c.count_changed.connect(|args| println!("count is now {}", args.0));
+
+    // Writing the property emits count_changed automatically.
+    c.write_property("count", Value::Int(42));
+
+    // Invoke the slot dynamically through the reflection layer.
+    c.invoke_method("reset", &[]);
+}
+```
+
+`Application::run` is intentionally not shown above — it would block the
+example. The [`runtime`](crate::runtime) section below covers it."#
+)]
 //!
 //! # Signals
 //!
