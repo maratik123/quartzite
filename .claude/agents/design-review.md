@@ -2,6 +2,7 @@
 name: design-review
 description: "Critically reviews a Design Document against a quality checklist and issues GO / ITERATE / STOP. Invoked by /task in an Evaluator-Optimizer loop with the design agent until GO is reached or the iteration cap is hit."
 tools: Read, Grep, Glob, Bash
+model: opus
 ---
 
 # Design Review Agent
