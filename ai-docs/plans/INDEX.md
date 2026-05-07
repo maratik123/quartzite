@@ -7,6 +7,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
+| [code-style-extraction](done/2026-05-07-code-style-extraction.spec.md) | (docs only) | ✅ implemented (0 new tests; docs only) | — |
 | [generic-fn-split](done/2026-05-07-generic-fn-split.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; refactoring) | — |
 | [per-thread-event-loops](done/2026-05-06-per-thread-event-loops.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (7 new tests) | — |
 | [tracing-spans](done/2026-05-06-tracing-spans.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
@@ -86,5 +87,5 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
-6. `#[inline]` rule (recursive — see AGENTS.md Code Style → `#[inline]` and the `_Simple._` doc tag) is enforced by AGENTS.md and review agents; new simple fns must carry the marker matching their shape — `#[inline]` on concrete fns, `_Simple._` doc tag on generic fns and on trait method declarations whose every conforming impl is required to be simple
+6. `#[inline]` rule (recursive — see [`ai-docs/code-style.md` → `#[inline]` and the `_Simple._` doc tag](../code-style.md#inline-and-the-_simple_-doc-tag)) is enforced by AGENTS.md and review agents; new simple fns must carry the marker matching their shape — `#[inline]` on concrete fns, `_Simple._` doc tag on generic fns and on trait method declarations whose every conforming impl is required to be simple
 7. Single-dep ergonomics are **already in place**: `quartzite-macros` uses `proc-macro-crate` to emit `::quartzite::core` paths when the user depends only on `quartzite`. Verified by `quartzite-macros/tests/via_facade.rs` and `quartzite/tests/single_dep.rs`.
