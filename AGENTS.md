@@ -153,9 +153,9 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 ### YYYY-MM-DD — [category] — [short description]
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
-**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style | memory (comma-separate multiple)
+**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style (comma-separate multiple)
 
-> `memory` = saved to global memory only. `/improve` treats it as unescalated — the entry remains a candidate for project-level escalation (AGENTS.md / skill / agent / hook / settings / doc-convention / code-style). `settings.local` does NOT count as project-level.
+> `Escalated?` records **project-level** persistence only — instruction files visible to every contributor (`AGENTS.md`, skills, agents, hooks, project `settings.json`, `ai-docs/doc-convention.md`, `ai-docs/code-style.md`). **User-local persistence does NOT count and is NOT a value of this field** — that includes the auto-memory store (`~/.claude/.../MEMORY.md`) and `settings.local.json`, both of which are private to one developer and don't help future readers. If a correction was saved only to user-local memory, mark `Escalated? no`; the entry remains a candidate for project-level escalation by `/improve`.
 > `doc-convention` = the rule landed in `ai-docs/doc-convention.md`. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference rather than in AGENTS.md or a skill.
 > `code-style` = the rule landed in `ai-docs/code-style.md`. Use only for code-style rules that genuinely belong in the workspace code-style reference rather than in AGENTS.md or a skill.
 ```

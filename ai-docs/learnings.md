@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — process — `memory` is user-local, not a project-level escalation target
+
+**What happened:** The `Escalated?` enum in AGENTS.md `## Corrections Log` listed `memory` alongside `AGENTS.md`, `skill:[name]`, `hook`, etc. as a valid value. `/improve` and the escalation-audit agent both said "memory counts as unescalated for project-level audit purposes" — i.e., the system was treating it as `no` while still presenting it as a legitimate-looking enum option. Five existing learnings entries said `Escalated? AGENTS.md, memory` where the `, memory` was load-bearing-looking but actually carried no project-level signal.
+
+**Rule:** `Escalated?` records **project-level** persistence only — instruction files visible to every contributor (AGENTS.md, skills, agents, hooks, project `settings.json`, `ai-docs/doc-convention.md`, `ai-docs/code-style.md`). User-local persistence (`~/.claude/.../MEMORY.md`, `settings.local.json`) is structurally identical: private to one developer, not visible to future readers. **Neither is a valid value of `Escalated?`.** If a correction was saved only to user-local persistence, mark `Escalated? no`. Saving to memory is independent of escalation; it's worth doing for personal context but doesn't substitute for landing the rule in a project file.
+
+**Why:** Listing `memory` as an enum option created the false impression it counted as escalation. Audit agents had to special-case it (`treat as no`), and reviewers of correction-log diffs couldn't tell at a glance whether `, memory` was load-bearing. Dropping the value and unifying the explanatory note around "user-local persistence does NOT count" eliminates the mental footnote and aligns the enum with what `/improve` already does.
+
+**How to apply:** When recording a correction, ignore whatever was saved to global memory or `settings.local.json` for the purposes of `Escalated?`. Mark `no` if no project-level rule was added; mark with the appropriate target (or comma-separated list) if it was. The `learnings-escalation-audit` agent now skips entries with `Escalated? no` (was: `no` or `memory`); the `self-improve` agent's classification table no longer mentions `memory`.
+
+**Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
+
 ### 2026-05-07 — code-style — if the `fn inner` of a generic-fn split is simple, unwrap it (don't `#[inline]` it)
 
 **What happened:** Applied the "Generic-fn split for binary size" pattern to four fns. Two of the four inner fns (`ObjectFactory::register`'s inner — single `HashMap::insert`; `ObjectBase::named`'s inner — single `ObjectBase::new()` call + struct literal) are concrete and simple by the recursive definition. The first reaction was to add `#[inline]` to those two simple inners, matching the concrete-row marker rule. User then pointed out that `#[inline]` on a simple inner causes the compiler to inline it back into the (per-`T`-monomorphized) outer fn, which **defeats the split entirely** — the body ends up duplicated per concrete `T` anyway, just with extra source indirection. The right answer is to unwrap a simple inner, not to mark it.
@@ -150,7 +162,7 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Rule:** Never add, remove, modify, or `.gitignore` IDE files (`.idea/`, `*.iml`, `.vscode/`, etc.) unless the user explicitly asks. Treat them as the user's domain.
 
-**Escalated?** AGENTS.md, memory
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — "submit to PR" means push to remote, not merge
 
@@ -158,7 +170,7 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Rule:** "Submit to PR" (and similar: "push to PR", "add to PR") means `git push` the branch to remote. It does not mean merging. Only merge when the user explicitly says "merge" or "merge the PR".
 
-**Escalated?** AGENTS.md, memory
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — "wtf" signals that the previous action was wrong
 
@@ -166,7 +178,7 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Rule:** "wtf" (and similar expressions of surprise/frustration) means the last action was the opposite of what the user wanted. Stop immediately, ask what went wrong, and do not proceed until the intent is clarified.
 
-**Escalated?** AGENTS.md, memory
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — never use git reset --hard; use soft reset, stash, cherry-pick, or backup branch
 
@@ -178,7 +190,7 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 - `git cherry-pick` — moves specific commits to another branch
 - Backup branch — `git checkout -b backup/...` before any destructive operation
 
-**Escalated?** AGENTS.md, memory
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
@@ -225,7 +237,7 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and `self-review` are **agents** spawned by it. Do not refer to any of these as "code-review agent" — that conflates the skill with an agent. (A `diff-review` agent existed historically but was removed as orphan; do not reintroduce it without wiring it into a skill.)
 
-**Escalated?** AGENTS.md, memory
+**Escalated?** AGENTS.md
 
 ### 2026-05-02 — process — self-review must not re-run cargo fmt or cargo clippy
 
