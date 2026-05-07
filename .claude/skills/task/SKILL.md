@@ -167,7 +167,7 @@ finding (Step 11) requires a design change rather than a code fix:
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
 6. **actionlint gate** — if this task created or modified any `.github/workflows/*.yml` file, run `actionlint <file>` (or pass every changed workflow file in one invocation) and require a clean pass. Skip the gate only when no workflow file was touched. See AGENTS.md *Build & Test → Workflow files*.
 7. For each AC — confirm covered by test or manual verification
-7. Show summary table:
+8. Show summary table:
 
 ```
 | # | Criterion | Test / Verification | Status |
