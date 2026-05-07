@@ -125,6 +125,7 @@ impl ObjectFactory {
     where
         F: Fn() -> Box<dyn Object> + Send + Sync + 'static,
     {
+        #[inline]
         fn inner(this: &mut ObjectFactory, class_name: String, ctor: Constructor) {
             this.registry.insert(class_name, ctor);
         }

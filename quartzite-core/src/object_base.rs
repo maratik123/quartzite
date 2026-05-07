@@ -99,6 +99,7 @@ impl ObjectBase {
     /// assert_eq!(base.name(), Some("sensor-1"));
     /// ```
     pub fn named(name: impl Into<String>) -> Self {
+        #[inline]
         fn inner(name: String) -> ObjectBase {
             ObjectBase {
                 name: Some(name),
