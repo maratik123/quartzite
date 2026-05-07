@@ -71,9 +71,9 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 core-types ✅
 ├── geometry-events ✅
 │   └── graphics-stack             🟢 ready (no blocker — paint-api needs Point/Rect; both available)
-│       ├── quartzite-paint-api    (new thin crate; no_std; supplies Painter trait)
+│       ├── quartzite-paint-api    ✅ crate done; wired into quartzite facade (Tasks 1–5)
 │       ├── quartzite-paint        🔴 blocked on paint-api (issue #47)
-│       └── quartzite-renderer     (vello + wgpu + winit; part of graphics-stack #73)
+│       └── quartzite-renderer     (vello + wgpu + winit; part of graphics-stack #73 — Task 6 next)
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅

@@ -678,6 +678,7 @@ dependencies = [
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-macros",
+ "quartzite-paint-api",
  "quartzite-runtime",
  "serial_test",
 ]
@@ -740,6 +741,24 @@ dependencies = [
  "quartzite",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "quartzite-paint"
+version = "0.1.0"
+dependencies = [
+ "quartzite-geometry",
+ "quartzite-paint-api",
+ "rstest",
+]
+
+[[package]]
+name = "quartzite-paint-api"
+version = "0.1.0"
+dependencies = [
+ "quartzite-geometry",
+ "rstest",
+ "thiserror",
 ]
 
 [[package]]

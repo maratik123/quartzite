@@ -6,6 +6,8 @@ members = [
     "quartzite-geometry",
     "quartzite-events",
     "quartzite-event-types",
+    "quartzite-paint-api",
+    "quartzite-paint",
 ]
 resolver = "2"
 
@@ -46,12 +48,13 @@ derive = ["dep:quartzite-macros"]
 verbose-tracing = ["quartzite-core/verbose-tracing", "quartzite-runtime/verbose-tracing"]
 
 [dependencies]
-quartzite-core     = { path = "quartzite-core", default-features = false }
-quartzite-macros   = { path = "quartzite-macros", optional = true }
-quartzite-runtime  = { path = "quartzite-runtime" }
-quartzite-geometry = { path = "quartzite-geometry", default-features = false }
-quartzite-events   = { path = "quartzite-events", default-features = false }
-document-features  = "0.2"
+quartzite-core      = { path = "quartzite-core", default-features = false }
+quartzite-macros    = { path = "quartzite-macros", optional = true }
+quartzite-runtime   = { path = "quartzite-runtime" }
+quartzite-geometry  = { path = "quartzite-geometry", default-features = false }
+quartzite-events    = { path = "quartzite-events", default-features = false }
+quartzite-paint-api = { path = "quartzite-paint-api", default-features = false }
+document-features   = "0.2"
 
 [[example]]
 name = "hello_object"
