@@ -10,6 +10,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [coverage-ci](done/2026-05-07-coverage-ci.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
 | [criterion-benchmarks](done/2026-05-07-criterion-benchmarks.spec.md) | `quartzite-core` `quartzite-runtime` CI | ✅ implemented (0 new tests; 10 benches, 3 CI workflows) | — |
 | [cargo-doc-pages](done/2026-05-07-cargo-doc-pages.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
+| [macro-object-bench](done/2026-05-07-macro-object-bench.spec.md) | `quartzite` (facade) | ✅ implemented (0 new tests; 6 benches via criterion + macro-derived fixture) | — |
 | [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
 | [code-style-extraction](done/2026-05-07-code-style-extraction.spec.md) | (docs only) | ✅ implemented (0 new tests; docs only) | — |
 | [generic-fn-split](done/2026-05-07-generic-fn-split.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; refactoring) | — |
@@ -84,7 +85,7 @@ core-types ✅
 
 Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, recursive-inline-annotations, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops, generic-fn-split, codegen-simple-marker (dropped `#[inline]` from generated trait-impl methods; added missing `/// _Simple._` to `IntoValue::into_value` trait declaration; 10 codegen tests updated), codegen-inline-concrete-trait-impls (restored `#[inline]` on concrete-struct trait-impl method emissions in all three macro codegen modules; adds `generics` field to `ObjectImplInput`/`MetaEnumInput`; 11 new codegen tests). These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, recursive-inline-annotations, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops, generic-fn-split, criterion-benchmarks (10 benches; 3 Bencher CI workflows), macro-object-bench (6 macro-derived criterion benches in root facade crate), codegen-simple-marker (dropped `#[inline]` from generated trait-impl methods; added missing `/// _Simple._` to `IntoValue::into_value` trait declaration; 10 codegen tests updated), codegen-inline-concrete-trait-impls (restored `#[inline]` on concrete-struct trait-impl method emissions in all three macro codegen modules; adds `generics` field to `ObjectImplInput`/`MetaEnumInput`; 11 new codegen tests). These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
