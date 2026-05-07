@@ -10,7 +10,7 @@
 
 **How to apply:** After writing or editing any `.github/workflows/*.yml` file, run `actionlint <file>` before staging. If multiple files changed, pass all of them in one invocation. Fix all errors before committing.
 
-**Escalated?** AGENTS.md, skill:task
+**Escalated?** no
 
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
