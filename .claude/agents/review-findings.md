@@ -47,7 +47,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Naming (see AGENTS.md "API Naming"): is every `_unchecked` fn `unsafe` with a `# Safety` doc section? Is the unsuffixed name the safe/ergonomic default? Any safe fn carrying `_unchecked` (or `_checked` used for non-safety variants) → finding.
 
 ### 3. Test coverage
-- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exceptions: files under `examples/` are runnable demos; files under `benches/` are criterion binaries where `criterion_main!` generates `main`, making a test runner incompatible — neither requires a `#[cfg(test)]` block)
+- Every file with ~50+ lines of non-trivial code has a `#[cfg(test)] mod tests` block? (Exception: files under `examples/` are runnable demos — no test block required)
 - Tests cover edge cases and error paths, not just the happy path?
 - Any test that would pass even if the production code were deleted (cosmetic test)?
 - Integration tests for public-facing macro output?

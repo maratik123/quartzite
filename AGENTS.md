@@ -99,7 +99,7 @@ Per source:
   - `git cherry-pick` — moves specific commits to another branch
   - Backup branch — `git checkout -b backup/...` before any destructive operation
 - Plan first. Tests before prod code (TDD). Lint changed files.
-- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:** files under `examples/` are runnable demos; files under `benches/` are criterion bench binaries (`criterion_main!` generates `main`, making them incompatible with the test runner) — neither requires a `#[cfg(test)]` block.
+- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exception:** files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
 - `.gitignore` (not `.arcignore`).
 - After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
 - **PR review comment resolution:** After pushing fixes, resolve only the comments that were addressed by a code change. Comments where you posted an objection (explaining why no change was made) must **not** be resolved — leave them for the reviewer to accept or push back on. **Mechanics (GitHub stores review threads, not just comments — REST `/pulls/{N}/comments` does not expose `isResolved`; use GraphQL):**
