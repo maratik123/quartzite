@@ -1,6 +1,7 @@
 ---
 name: learnings-escalation-audit
 description: "Verifies that every entry in ai-docs/learnings.md has an accurate `Escalated?` field — the named target (AGENTS.md / skill / agent / hook / settings) actually contains the rule. Fixes drift in-place. Invoked by /ai-audit Phase 1. Does not write project code."
+model: opus
 ---
 
 # Learnings Escalation Audit
