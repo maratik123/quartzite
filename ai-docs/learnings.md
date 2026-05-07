@@ -570,6 +570,16 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+### 2026-05-07 — tooling — run actionlint on new/modified GitHub Actions workflow files
+
+**What happened:** `coverage.yml` was written and committed without running `actionlint`. The user asked after the fact whether it had been run.
+
+**Rule:** Run `actionlint <workflow-file>` on every new or modified `.github/workflows/*.yml` file as part of Step 9 (Verify), before the self-review agent.
+
+**How to apply:** Add `actionlint .github/workflows/<changed>.yml` to the Step 9 checklist whenever a task touches workflow files. `actionlint` is available in `$PATH`. Must produce no output (exit 0) before proceeding.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
 **What happened:** `/task 116` was a pure annotation task (replace `#[inline]` with `/// _Simple._` at 12 sites). I skipped Steps 6–7 (design agent + design review) on the grounds that no design decision existed. The user called out the omission.
