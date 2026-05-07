@@ -83,7 +83,6 @@ pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
         );
 
         impl #cr::IntoValue for #type_ident {
-            #[inline]
             fn into_value(self) -> #cr::Value {
                 #cr::Value::Int(self as i64)
             }
@@ -248,19 +247,14 @@ mod tests {
         );
     }
 
-    // AC9: IntoValue::into_value carries #[inline]; FromValue::from_value does not.
+    // AC4: IntoValue::into_value must not carry #[inline] (trait-impl position); FromValue::from_value does not either.
     #[test]
-    fn into_value_is_inline_from_value_is_not() {
+    fn into_value_and_from_value_have_no_inline() {
         let out = emit(quote! { enum Color { Red, Green } });
         let count = out.matches("# [inline]").count();
-        // Exactly one #[inline]: on into_value. from_value has branches so must not be inline.
         assert!(
-            count == 1,
-            "expected exactly 1 #[inline], got {count}: {out}"
-        );
-        assert!(
-            out.contains("# [inline] fn into_value"),
-            "missing #[inline] on into_value: {out}"
+            count == 0,
+            "unexpected #[inline] in output, got {count}: {out}"
         );
     }
 }

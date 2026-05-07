@@ -146,9 +146,7 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
         }
 
         impl #self_trait for #self_ident {
-            #[inline]
             fn #acc(&self) -> &#self_ident { self }
-            #[inline]
             fn #acc_mut(&mut self) -> &mut #self_ident { self }
         }
     }
@@ -215,17 +213,13 @@ fn emit_as_object_impl(
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
     quote! {
         impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
-            #[inline]
             fn object_base(&self) -> &#cr::ObjectBase {
                 #object_base_expr
             }
-            #[inline]
             fn object_base_mut(&mut self) -> &mut #cr::ObjectBase {
                 #object_base_mut_expr
             }
-            #[inline]
             fn as_any(&self) -> &dyn ::core::any::Any { self }
-            #[inline]
             fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any { self }
         }
     }
@@ -254,11 +248,9 @@ fn emit_delegation_impl(
 
     quote! {
         impl #impl_generics #parent_trait for #self_ident #ty_generics {
-            #[inline]
             fn #parent_acc(&self) -> &#parent_ty {
                 self.#base_field_ident.#parent_acc()
             }
-            #[inline]
             fn #parent_acc_mut(&mut self) -> &mut #parent_ty {
                 self.#base_field_ident.#parent_acc_mut()
             }
@@ -285,9 +277,7 @@ fn emit_mixin_impl(
 
     quote! {
         impl #impl_generics #mixin_trait for #self_ident #ty_generics {
-            #[inline]
             fn #mixin_acc(&self) -> &#mixin_ty { &self.#mixin_field }
-            #[inline]
             fn #mixin_acc_mut(&mut self) -> &mut #mixin_ty { &mut self.#mixin_field }
         }
     }
@@ -466,22 +456,22 @@ mod tests {
         );
     }
 
-    // AC9: self-ref accessor pair carries #[inline].
+    // AC1: self-ref accessor pair must not carry #[inline] (trait-impl position).
     #[test]
-    fn self_ref_accessors_are_inline() {
+    fn self_ref_accessors_have_no_inline() {
         let out = emit(quote! {
             #[root]
             struct Widget { x: i32 }
         });
         assert!(
-            out.contains("# [inline]"),
-            "missing #[inline] on accessor: {out}"
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on self-ref accessors: {out}"
         );
     }
 
-    // AC9: AsObject impl methods carry #[inline].
+    // AC1: AsObject impl methods must not carry #[inline] (trait-impl position).
     #[test]
-    fn as_object_impl_methods_are_inline() {
+    fn as_object_impl_methods_have_no_inline() {
         let out = emit(quote! {
             #[root]
             struct Widget {
@@ -489,16 +479,15 @@ mod tests {
                 object_base: ObjectBase,
             }
         });
-        let count = out.matches("# [inline]").count();
         assert!(
-            count >= 4,
-            "expected >=4 #[inline] (object_base x2, as_any x2), got {count}: {out}"
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on AsObject impl methods: {out}"
         );
     }
 
-    // AC9: parent delegation methods carry #[inline].
+    // AC1: parent delegation methods must not carry #[inline] (trait-impl position).
     #[test]
-    fn delegation_methods_are_inline() {
+    fn delegation_methods_have_no_inline() {
         let out = emit(quote! {
             struct Button {
                 #[base]
@@ -506,14 +495,14 @@ mod tests {
             }
         });
         assert!(
-            out.contains("# [inline]"),
-            "missing #[inline] on delegation: {out}"
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on delegation methods: {out}"
         );
     }
 
-    // AC9: mixin leaf accessor pair carries #[inline].
+    // AC1: mixin leaf accessor pair must not carry #[inline] (trait-impl position).
     #[test]
-    fn mixin_accessors_are_inline() {
+    fn mixin_accessors_have_no_inline() {
         let out = emit(quote! {
             struct Panel {
                 #[mixin]
@@ -521,8 +510,8 @@ mod tests {
             }
         });
         assert!(
-            out.contains("# [inline]"),
-            "missing #[inline] on mixin accessor: {out}"
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on mixin accessors: {out}"
         );
     }
 

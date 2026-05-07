@@ -272,6 +272,8 @@ pub trait FromValue: Sized {
 pub trait IntoValue {
     /// Wraps `self` in the appropriate `Value` variant.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```
