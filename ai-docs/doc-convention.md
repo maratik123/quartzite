@@ -195,6 +195,92 @@ is **not** fine: agents and reviewers check this mechanically.
   }
   ```
 
+## Feature flags rendering (`document_features`)
+
+Crates that invoke [`document_features`](https://crates.io/crates/document_features)
+to render their `Cargo.toml` `[features]` table into rustdoc must obey two
+conventions — one in the source file, one in `Cargo.toml`. Both are
+load-bearing for the public docs.html that ships to GitHub Pages.
+
+### Macro placement
+
+Place the `#![doc = document_features::document_features!()]` invocation
+**inline within the `//!` crate doc**, immediately after a
+`## Feature flags` heading (or `# Feature flags` — pick the heading level
+that matches sibling sections like `# Examples` already used in the same
+crate doc). The remaining inner attributes (lints, `cfg_attr`, etc.) follow
+the macro line. Canonical shape:
+
+```rust
+//! Crate overview…
+//!
+//! # Examples
+//! …
+//!
+//! # Feature flags
+#![doc = document_features::document_features!()]
+#![other lint attributes…]
+```
+
+**Forbidden positions:**
+
+- **Before** the `//!` block — the rendered feature list appears first,
+  ahead of the human-curated overview (inverts reading priority).
+- **After** the entire attribute block with no preceding `## Feature flags`
+  heading — the features render as an unlabelled appendix with no TOC anchor
+  (no deep-link target, no sidebar entry, no search match).
+
+### Cargo.toml feature sectioning
+
+Group entries in `[features]` by audience using `#! ### <Section>`
+section headings. `document_features` parses these into rustdoc subsections.
+
+- **Main features** (default-on, commonly toggled, affects build target /
+  API surface): listed first under no extra heading, just `## per-feature`
+  doc strings.
+- **Diagnostic features** (purely additive observability — tracing spans,
+  debug instrumentation, profiling hooks): under `#! ### Diagnostic features`
+  with a one-paragraph `#!` intro stating "Off by default. Enabling these is
+  purely additive and only affects observability, never correctness or
+  behaviour."
+- Other categories (`#! ### Experimental features`,
+  `#! ### Optional dependencies`, …) follow the canonical
+  `document_features` example as needed.
+
+Crates that **don't** invoke `document_features!()` (e.g. a crate with only
+a `verbose-tracing` flag) don't need section headings — the comments would
+be inert decoration.
+
+### Why
+
+- Reader priority: the human-curated overview is what readers want first.
+  An auto-generated feature list before it forces every visitor to scroll
+  past low-value content.
+- Anchorability: a section without an `## Feature flags` heading has no TOC
+  anchor; readers can't link to it, can't search for it in the sidebar,
+  can't deep-link from external docs.
+- Decision fatigue: mixing diagnostic features with main features makes
+  every reader evaluate "do I need this?" on every line. Section headings
+  communicate "main features matter; diagnostic features are additive
+  observability" at a glance.
+
+### How to apply
+
+- When adding `document_features` to a new crate, write the source file in
+  the canonical shape above before any other lint attributes are added —
+  easier than retrofitting later.
+- When adding a feature to an existing `[features]` table:
+  1. Decide its audience: build-target / API-surface (main) vs.
+     observability-only (diagnostic) vs. experimental / in-development.
+  2. If it's diagnostic and the table doesn't already have a
+     `#! ### Diagnostic features` section, add one (with the standard
+     intro paragraph) before adding the feature.
+  3. Place the `## per-feature` docstring immediately above the feature
+     line.
+- When reviewing a PR that touches `document_features`-using crates, check
+  both: (a) macro is inline within `//!` after a heading; (b) any new
+  feature lands under the right `#! ###` section per its audience.
+
 ## Linking and code references
 
 - **Backtick every Rust identifier in prose.** Type names, function names,
