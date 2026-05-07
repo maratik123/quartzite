@@ -106,6 +106,8 @@ impl ObjectFactory {
 
     /// Registers a constructor for `class_name`. Overwrites any existing entry.
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `class_name`: the class name string used to look up this constructor.
@@ -123,7 +125,10 @@ impl ObjectFactory {
     where
         F: Fn() -> Box<dyn Object> + Send + Sync + 'static,
     {
-        self.registry.insert(class_name.into(), Box::new(ctor));
+        fn inner(this: &mut ObjectFactory, class_name: String, ctor: Constructor) {
+            this.registry.insert(class_name, ctor);
+        }
+        inner(self, class_name.into(), Box::new(ctor))
     }
 
     /// Creates an instance of `class_name`. Returns `None` if not registered.

@@ -83,6 +83,8 @@ impl ObjectBase {
 
     /// Creates an `ObjectBase` with the given name and a freshly allocated [`ObjectId`].
     ///
+    /// _Simple._
+    ///
     /// # Parameters
     ///
     /// - `name`: human-readable identifier; any `Into<String>` value (e.g.
@@ -97,10 +99,13 @@ impl ObjectBase {
     /// assert_eq!(base.name(), Some("sensor-1"));
     /// ```
     pub fn named(name: impl Into<String>) -> Self {
-        Self {
-            name: Some(name.into()),
-            ..Self::new()
+        fn inner(name: String) -> ObjectBase {
+            ObjectBase {
+                name: Some(name),
+                ..ObjectBase::new()
+            }
         }
+        inner(name.into())
     }
 
     /// Creates an `ObjectBase` with the given `id` and no name.
