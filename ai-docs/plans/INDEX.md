@@ -23,6 +23,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 |------|----------|--------|------------|
 | [core-types](done/2026-05-01-core-types.spec.md) | `quartzite-core` | ✅ implemented (45 tests) | — |
 | [github-workflow](done/2026-05-01-github-workflow.spec.md) | CI / repo config | ✅ live | — |
+| [multi-platform-ci](done/2026-05-07-multi-platform-ci.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
 | [macros](done/2026-05-01-macros.spec.md) | `quartzite-macros` | ✅ implemented (47 tests) | — |
 | [runtime](done/2026-05-01-runtime.spec.md) | `quartzite-runtime` | ✅ implemented (176 tests) | — |
 | [auto-connection](done/2026-05-01-auto-connection.spec.md) | `quartzite-core` (extension) | ✅ implemented (6 tests) | — |
@@ -74,7 +75,8 @@ core-types ✅
 │   ├── widgets (#46)              🔴 blocked on graphics-stack #73 (Painter trait lives in paint-api)
 │   │   └── paint-style/style      🔴 blocked on widgets #46 (needs AsWidget) + paint #47
 │   └── paint-style/paint (#47)    🔴 blocked on graphics-stack #73 (paint-api types)
-└── github-workflow ✅              (independent)
+└── github-workflow ✅
+    └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
 
 Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
@@ -83,7 +85,7 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 
 ## Suggested next steps
 
-1. **Start** graphics-stack (the only 🟢 ready plan — geometry-events done; needs `quartzite-paint-api` thin crate then `quartzite-renderer`). This is the **single bottleneck** unblocking widgets (#46), paint+style (#47), and multi-window (#53).
+1. **Start** graphics-stack (geometry-events done; multi-platform CI now live; needs `quartzite-paint-api` thin crate then `quartzite-renderer`). This is the **single bottleneck** unblocking widgets (#46), paint+style (#47), and multi-window (#53).
 2. **After paint-api lands**, widgets (#46) and the paint portion of #47 unblock; paint-style/style and multi-window (#53) follow once widgets is done.
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
