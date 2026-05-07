@@ -136,6 +136,12 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
          ```"
     );
 
+    let inline = if ir.generics.params.is_empty() {
+        quote! { #[inline] }
+    } else {
+        quote! {}
+    };
+
     quote! {
         #[doc = #trait_doc]
         pub trait #self_trait #supertrait {
@@ -146,7 +152,9 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
         }
 
         impl #self_trait for #self_ident {
+            #inline
             fn #acc(&self) -> &#self_ident { self }
+            #inline
             fn #acc_mut(&mut self) -> &mut #self_ident { self }
         }
     }
@@ -211,15 +219,24 @@ fn emit_as_object_impl(
     };
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let inline = if generics.params.is_empty() {
+        quote! { #[inline] }
+    } else {
+        quote! {}
+    };
     quote! {
         impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
+            #inline
             fn object_base(&self) -> &#cr::ObjectBase {
                 #object_base_expr
             }
+            #inline
             fn object_base_mut(&mut self) -> &mut #cr::ObjectBase {
                 #object_base_mut_expr
             }
+            #inline
             fn as_any(&self) -> &dyn ::core::any::Any { self }
+            #inline
             fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any { self }
         }
     }
@@ -245,12 +262,19 @@ fn emit_delegation_impl(
     let parent_acc_mut = acc_mut_ident(&parent_acc);
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let inline = if generics.params.is_empty() {
+        quote! { #[inline] }
+    } else {
+        quote! {}
+    };
 
     quote! {
         impl #impl_generics #parent_trait for #self_ident #ty_generics {
+            #inline
             fn #parent_acc(&self) -> &#parent_ty {
                 self.#base_field_ident.#parent_acc()
             }
+            #inline
             fn #parent_acc_mut(&mut self) -> &mut #parent_ty {
                 self.#base_field_ident.#parent_acc_mut()
             }
@@ -274,10 +298,17 @@ fn emit_mixin_impl(
     let mixin_acc_mut = acc_mut_ident(&mixin_acc);
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let inline = if generics.params.is_empty() {
+        quote! { #[inline] }
+    } else {
+        quote! {}
+    };
 
     quote! {
         impl #impl_generics #mixin_trait for #self_ident #ty_generics {
+            #inline
             fn #mixin_acc(&self) -> &#mixin_ty { &self.#mixin_field }
+            #inline
             fn #mixin_acc_mut(&mut self) -> &mut #mixin_ty { &mut self.#mixin_field }
         }
     }
@@ -456,22 +487,22 @@ mod tests {
         );
     }
 
-    // AC1: self-ref accessor pair must not carry #[inline] (trait-impl position).
+    // AC1: concrete root — self-ref accessor pair carries #[inline].
     #[test]
-    fn self_ref_accessors_have_no_inline() {
+    fn self_ref_accessors_concrete_have_inline() {
         let out = emit(quote! {
             #[root]
             struct Widget { x: i32 }
         });
         assert!(
-            !out.contains("# [inline]"),
-            "unexpected #[inline] on self-ref accessors: {out}"
+            out.contains("# [inline]"),
+            "expected #[inline] on concrete self-ref accessors: {out}"
         );
     }
 
-    // AC1: AsObject impl methods must not carry #[inline] (trait-impl position).
+    // AC1: concrete root with ObjectBase — AsObject impl methods carry #[inline].
     #[test]
-    fn as_object_impl_methods_have_no_inline() {
+    fn as_object_impl_methods_concrete_have_inline() {
         let out = emit(quote! {
             #[root]
             struct Widget {
@@ -480,14 +511,29 @@ mod tests {
             }
         });
         assert!(
-            !out.contains("# [inline]"),
-            "unexpected #[inline] on AsObject impl methods: {out}"
+            out.contains("# [inline]"),
+            "expected #[inline] on concrete AsObject impl methods: {out}"
         );
     }
 
-    // AC1: parent delegation methods must not carry #[inline] (trait-impl position).
+    // AC1: generic non-root with base — AsObject impl methods must not carry #[inline].
     #[test]
-    fn delegation_methods_have_no_inline() {
+    fn as_object_impl_methods_generic_have_no_inline() {
+        let out = emit(quote! {
+            struct Foo<T> {
+                #[base]
+                object_base: ObjectBase,
+            }
+        });
+        assert!(
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on generic AsObject impl methods: {out}"
+        );
+    }
+
+    // AC1: concrete non-root — parent delegation methods carry #[inline].
+    #[test]
+    fn delegation_methods_concrete_have_inline() {
         let out = emit(quote! {
             struct Button {
                 #[base]
@@ -495,14 +541,29 @@ mod tests {
             }
         });
         assert!(
-            !out.contains("# [inline]"),
-            "unexpected #[inline] on delegation methods: {out}"
+            out.contains("# [inline]"),
+            "expected #[inline] on concrete delegation methods: {out}"
         );
     }
 
-    // AC1: mixin leaf accessor pair must not carry #[inline] (trait-impl position).
+    // AC1: generic non-root — parent delegation methods must not carry #[inline].
     #[test]
-    fn mixin_accessors_have_no_inline() {
+    fn delegation_methods_generic_have_no_inline() {
+        let out = emit(quote! {
+            struct Button<T> {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(
+            !out.contains("# [inline]"),
+            "unexpected #[inline] on generic delegation methods: {out}"
+        );
+    }
+
+    // AC1: concrete non-root — mixin leaf accessor pair carries #[inline].
+    #[test]
+    fn mixin_accessors_concrete_have_inline() {
         let out = emit(quote! {
             struct Panel {
                 #[mixin]
@@ -510,8 +571,23 @@ mod tests {
             }
         });
         assert!(
+            out.contains("# [inline]"),
+            "expected #[inline] on concrete mixin accessors: {out}"
+        );
+    }
+
+    // AC1: generic non-root — mixin leaf accessor pair must not carry #[inline].
+    #[test]
+    fn mixin_accessors_generic_have_no_inline() {
+        let out = emit(quote! {
+            struct Panel<T> {
+                #[mixin]
+                layout_base: LayoutBase,
+            }
+        });
+        assert!(
             !out.contains("# [inline]"),
-            "unexpected #[inline] on mixin accessors: {out}"
+            "unexpected #[inline] on generic mixin accessors: {out}"
         );
     }
 
