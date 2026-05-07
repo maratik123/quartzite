@@ -223,19 +223,15 @@ pub(crate) fn emit_object_impl(
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
     quote! {
         impl #cr::Object for #self_ty {
-            #[inline]
             fn meta_object(&self) -> &'static #cr::MetaObject {
                 #meta_init()
             }
-            #[inline]
             fn read_property(&self, name: &str) -> ::core::option::Option<#cr::Value> {
                 #mod_ident::#read_fn(self, name)
             }
-            #[inline]
             fn write_property(&mut self, name: &str, val: #cr::Value) -> bool {
                 #mod_ident::#write_fn(self, name, val)
             }
-            #[inline]
             fn invoke_method(
                 &mut self,
                 name: &str,
@@ -243,7 +239,6 @@ pub(crate) fn emit_object_impl(
             ) -> ::core::option::Option<#cr::Value> {
                 #invoke_fn(self, name, args)
             }
-            #[inline]
             fn connect_signal(
                 &mut self,
                 signal: &str,
@@ -252,7 +247,6 @@ pub(crate) fn emit_object_impl(
             ) -> ::core::option::Option<#cr::ConnectionId> {
                 #mod_ident::#connect_fn(self, signal, callback, conn_type)
             }
-            #[inline]
             fn emit_signal(
                 &mut self,
                 signal: &str,
@@ -574,15 +568,14 @@ mod tests {
         assert!(out.contains("fn helper"), "helper not re-emitted: {out}");
     }
 
-    // AC9: Object trait shims and __meta_init carry #[inline].
+    // AC2/AC3: Object trait-impl methods must not carry #[inline]; only __meta_init_Foo does.
     #[test]
-    fn object_impl_shims_are_inline() {
+    fn object_trait_methods_have_no_inline_meta_init_has_one() {
         let out = emit(quote! { impl Foo {} });
         let count = out.matches("# [inline]").count();
-        // 5 Object trait shims + 1 __meta_init_Foo
         assert!(
-            count >= 6,
-            "expected >=6 #[inline] tokens, got {count}: {out}"
+            count == 1,
+            "expected exactly 1 #[inline] (only __meta_init_Foo), got {count}: {out}"
         );
     }
 
