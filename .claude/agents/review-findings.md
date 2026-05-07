@@ -88,6 +88,7 @@ Flag each of the following:
 - **Missing `# Panics`** on a fn that calls `unwrap()` / `expect(…)`, indexes / slices a collection, asserts an invariant, or performs arithmetic that can overflow on plausible inputs (also flagged by `clippy::missing_panics_doc`).
 - **Missing `# Safety`** on every `unsafe fn` (also flagged by `clippy::missing_safety_doc`).
 - **Ad-hoc sections** (e.g. stray `# Notes`) — only the canonical headings above are allowed.
+- **`document_features` rendering** ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md#feature-flags-rendering-document_features))**:** any crate that invokes `document_features::document_features!()` must place the macro inline within the `//!` block immediately after a `## Feature flags` heading (not before the `//!` block, not as a trailing attribute with no heading) → `major`. Any entry in that crate's `[features]` table that lands in the wrong `#! ### <Section>` per audience (main vs. `#! ### Diagnostic features` vs. `#! ### Experimental features` …) → `minor`.
 
 ## What you do NOT check
 

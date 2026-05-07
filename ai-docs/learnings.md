@@ -49,9 +49,7 @@ PR #149 fixed both. Verified visually on `target/doc/*/index.html`: Examples →
   3. Place the `## per-feature docstring` immediately above the feature line.
 - When reviewing a PR that touches `document_features`-using crates, check both: (a) macro is inline within `//!` after a heading; (b) any new feature lands under the right `#! ###` section per its audience.
 
-**Escalated?** no
-
-> Candidate for escalation to `ai-docs/doc-convention.md` (heading placement + feature-section grouping is a documentation convention, parallel to the existing `_Simple._` tag rules). `/improve` should consider this when ≥3 unescalated entries accumulate; tagging `documentation` as the category to make the doc-convention escalation target obvious.
+**Escalated?** doc-convention, agent:self-review, agent:review-findings
 
 ### 2026-05-07 — process — query the registry / release API for current versions before pinning a dependency or GitHub Action in any spec, issue body, design doc, or instruction file
 
@@ -74,7 +72,7 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **How to apply:** Before writing any version-pinning string in any document the user might act on, run the registry query. The training cutoff is months behind live releases — treat training-data version knowledge as untrustworthy by default, especially for fast-moving projects (criterion bumped 0.5 → 0.8 between training and now; `actions/deploy-pages` bumped v4 → v5; `actions/upload-artifact` bumped v4 → v7).
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-07 — process — run actionlint on every new or modified GitHub Actions workflow file
 
@@ -86,7 +84,7 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **How to apply:** After writing or editing any `.github/workflows/*.yml` file, run `actionlint <file>` before staging. If multiple files changed, pass all of them in one invocation. Fix all errors before committing.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-07 — process — do not escalate learnings without being asked; escalation is triggered only by /improve
 

@@ -107,6 +107,7 @@ REJECT on any of:
 - **Missing `# Panics`** on a fn that calls `unwrap()` / `expect(…)`, indexes / slices a collection, asserts an invariant, or performs arithmetic that can overflow on plausible inputs (also flagged by `clippy::missing_panics_doc`).
 - **Missing `# Safety`** on every `unsafe fn` (also flagged by `clippy::missing_safety_doc`).
 - **Ad-hoc sections** (e.g. stray `# Notes`) — only the canonical headings above are allowed.
+- **`document_features` rendering** ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md#feature-flags-rendering-document_features))**:** any crate this diff adds or modifies that invokes `document_features::document_features!()` must place the macro inline within the `//!` block immediately after a `## Feature flags` heading (not before the `//!` block, not as a trailing attribute with no heading); and any new entry in that crate's `[features]` table must land under the correct `#! ### <Section>` heading per audience (main features unsectioned; observability-only flags under `#! ### Diagnostic features`). Misplaced macro or new feature listed in the wrong section → REJECT.
 
 ### 7. Objection quality (round > 1 only)
 

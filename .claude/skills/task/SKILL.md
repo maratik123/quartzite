@@ -165,8 +165,9 @@ finding (Step 11) requires a design change rather than a code fix:
 3. `cargo fmt -- --check` — no formatting drift
 4. `cargo clippy -- -D warnings` — clean
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
-6. For each AC — confirm covered by test or manual verification
-7. Show summary table:
+6. **actionlint gate** — if this task created or modified any `.github/workflows/*.yml` file, run `actionlint <file>` (or pass every changed workflow file in one invocation) and require a clean pass. Skip the gate only when no workflow file was touched. See AGENTS.md *Build & Test → Workflow files*.
+7. For each AC — confirm covered by test or manual verification
+8. Show summary table:
 
 ```
 | # | Criterion | Test / Verification | Status |
@@ -174,7 +175,7 @@ finding (Step 11) requires a design change rather than a code fix:
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-8. On ALL PASS → proceed to Step 9.5
+9. On ALL PASS → proceed to Step 9.5
 
 ### Step 9.5: Update documentation
 
@@ -268,7 +269,7 @@ After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Work
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |

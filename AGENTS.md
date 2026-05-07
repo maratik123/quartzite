@@ -32,7 +32,10 @@ cargo fmt                             # fix formatting
 cargo fmt -- --check                  # check only
 RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace   # doc gate (matches CI)
 cargo build -p quartzite --no-default-features   # verify derive-free / no_std path compiles
+actionlint .github/workflows/<file>.yml   # required gate for any new/modified workflow file
 ```
+
+**Workflow files.** Any new or modified `.github/workflows/*.yml` is a required `actionlint` gate before staging — same status as `cargo build` / `cargo clippy`. Run `actionlint <file>` (or pass every changed file in one invocation) and fix all errors before `git add`. actionlint catches runner-version mismatches, deprecated action versions, expression syntax errors, and shell quoting issues that `cargo` checks cannot see.
 
 Search: `rg <pattern> --type rust [-l | -C 3]`
 
@@ -72,6 +75,14 @@ When adding or editing dependencies in `Cargo.toml`:
 - Use `x` for `x.y.z` versions — never pin minor or patch.
 - No `~` prefix — Cargo's default `^` semantics are sufficient.
 - After changing version constraints, run `cargo update` to pull latest compatible versions, then `cargo build` to verify.
+
+**Query the registry before pinning.** Whenever you write a *specific* version string for a dependency or GitHub Action — in `Cargo.toml`, a workflow file, an issue body, a spec, a design doc, a learning, or any `ai-docs/**` page — query the live source first. Training-data version knowledge is months stale by default and treating it as authoritative has, in this repo, twice put the wrong major into a spec the user then had to correct (`criterion 0.5` vs. live `0.8`; `actions/deploy-pages@v4` vs. live `@v5`). The cost is asymmetric: 30 seconds at authoring time vs. a corrective PR + reviewer time vs. a reverted regression worst-case.
+
+Per source:
+
+- **Cargo crates:** `curl -sS "https://crates.io/api/v1/crates/<name>" | jq -r '.crate.max_stable_version'` — then apply the `0.x` / `x` pinning rule above to the *observed* version, not a remembered one.
+- **GitHub Actions:** `gh api /repos/<owner>/<repo>/releases --jq '.[0].tag_name'` for the current major; also fetch `action.yml` to confirm the Node runtime is current — `gh api /repos/<owner>/<repo>/contents/action.yml --jq '.content' | base64 -d | grep -E 'using:|node'`. (Skipping the runtime check is how stale Node-20 majors slipped in repeatedly.)
+- **Long-lived references** (a doc that won't be revisited for months): annotate `(verified current YYYY-MM-DD)` next to the version so the next reader can spot drift before a `/task` session pins the stale value.
 
 ## Workflow
 
