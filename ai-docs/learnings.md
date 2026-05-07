@@ -557,3 +557,13 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 **How to apply:** When adding a function that mutates non-trivial application state (tree mutations, lifecycle transitions, index updates, config changes): add a `debug!` at the top. When adding a sibling to an existing traced function, check whether it warrants the same treatment. Skip for: trivial getters/setters, emit paths, and any path called at high frequency without a feature-flag guard. Canonical feature name for high-frequency tracing: `verbose-tracing`.
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
+
+### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
+
+**What happened:** `/task 116` was a pure annotation task (replace `#[inline]` with `/// _Simple._` at 12 sites). I skipped Steps 6–7 (design agent + design review) on the grounds that no design decision existed. The user called out the omission.
+
+**Rule:** The `/task` workflow has no "too simple" exemption. Steps 6–7 are mandatory before Step 8 unless the user explicitly authorises skipping them. For annotation-only or trivially-scoped tasks, the design doc will be short — that is fine. The process cost of a one-paragraph design doc is lower than the cost of violating the workflow gate.
+
+**How to apply:** Before writing any implementation code under `/task`, confirm that `ai-docs/plans/YYYY-MM-DD-name.design.md` exists and carries a GO verdict. If it does not exist, run the design agent (Step 6) regardless of how simple the task appears. Only skip with explicit user approval.
+
+**Escalated?** no
