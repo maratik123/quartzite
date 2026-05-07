@@ -211,6 +211,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | Path | Purpose |
 |------|---------|
 | `ai-docs/context.md` | Project context — read on demand |
+| `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
