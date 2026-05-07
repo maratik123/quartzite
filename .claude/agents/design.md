@@ -1,6 +1,7 @@
 ---
 name: design
 description: "Produces a structured Design Document with decomposition for an implementation task. Investigates the codebase, evaluates alternatives, breaks work into atomic tasks. Invoked by /task between spec and implementation, or to revise the design after design-review feedback."
+model: opus
 ---
 
 # Design Agent
