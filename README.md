@@ -87,4 +87,13 @@ RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace
 
 ## License
 
-Licensed under the GNU Lesser General Public License v3.0 — see [LICENSE](LICENSE) for details.
+Dual-licensed under either of:
+
+- [MIT License](LICENSE-MIT) ([https://opensource.org/licenses/MIT](https://opensource.org/licenses/MIT))
+- [Apache License, Version 2.0](LICENSE-APACHE) ([https://www.apache.org/licenses/LICENSE-2.0](https://www.apache.org/licenses/LICENSE-2.0))
+
+at your option. This is the standard Rust ecosystem dual-license.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual-licensed as above, without any additional terms or conditions.
