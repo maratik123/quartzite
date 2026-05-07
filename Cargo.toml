@@ -35,6 +35,12 @@ std = ["quartzite-core/std", "quartzite-geometry/std"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]
+
+#! ### Diagnostic features
+#!
+#! Off by default. Enabling these is purely additive and only affects observability,
+#! never correctness or behaviour.
+
 ## Enable span instrumentation on high-frequency paths (e.g. signal emit, event loop post).
 ## Off by default to keep hot paths zero-cost.
 verbose-tracing = ["quartzite-core/verbose-tracing", "quartzite-runtime/verbose-tracing"]

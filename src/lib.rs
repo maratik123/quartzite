@@ -6,8 +6,6 @@
 #![warn(clippy::doc_markdown)]
 #![warn(clippy::undocumented_unsafe_blocks)]
 #![deny(missing_docs)]
-#![doc = document_features::document_features!()]
-//!
 //! Provides a single facade crate that re-exports the workspace member crates
 //! ([`core`], [`events`], [`geometry`], [`macros`], [`runtime`]) plus a
 //! curated [`prelude`] for one-line imports.
@@ -22,6 +20,9 @@
 //!
 //! `MetaEnum` for enum reflection is available via [`macros::MetaEnum`] (requires the `derive`
 //! feature, enabled by default).
+//!
+//! # Feature flags
+#![doc = document_features::document_features!()]
 
 /// Re-exports the core object model, signals, and reflection types from [`quartzite_core`].
 ///
