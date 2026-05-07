@@ -1,5 +1,58 @@
 # Learnings
 
+### 2026-05-07 — documentation — `document_features::document_features!()` invocation must sit inline within the `//!` crate doc, immediately after a `## Feature flags` heading; main vs diagnostic features must be sectioned in Cargo.toml
+
+**What happened:** Two related bugs in our `document_features` integration, both surfaced once `cargo doc` was published live to GitHub Pages (PR #148, #137):
+
+1. **Macro placement was wrong in two crate roots.**
+   - `src/lib.rs` invoked `#![doc = document_features::document_features!()]` on line 9, **before** the `//!` crate-doc block (lines 10-24). The rendered feature list appeared **first**, ahead of the overview.
+   - `quartzite-core/src/lib.rs` invoked it at the end of the attribute block (line 15) **with no preceding `## Feature flags` heading**. The features rendered as an unlabelled appendix with no TOC anchor.
+
+2. **`verbose-tracing` was mixed with main features.** In workspace `Cargo.toml` and `quartzite-core/Cargo.toml`, `verbose-tracing` was listed as a peer of `std` and `derive` — so the rendered feature list mixed a purely-diagnostic observability flag with the main feature-flag choices users actually evaluate (build-target, derive availability).
+
+PR #149 fixed both. Verified visually on `target/doc/*/index.html`: Examples → Feature flags (h2) → Diagnostic features (h4 subsection) — sidebar TOC correctly nests.
+
+**Rule:**
+
+- **Macro placement.** When a crate uses `document_features`, place the `#![doc = document_features::document_features!()]` invocation **inline within the `//!` crate doc**, immediately after a `## Feature flags` (or `# Feature flags` — whichever heading level matches sibling sections like `# Examples` already in that crate doc). The remaining inner attributes (lints, `cfg_attr`, etc.) follow afterwards. Never place the macro **before** the `//!` block (forces features-list to render first) or **after the entire attribute block with no preceding heading** (renders as an unlabelled appendix). Canonical shape:
+
+  ```rust
+  //! Crate overview…
+  //!
+  //! # Examples
+  //! …
+  //!
+  //! # Feature flags
+  #![doc = document_features::document_features!()]
+  #![other lint attributes…]
+  ```
+
+- **Cargo.toml feature sectioning.** Group features in `[features]` by audience using `#! ### <Section>` headings:
+  - **Main features** (default-on, commonly toggled, affects build target / API surface): listed first under no extra heading, just `## per-feature docstrings`.
+  - **Diagnostic features** (purely additive observability — tracing spans, debug instrumentation, profiling hooks): under `#! ### Diagnostic features` with a one-paragraph `#!` intro stating "Off by default. Enabling these is purely additive and only affects observability, never correctness or behaviour."
+  - Other categories (e.g. `#! ### Experimental features`, `#! ### Optional dependencies`) follow the canonical `document_features` example as needed.
+
+  Crates that **don't** invoke `document_features!()` (e.g. `quartzite-runtime` with only `verbose-tracing`) don't need section headings — the comments would be inert decoration.
+
+**Why:**
+
+- Reader priority: the human-curated overview is what readers want first. An auto-generated feature list before it inverts reading priority and forces every visitor to scroll past low-value content.
+- Anchorability: a section without an `## Feature flags` heading has no TOC anchor; readers can't link to it, can't search for it in the sidebar, can't deep-link from external docs.
+- Decision fatigue: mixing diagnostic features with main features makes every reader evaluate "do I need this?" on every line. Section headings communicate the "main features matter; diagnostic features are additive observability" distinction at a glance.
+
+**How to apply:**
+
+- When adding `document_features` to a new crate, write the source file in the canonical shape above before any other lint attributes are added — easier than retrofitting later.
+- When adding a feature to an existing `[features]` table:
+  1. Decide its audience: build-target/API-surface (main) vs observability-only (diagnostic) vs experimental/in-development.
+  2. If it's diagnostic and the table doesn't already have a `#! ### Diagnostic features` section, add one (with the standard intro paragraph) before adding the feature.
+  3. Place the `## per-feature docstring` immediately above the feature line.
+- When reviewing a PR that touches `document_features`-using crates, check both: (a) macro is inline within `//!` after a heading; (b) any new feature lands under the right `#! ###` section per its audience.
+
+**Escalated?** no
+
+> Candidate for escalation to `ai-docs/doc-convention.md` (heading placement + feature-section grouping is a documentation convention, parallel to the existing `_Simple._` tag rules). `/improve` should consider this when ≥3 unescalated entries accumulate; tagging `documentation` as the category to make the doc-convention escalation target obvious.
+
 ### 2026-05-07 — process — query the registry / release API for current versions before pinning a dependency or GitHub Action in any spec, issue body, design doc, or instruction file
 
 **What happened:** Twice in one session, issue bodies I authored cited stale dependency / action versions that the user had to correct:

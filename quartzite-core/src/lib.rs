@@ -3,6 +3,9 @@
 //! This crate is `no_std`-compatible when the `std` feature is disabled (requires `alloc`).
 //! All runtime-specific functionality (event loops, timers, thread pools) lives in
 //! `quartzite-runtime`.
+//!
+//! # Feature flags
+#![doc = document_features::document_features!()]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
@@ -12,7 +15,6 @@
 #![warn(clippy::doc_markdown)]
 #![warn(clippy::undocumented_unsafe_blocks)]
 #![deny(missing_docs)]
-#![doc = document_features::document_features!()]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;

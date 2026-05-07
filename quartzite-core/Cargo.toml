@@ -13,6 +13,12 @@ default = ["std"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments.
 std = ["indexmap/std", "tracing/log", "dep:parking_lot"]
+
+#! ### Diagnostic features
+#!
+#! Off by default. Enabling these is purely additive and only affects observability,
+#! never correctness or behaviour.
+
 ## Enable span instrumentation on high-frequency paths (e.g. signal emit).
 ## Off by default to keep hot paths zero-cost.
 verbose-tracing = []
