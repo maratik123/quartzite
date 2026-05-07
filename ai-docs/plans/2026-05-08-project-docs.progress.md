@@ -1,11 +1,11 @@
 # Progress: Project docs (#60) — ACTIVE
-_Updated: 2026-05-08 00:55_
+_Updated: 2026-05-08 01:30_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** `feat/2026-05-08-project-docs`
 **base_commit:** `48324555a9aaa083ca8ee2b705c31ef60a861977`
-**Last build:** PASS (subtask 4; `cargo build` clean — no Rust changes; `Cargo.lock` unchanged)
+**Last build:** PASS (subtask 5; `cargo build` clean — no Rust changes; `Cargo.lock` unchanged)
 **Issue:** #60
 **Spec:** [`ai-docs/plans/2026-05-08-project-docs.spec.md`](2026-05-08-project-docs.spec.md)
 **Design:** [`ai-docs/plans/2026-05-08-project-docs.design.md`](2026-05-08-project-docs.design.md)
@@ -13,7 +13,7 @@ _Updated: 2026-05-08 00:55_
 
 ## Next action
 
-**Do this immediately:** run `./scripts/gen-roadmap.sh` once on Linux to regenerate `ROADMAP.md`, then perform the macOS / BSD-awk-container portability cross-check per design *Test Design → AC5/AC6 implementer responsibility* (alpine container example at design line 293) — confirm `sha256sum ROADMAP.md` matches between Linux and BSD-awk runs (the Linux-side hash to compare against is in *Key discoveries → Subtask 4 outputs* below). Document the verification result in this progress file's Subtask 5 notes, then stage and commit `ROADMAP.md` (only — `scripts/gen-roadmap.sh` is already committed). Note: a fresh `ROADMAP.md` is already on disk from subtask 4's run-once step but is unstaged; the cross-check supersedes that artifact, so re-running first is fine. Do NOT touch `.github/workflows/ci.yml` yet — that is subtask 6.
+**Do this immediately:** subtask 6 — add the `roadmap-sync` job + `roadmap-sync-pass` aggregator to `.github/workflows/ci.yml`. Per design AC7, the job runs on `ubuntu-latest` only (Windows bash-via-Git-Bash awk/sed flavour drift would produce false negatives — see *Key discoveries → CI sync-gate ubuntu-only rationale*). Steps: checkout, run `./scripts/gen-roadmap.sh`, then `git diff --exit-code -- ROADMAP.md` (fail if generator output differs from committed copy). Pin `actions/checkout` to the same major existing CI jobs use (currently `@v6` — confirm via `gh api /repos/actions/checkout/releases --jq '.[0].tag_name'` per AGENTS.md `## Dependency Versions`). Add `roadmap-sync` to the `roadmap-sync-pass` aggregator's `needs:` list (mirror the existing `*-pass` aggregator pattern in this workflow). Run `actionlint .github/workflows/ci.yml` before staging — required gate per AGENTS.md `## Build & Test`. Note: the BSD-awk portability cross-check planned for subtask 5 was **skipped** (no `docker`/`podman` on this Gentoo host); flag this for the user before merge so they can run it manually on macOS or in a container elsewhere. AC6 is downgraded to PARTIAL.
 
 ## Subtasks
 
@@ -21,8 +21,8 @@ _Updated: 2026-05-08 00:55_
 - [x] 2. `src/lib.rs` rewrite — overview + `no_run` quickstart + 5 per-concept sections + ecosystem map + design notes (commit `4afa02f`)
 - [x] 3. `CONTRIBUTING.md` at standard depth — 10-section AGENTS.md excerpt (commit `7465fa9`)
 - [x] 4. `scripts/gen-roadmap.sh` — POSIX bash + awk/sed generator with comment-banner of banned constructs (commit pending below)
-- [ ] 5. Run the generator and commit `ROADMAP.md` at repo root; macOS / BSD-awk-container portability cross-check ← **CURRENT**
-- [ ] 6. CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator in `.github/workflows/ci.yml` (ubuntu-latest only)
+- [x] 5. Run the generator and commit `ROADMAP.md` at repo root; macOS / BSD-awk-container portability cross-check (cross-check **skipped** — no docker/podman on host; see Subtask 5 cross-check log below)
+- [ ] 6. CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator in `.github/workflows/ci.yml` (ubuntu-latest only) ← **CURRENT**
 
 ## Key discoveries (don't re-investigate)
 
@@ -46,8 +46,8 @@ _Updated: 2026-05-08 00:55_
 | AC2 (README badges) | PASS — covered by subtask 1, commit `136e29b` |
 | AC3 (lib.rs comprehensive doc) | PASS — covered by subtask 2, commit `4afa02f` |
 | AC4 (CONTRIBUTING.md) | PASS — covered by subtask 3, commit `7465fa9` |
-| AC5 (ROADMAP.md) | NOT_TESTED — pending subtask 5 (script written + run-once produced ROADMAP.md, but commit + content review is subtask 5) |
-| AC6 (gen-roadmap.sh portable) | PARTIAL — script written with comment-banner of banned constructs; Linux-side determinism verified (two runs, identical sha256); shellcheck clean; macOS / BSD-awk container cross-check pending in subtask 5 |
+| AC5 (ROADMAP.md) | PASS — generated, visual-reviewed (all expected sections present; dropped sections absent), committed in subtask 5 |
+| AC6 (gen-roadmap.sh portable) | PARTIAL — script written with comment-banner of banned constructs; Linux-side determinism verified (three runs, identical sha256); shellcheck clean; **BSD-awk container cross-check SKIPPED** — no docker/podman on the implementer host (Gentoo). Implementer-discipline check per design *Risks*; user must run the alpine-container check manually before merge to fully close AC6 |
 | AC7 (CI sync-gate) | NOT_TESTED — pending subtask 6 |
 | AC8 (doc-gate) | PASS — verified after subtask 2 |
 | AC9 (quickstart doctest) | PASS — `cargo test --doc -p quartzite` green after subtask 2 |
@@ -66,6 +66,20 @@ _Updated: 2026-05-08 00:55_
 - `scripts/gen-roadmap.sh` — subtask 4: NEW, 249 lines, +x bit set (commit pending below)
 - `ROADMAP.md` — subtask 5: produced on disk by subtask 4's run-once; NOT staged yet (commit is subtask 5's deliverable)
 - `.github/workflows/ci.yml` — pending subtask 6
+
+## Subtask 5 cross-check log
+
+- **Linux (this Gentoo host, GNU awk/sed):** `./scripts/gen-roadmap.sh` → `sha256sum ROADMAP.md` = `53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b` (87 lines). Matches the subtask-4 reference byte-for-byte across two more consecutive runs (third total) — generator is deterministic on Linux/GNU awk.
+- **BSD-awk container cross-check (alpine:latest, busybox awk):** **SKIPPED.** Reason: neither `docker` nor `podman` is available on this Gentoo implementer host (`command -v docker` → exit 1; `command -v podman` → exit 1). The check is implementer-discipline per design *Risks → CI gate is Linux-only* (the CI sync-gate added in subtask 6 is `ubuntu-latest` only, by deliberate design). User action recommended before merge: run `docker run --rm -v "$PWD":/w -w /w alpine:latest sh -c 'apk add --no-cache bash && ./scripts/gen-roadmap.sh && sha256sum ROADMAP.md'` (or equivalent on macOS) and confirm the hash equals `53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b`. If they differ, the generator has a GNU-awk-only construct that slipped past the banned-constructs comment banner in `scripts/gen-roadmap.sh` and must be fixed before merge.
+- **Verdict:** Linux-side determinism PASS; BSD-portability verdict UNCONFIRMED on this host — explicit user follow-up flagged for AC6 closure.
+- **Visual review of `ROADMAP.md` (87 lines):**
+  - Header (lines 1–8): auto-generated note + legend match design lines 196–204 verbatim.
+  - `## Dependency tree` heading present (line 10) — correctly renamed from INDEX.md's `## Dependency order`.
+  - `## Active plans` (line 29), `## Completed plans` (line 49), `## Deferred plans` (line 82) tables present, verbatim from INDEX.md.
+  - All plan-table links rewritten to `](ai-docs/plans/done/...)`, `](ai-docs/plans/deferred/...)`, `](ai-docs/plans/2026-...)` — no bare `](done/`, `](deferred/`, or `](2026-` prefixes remain (verified by full file read).
+  - `## Suggested next steps` **absent** ✓.
+  - Trailing maintenance-plans paragraph **absent** ✓.
+  - Tracking-issues blockquote (INDEX.md lines 64–65) **absent** ✓ — confirms the awk state-machine refinement noted in *Key discoveries → Subtask 4* worked.
 
 ## Subtask 5 implementation brief
 
