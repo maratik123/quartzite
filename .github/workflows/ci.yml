@@ -93,6 +93,33 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+  build-pass:
+    name: Build
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.build.result }}" != "success" ]]; then exit 1; fi
+
+  test-pass:
+    name: Test
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.test.result }}" != "success" ]]; then exit 1; fi
+
+  clippy-pass:
+    name: Clippy
+    needs: clippy
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.clippy.result }}" != "success" ]]; then exit 1; fi
+
   docs:
     name: Docs
     runs-on: ubuntu-latest
