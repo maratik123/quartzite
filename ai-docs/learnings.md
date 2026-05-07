@@ -1,5 +1,17 @@
 # Learnings
 
+### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
+
+**What happened:** Self-review of the criterion benchmarks task flagged that `quartzite-core/benches/signal_property.rs` and `quartzite-runtime/benches/object_tree.rs` have no `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/`, not `benches/`.
+
+**Rule:** Criterion bench files with `[[bench]] harness = false` compile as standalone criterion-driver binaries where the Rust test framework is entirely replaced. `#[cfg(test)]` code is never compiled into these binaries (there is no `rustc --test` invocation). Adding a test block is dead code and not meaningful. These files belong to the same category as `examples/` for the purposes of the `#[cfg(test)]` rule.
+
+**Why:** `harness = false` disables the default test runner; only the `criterion_main!`-generated entry point runs. There is no mechanism to invoke `#[test]` items even if they were written.
+
+**How to apply:** When writing a criterion bench file (`harness = false`), do not add a `#[cfg(test)] mod tests` block. The AGENTS.md test-coverage rule applies to library and application source (`src/`), not to criterion bench binaries.
+
+**Escalated?** no
+
 ### 2026-05-07 — code-style — concrete trait-impl methods take `#[inline]`, not `// _Simple._` (PR #129 follow-up)
 
 **What happened:** PR #129 stripped `#[inline]` uniformly from all generated trait-impl methods in `extend/codegen.rs`, `object_impl/codegen.rs`, and `meta_enum/codegen.rs` — including emissions inside `impl AsObject for ConcreteFoo` (concrete user struct). The `/interview` discussion treated all trait-impl methods as one bucket, picked option (c) "emit no marker; rely on rustdoc inheritance from the trait declaration", and concluded that the change was rule hygiene with no codegen effect. The actual rule in `ai-docs/code-style.md` L131-138 already split the trait-impl case into two rows by impl-block genericity — concrete impl falls in the **concrete** row (`#[inline]`), only generic impl falls in the **generic** row (`_Simple._`). The marker-form decision tree at L165-170 omitted the concrete-impl row entirely, which is what primed the misreading.
