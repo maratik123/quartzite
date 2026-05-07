@@ -686,7 +686,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Why:** Two occurrences in the same session with the rule already written confirms the rule needs to live in AGENTS.md and the task skill, not just in learnings.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
