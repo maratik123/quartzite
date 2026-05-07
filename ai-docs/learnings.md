@@ -1,5 +1,28 @@
 # Learnings
 
+### 2026-05-07 — process — query the registry / release API for current versions before pinning a dependency or GitHub Action in any spec, issue body, design doc, or instruction file
+
+**What happened:** Twice in one session, issue bodies I authored cited stale dependency / action versions that the user had to correct:
+
+1. **#135** (Bencher CI) initially said `criterion = "0.5"`. The actual current is `0.8.2`. The user paste-corrected it after observing crates.io.
+2. **#137** (cargo doc publishing) said `actions/deploy-pages@v4` (and offered `peaceiris/actions-gh-pages@v3` as a fallback). The actual current is `@v5.0.0`; `@v4` is **node20** and would have re-introduced the exact Node-20 deprecation we'd just spent PR #146 fixing across the bench workflows. The user caught it before any `/task` session picked the issue up.
+
+The pattern is the same in both cases: I named a specific version from training-data knowledge, and the named version was several majors behind real-world current.
+
+**Rule:** When authoring an issue body, design doc, spec, or AGENTS.md / `ai-docs/**` addition that names a **specific** dependency or GitHub Action version, query the live source first:
+
+- **Cargo crates:** `curl -sS "https://crates.io/api/v1/crates/<name>" | jq -r '.crate.max_stable_version'`
+- **GitHub Actions:** `gh api /repos/<owner>/<repo>/releases --jq '.[0].tag_name'` — and also fetch `action.yml` to confirm the Node runtime is current (`gh api /repos/<owner>/<repo>/contents/action.yml --jq '.content' | base64 -d | grep -E 'using:|node'`)
+- **Project crate convention** (AGENTS.md `## Dependency Versions`): use `0.x` for `0.x.y`, `x` for `x.y.z`. Apply that pinning *to the version actually observed in the registry*, not to a remembered version.
+
+If a body needs a long-lived stable reference (e.g., a doc that won't be revisited for months), include a comment `(verified current YYYY-MM-DD)` so future readers can spot drift before a `/task` session pins the stale value into a Cargo.toml or workflow file.
+
+**Why:** Stated versions become **load-bearing** the moment a `/task` session picks the issue up. The Sonnet 4.6 implementer follows the spec literally — `criterion = "0.5"` lands in `Cargo.toml` even though `"0.8"` is current; `actions/deploy-pages@v4` lands in a workflow file even though `@v4` is the Node-20 version we'd just deprecated workspace-wide. The cost of the mistake is asymmetric: 30 seconds of registry query at authoring time vs. a corrective PR + reviewer time vs. (worst case) a reverted regression.
+
+**How to apply:** Before writing any version-pinning string in any document the user might act on, run the registry query. The training cutoff is months behind live releases — treat training-data version knowledge as untrustworthy by default, especially for fast-moving projects (criterion bumped 0.5 → 0.8 between training and now; `actions/deploy-pages` bumped v4 → v5; `actions/upload-artifact` bumped v4 → v7).
+
+**Escalated?** no
+
 ### 2026-05-07 — process — run actionlint on every new or modified GitHub Actions workflow file
 
 **What happened:** Three new workflow files were created for Bencher CI integration and committed without running actionlint. The user had to ask explicitly. actionlint caught `actions/github-script@v6` being too old for the current GitHub Actions runner; fixing it required an extra commit.
