@@ -93,6 +93,15 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+  features-pass:
+    name: Feature matrix
+    needs: features
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.features.result }}" != "success" ]]; then exit 1; fi
+
   build-pass:
     name: Build
     needs: build
