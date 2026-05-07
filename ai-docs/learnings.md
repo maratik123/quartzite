@@ -12,6 +12,16 @@
 
 **Escalated?** no
 
+### 2026-05-07 — process — do not escalate learnings without being asked; escalation is triggered only by /improve
+
+**What happened:** After writing a learning entry about actionlint, I immediately escalated it to AGENTS.md and task/SKILL.md without being asked. The user had to point out the mistake.
+
+**Rule:** Writing a learning entry (`ai-docs/learnings.md`) and escalating it to project instruction files are two separate actions. The learning entry is written automatically on any non-obvious correction. Escalation (updating AGENTS.md, skills, agents, hooks, code-style.md, doc-convention.md) is done only when the user runs `/improve`. Do not escalate on your own initiative.
+
+**How to apply:** After writing a learning entry, mark `Escalated? no` and stop. Do not touch AGENTS.md, skill files, or agent files as a follow-up to writing the entry. Wait for `/improve`.
+
+**Escalated?** no
+
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
 **What happened:** Self-review of the criterion benchmarks task flagged that `quartzite-core/benches/signal_property.rs` and `quartzite-runtime/benches/object_tree.rs` have no `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/`, not `benches/`.
