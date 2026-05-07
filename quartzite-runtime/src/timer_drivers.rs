@@ -215,6 +215,10 @@ struct PoolState {
     intervals: HashMap<ObjectId, Duration>,
     /// Maps `timer_id` → `single_shot` flag.
     single_shots: HashMap<ObjectId, bool>,
+    /// Set to `false` by [`PoolDriver::drop`] to signal the pool thread to exit.
+    /// Must be read and written while holding the `state` mutex so that the
+    /// check-then-wait sequence in `pool_loop` is atomic with respect to Drop.
+    running: bool,
 }
 
 impl PoolState {
@@ -224,6 +228,7 @@ impl PoolState {
             callbacks: HashMap::new(),
             intervals: HashMap::new(),
             single_shots: HashMap::new(),
+            running: true,
         }
     }
 }
@@ -231,7 +236,6 @@ impl PoolState {
 struct PoolInner {
     state: Mutex<PoolState>,
     condvar: Condvar,
-    running: AtomicBool,
     handle: Mutex<Option<JoinHandle<()>>>,
 }
 
@@ -279,7 +283,6 @@ impl PoolDriver {
         let inner = Arc::new(PoolInner {
             state: Mutex::new(PoolState::new()),
             condvar: Condvar::new(),
-            running: AtomicBool::new(true),
             handle: Mutex::new(None),
         });
 
@@ -294,15 +297,17 @@ impl PoolDriver {
         loop {
             let mut guard = inner.state.lock();
 
-            // Wait while the heap is empty.
+            // Wait while the heap is empty.  `running` is checked while
+            // holding the lock so `Drop`'s `running = false` + `notify_all()`
+            // cannot race with the transition into `wait()`.
             while guard.heap.is_empty() {
-                if !inner.running.load(Ordering::SeqCst) {
+                if !guard.running {
                     return;
                 }
                 inner.condvar.wait(&mut guard);
             }
 
-            if !inner.running.load(Ordering::SeqCst) {
+            if !guard.running {
                 return;
             }
 
@@ -392,7 +397,12 @@ impl TimerDriver for PoolDriver {
 impl Drop for PoolDriver {
     fn drop(&mut self) {
         let _span = debug_span!("pool_driver::shutdown").entered();
-        self.inner.running.store(false, Ordering::SeqCst);
+        // Set `running = false` while holding the state lock so `pool_loop`'s
+        // check-then-wait is atomic: it cannot read `running = true` and then
+        // miss the `notify_all()` that follows.
+        {
+            self.inner.state.lock().running = false;
+        }
         self.inner.condvar.notify_all();
         if let Some(handle) = self.inner.handle.lock().take() {
             let _ = handle.join();
@@ -413,6 +423,28 @@ mod tests {
     #[test]
     fn pool_driver_new_starts_background_thread() {
         let d = PoolDriver::new();
-        assert!(d.inner.running.load(Ordering::Relaxed));
+        assert!(d.inner.state.lock().running);
+    }
+
+    /// Stress-tests the TOCTOU race: pool_loop reads `running=true` then Drop
+    /// fires `notify_all()` before `condvar.wait()` is registered.  Without the
+    /// fix the pool thread never wakes and `handle.join()` deadlocks.
+    /// A channel with a 10-second timeout converts the hang into an assertion
+    /// failure so the test suite does not block indefinitely.
+    #[test]
+    fn pool_driver_drop_no_deadlock() {
+        use std::sync::mpsc;
+
+        let (tx, rx) = mpsc::channel();
+        std::thread::spawn(move || {
+            for _ in 0..2000 {
+                drop(PoolDriver::new());
+            }
+            let _ = tx.send(());
+        });
+        assert!(
+            rx.recv_timeout(std::time::Duration::from_secs(10)).is_ok(),
+            "PoolDriver::drop() deadlocked — running flag not protected by state mutex"
+        );
     }
 }
