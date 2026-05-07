@@ -2,16 +2,12 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 use super::parse::MetaEnumInput;
-use crate::util::crate_root;
+use crate::util::{crate_root, inline_if_concrete};
 
 pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
-    let inline = if ir.generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(&ir.generics);
     let enum_static_name =
         proc_macro2::Ident::new(&format!("__ENUM_{type_ident}"), type_ident.span());
     let lookup_by_name_fn = proc_macro2::Ident::new(

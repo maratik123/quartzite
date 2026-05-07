@@ -3,7 +3,7 @@ use quote::quote;
 use syn::Ident;
 
 use super::parse::{BaseField, ExtendInput, MixinField};
-use crate::util::{accessor_name, as_trait_name, crate_root};
+use crate::util::{accessor_name, as_trait_name, crate_root, inline_if_concrete};
 
 pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
@@ -136,11 +136,7 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
          ```"
     );
 
-    let inline = if ir.generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(&ir.generics);
 
     quote! {
         #[doc = #trait_doc]
@@ -219,11 +215,7 @@ fn emit_as_object_impl(
     };
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
-    let inline = if generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(generics);
     quote! {
         impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
             #inline
@@ -262,11 +254,7 @@ fn emit_delegation_impl(
     let parent_acc_mut = acc_mut_ident(&parent_acc);
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
-    let inline = if generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(generics);
 
     quote! {
         impl #impl_generics #parent_trait for #self_ident #ty_generics {
@@ -298,11 +286,7 @@ fn emit_mixin_impl(
     let mixin_acc_mut = acc_mut_ident(&mixin_acc);
     let bare = bare_generics(generics);
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
-    let inline = if generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(generics);
 
     quote! {
         impl #impl_generics #mixin_trait for #self_ident #ty_generics {

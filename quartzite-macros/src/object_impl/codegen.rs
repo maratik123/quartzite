@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{Ident, Index, ReturnType};
 
 use super::parse::{MethodItem, ObjectImplInput};
-use crate::util::{crate_root, hidden_mod_ident};
+use crate::util::{crate_root, hidden_mod_ident, inline_if_concrete};
 
 pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
@@ -222,11 +222,7 @@ pub(crate) fn emit_object_impl(
     let emit_signal_fn = Ident::new(&format!("__emit_signal_{type_ident}"), type_ident.span());
     let invoke_fn = Ident::new(&format!("__invoke_method_{type_ident}"), type_ident.span());
     let meta_init = Ident::new(&format!("__meta_init_{type_ident}"), type_ident.span());
-    let inline = if generics.params.is_empty() {
-        quote! { #[inline] }
-    } else {
-        quote! {}
-    };
+    let inline = inline_if_concrete(generics);
     quote! {
         impl #cr::Object for #self_ty {
             #inline
