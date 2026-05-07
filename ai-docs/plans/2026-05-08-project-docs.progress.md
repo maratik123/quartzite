@@ -1,11 +1,11 @@
 # Progress: Project docs (#60) — ACTIVE
-_Updated: 2026-05-08 01:30_
+_Updated: 2026-05-08 02:15_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** `feat/2026-05-08-project-docs`
 **base_commit:** `48324555a9aaa083ca8ee2b705c31ef60a861977`
-**Last build:** PASS (subtask 5; `cargo build` clean — no Rust changes; `Cargo.lock` unchanged)
+**Last build:** PASS (subtask 6; `cargo build` / `cargo test` / `cargo clippy --all-targets -- -D warnings` / `cargo fmt -- --check` / `cargo build -p quartzite --no-default-features` all clean; `Cargo.lock` unchanged — no Rust source touched)
 **Issue:** #60
 **Spec:** [`ai-docs/plans/2026-05-08-project-docs.spec.md`](2026-05-08-project-docs.spec.md)
 **Design:** [`ai-docs/plans/2026-05-08-project-docs.design.md`](2026-05-08-project-docs.design.md)
@@ -13,7 +13,7 @@ _Updated: 2026-05-08 01:30_
 
 ## Next action
 
-**Do this immediately:** subtask 6 — add the `roadmap-sync` job + `roadmap-sync-pass` aggregator to `.github/workflows/ci.yml`. Per design AC7, the job runs on `ubuntu-latest` only (Windows bash-via-Git-Bash awk/sed flavour drift would produce false negatives — see *Key discoveries → CI sync-gate ubuntu-only rationale*). Steps: checkout, run `./scripts/gen-roadmap.sh`, then `git diff --exit-code -- ROADMAP.md` (fail if generator output differs from committed copy). Pin `actions/checkout` to the same major existing CI jobs use (currently `@v6` — confirm via `gh api /repos/actions/checkout/releases --jq '.[0].tag_name'` per AGENTS.md `## Dependency Versions`). Add `roadmap-sync` to the `roadmap-sync-pass` aggregator's `needs:` list (mirror the existing `*-pass` aggregator pattern in this workflow). Run `actionlint .github/workflows/ci.yml` before staging — required gate per AGENTS.md `## Build & Test`. Note: the BSD-awk portability cross-check planned for subtask 5 was **skipped** (no `docker`/`podman` on this Gentoo host); flag this for the user before merge so they can run it manually on macOS or in a container elsewhere. AC6 is downgraded to PARTIAL.
+**All subtasks complete — handing back to /task Step 9 (Verify).** The orchestrator should run the full standard-gates loop one more time, then proceed to Step 10 (Push + open PR). Pre-merge user follow-up still required for AC6 closure: run the BSD-awk container cross-check (see *Subtask 5 cross-check log* for the exact command) — this is implementer-discipline per design *Risks*; the CI sync-gate added in subtask 6 is `ubuntu-latest` only, so it does not catch GNU-awk-only constructs slipping into the generator. Post-merge user follow-up: add `roadmap-sync-pass` to the `master` branch-protection required-checks list per design *Post-merge owner actions* (the `*-pass` aggregator is the stable required-check name; `roadmap-sync` is the worker job).
 
 ## Subtasks
 
@@ -22,7 +22,7 @@ _Updated: 2026-05-08 01:30_
 - [x] 3. `CONTRIBUTING.md` at standard depth — 10-section AGENTS.md excerpt (commit `7465fa9`)
 - [x] 4. `scripts/gen-roadmap.sh` — POSIX bash + awk/sed generator with comment-banner of banned constructs (commit pending below)
 - [x] 5. Run the generator and commit `ROADMAP.md` at repo root; macOS / BSD-awk-container portability cross-check (cross-check **skipped** — no docker/podman on host; see Subtask 5 cross-check log below)
-- [ ] 6. CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator in `.github/workflows/ci.yml` (ubuntu-latest only) ← **CURRENT**
+- [x] 6. CI sync-gate: `roadmap-sync` job + `roadmap-sync-pass` aggregator in `.github/workflows/ci.yml` (ubuntu-latest only) (commit pending below)
 
 ## Key discoveries (don't re-investigate)
 
@@ -37,6 +37,9 @@ _Updated: 2026-05-08 01:30_
 - **Subtask 4 outputs (load-bearing for subtask 5).** `scripts/gen-roadmap.sh` is 249 lines (POSIX bash + awk/sed; banned-constructs comment banner present; `LC_ALL=C`; `set -eu`; mktemp tmpdir cleaned via trap). Generated `ROADMAP.md` is 87 lines. Linux-side determinism: `sha256sum ROADMAP.md` = **`53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b`** (verified across two consecutive runs on this Gentoo box; this is the value the BSD-awk container run in subtask 5 must match byte-for-byte). `shellcheck scripts/gen-roadmap.sh` is clean — three SC2016 false positives on the markdown-backtick header literals are silenced via a single `# shellcheck disable=SC2016` directive on the printf block, with a short comment explaining the silencing rationale.
 - **Awk state-machine refinement found in subtask 4.** Naïve "extract everything between `## Deferred plans` and the next `## ` heading" captured the trailing `> Tracking issues for further deferred items not represented as plans here:` blockquote (INDEX.md lines 64–65) — which the design *What the generator drops* list (lines 242–243) explicitly drops. Fix: each plan-table state captures **only** lines beginning with `|`, treats blank lines as no-ops, and closes the state on the first non-blank, non-pipe line. This implicitly drops the tracking-issues blockquote, the maintenance-plans paragraph, and any future prose injected between the deferred table and the next H2 — robust against further INDEX.md prose drift in the same gap.
 - **Cargo.lock not refreshed.** `cargo build` after subtask 4 was a no-op rebuild (no Rust source touched); `Cargo.lock` is unchanged, nothing to stage from `Cargo.lock`. Subtasks 5 and 6 (ROADMAP.md content + workflow YAML) likewise won't touch Rust sources, so the same applies — but still run `cargo build` per AGENTS.md `## Workflow`.
+- **Subtask 6 took the design literally — duplicate display name `ROADMAP sync` retained.** Both `roadmap-sync` (worker) and `roadmap-sync-pass` (aggregator) emit GitHub Actions display name `ROADMAP sync`. The design called this an informational note (Actions allows the duplication; branch-protection UI is the only place it surfaces). Following the precedent set by the existing `build`/`build-pass`, `test`/`test-pass`, `clippy`/`clippy-pass`, `features`/`features-pass` pairs in `ci.yml` — all of which already share display names with their workers — preserves a consistent in-file pattern. No deviation from design.
+- **`actions/checkout` registry-query result.** `gh api /repos/actions/checkout/releases --jq '.[0].tag_name'` returned `v6.0.2` at implementation time → major `v6` matches the existing `@v6` pin used by all other CI jobs in this file, so the new `roadmap-sync` job uses `@v6`. No bump warranted (per AGENTS.md `## Dependency Versions`, training-stale data is the failure mode the registry-query rule guards against — the result confirms `@v6` is current, not stale).
+- **Drift-test PASS.** Hand-edited `ROADMAP.md` (appended a synthetic comment) → `git diff --exit-code ROADMAP.md` returned exit code 1 (= the CI gate would FAIL the PR). After `cp` revert → exit code 0. Note: the in-CI sequence (`./scripts/gen-roadmap.sh && git diff --exit-code ROADMAP.md`) will catch BOTH failure modes — (a) hand-edit + forgot to regen (covered by drift test above), and (b) edit `INDEX.md` + forgot to regen (regen step rewrites ROADMAP.md, then diff fails). Linux-side `sha256sum ROADMAP.md` after standard gates is unchanged: `53303112f1a7703fda5891247d9c989b34113e82e79bfee4eb5e280bb0d20d6b` (matches the recorded subtask-4/5 hash).
 
 ## AC Status
 
@@ -48,11 +51,11 @@ _Updated: 2026-05-08 01:30_
 | AC4 (CONTRIBUTING.md) | PASS — covered by subtask 3, commit `7465fa9` |
 | AC5 (ROADMAP.md) | PASS — generated, visual-reviewed (all expected sections present; dropped sections absent), committed in subtask 5 |
 | AC6 (gen-roadmap.sh portable) | PARTIAL — script written with comment-banner of banned constructs; Linux-side determinism verified (three runs, identical sha256); shellcheck clean; **BSD-awk container cross-check SKIPPED** — no docker/podman on the implementer host (Gentoo). Implementer-discipline check per design *Risks*; user must run the alpine-container check manually before merge to fully close AC6 |
-| AC7 (CI sync-gate) | NOT_TESTED — pending subtask 6 |
+| AC7 (CI sync-gate) | PASS — subtask 6: `roadmap-sync` worker + `roadmap-sync-pass` aggregator added to `.github/workflows/ci.yml` (ubuntu-latest only per design); local synthetic-drift test confirmed `git diff --exit-code ROADMAP.md` returns exit code 1 on hand-edited drift and 0 after revert; runtime CI verification will land once branch is pushed |
 | AC8 (doc-gate) | PASS — verified after subtask 2 |
 | AC9 (quickstart doctest) | PASS — `cargo test --doc -p quartzite` green after subtask 2 |
 | AC10 (standard gates) | PASS — verified after subtask 2; re-run after each remaining subtask |
-| AC11 (actionlint) | NOT_TESTED — pending subtask 6 (no workflow file touched yet) |
+| AC11 (actionlint) | PASS — subtask 6: `actionlint .github/workflows/ci.yml` clean (no output) after adding the new `roadmap-sync` + `roadmap-sync-pass` jobs |
 | AC12 (`document_features` placement) | PASS — verified after subtask 2; new content lands BEFORE the `# Feature flags` heading |
 
 ## Files touched
@@ -65,7 +68,7 @@ _Updated: 2026-05-08 01:30_
 - `ai-docs/plans/2026-05-08-project-docs.progress.md` — this file
 - `scripts/gen-roadmap.sh` — subtask 4: NEW, 249 lines, +x bit set (commit pending below)
 - `ROADMAP.md` — subtask 5: produced on disk by subtask 4's run-once; NOT staged yet (commit is subtask 5's deliverable)
-- `.github/workflows/ci.yml` — pending subtask 6
+- `.github/workflows/ci.yml` — subtask 6: added `roadmap-sync` worker + `roadmap-sync-pass` aggregator, slotted between `clippy-pass` and `docs` (commit pending below)
 
 ## Subtask 5 cross-check log
 
