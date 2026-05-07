@@ -1,11 +1,33 @@
 # quartzite
 
-[![codecov](https://codecov.io/gh/maratik123/quartzite/branch/master/graph/badge.svg)](https://codecov.io/gh/maratik123/quartzite)
+[![CI](https://github.com/maratik123/quartzite/actions/workflows/ci.yml/badge.svg)](https://github.com/maratik123/quartzite/actions/workflows/ci.yml)
 [![docs](https://img.shields.io/badge/docs-master-blue)](https://maratik123.github.io/quartzite/)
+[![codecov](https://codecov.io/gh/maratik123/quartzite/branch/master/graph/badge.svg)](https://codecov.io/gh/maratik123/quartzite)
+[![license](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue)](#license)
 
-A GUI and object framework for Rust built around signals/slots,
-a rich object model, and a declarative UI layer — implemented as idiomatic Rust with no native
-dependencies, no foreign ABI, and no code generation outside of proc macros.
+A GUI and object framework for Rust drawing on Qt's signals/slots and
+property/reflection model — implemented in idiomatic Rust with no native
+dependencies, no foreign ABI, and no codegen outside proc-macros.
+
+## Current scope
+
+- **Object model:** `ObjectBase`, parent/child trees, named lookup, reflection metadata.
+- **Signals/slots:** typed `Signal<Args>`, dynamic dispatch via `Object::invoke_method`, cross-thread queued connections.
+- **Event loop:** `Application` singleton, per-thread `EventLoop`, queued dispatcher.
+- **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
+
+## Forward scope
+
+- **Painting API** (`quartzite-paint-api`) — `Painter` trait + thin abstraction layer.
+- **Renderer** (`quartzite-renderer`) — `vello` + `wgpu` + `winit` integration.
+- **Widgets** (`quartzite-widgets`) — `Widget` trait built on the painting API.
+- **Style system** (`quartzite-style`) — declarative styling on top of widgets.
+
+## Non-goals
+
+- Not a Qt port or a Qt binding — Qt is design lineage, not API surface.
+- No FFI / native dependencies — pure-Rust toolchain.
+- No GPU rendering yet — arrives with the renderer ([#73](https://github.com/maratik123/quartzite/issues/73)).
 
 ## Status
 

@@ -129,6 +129,25 @@ jobs:
       - run: |
           if [[ "${{ needs.clippy.result }}" != "success" ]]; then exit 1; fi
 
+  roadmap-sync:
+    name: ROADMAP sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Regenerate ROADMAP.md
+        run: ./scripts/gen-roadmap.sh
+      - name: Verify no drift
+        run: git diff --exit-code ROADMAP.md
+
+  roadmap-sync-pass:
+    name: ROADMAP sync
+    needs: roadmap-sync
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.roadmap-sync.result }}" != "success" ]]; then exit 1; fi
+
   docs:
     name: Docs
     runs-on: ubuntu-latest

@@ -6,6 +6,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [project-docs](done/2026-05-08-project-docs.spec.md) | `quartzite` (facade) + repo-level docs + CI | ✅ implemented (0 new tests; README description block + comprehensive `lib.rs` rustdoc + `CONTRIBUTING.md` + auto-generated `ROADMAP.md` + CI sync-gate) | — |
 | [generic-simple-tags](done/2026-05-07-generic-simple-tags.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; annotation-only) | — |
 | [coverage-ci](done/2026-05-07-coverage-ci.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
 | [criterion-benchmarks](done/2026-05-07-criterion-benchmarks.spec.md) | `quartzite-core` `quartzite-runtime` CI | ✅ implemented (0 new tests; 10 benches, 3 CI workflows) | — |
