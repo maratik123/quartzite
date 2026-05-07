@@ -333,6 +333,8 @@ impl<Args: 'static> Default for Signal<Args> {
 impl<Args: 'static> Signal<Args> {
     /// Creates a new signal with no slots connected.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```
@@ -341,7 +343,6 @@ impl<Args: 'static> Signal<Args> {
     /// let mut sig: Signal<(i32,)> = Signal::new();
     /// sig.connect(|args| println!("received {}", args.0));
     /// ```
-    #[inline]
     pub fn new() -> Self {
         Self::default()
     }

@@ -229,6 +229,8 @@ pub trait Object: AsObject + Send {
 pub trait ObjectExt: AsObject {
     /// Returns the unique `ObjectId` of this object.
     ///
+    /// _Simple._
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -238,12 +240,13 @@ pub trait ObjectExt: AsObject {
     /// let id = obj.id();
     /// # }
     /// ```
-    #[inline]
     fn id(&self) -> ObjectId {
         self.object_base().id()
     }
 
     /// Returns the current name of this object, or `None` if it is anonymous.
+    ///
+    /// _Simple._
     ///
     /// To rename an object at runtime, use `ObjectTree::rename` or `ObjectTree::clear_name`
     /// so the name index in the tree stays consistent.
@@ -256,13 +259,14 @@ pub trait ObjectExt: AsObject {
     /// let name: Option<&str> = obj.name();
     /// # }
     /// ```
-    #[inline]
     fn name(&self) -> Option<&str> {
         self.object_base().name()
     }
 
     /// Returns `true` when called on the same thread that created this object.
     /// Only available with the `std` feature (requires `std::thread`).
+    ///
+    /// _Simple._
     ///
     /// # Examples
     ///
@@ -274,7 +278,6 @@ pub trait ObjectExt: AsObject {
     /// ```
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-    #[inline]
     fn is_on_current_thread(&self) -> bool {
         self.object_base().is_on_current_thread()
     }
