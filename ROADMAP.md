@@ -30,6 +30,7 @@ core-types ✅
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [ci-rust-cache-migration](ai-docs/plans/done/2026-05-08-ci-rust-cache-migration.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only — `actions/cache@v5` → `Swatinem/rust-cache@v2` in 5 compile jobs; `SCCACHE_CACHE_SIZE: "2G"` added per-job; `shared-key` + `save-if: master only` tuning) | — |
 | [ci-sccache](ai-docs/plans/done/2026-05-08-ci-sccache.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only — sccache layer added to 5 merge-gate compile jobs in ci.yml) | — |
 | [widgets](ai-docs/plans/done/2026-05-01-widgets.spec.md) | `quartzite-widgets` | ✅ implemented (64 unit + 82 doc tests) | — |
 | [project-docs](ai-docs/plans/done/2026-05-08-project-docs.spec.md) | `quartzite` (facade) + repo-level docs + CI | ✅ implemented (0 new tests; README description block + comprehensive `lib.rs` rustdoc + `CONTRIBUTING.md` + auto-generated `ROADMAP.md` + CI sync-gate) | — |

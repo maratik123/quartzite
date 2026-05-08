@@ -28,6 +28,7 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
     strategy:
       fail-fast: false
       matrix:
@@ -38,15 +39,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Cache dependencies
-        uses: actions/cache@v5
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: ${{ runner.os }}-stable
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Build
         run: cargo build --workspace
 
@@ -56,6 +53,7 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
     strategy:
       fail-fast: false
       matrix:
@@ -66,15 +64,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Cache dependencies
-        uses: actions/cache@v5
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: ${{ runner.os }}-stable
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Test
         run: cargo test --workspace
 
@@ -84,6 +78,7 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
     strategy:
       fail-fast: false
       matrix:
@@ -96,15 +91,11 @@ jobs:
           components: clippy
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Cache dependencies
-        uses: actions/cache@v5
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: ${{ runner.os }}-stable
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
@@ -169,21 +160,18 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Cache dependencies
-        uses: actions/cache@v5
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          shared-key: ${{ runner.os }}-stable
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Docs
         run: cargo doc --no-deps --workspace
         env:
@@ -195,6 +183,7 @@ jobs:
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
     strategy:
       matrix:
         features:
@@ -212,15 +201,11 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
 
-      - name: Cache dependencies
-        uses: actions/cache@v5
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-features-${{ matrix.features }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-features-${{ matrix.features }}-
+          shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}
+          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build
         run: cargo build ${{ matrix.features }}
