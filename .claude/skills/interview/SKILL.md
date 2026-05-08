@@ -5,30 +5,56 @@ argument-hint: "[issue-number | task description]"
 allowed-tools: Bash(gh issue view *) Bash(gh issue list *) Bash(gh issue create *) Bash(gh issue comment *)
 ---
 
-Requirements interview with the product owner.
-Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`, bidirectionally linked with a tracking GitHub issue.
+Orchestrator for the spec-drafting interview. Drives the round loop, surfaces the subagent's questions to the user, and applies the user's answers — but does **not** draft the spec itself. Spec drafting and question generation live in `.claude/agents/spec-writer.md` (subagent on `model: opus`).
 
 > **MUST run before:** code investigation, design agent, or writing code.
 > Run standalone when you want a spec without committing to implementation (defer it to `ai-docs/plans/deferred/` afterward).
 > For the full task workflow use `/task` — it delegates Steps 1–5 to this skill, then continues with design → implementation → PR.
 
-## Rules
+## Architecture
 
-1. **Max 3 questions** per round.
-2. **Max 4 rounds** total.
-3. Don't ask about the obvious — focus on edge cases, technical constraints, scope ambiguities.
-4. **Pre-flight: read `AGENTS.md` before drafting any question.** If `AGENTS.md` already answers a candidate question, apply the rule silently — do not ask. Topics commonly pre-resolved: API stability / compat shims / deprecation, panic-vs-`Result` policy for libraries, `_unchecked` naming, allowed Rust idioms (let chains, stdlib comparison helpers), test coverage requirements. When in doubt, re-read `AGENTS.md` — do not ask.
-5. **Forbidden question framings (mechanical substring blacklist).** If a draft question contains any of the substrings below, **discard it** and apply the documented rule silently. This rule exists because the same questions kept being asked despite Rule 4 — see `ai-docs/learnings.md` 2026-05-03, 2026-05-05.
+Two pieces:
 
-   | Forbidden substring (case-insensitive) | Documented answer to apply silently |
-   |----------------------------------------|--------------------------------------|
-   | `backward compat`, `back-compat`, `backcompat`, `compat shim`, `compat layer` | AGENTS.md § *API Stability*: pre-crates.io, free to break — no shims |
-   | `deprecat` (matches *deprecate*, *deprecated*, *deprecation*) | AGENTS.md § *API Stability*: no `#[deprecated]` wrappers |
-   | `keep old`, `preserve existing`, `existing API stay`, `keep the old name` | AGENTS.md § *API Stability*: rename freely |
-   | `should X panic`, `panic or return`, `should it panic`, `panic vs return`, `should this panic` | AGENTS.md § *API Naming* + *Library safety idioms*: non-panicking by default; `try_*` returning `Result`/`Option` |
-   | `for users`, `for downstream`, `existing callers` | AGENTS.md § *API Stability*: no downstream clients yet |
+1. **This file** (orchestrator) — plumbing only. Detects entry mode, manages state, runs the round loop, parses the subagent's YAML status block, surfaces questions via `AskUserQuestion`, executes action handlers on `unresolvable`, posts the cross-link comment on `ready`.
+2. **`.claude/agents/spec-writer.md`** (subagent, `model: opus`) — owns scope extraction, question drafting, AGENTS.md preflight, the Rule-5 substring blacklist, the optimization-target enforcement, and the spec write itself.
 
-   Mechanical check before sending a question round: `printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers'` — any hit means rewrite or drop the question.
+## Round / question caps
+
+| Constant | Value | Where |
+|---|---|---|
+| `round_cap` | 4 | Hard-coded in this skill; passed to subagent every invocation |
+| `questions_per_round_cap` | 3 | Hard-coded in this skill; passed to subagent every invocation |
+
+These constants are **not** configurable via skill arguments in this iteration. Future configurability is a separate concern (deferred — see issue #188 spec).
+
+## State file
+
+Path: `<spec_path>.state.md` — e.g. `ai-docs/plans/2026-05-09-name.spec.md` ↔ `ai-docs/plans/2026-05-09-name.spec.md.state.md`.
+
+Created at the start of round 1; deleted on terminal exit (`ready` / `abort` / `defer_to_deferred`). Format: markdown header + a single fenced YAML block.
+
+```markdown
+# Interview state — <task name>
+
+Transient handoff between rounds. Deleted on terminal exit.
+
+```yaml
+schema_version: 1
+spec_path: ai-docs/plans/YYYY-MM-DD-name.spec.md
+issue_ref: "#188"
+round_cap: 4
+questions_per_round_cap: 3
+round: 2
+agent_id: <captured from round-1 Agent invocation; null if cold-Agent path>
+prior_qa:
+  - round: 1
+    question: "..."
+    answer: "..."
+  - round: 1
+    question: "..."
+    answer: "..."
+```
+```
 
 ## Workflow
 
@@ -36,114 +62,144 @@ Output: refined task spec saved as `ai-docs/plans/YYYY-MM-DD-name.spec.md`, bidi
 
 Inspect `$ARGUMENTS`:
 
-- **Issue ref** — matches `^#?\d+$`: load it via `gh issue view <N>` (description + comments). Record `tracking_issue = <N>`.
-- **Free text / empty**: use as the task description, or ask "What do you want to plan?" if empty. `tracking_issue` is unset for now — Step 5 resolves it.
+- **Issue ref** — matches `^#?\d+$`: load `gh issue view <N> --json title,body,comments` once. Record `tracking_issue = <N>`.
+- **Free text / empty**: use as task description, or ask "What do you want to plan?" if empty. `tracking_issue` is unset until Step 5.
 
-### Step 2: Extract scope
+### Step 2: Compute paths and seed state
 
-Extract ALL scope items as a numbered list.
+1. Derive a kebab-case spec slug from the issue title (or task description), ≤ 5 words.
+2. `spec_path = ai-docs/plans/<TODAY>-<slug>.spec.md`
+3. `state_path = <spec_path>.state.md`
+4. Write the initial state file with `round: 1`, `prior_qa: []`, `agent_id: null`.
 
-### Step 3: Confirm scope
+### Step 3: Round loop
 
-Show list to user: in scope / out of scope / deferred.
+For each round (1..=`round_cap`):
 
-### Step 4: Question rounds (max 4)
+#### 3a. Invoke the subagent
 
-**MANDATORY GATE — run before every round, no exceptions.** Draft the round's questions in a scratch buffer, then run the substring check from Rule 5:
+**Round 1 — cold spawn (primary path):**
 
-```bash
-printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers'
+```
+Agent(
+  subagent_type="general-purpose",
+  model="opus",
+  prompt="""
+    Read .claude/agents/spec-writer.md and follow it.
+
+    issue_ref: <#N | "free-text">
+    issue_body: |
+      <verbatim from gh issue view, OR the user's free-text task description>
+    round: 1
+    round_cap: 4
+    questions_per_round_cap: 3
+    prior_qa: []
+    spec_path: <spec_path>
+  """
+)
 ```
 
-- Any hit → discard or rewrite the offending question. Do not send the round until the grep returns empty.
-- Record in your reasoning: "interview Rule 5 grep: clean" before posting the round. If you cannot truthfully record this, you skipped the gate — go back and run it.
-- This gate exists because Rule 5's prose blacklist alone has failed four times (`ai-docs/learnings.md` 2026-05-03, 2026-05-05 ×2, plus a recurrence after escalation). The mechanical check is the enforcement.
+Capture the returned `agentId` into the state file's `agent_id`. If the harness does not return a usable `agentId`, leave it null — rounds 2+ will use the cold-spawn fallback.
 
-- Round 1: scope confirmation, key decisions
-- Round 2: edge cases (NOT backward compatibility — see Rule 5; pre-crates.io)
-- Round 3: technical constraints, trade-offs
-- Round 4 (if needed): final clarifications
+**Rounds 2..cap — warm reuse if possible, cold fallback otherwise:**
 
-### Step 5: Resolve tracking issue
+- If `agent_id` is set in state: `SendMessage(to=agent_id, prompt="""<same fields with updated round + prior_qa>""")`. Capture the response.
+- If `agent_id` is null OR the `SendMessage` call fails: cold spawn a fresh `Agent(model="opus", prompt=...)` with the full state in the prompt (the agent definition mandates re-derivation from prompt anyway). Update state file's `agent_id` from the new spawn (may again be null).
 
-Every spec **must** carry a `**Tracked in:**` field referencing an open GitHub issue (`#N` shorthand).
+> The cold-spawn path is the **default contract**; warm reuse is an opportunistic optimization conditional on the harness returning a usable `agentId` and `SendMessage` succeeding.
 
-- **Issue ref mode** (`tracking_issue` already set): use that issue. Skip the search.
-- **Free text / interview mode**:
-  1. Search existing open issues:
+#### 3b. Parse the YAML status block
+
+The subagent's response ends with a fenced YAML block. Extract it; parse `status`, `round`, and `questions` / `reason` as applicable.
+
+**On parse failure** (malformed YAML, missing required fields):
+
+1. **One-shot retry** — `SendMessage(to=agent_id, ...)` (or fresh `Agent` if cold) with prompt: `"Re-emit only the YAML status block, exact schema. Your previous response did not contain a parseable status block at the end."` Parse again.
+2. **On second failure** — orchestrator-injects a synthetic `unresolvable` and proceeds to 3d:
+   ```yaml
+   status: unresolvable
+   round: <current>
+   reason:
+     category: logically_unresolvable
+     detail: "Spec-writer subagent emitted unparseable YAML status twice."
+     suggested_action: abort
+   ```
+
+#### 3c. Branch on status
+
+- **`ready`** → go to **Step 4**.
+- **`ask`** → go to **3d** (surface questions).
+- **`unresolvable`** → go to **3e** (action chooser).
+
+#### 3d. Surface questions to the user
+
+Validate before forwarding:
+
+- `len(questions) <= questions_per_round_cap` — if exceeded, send the agent a one-shot trim instruction (`"Trim to <cap> highest-leverage questions; emit only the YAML status block."`).
+- Each `header` ≤ 12 chars; each `options` list has 2..=4 entries (`AskUserQuestion` constraints).
+- No question contains a Rule-5 blacklisted substring (final defence — the subagent should have caught it). On violation: one-shot agent re-spawn with explicit instruction to re-read AGENTS.md and the Rule-5 blacklist.
+
+Then call `AskUserQuestion(questions=[...])` with the entire list — the tool supports up to 4 questions per call, so 1..=3 fit cleanly. The user answers all in a single UI exchange.
+
+Append each `(question, answer)` pair to state's `prior_qa` with `round: <current>`. Increment `round`. Loop to 3a.
+
+#### 3e. Action chooser on `unresolvable`
+
+Build an `AskUserQuestion` with:
+
+- The agent's `reason.detail` as the question prose.
+- Options: the agent's `suggested_action` first (recommended), plus the other applicable actions per the table below.
+
+| Category | Actions to offer (recommended first) |
+|---|---|
+| `cap_reached` | `extend_cap` (recommended), `defer_to_deferred`, `abort` |
+| `logically_unresolvable` | `defer_to_deferred` (recommended), `abort`, `request_external_info` |
+| `external_dependency` | `request_external_info` (recommended), `defer_to_deferred`, `abort` |
+| `empty_scope` | `abort` (recommended), `request_external_info`, `defer_to_deferred` |
+| `user_loop` | `defer_to_deferred` (recommended), `abort`, `request_external_info` |
+
+Execute the chosen action:
+
+- **`extend_cap`** — bump `round_cap += 1` in state; loop to 3a with `round: <current> + 1`. The agent receives the new `round_cap` and may now `ask` if it has questions.
+- **`defer_to_deferred`** — `mv <spec_path> ai-docs/plans/deferred/`; update `INDEX.md` (move row to **Deferred plans**, status `🟡 spec-only`); delete state file; exit. Skip Step 4.
+- **`abort`** — delete `<spec_path>` (if exists); delete state file; exit. Skip Step 4.
+- **`request_external_info`** — prompt the user via `AskUserQuestion` (single free-form question option) for the additional context; loop to 3a with `extra_context: <user paste>` injected into the next round's prompt.
+
+### Step 4: Cross-link and exit (on `ready`)
+
+1. Show the user the final spec at `<spec_path>` (last 80 lines if long).
+2. Confirm — `AskUserQuestion`: "Approve and post cross-link comment?" / { Approve, Tweak first }.
+3. On Approve:
+   - Resolve the tracking issue if not already pinned (issue-ref mode = already pinned; free-text mode = run the issue-search / propose-new flow):
      ```bash
      gh issue list --state open --search "<keyword>"
      ```
-     Use 1–3 keywords from the task scope (crate names, feature names, key types).
-  2. **Candidate exists** → present to user: "I found #N: '<title>' — track this spec there?"
-     - User confirms → use that issue.
-     - User says no → continue.
-  3. **No suitable issue** → propose a new one:
-     - Title: matches the planned spec name (e.g. `feat(<crate>): <short description>`)
-     - Body: brief background + scope items distilled from Steps 2–4
-     - Show proposed title and body, ask user to confirm before running `gh issue create ...`
-     - Capture the new issue number from the create output as `tracking_issue`.
+     If a candidate exists, ask user. Otherwise propose a new issue (title from spec name; body from spec scope) and run `gh issue create` after user approval. Capture the number into the spec's `**Tracked in:**` field if it wasn't there.
+   - Post the cross-link:
+     ```bash
+     gh issue comment <N> --body "Spec: \`<spec_path>\`"
+     ```
+   - Delete the state file.
+4. Skill exits. `/task` (the caller) resumes at Step 6 (design agent).
 
-> **Skip Step 5 only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`) and skip Step 7.
+> **Skip the tracking-issue resolution only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`) and skip the cross-link comment.
 
-### Step 6: Save the spec
+## Spec-only run
 
-Write `ai-docs/plans/YYYY-MM-DD-name.spec.md` using the format below.
+If the user wants to stop after the interview ("just draft the spec, defer the implementation"):
 
-### Step 7: Cross-link the issue
-
-Post a comment on the tracking issue pointing to the spec path:
-
-```bash
-gh issue comment <N> --body "Spec: \`ai-docs/plans/YYYY-MM-DD-name.spec.md\`"
-```
-
-This closes the loop: the spec references the issue via `**Tracked in:**`, and the issue references the spec file via the comment.
-
-## Spec format
-
-```markdown
-# [Task name]
-
-**Source:** user description | issue #<N>
-**Date:** [YYYY-MM-DD]
-**Tracked in:** #<N>
-
-## Scope
-## Out of scope
-## Deferred
-- what | why | separate issue needed?
-
-## Key decisions
-| Question | Decision |
-|---|---|
-
-## Technical constraints
-
-## Acceptance Criteria
-| # | Criterion |
-|---|-----------|
-| AC1 | [specific, verifiable condition] |
-
-## Open questions
-```
-
-`**Source:**` is `issue #<N>` for issue-ref mode, `user description` otherwise. `**Tracked in:**` always uses the `#<N>` shorthand (no full URL).
-
-## AC rules
-
-- ✅ "Function returns `Err` if input is empty"
-- ✅ "`parse()` returns correct value for valid UTF-8 input"
-- ❌ "Test `foo_test` exists" — technical detail
-- ❌ "`cargo test` passes green" — infrastructure requirement
+1. Move the spec to `ai-docs/plans/deferred/`
+2. Update `INDEX.md` (move row to **Deferred plans**, status `🟡 spec-only`)
+3. Delete the state file
+4. Do NOT proceed to Step 6 of `/task`. The spec can be picked up later via `/task`'s deferred-plan-activation preamble.
 
 ## Anti-patterns
 
-- 6+ questions at once
-- Investigating code before the interview is done
-- Stretching beyond 4 rounds
-- Asking the user a question that `AGENTS.md` already answers (compat shims, library panic policy, naming conventions, etc.) — apply the documented rule silently
-- Forgetting to save the spec before moving to design
-- Saving the spec without `**Tracked in:**` (unless user explicitly opted out)
-- Skipping the cross-link comment on the tracking issue
-- **Silently switching to implementation mid-interview.** If the interview reveals the task is trivially small (< ~20 lines, no design decisions), pause and offer: "This is small enough to implement directly — want me to skip the spec and just make the change?" Do not write code until the user confirms the mode switch.
+- Drafting questions yourself in the orchestrator. The subagent owns question authorship; you forward the questions verbatim.
+- Mutating the spec yourself. The subagent owns spec writes; the orchestrator only reads it.
+- Skipping the YAML status parse and inferring intent from prose. The status block is the contract; treat parse failure as a defect.
+- Embedding the Rule-5 substring blacklist in this file. It lives in the agent definition; this orchestrator's only Rule-5 role is the validation gate at 3d (defence in depth).
+- Forgetting to delete the state file on terminal exit. It's transient handoff; orphaned state files confuse subsequent runs.
+- Saving the spec without `**Tracked in:**` (unless user explicitly opted out).
+- Skipping the cross-link comment on the tracking issue.
+- **Silently switching to implementation mid-interview.** If the subagent's first round suggests the task is trivially small (< ~20 lines, no design decisions), the agent should still emit `ready` with a complete spec; the orchestrator surfaces it normally and the user can choose to spec-only-defer if they want a one-shot edit instead.
