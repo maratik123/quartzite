@@ -788,6 +788,19 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** no
 
+### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
+
+**What happened:** Graphics-stack (#73) introduced `WindowedApplication::run` which documents a platform-level panic (macOS main-thread requirement from `winit::run_app`) in its `# Panics` section. The panic-index was not checked or updated during implementation or at Step 9 (Verify). The omission was caught only after the PR merged.
+
+**Rule:** At Step 9 (Verify), scan all new/modified production sources for two signals:
+1. `grep "# Panics" src/**/*.rs` — documented panic behaviour (primary signal; always present when a panic exists).
+2. `grep -n "\.expect\b\|\.unwrap\b\|panic!" src/**/*.rs` outside `#[cfg(test)]` — direct panic call sites.
+For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Stage and commit `panic-index.md` with the implementation commit.
+
+**Why not in design or as an AC:** The design phase cannot enumerate panic sites that don't exist yet. `# Panics` sections are the canonical indicator — they are written at implementation time, so the check belongs at Step 9 after the code exists.
+
+**Escalated?** no
+
 ### 2026-05-08 — process — regenerate ROADMAP.md after every INDEX.md change
 
 **What happened:** Updated `ai-docs/plans/INDEX.md` (marking graphics-stack ✅, unblocking widgets/paint-style) without re-running `scripts/gen-roadmap.sh`. The ROADMAP sync CI gate re-ran the generator, found a diff, and failed on PR #159.
