@@ -788,6 +788,16 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** no
 
+### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
+
+**What happened:** Graphics-stack (#73) introduced three new crates (`quartzite-paint-api`, `quartzite-paint`, `quartzite-renderer`). The panic-index was not checked or updated during implementation or design. The new crates happen to have zero production panic sites, so no entry is needed this time — but the omission was only discovered after the fact.
+
+**Rule:** At Step 9 (Verify), grep production sources of all new/modified crates for `.expect(`, `.unwrap(`, and `panic!` outside `#[cfg(test)]` blocks. For each hit, add an entry to `ai-docs/panic-index.md` (location, invariant, why Result was not used, preferred fix). Stage and commit `panic-index.md` with the implementation commit if entries were added.
+
+**Why not in design or as an AC:** The design phase cannot enumerate `.expect()` sites that don't exist yet, and adding "no panics" as a generic AC would be vacuous boilerplate. The right checkpoint is Step 9 (Verify), after the code exists and can actually be grepped.
+
+**Escalated?** no
+
 ### 2026-05-08 — process — regenerate ROADMAP.md after every INDEX.md change
 
 **What happened:** Updated `ai-docs/plans/INDEX.md` (marking graphics-stack ✅, unblocking widgets/paint-style) without re-running `scripts/gen-roadmap.sh`. The ROADMAP sync CI gate re-ran the generator, found a diff, and failed on PR #159.
