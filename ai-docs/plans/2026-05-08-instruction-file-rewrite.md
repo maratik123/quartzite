@@ -486,6 +486,196 @@ template:
 
 ---
 
+## Implementation hints
+
+Concrete patterns derived during the first execution of the per-file workflow
+(issue #167, AGENTS.md rewrite). Future sessions applying this workflow to
+other Phase 1 files (#168–#171) can imitate these for consistency.
+
+### Branch naming
+
+Pattern: `chore/<YYYY-MM-DD>-rewrite-<filename-kebab-case>` — drop the file
+extension; convert dots and slashes to hyphens.
+
+| File under rewrite | Branch name |
+|---|---|
+| `AGENTS.md` | `chore/2026-05-08-rewrite-agents-md` |
+| `ai-docs/code-style.md` | `chore/2026-05-08-rewrite-code-style` |
+| `ai-docs/doc-convention.md` | `chore/2026-05-08-rewrite-doc-convention` |
+| `.claude/agents/self-review.md` | `chore/2026-05-08-rewrite-self-review` |
+| `.claude/agents/review-findings.md` | `chore/2026-05-08-rewrite-review-findings` |
+
+### Section inventory format
+
+At workflow step 3, build a table with columns: `Section | Lines | Range | Share`.
+Compute `Share = section_lines / total_file_lines`. Identify the largest
+section — that's the candidate for the heavy-section override (mechanical >50%
+or judgment-call rule-dominant) per the coverage rules.
+
+### Cross-reference link audit
+
+Pre-rewrite (after step 4) and post-rewrite (after step 17):
+
+```bash
+grep -rn '<file>#' ai-docs/ .claude/skills/ .claude/agents/
+```
+
+Pre-rewrite enumerates incoming anchor links. Post-rewrite verifies each
+still resolves. Renaming or restructuring a `## Section` heading changes its
+GitHub-style anchor (`#section-heading`); preserve the heading or update
+siblings in the same PR.
+
+### Probe drafting heuristics
+
+**Class A (failure-targeted, 4–6 probes):**
+- One per `learnings.md` misread event traceable to the file under rewrite
+- Phrase as a realistic scenario asked as yes/no or what-do-you-do
+- Include at least one detail that disambiguates the misread direction
+  (e.g., explicitly offer (a)/(b)/(c) options to force a choice)
+
+**Class B (failure-likely, 1–3 probes):**
+- Target structural-complexity hot spots: nested conditionals, multi-axis
+  decision trees, carve-out exemptions, cross-references requiring synthesis
+- Place at least one Class B in a section with zero Class A probes —
+  extends coverage beyond hindsight
+
+**Class C (control, 1 probe):**
+- Anchor on a stable, low-rule-density section (one that primarily points
+  at another doc, or a short orientation paragraph)
+- Required answer: a single literal token (file path, command, version)
+- Verifies the test setup itself is intact
+
+### Rubric authoring heuristics
+
+For **Class A and B (prose-with-rubric):**
+
+| Field | Items | Rules |
+|---|---|---|
+| Required-present | 2–4 | Each must be load-bearing (rule cannot be understood without it). Match leniently on synonyms (negation: `no` / `not authorised` / `forbidden` / `MUST NOT` all count). Match strictly on substantives (file paths, command names, specific triggers — verbatim). |
+| Required-absent | 1–2 | Concepts that, if present, indicate the rule was misread in a known direction. Avoid common stop-words (don't required-absent `not` or `for example`). |
+| Verdict | binary | ALL required-present matched AND NO required-absent matched → CORRECT. Anything else → WRONG. |
+
+**Anti-rubrics — do NOT do:**
+
+- Grade for exact wording (defeats dual-model neutrality)
+- List required-present items that are synonyms of each other (graders end up checking the same concept twice)
+- Required-absent on natural English phrases (`however`, `for example`)
+
+For **Class C (literal-token):**
+
+- Type: `literal-token`
+- Required value: verbatim string from the rewritten file
+- Comparison: case-sensitive substring search — model's answer must contain
+  the literal value as a substring
+
+### Subagent spawn
+
+Spawn both models **in parallel** — single tool-use message with two `Agent`
+calls:
+
+```
+Agent(
+  description = "Comprehension test (Opus)",
+  subagent_type = "general-purpose",
+  model = "opus",
+  prompt = <prompt template, see below>,
+)
+
+Agent(
+  description = "Comprehension test (Sonnet)",
+  subagent_type = "general-purpose",
+  model = "sonnet",
+  prompt = <IDENTICAL prompt>,
+)
+```
+
+Both subagents receive identical prompts including the same shuffled probe
+order — divergence is then attributable to the file's wording, not to setup
+variance.
+
+### Subagent prompt template
+
+```
+You are a comprehension-test subagent for the quartzite project's <FILE>
+rewrite (issue #<N>). Your task is narrow and self-contained.
+
+INSTRUCTIONS:
+
+1. Read the file at <ABSOLUTE-PATH> — that file is the rewritten version
+   under test.
+2. Do NOT read any other file in the codebase.
+3. Do NOT search for additional context, run grep, or open the web.
+4. Answer each probe below INDEPENDENTLY, based ONLY on what's in the file.
+5. Be brief: 1–4 sentences per answer. State the answer first, then briefly
+   justify by referring to the relevant section.
+
+OUTPUT FORMAT — for each probe, exactly this shape:
+
+PROBE <N>:
+<your answer>
+
+PROBES (randomized order):
+
+Probe 1: <verbatim Q>
+Probe 2: <verbatim Q>
+...
+
+After answering all <N> probes, output a final line: `END OF PROBES`.
+```
+
+**Why each instruction is load-bearing:**
+
+- "Do NOT read other files / grep / web search" — without this, subagents
+  read sibling instruction files to "verify" cross-references and
+  contaminate the test (model answers based on what *should* be true,
+  not what the rewritten file says)
+- "1–4 sentences" cap — keeps answers short enough for mechanical
+  rubric-checking; longer answers risk burying the verdict-relevant token
+- "State the answer first" — forces the verdict signal early; rubric
+  matching becomes more reliable
+- `END OF PROBES` sentinel — makes truncation detectable
+
+### Probe order randomization
+
+Per round, generate a fresh permutation of the probe set. Both subagents
+get the **same** permutation in a given round — different orders across
+models would introduce a confounding variable.
+
+If round 2 is needed (some probes failed in round 1), shuffle again. If
+round 2 with reshuffled order produces *different* convergence than round 1
+on the same probes, that's diagnostic information about order-dependence in
+the file's logical flow.
+
+### Reporting format for dual-model results
+
+For all-CONVERGE rounds, a per-probe summary table is sufficient:
+
+| Probe | Class | Topic | Opus | Sonnet | Verdict |
+|---|---|---|---|---|---|
+| A1 | failure-targeted | <topic> | CORRECT | CORRECT | ✅ CONVERGE |
+
+For DIVERGE outcomes, add a per-probe detail block:
+
+```
+Probe N (Class X — derived from <source>)
+
+Question: <verbatim>
+
+Opus answer: "<verbatim>"
+  Rubric check:
+    required-present 1: ✓/✗ <reason>
+    required-absent  1: ✓/✗ <reason>
+  Verdict: CORRECT / WRONG
+
+Sonnet answer: "<verbatim>"
+  Rubric check: ...
+  Verdict: ...
+
+Convergence: DIVERGE — <one-sentence diagnosis>
+Source paragraph: <file>:<line range>
+Proposed revision: <text>
+```
+
 ## Decision history
 
 - v1 — initial sketch: probes after rewrite (test-after); 2 rounds; flat

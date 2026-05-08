@@ -35,15 +35,41 @@ cargo build -p quartzite --no-default-features   # verify derive-free / no_std p
 actionlint .github/workflows/<file>.yml   # required gate for any new/modified workflow file
 ```
 
-**Workflow files.** Any new or modified `.github/workflows/*.yml` is a required `actionlint` gate before staging — same status as `cargo build` / `cargo clippy`. Run `actionlint <file>` (or pass every changed file in one invocation) and fix all errors before `git add`. actionlint catches runner-version mismatches, deprecated action versions, expression syntax errors, and shell quoting issues that `cargo` checks cannot see.
+> **AXIOM — `actionlint` MUST pass before `git add` on any modified workflow file.**
+> Required gate, same status as `cargo build` and `cargo clippy --workspace -- -D warnings`. Skipped twice despite the rule existing — escalated to AGENTS.md after the second occurrence.
+>
+> | If you see... | Action |
+> |---|---|
+> | `M .github/workflows/<name>.yml` in `git status` | Run `actionlint <file>` (or pass every changed workflow file in one invocation) **before** `git add` |
+> | `actionlint` reports any error | Fix it. **NEVER** bypass. |
+>
+> What `actionlint` catches that `cargo` cannot: runner-version mismatches, deprecated action versions, expression-syntax errors, shell-quoting issues.
 
 Search: `rg <pattern> --type rust [-l | -C 3]`
 
 ## API Stability
 
-The project has **not yet been published to crates.io** and has no downstream clients. Public API may be freely renamed, removed, or restructured without backward-compat shims or deprecation layers. Do not add old-name aliases or `#[deprecated]` wrappers "for compatibility" — just make the clean change. Revisit this rule before the first `cargo publish`.
+> **AXIOM — Pre-publish: clean breaks. No compat shims.**
+> The project has **not** been published to crates.io and has no downstream clients. Public API may be freely renamed, removed, or restructured without backward-compat shims, deprecation layers, or `#[deprecated]` wrappers.
+>
+> | If you're tempted to... | Do this instead |
+> |---|---|
+> | Add `pub use OldName as NewName;` "for compat" | **REMOVE** the alias — make the clean rename |
+> | Wrap removed fn with `#[deprecated] pub fn old() -> _ { new() }` | **DELETE** the wrapper — call sites update directly |
+> | Keep both old and new APIs side-by-side temporarily | Pick one — old is gone |
+
+Revisit this rule before the first `cargo publish`.
 
 ## API Naming
+
+> **AXIOM — `_unchecked` means `unsafe` AND UB-on-failure. Period.**
+> The suffix is reserved exclusively for `unsafe fn` whose contract documents Undefined Behaviour on caller-invariant violation. **NEVER** apply it to a safe fn — even one that "skips a runtime check" — because the suffix carries unsafety implications that mislead readers and reviewers.
+>
+> | Your fn... | Suffix |
+> |---|---|
+> | Is `unsafe`, UB on caller violation (`# Safety` section required) | `_unchecked` ✓ (e.g., `slice::get_unchecked`, `str::from_utf8_unchecked`) |
+> | Is **safe**, skips a non-safety check (validation, sort-order, etc.) | A descriptive suffix like `_unverified` / `_skip_validation` / `_unsorted` — **NEVER** `_unchecked` |
+> | Is **safe**, returns `Result` / `Option` on failure | Unsuffixed (`do_something`); add a `try_*` variant if a panicking sibling exists |
 
 Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic default**; suffixes mark deviations. Path of least resistance must be the safe path.
 
@@ -69,6 +95,17 @@ See [`ai-docs/code-style.md`](ai-docs/code-style.md) for the canonical reference
 
 ## Dependency Versions
 
+> **AXIOM — Query the live registry BEFORE writing any specific version string. Training data is stale.**
+> Whenever you write a specific version of a Cargo crate or a GitHub Action — anywhere (`Cargo.toml`, workflow file, issue body, spec, design doc, learning, any `ai-docs/**` page) — query the live source first. Treating remembered versions as authoritative has put wrong majors into specs twice in this repo (`criterion 0.5` vs. live `0.8`; `actions/deploy-pages@v4` vs. live `@v5`).
+>
+> | If you need to write... | Run this first |
+> |---|---|
+> | A Cargo crate version | `curl -sS "https://crates.io/api/v1/crates/<name>" \| jq -r '.crate.max_stable_version'` |
+> | A GitHub Action version | `gh api /repos/<owner>/<repo>/releases --jq '.[0].tag_name'` (and verify the action's Node runtime is current) |
+> | A version into a long-lived doc (won't be revisited for months) | Annotate `(verified current YYYY-MM-DD)` next to the version |
+>
+> Then apply the pinning rule (below) to the **observed** version, never the remembered one.
+
 When adding or editing dependencies in `Cargo.toml`:
 
 - Use `0.x` for `0.x.y` versions — never pin the patch.
@@ -85,6 +122,17 @@ Per source:
 - **Long-lived references** (a doc that won't be revisited for months): annotate `(verified current YYYY-MM-DD)` next to the version so the next reader can spot drift before a `/task` session pins the stale value.
 
 ## Workflow
+
+> **AXIOM 1 — NEVER edit on local `master` when work is intended for a PR.**
+> Create a feature branch (`git checkout -b feat/...` or `chore/...`) **before** any file edit — not before commit, **before edit**. Accumulating uncommitted edits on `master` leaves the tree dirty on the wrong branch and forces a reactive switch later.
+>
+> | If `git branch --show-current` returns... | Action |
+> |---|---|
+> | `master` AND you're about to make a PR-targeted edit | **STOP**. Run `git checkout -b <prefix>/<descriptive-name>` first. Only then edit. |
+> | A feature branch | Proceed with edits |
+> | `master` AND you've already made commits (recovery) | `git stash` → `git checkout -b <feature>` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch → open PR. Pop stash on feature branch if needed. |
+>
+> The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch **before** any `Edit`/`Write`. Before any `git push`, confirm again — if it is `master`, stop and apply recovery.
 
 - Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
 - **Never edit on local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any file edit — not just before commit. Accumulating uncommitted edits on `master` is the failure mode this rule guards: it leaves the working tree dirty on the wrong branch and forces a reactive switch later. The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch before any `Edit`/`Write`. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
@@ -119,7 +167,30 @@ Per source:
   4. Skip threads where you posted an objection — those stay open for the reviewer.
 - **PR body sync after every push.** When the current branch has an open PR, every `git push` is followed by `gh pr view <N> --json title,body` *unconditionally* — read the body first, then decide whether to edit. Sync via `gh pr edit` if the body now contradicts the diff (renames, scope drift, AC checkbox flips, cited counts that drifted, dropped/added items). Routine commits within already-described scope do not need an edit, but the **read** is non-negotiable. Reasoning your way out of the read is the failure mode this rule prevents. **Exception:** the read is not required when `gh pr create` immediately followed the push (the body is what you just authored — nothing to discover). The rule starts firing on the *next* push to the branch. The **upstream tracking issue's** title and body are the user's original problem statement — do not rewrite them; communicate scope changes via `gh issue comment` instead.
 
+> **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
+> The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.
+>
+> | After... | Required action |
+> |---|---|
+> | `git push` to a feature branch with an open PR | Run `gh pr view <N> --json title,body` immediately. Read the body. |
+> | The body still describes the diff accurately | No `gh pr edit` needed — read complete |
+> | The body contradicts the new commits (renames, scope drift, AC flips, cited counts that drifted) | Run `gh pr edit` to sync |
+> | `gh pr create` immediately preceded the push (i.e., this is the first push that opened the PR) | **Skip** the read — the body is what you just authored. The rule fires on the **next** push. |
+>
+> The upstream tracking **issue**'s title and body are the user's original problem statement — do not rewrite them. Communicate scope changes via `gh issue comment` instead.
+
 ## Propagation Rule
+
+> **AXIOM — Edits to one instruction file MUST propagate to its sync-group siblings in the SAME PR.**
+> The Propagation Rule fires whenever you edit an instruction file. Sister files in the same sync group must receive the corresponding change before the PR is opened.
+>
+> | If you edit... | You MUST also check / update... |
+> |---|---|
+> | `.claude/skills/code-review/SKILL.md` | `.claude/agents/review-findings.md` AND `.claude/agents/self-review.md` (Review group) |
+> | `.claude/agents/review-findings.md` | `.claude/skills/code-review/SKILL.md` AND `.claude/agents/self-review.md` (Review group) |
+> | `.claude/agents/self-review.md` | `.claude/skills/code-review/SKILL.md` AND `.claude/agents/review-findings.md` (Review group) |
+> | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` and apply the same change to every match |
+> | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
 
