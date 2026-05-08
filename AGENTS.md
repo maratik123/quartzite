@@ -149,6 +149,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 |------|---------|
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
+| `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
