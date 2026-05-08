@@ -821,7 +821,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** `_Simple._` (in any form: `/// _Simple._`, `// _Simple._`) and `#[inline]` are mutually exclusive on the same fn. Use `#[inline]` on any fn that has a body and is in a concrete position (concrete fn, default trait method, `impl Trait for ConcreteFoo` method). Use `_Simple._` only where `#[inline]` doesn't apply: abstract method declarations (no body) and generic impl methods (`impl<T> Trait for Foo<T>`). Never annotate the same fn with both.
 
-**Escalated?** no
+**Escalated?** code-style, agent:self-review, agent:review-findings
 
 ### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._` (superseded by next entry)
 
@@ -829,7 +829,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule (superseded):** Default method bodies in a `trait` definition that qualify as simple need both `/// _Simple._` and `#[inline]`. — **This was wrong.** See next entry: the two are mutually exclusive; drop `_Simple._` when `#[inline]` is present.
 
-**Escalated?** no
+**Escalated?** code-style, agent:self-review, agent:review-findings
 
 ### 2026-05-08 — code-style — use named constants instead of magic numbers
 
@@ -845,7 +845,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Never edit or delete an existing entry in `ai-docs/learnings.md`. Only append new entries. If a prior entry was wrong, write a new entry that corrects it (cross-referencing the old one if helpful). The history of corrections is itself valuable.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-08 — process — on corrections, write to learnings only; do not update instruction files
 
@@ -853,7 +853,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** When the user corrects a behaviour or clarifies a rule, append to `ai-docs/learnings.md` and stop. Do not touch `AGENTS.md`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`, `.claude/agents/**`, or `.claude/skills/**` in the same turn. Those files are updated only when the user runs `/improve`.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 

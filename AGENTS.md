@@ -160,7 +160,37 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 
 ## Corrections Log
 
-On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`:
+On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`. **Read the two boundary rules below before you write — both have been violated multiple times.**
+
+### Boundary rule 1 — `ai-docs/learnings.md` is APPEND-ONLY
+
+> **NEVER** edit, rewrite, reorder, summarise, or delete an existing entry in `ai-docs/learnings.md`. Only append new entries at the end of the file. This applies even when:
+> - a newer correction supersedes an older one — write a NEW entry that says so, leave the old one intact
+> - an entry turns out to be wrong, redundant, or poorly worded — write a NEW entry that corrects it
+> - you are tempted to "tidy up" or "consolidate" the file
+>
+> The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
+
+### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
+
+> When you write to `ai-docs/learnings.md`, you **MUST NOT** also edit any of these files in the same conversation turn:
+>
+> - `AGENTS.md`
+> - `CLAUDE.md`
+> - `.claude/skills/**` (any file)
+> - `.claude/agents/**` (any file)
+> - `.claude/settings.json`
+> - `ai-docs/code-style.md`
+> - `ai-docs/doc-convention.md`
+>
+> Writing a learning entry is **NOT** authorisation to escalate the rule into instruction files. Set `Escalated? no` and stop. Project-level escalation happens only when:
+>
+> 1. The user runs `/improve` (which spawns the escalation agent), OR
+> 2. The user explicitly asks ("escalate this", "update AGENTS.md", "add to skill X").
+>
+> The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
+
+### Entry format
 
 ```
 ### YYYY-MM-DD — [category] — [short description]
@@ -176,8 +206,6 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
 Run `/improve` when ≥3 unescalated entries accumulate.
-
-**Writing a learning entry is not authorisation to escalate.** Writing to `ai-docs/learnings.md` and editing project instruction files (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`) are two distinct actions with different triggers. Writing a learning is automatic on any non-obvious correction; escalation happens only when the user runs `/improve` (or explicitly asks). After writing a learning entry, mark `Escalated? no` and stop. Do not edit instruction files in the same turn as a follow-up to the entry. The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh learnings entry.
 
 ## Rust Test Conventions
 

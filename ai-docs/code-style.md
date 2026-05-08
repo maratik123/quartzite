@@ -118,6 +118,22 @@ this in a log?" Skip trivial getters/setters.
 Mark every **simple** function so callers and reviewers can recognise
 it as inline-equivalent.
 
+> **AXIOM — `#[inline]` and `_Simple._` are MUTUALLY EXCLUSIVE.**
+> Never put both on the same `fn`. Pick exactly **one** marker based on
+> the fn's shape (table below). Co-occurrence is always a bug — the
+> tag form is "this fn would carry `#[inline]` if it could, but its
+> shape makes `#[inline]` a no-op," so adding both says the opposite
+> things at once.
+>
+> | If you see... | Action |
+> |---|---|
+> | `#[inline]` AND `_Simple._` (any form) on the same fn | **REMOVE** `_Simple._`, keep `#[inline]` |
+> | `#[inline]` on a generic fn / `impl<T> Trait for Foo<T>` method | **REPLACE** with the appropriate `_Simple._` form |
+> | `_Simple._` on a concrete fn / `impl Trait for ConcreteFoo` method | **REPLACE** with `#[inline]` |
+>
+> The `Carve-out` and `decision tree` below choose **which** of the two
+> applies for a given shape — they never select **both**.
+
 **"Simple" (recursive definition):**
 - No branches or loops in the body, AND
 - At most one call to a **non-simple** function.
