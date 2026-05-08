@@ -831,6 +831,14 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
+### 2026-05-08 — code-style — use named constants instead of magic numbers
+
+**What happened:** `Palette::default()` used raw `Color::new(0.94, 0.94, 0.94, 1.0)` etc. literals inline. Reviewer flagged them as magic numbers.
+
+**Rule:** Extract numeric literals that carry semantic meaning into named `const` values. The name documents the intent; the literal is an implementation detail. This applies to color values, sizes, timeouts, limits — any number that isn't self-evidently 0 or 1.
+
+**Escalated?** no
+
 ### 2026-05-08 — process — learnings are append-only; never edit or remove existing entries
 
 **What happened:** A learning entry was deleted because a newer entry contradicted it. User corrected: learnings are a permanent record — every entry stays, including superseded or wrong ones.
