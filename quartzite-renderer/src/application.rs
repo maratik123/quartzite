@@ -31,17 +31,13 @@ impl WindowedApplication {
     ///
     /// Returns [`RendererError::EventLoop`] if the winit event loop cannot be
     /// created (e.g. no display server available).
-    #[inline]
     pub fn new() -> Result<Self, RendererError> {
-        fn inner() -> Result<WindowedApplication, RendererError> {
-            let app = Application::new()?;
-            let event_loop = EventLoop::new()?;
-            Ok(WindowedApplication {
-                _app: app,
-                event_loop,
-            })
-        }
-        inner()
+        let app = Application::new()?;
+        let event_loop = EventLoop::new()?;
+        Ok(Self {
+            _app: app,
+            event_loop,
+        })
     }
 
     /// Runs the winit event loop, handing control to `handler`.
