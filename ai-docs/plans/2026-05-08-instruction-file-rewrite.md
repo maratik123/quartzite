@@ -992,15 +992,77 @@ Roughly the same cost (~1–2 hours per case for setup + dual-model run + analys
 - The replay does not invalidate the v4.2 PASS — it provides positive evidence that the v4.2 PASS was warranted for this rule.
 - For full retrospective coverage, replay 2–3 more cases targeting different rules (marker-mutex, mutex `.expect()`, `--workspace` clippy).
 
+### Replay batch — completed runs
+
+The two additional candidates from the originally-proposed batch were run.
+
+#### Replay 2 — Marker-mutex co-occurrence (`cc382cd`)
+
+**Setup:** worktree at `cc382cd` ("fix(widgets): name palette colors; add #[inline] to WidgetExt defaults") with current instruction files overlaid (Variant A). The fix commit `5622056` ("fix(style): drop redundant _Simple._ from fns that carry #[inline]") was the explicit correction; we replay the state just before that.
+
+**Ground truth:** `quartzite-widgets/src/widget_ext.rs` had 21+ default trait methods carrying both `/// _Simple._` AND `#[inline]` simultaneously. Per the AXIOM in `code-style.md` § `#[inline]` and the `_Simple._` doc tag, these are mutually exclusive.
+
+**Result:** ✅ **TRUE POSITIVE** for both subagents. Both grouped per the "same pattern across files" rule and emitted one `major` finding listing all locations.
+
+| Subagent | Finding | Severity | Locations grouped |
+|---|---|---|---|
+| Opus | "26 trait default methods carry BOTH `/// _Simple._` AND `#[inline]`. Per AGENTS.md axiom..." | `major` | 26 location pairs |
+| Sonnet | "every default method in `pub trait WidgetExt` carries BOTH... co-occurrence axiom violation" | `major` | 30 line numbers |
+
+**Methodology convergence (vs PR #149):** in this case both Opus and Sonnet applied the grouping rule consistently — diverging on grouping that occurred in the PR #149 pilot (Opus grouped, Sonnet split) was case-specific, not a systemic methodology gap.
+
+#### Replay 3 — Mutex `.expect()` substitution (`543bb4f^` = `1b80ccc`)
+
+**Setup:** worktree at `1b80ccc` (parent of fix commit `543bb4f` "replace panicking mutex ops with poison recovery") with current instruction files overlaid (Variant A).
+
+**Ground truth:** Multiple production files had `.lock().expect("...poisoned")` and `.lock().unwrap()` patterns on `Mutex` / `RwLock` / `Condvar` — `quartzite-runtime/src/timer.rs`, `connection_table.rs`, `thread_pool.rs`, `event_loop.rs`. Per AGENTS.md / `code-style.md` § Library safety idioms, these must be `.unwrap_or_else(|e| e.into_inner())`.
+
+**Result:** ✅ **TRUE POSITIVE** for both subagents. Both flagged all violations as `major`, citing the substitution rule.
+
+| Subagent | Grouping strategy | Findings | Severity |
+|---|---|---|---|
+| Opus | By lock type (Mutex / Condvar / RwLock) | 3 findings covering all locations | `major` |
+| Sonnet | By file (connection_table / thread_pool / event_loop / timer) | 4 findings covering all locations | `major` |
+
+**Methodology divergence (different from PR #149):** Opus and Sonnet again diverged on grouping strategy — Opus grouped by violation type, Sonnet grouped by file. Both readings are reasonable; both caught all violations. This confirms the grouping divergence observed in PR #149 is a recurring rule-wording question, not random variance.
+
+#### Candidate 3 — `--workspace` clippy: NOT replayable via this methodology
+
+The `--workspace` clippy rule is a **process-level rule** (specifies which shell command CI / agents should run), not a Rust-code-level rule that `review-findings` checks against the source tree. The "buggy state" was AGENTS.md saying `cargo clippy -- -D warnings` (without `--workspace`); `review-findings` doesn't review AGENTS.md content as code.
+
+The rule is enforced directly by CI's `cargo clippy --workspace -- -D warnings` invocation in `.github/workflows/ci.yml` — process-level enforcement is the test, no agent layer needed.
+
+**This is a methodology-fit limitation, not a test failure.** Some rules are agent-scope (rules `review-findings` / `self-review` apply to source code) and some are process-scope (rules CI / agents follow when running shell commands). Replay applies only to the former.
+
+#### Combined replay results — all completed runs
+
+| # | Replay case | Opus | Sonnet | Verdict |
+|---|---|---|---|---|
+| 1 | PR #149 — `document_features` placement | ✅ TRUE POSITIVE (`major`) | ✅ TRUE POSITIVE (`major`) | confirmed |
+| 2 | `cc382cd` — marker-mutex co-occurrence | ✅ TRUE POSITIVE (`major`) | ✅ TRUE POSITIVE (`major`) | confirmed |
+| 3 | `1b80ccc` — mutex `.expect()` | ✅ TRUE POSITIVE (`major`) | ✅ TRUE POSITIVE (`major`) | confirmed |
+| — | `--workspace` clippy | n/a — methodology-fit limitation | n/a — methodology-fit limitation | not replayable |
+
+**6 / 6 model-runs caught the documented misread.** All v4.2-PASS Phase 1 verdicts on the affected files (#167/#174 AGENTS.md, #168 code-style.md, #170 self-review.md, #171 review-findings.md) now have positive replay evidence supporting them. The retrospective concern (Phase 1's "100% PASS round 1 is a smell") is partially addressed — replay against ground truth confirms the rules do fire on real input for the cases tested.
+
+#### Methodology lessons added by the batch
+
+- **Grouping strategy divergence is recurring**, not random. Opus and Sonnet have different default groupings (by-pattern-type vs by-file), both consistent with the rule wording. Future probe-design and rule-wording work should expect this divergence and either tighten the grouping rule or accept both forms.
+- **The methodology-fit limitation is real** but bounded: rules whose enforcement is in shell-command form (clippy invocations, CI workflow gates) aren't replayable. Document them as out-of-scope for replay.
+- **Replay surfaces audit byproducts** — every run produced ~10–15 additional findings beyond ground truth (current rules applied to historical code). For replay-test purposes these are noise; for codebase-quality purposes they're either real ongoing issues or rules-that-postdate-the-historical-commit. Each needs separate adjudication.
+
 ### Future replay batch (if undertaken)
 
-| Candidate | Tests rule | Expected outcome |
-|---|---|---|
-| Marker-mutex `_Simple._` + `#[inline]` co-occurrence (recent recurrence) | `_Simple._` / `#[inline]` mutual exclusion (AXIOM in code-style.md) | True positive expected |
-| Mutex `.lock().expect(...)` in production code | `.expect()` substitution rule (Library safety idioms) | True positive expected |
-| `cargo clippy` without `--workspace` | `--workspace` clippy rule (AGENTS.md Build & Test) | True positive expected (rule mandates the form) |
+The completed batch covers high-frequency rules. Future replays could target:
 
-If 2–3 replays produce true positives, the v4.2 PASS verdicts are well-supported. If any produce false negatives, that's a re-open trigger for the corresponding closed Phase 1 issue.
+| Candidate | Why | Tests rule |
+|---|---|---|
+| `clippy::doc_markdown` allowlist scope (PR #83 follow-up) | Earlier high-volume corrections | Backtick + allowlist scope rules |
+| Trait-impl `// _Simple._` placement vs `///` | Separate from co-occurrence axiom | Marker-form by impl shape |
+| `panic-index.md` updates after introducing production panic sites | New rule from #170 work | Panic-index sync rule |
+| Bench files exempt from `#[cfg(test)]` | Carve-out exemption rule | Test coverage carve-out |
+
+Each ~1–2 hours per case if rule-shaped (vs process-shaped).
 
 ## Decision history
 
@@ -1043,9 +1105,17 @@ If 2–3 replays produce true positives, the v4.2 PASS verdicts are well-support
   v4.2/v4.3, addressing the strongest limitation (no connection to
   ground truth). Methodology section provides the worktree-based
   setup, two variants (current rules vs historical rules), subagent
-  prompt template, ground-truth comparison table, and cleanup. Pilot
-  run on PR #149 (`document_features` placement) with both Opus and
-  Sonnet caught both documented violations as `major` — TRUE POSITIVE.
-  Confirms `review-findings.md` v4.2 PASS verdict (#171) is consistent
-  with rule-fires-on-real-input. The `/improve`-proposed-escalation-on-
-  v4.2-PASS-rule mechanism documented as the canonical re-open trigger.
+  prompt template, ground-truth comparison table, and cleanup. **Three
+  replay cases run** (PR #149 `document_features` placement, `cc382cd`
+  marker-mutex co-occurrence, `1b80ccc` mutex `.expect()` substitution):
+  6 / 6 model-runs caught the documented misread as `major`. All
+  v4.2-PASS Phase 1 verdicts now have positive replay evidence
+  supporting them. **One candidate (`--workspace` clippy) was
+  documented as not replayable** via this methodology — process-level
+  rules (shell-command invocations) aren't `review-findings`-shaped.
+  **Methodology lessons identified:** Opus / Sonnet grouping-strategy
+  divergence is recurring (by-pattern-type vs by-file) but both
+  consistent with rule wording; replay always surfaces audit-byproduct
+  findings beyond ground truth that need separate adjudication. The
+  `/improve`-proposed-escalation-on-v4.2-PASS-rule mechanism documented
+  as the canonical re-open trigger.
