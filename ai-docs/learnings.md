@@ -807,6 +807,14 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** skill:task
 
+### 2026-05-08 — code-style — generic-fn split (`fn inner`) requires a conversion-style generic param; don't apply it to parameter-less fns
+
+**What happened:** `WindowedApplication::new()` in `quartzite-renderer/src/application.rs` wrapped its entire body in a nested `fn inner()` and called it, despite having no parameters at all. The generic-fn split pattern (AGENTS.md "Generic-fn split for binary size") exists solely to avoid monomorphization bloat from `impl Into<T>` / `impl AsRef<T>` / `impl ToString` generics. With no generic param, the indirection is dead weight — the body lands in one copy regardless, and the extra wrapper just adds noise.
+
+**Rule:** Only apply the nested `fn inner()` split when the outer function has a conversion-style generic parameter (`impl Into<T>`, `impl AsRef<T>`, `impl ToString`) **and** the body is >3 lines. For non-generic fns (no params, concrete types only), write the body directly in the outer fn. Additionally, re-evaluate `#[inline]` after inlining: if the body now has >1 non-simple call, the fn no longer qualifies and `#[inline]` must be removed.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.
