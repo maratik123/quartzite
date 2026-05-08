@@ -132,9 +132,19 @@ no plan-level rule forces it.
       User accepts / amends / rejects BEFORE rewrite. <===
 9.  Rewrite with the approved probe set + rubrics open in view.
     Each fail-loud edit is justified by which probe(s) it makes pass.
-    A section with NO probe is OUT OF SCOPE — do not rewrite.
-    Cross-reference touch-ups (link fixes, heading anchors) are allowed
-    but no fail-loud restyling of unprobed sections.
+
+    A section with NO probe is normally out of scope for restyling —
+    EXCEPT when its current text directly contradicts
+    `ai-docs/agent-writing-style.md` (e.g., uses globs as the entire
+    fail-loud list, AXIOM blockquote without an action table, every
+    paragraph in caps, negative-only rules without a positive shape, or
+    other anti-patterns from that doc). In contradicting cases, fix the
+    style violation to match the spec — but the fix is style-correction,
+    not new re-emphasis. Cite the specific anti-pattern from
+    `agent-writing-style.md` in the commit message.
+
+    Cross-reference touch-ups (link fixes, heading anchors) are always
+    allowed.
 10. Draft Class C probe — single literal-token control, anchored on a
     stable section of the rewritten file
 11. ===> APPROVAL GATE 2: Class C probe (small gate) <===
@@ -147,7 +157,28 @@ no plan-level rule forces it.
 15. Revise the failing-probe sections, re-randomize order, re-run.
     Cap: 3 rounds. After round 3 if still failing → surface to user
     with diagnosis + proposed revision.
-16. Semantic-preservation self-review (every old rule still in new file)
+16. Semantic-preservation self-review — spawn an **Opus subagent**:
+
+    ```
+    Agent(
+      description = "Semantic-preservation review (Opus)",
+      subagent_type = "general-purpose",
+      model = "opus",
+      prompt = <see template in Implementation hints below>,
+    )
+    ```
+
+    Opus is used here (not the default Sonnet self-review agent) because
+    semantic-preservation review benefits from deeper reasoning across
+    the diff: cross-rule interactions, subtle meaning shifts, nuance
+    loss that Sonnet may miss. The subagent compares OLD
+    (`git show <base_commit>:<path>`) vs NEW (HEAD on disk, including
+    uncommitted edits) and returns a per-rule verdict: PRESERVED /
+    WEAKENED / DROPPED.
+
+    On any WEAKENED or DROPPED finding → revise the rewrite to restore
+    the rule, then **re-run the dual-model comprehension test (step 12)**
+    since substantive changes invalidate prior CONVERGE.
 17. cargo build (sanity)
 18. Stage explicit files, commit, push -u, gh pr create — link the file's
     GitHub issue (`Closes #N`)
@@ -646,6 +677,79 @@ round 2 with reshuffled order produces *different* convergence than round 1
 on the same probes, that's diagnostic information about order-dependence in
 the file's logical flow.
 
+### Semantic-preservation subagent prompt template
+
+Used at workflow step 16. Spawn with `model="opus"` — this review benefits
+from deeper reasoning than the dual-model comprehension test does.
+
+```
+You are a semantic-preservation review subagent for the quartzite project's
+<FILE> rewrite (issue #<N>). Your task is narrow and self-contained.
+
+INSTRUCTIONS:
+
+1. Read the OLD version of the file:
+   `git show <BASE_COMMIT>:<RELATIVE-PATH>`
+   This is the version before this PR's rewrite.
+2. Read the NEW version of the file:
+   `<ABSOLUTE-PATH>` (filesystem state — includes uncommitted edits)
+   This is the rewritten version under review.
+3. Do NOT read any other file (the rewrite is self-contained for this check).
+4. Do NOT search for additional context, run grep on the wider tree, or
+   open the web.
+
+OBJECTIVE:
+
+For every load-bearing rule present in OLD, verify whether it survives in
+NEW. A "load-bearing rule" is anything an agent reading the file would be
+expected to act on: prohibitions, requirements, command lists, file path
+references, decision-tree branches, exemptions, edge cases.
+
+OUTPUT FORMAT:
+
+| # | Rule (from OLD) | OLD location | Verdict | NEW location |
+|---|---|---|---|---|
+| 1 | <one-line rule statement> | `<file>:<line>` | PRESERVED / WEAKENED / DROPPED | `<file>:<line>` or `—` |
+
+Then a final summary block:
+
+```
+SEMANTIC PRESERVATION VERDICT: <PASS | FAIL>
+- N rules in OLD
+- M PRESERVED
+- K WEAKENED  (must be 0 for PASS)
+- L DROPPED   (must be 0 for PASS)
+```
+
+Definitions:
+
+- PRESERVED: rule is unambiguously present in NEW with the same or stronger
+  binding force (e.g., a paragraph rule promoted to AXIOM is PRESERVED).
+- WEAKENED: rule is present but with reduced binding force (e.g., a
+  "MUST NOT" softened to "should avoid", or a binary rule converted to a
+  guideline). Or the rule lost an essential qualifier (e.g., an exemption
+  was kept but its scope was widened/narrowed).
+- DROPPED: rule has no equivalent in NEW.
+
+Be skeptical. The rewrite was meant to clarify, not to soften. If a rule
+appears in NEW but reads less binding than in OLD, mark it WEAKENED with a
+specific reason.
+
+After the table and summary, output a final line: `END OF REVIEW`.
+```
+
+**Why each instruction is load-bearing:**
+
+- "Do NOT read other files" — prevents the subagent from cross-referencing
+  sibling instruction files and judging based on their content rather than
+  the file under review
+- Forces a per-rule table — prevents narrative summaries that obscure
+  whether specific rules survived
+- Three-state verdict (PRESERVED / WEAKENED / DROPPED) is binary at the
+  rule level — no partial credit; ambiguity defaults to flag-as-WEAKENED
+- The summary's PASS/FAIL gate is explicit — N WEAKENED + L DROPPED must
+  both be 0 for PASS; otherwise the parent agent must revise
+
 ### Reporting format for dual-model results
 
 For all-CONVERGE rounds, a per-probe summary table is sufficient:
@@ -689,9 +793,20 @@ Proposed revision: <text>
   by lines, judgment-call override for rule-dominant sections); adds
   probe-surface coverage requirement (≥ 60% sections targeted) and Class B/C
   placement constraints.
-- v4.1 — current. Each Phase 1 file gets its own GitHub tracking issue
-  (#167–#171). Phase 1 PRs are now independent rather than sequential —
-  the file order in the table is a recommended priority, not a sequencing
-  requirement. Adds per-file cross-reference link-sanity audit step
-  (pre-rewrite grep + post-rewrite re-grep) so anchor breakages are caught
-  in the same PR that introduces them.
+- v4.1 — each Phase 1 file gets its own GitHub tracking issue (#167–#171);
+  Phase 1 PRs are now independent rather than sequential; the file order in
+  the table is a recommended priority, not a sequencing requirement. Adds
+  per-file cross-reference link-sanity audit step (pre-rewrite grep +
+  post-rewrite re-grep) so anchor breakages are caught in the same PR.
+- v4.2 — current. Two refinements informed by the #167 execution:
+  - Step 9 — unprobed sections are not strictly out-of-scope. They may be
+    rewritten when the current text contradicts
+    `ai-docs/agent-writing-style.md` (e.g., globs as the entire fail-loud
+    list, AXIOM without action table, every paragraph in caps, negative-
+    only rules without a positive shape). Style-correction is allowed;
+    new re-emphasis without a probe is not.
+  - Step 16 — semantic-preservation self-review now spawns an **Opus
+    subagent** rather than running inline. The model upgrade addresses
+    cross-rule reasoning depth that the parent agent (or a Sonnet
+    subagent) may not consistently apply. New subsection in Implementation
+    hints provides the prompt template.
