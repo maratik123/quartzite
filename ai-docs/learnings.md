@@ -831,6 +831,22 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
+### 2026-05-08 — process — learnings are append-only; never edit or remove existing entries
+
+**What happened:** A learning entry was deleted because a newer entry contradicted it. User corrected: learnings are a permanent record — every entry stays, including superseded or wrong ones.
+
+**Rule:** Never edit or delete an existing entry in `ai-docs/learnings.md`. Only append new entries. If a prior entry was wrong, write a new entry that corrects it (cross-referencing the old one if helpful). The history of corrections is itself valuable.
+
+**Escalated?** no
+
+### 2026-05-08 — process — on corrections, write to learnings only; do not update instruction files
+
+**What happened:** When the user pointed out `_Simple._` and `#[inline]` should not coexist, the response was to update `code-style.md` and `AGENTS.md` directly. User corrected: corrections go to `ai-docs/learnings.md` only. Instruction files are updated exclusively by `/improve`.
+
+**Rule:** When the user corrects a behaviour or clarifies a rule, append to `ai-docs/learnings.md` and stop. Do not touch `AGENTS.md`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`, `.claude/agents/**`, or `.claude/skills/**` in the same turn. Those files are updated only when the user runs `/improve`.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.
