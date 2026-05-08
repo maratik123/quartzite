@@ -63,8 +63,16 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 |------|----------|--------|------------|
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
 
-> Tracking issues for further deferred items not represented as plans here:
-> #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on per-thread loops ✅ done), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
+Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
+
+- **#35** dynamic_properties — runtime read/write of non-schema properties
+- **#39** signals_blocked serde (persist across serialization) — blocked on #107
+- **#48** BlockingQueued connection type — ready (per-thread loops ✅ implemented)
+- **#52** object mobility / thread migration with stale `thread_id` invalidation
+- **#53** multi-window support — ready (#46, #73 ✅ implemented)
+- **#56** property system extensions — computed properties / bindings / custom getter/setter closures
+- **#58** Python interop crate (`quartzite-python` via PyO3)
+- **#107** object/property serialization layer (snapshot, save/restore)
 
 ## Dependency order
 
