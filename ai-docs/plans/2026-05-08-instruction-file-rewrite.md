@@ -1,6 +1,6 @@
 # Instruction-File Rewrite Plan (v4)
 
-**Status:** in progress (Phase 0 in PR #166; Phase 1 tracked in issues #167–#171)
+**Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); methodology shakedown. **Read [`## Methodology limitations`](#methodology-limitations) below before re-using this template** — the v4.2 framework is method-development, not strong validation.
 **Started:** 2026-05-08
 **Style reference:** [`ai-docs/agent-writing-style.md`](../agent-writing-style.md)
 **Tracked in:** none (this meta-plan has no single GitHub issue; each Phase 1 file has its own — see table below)
@@ -8,12 +8,14 @@
 ## Goal
 
 Rewrite the workspace's instruction files so that both Opus 4.7 and Sonnet 4.6
-reading the same paragraph land on the same interpretation. Test the result
-empirically with a dual-model comprehension probe per file.
+reading the same paragraph land on the same interpretation, and stress-test
+that interpretation with structured probes. **What this empirically validates
+is bounded — see [`## Methodology limitations`](#methodology-limitations).**
 
 Reusable: this plan is intended as a template for future dual-model rewrites
 (e.g., Phase 2 procedural skills, or any new instruction-file family). Cite
-sections of this doc when a future PR follows the same workflow.
+sections of this doc when a future PR follows the same workflow — and read
+the limitations section before claiming a PASS as strong evidence of clarity.
 
 ## Scope
 
@@ -780,6 +782,89 @@ Source paragraph: <file>:<line range>
 Proposed revision: <text>
 ```
 
+## Methodology limitations
+
+This section was added after Phase 1 completed (5 files all PASS round 1 with
+no iteration). Reflecting on the all-PASS rate honestly: it is **either**
+evidence the files were already clear, **or** evidence the test was not
+sensitive enough to surface ambiguity. The available evidence does not
+distinguish between these. Future rewrites and re-runs should account for
+the limitations below.
+
+### What the v4.2 methodology validates
+
+A PASS verdict in v4.2 means: *current methodology found no divergence under
+isolation conditions with two correlated models, on probes drafted by the
+parent agent that drove the workflow.* It does **not** mean: *the file is
+unambiguous in production conditions.*
+
+### Known limitations
+
+| Limitation | What it means | Why it matters | Future improvement |
+|---|---|---|---|
+| **Context-isolation bias** | Subagent prompts strip context (`Do NOT read any other file`) | Real `self-review` / `review-findings` agents read AGENTS.md, the diff, spec, and design before reaching the rule under test — by which point thousands of tokens have shaped their interpretation. The test answers "is this file clear when read alone?", not "is this file clear under realistic context load?" | Add a context-loaded probe round per file: subagent reads file + sister files (the ones it cross-references) + a synthesised realistic diff that exercises the rule. Convergence on isolation but divergence on context = "rule is clear in the abstract but gets lost in workflow noise." See [`## Phase 2 / future improvements`](#phase-2--future-improvements) below. |
+| **Model-correlation bias** | Opus 4.7 and Sonnet 4.6 share training distribution and inductive biases | Identical prompts to two correlated models produce convergent answers via shared bias, not file clarity. A truly independent test needs an out-of-family model (GPT-class, Gemini-class). | **No current access to out-of-family models** in this repo's tooling. Acknowledged limitation, not addressable via methodology change. When the option becomes available, add a third subagent run per file. Until then, weight convergence between Opus + Sonnet as **"two highly correlated reads agree"**, not as "file is unambiguous to readers in general." |
+| **Probe-author selection bias** | The parent agent (driving the workflow) drafts the probes after reading the file | Risk that probes are unconsciously phrased to surface the rules I expect to be clear, not the rules at risk. The Gate 1 user-approval step partially counters this but doesn't eliminate it. | Decouple probe-authoring from rewrite-execution: a separate Opus subagent reads the file + learnings + style spec, drafts probes blind to whether the file is "expected" to pass. The rewrite-execution agent (parent) cannot influence probe wording. |
+| **Closed-question bias** | Probes are mostly yes/no, multiple-choice, or specific-fact | Closed answers produce convergence easily because the answer space is narrow. Open-ended probes ("explain how rule X applies to scenario Y in your own words") would surface interpretation differences that closed forms hide. | Mix in 1–2 open-ended probes per file. Rubric for open-ended is necessarily looser ("must mention concept A; must not contradict concept B") but divergence on open-ended probes is a stronger ambiguity signal than divergence on yes/no. |
+| **No post-validation feedback loop** | After a file passes, we don't track whether real `learnings.md` events keep happening on its rules | The actual test of clarity is "do new misread events on this file's rules occur after validation?" If yes, the test was a false-positive of clarity. Without surveillance, validation is one-shot and unverified. | Post-validation surveillance: monitor `learnings.md` for ~30 days after a file is closed as PASS. New entries targeting that file's rules → add to the file's issue as a re-open trigger. Codify in this plan as a "post-validation surveillance" rule before next use. |
+| **Step 16 minimal sample** | Opus semantic-preservation gate (the v4.2 distinctive contribution) fired exactly once across Phase 1 (#174 only — others had empty diffs) | Calling v4.2 "validated across 5 files" overstates evidence. Step 16 has 1 data point. | Run Step 16 explicitly on every Phase 2 file even when the diff seems trivially-preserving. Track Opus self-review verdicts across runs to build a track record on whether Opus catches subtle weakening Sonnet would miss. |
+| **All-PASS-round-1 rate is a smell** | 45/45 probe convergences across 5 files, no iteration triggered | When every test passes on round 1 with no iteration, it's either (a) files genuinely clean, or (b) test not sensitive enough. Priors should split between these; Phase 1's results don't update strongly toward (a). | Add the calibration probe (below). If models converge confidently on a calibration-probe wrong answer, the test setup itself is converging on biases — strong signal that other PASS results are suspect. |
+| **No calibration probe** | No probe with intentionally-ambiguous file content | Without one, we cannot detect when convergence is the test's bias rather than the file's clarity. | Per file, include 1 calibration probe whose answer is **intentionally underspecified** in the file (a rule the file doesn't actually pin down). Both models converging on the same confident answer = setup itself is converging on training-data biases. Calibration failure = strong signal that PASS results from other probes are suspect. |
+
+### Honest framing in PR / issue closing comments
+
+When a file passes v4.2, the closing comment should say:
+
+> The v4.2 methodology found no divergence on this file under the
+> documented test conditions. This validates clarity-in-isolation against
+> correlated readers, not clarity-in-production-context. See
+> [`## Methodology limitations`](../plans/2026-05-08-instruction-file-rewrite.md#methodology-limitations).
+
+It should NOT say "the file is solid" or "the file is unambiguous". The
+Phase 1 closing comments (#168, #169, #170, #171) do use the stronger
+phrasing — those wordings overstate what the methodology proves.
+
+### Phase 2 / future improvements
+
+When v4.2 is next applied (Phase 2 procedural skills, or a new instruction
+file added later), the workflow should be amended to address the limitations
+above. Concrete changes for next use:
+
+1. **Two probe rounds per file** — isolation round (current) + context round
+   (file + sister files + synthesised realistic diff).
+2. **Decoupled probe-author** — separate Opus subagent drafts probes, parent
+   agent runs the workflow.
+3. **Mix in open-ended probes** — 1–2 per file, looser rubric.
+4. **Add a calibration probe** — 1 per file, intentionally underspecified.
+5. **Post-validation surveillance** — monitor `learnings.md` ~30 days
+   post-PASS; new entries trigger re-open.
+6. **Step 16 always fires** — even on empty diffs (returns trivial PASS but
+   builds the run record).
+7. **Honest framing** — closing comments distinguish "no divergence under
+   test conditions" from "file is unambiguous in production".
+
+Out-of-family model is **aspirational, not currently feasible** — no API
+access in this repo's setup at present. When the tooling supports it, add
+as an 8th change (third subagent run per file).
+
+### Phase 1 retrospective summary
+
+| Aspect | Verdict |
+|---|---|
+| Probe + rubric + structured-answer framework | ✅ Genuine improvement over no testing |
+| Style-violation scan (step 9) | ✅ Mechanical, cheap, catches real anti-patterns |
+| Heavy-section override mechanism | ✅ Worked correctly on `code-style.md` |
+| Cross-reference link audit | ✅ Mechanical, would have caught real anchor breakage |
+| Probe-design lessons (avoid symmetric multi-choice; confusion-traps in required-absent) | ✅ Concrete portable knowledge |
+| Issue-tracking decoupled from PRs (closing comments as record) | ✅ Future readers can audit |
+| Strong validation of file clarity | ❌ **Overstated** — see limitations table above |
+| Step 16 (Opus self-review) cross-run track record | ❌ Only one data point (#174) |
+| Detection of methodology biases | ❌ Not built in — discovered post-hoc |
+
+Phase 1 was a **methodology shakedown** that produced good infrastructure
+and concrete lessons. The infrastructure is reusable; the file-clarity
+claims are weaker than the closing comments suggest.
+
 ## Decision history
 
 - v1 — initial sketch: probes after rewrite (test-after); 2 rounds; flat
@@ -798,7 +883,7 @@ Proposed revision: <text>
   the table is a recommended priority, not a sequencing requirement. Adds
   per-file cross-reference link-sanity audit step (pre-rewrite grep +
   post-rewrite re-grep) so anchor breakages are caught in the same PR.
-- v4.2 — current. Two refinements informed by the #167 execution:
+- v4.2 — two refinements informed by the #167 execution:
   - Step 9 — unprobed sections are not strictly out-of-scope. They may be
     rewritten when the current text contradicts
     `ai-docs/agent-writing-style.md` (e.g., globs as the entire fail-loud
@@ -810,3 +895,16 @@ Proposed revision: <text>
     cross-rule reasoning depth that the parent agent (or a Sonnet
     subagent) may not consistently apply. New subsection in Implementation
     hints provides the prompt template.
+- v4.3 — current. Methodology-limits retrospective added after Phase 1
+  completed (5 files all PASS round 1, 0 iterations). Documents the gap
+  between "what v4.2 actually validates" and "what the closing comments
+  imply." Eight known limitations enumerated (context-isolation bias,
+  model-correlation bias, probe-author selection bias, closed-question
+  bias, no post-validation feedback loop, Step 16 minimal sample,
+  all-PASS-round-1 smell, no calibration probe). Phase 2 / future
+  improvements list 7 concrete addressable changes; out-of-family model
+  noted as aspirational (no current tooling access). Status banner at
+  the top of this doc and the Goal section reframed to direct readers
+  at the limitations section before re-using the template. The v4.2
+  framework remains useful infrastructure; the validation claims it
+  produces are now appropriately bounded.
