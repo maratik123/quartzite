@@ -27,7 +27,7 @@ cargo build
 cargo test                            # all tests
 cargo test test_name                  # filter by substring
 cargo test -- --nocapture             # show stdout
-cargo clippy -- -D warnings           # lint (strict)
+cargo clippy --workspace -- -D warnings   # lint (strict; --workspace catches leaf crates outside the default dep tree)
 cargo fmt                             # fix formatting
 cargo fmt -- --check                  # check only
 RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace   # doc gate (matches CI)

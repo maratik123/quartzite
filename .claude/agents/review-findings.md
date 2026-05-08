@@ -29,6 +29,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 
 ### 1. Safety and correctness
 - `unsafe` blocks: each justified with a comment explaining the invariant?
+- **Panic-index sync.** For every public fn / method with a `# Panics` doc section, **and** every production `.unwrap()` / `.expect(…)` / `panic!` outside `#[cfg(test)]`, verify there is a corresponding entry in `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Production panic site missing from the index → `major`. The `# Panics` doc-section signal is the primary trigger; the grep below is the secondary catch-net.
 - **`unwrap()` / `expect()` / `panic!()` audit:** grep changed files for these outside `#[cfg(test)]` modules. A reason string does NOT make a panicking call acceptable — ask "is there a non-panicking form?" Mandatory substitutions:
   - `Mutex::lock().expect(...)` → `.lock().unwrap_or_else(|e| e.into_inner())`
   - `Condvar::wait*().expect(...)` → `.wait*(...).unwrap_or_else(|e| e.into_inner())`

@@ -151,7 +151,7 @@ finding (Step 11) requires a design change rather than a code fix:
 - After each subtask:
   1. `cargo build` — must compile
   2. `cargo test test_name` — if subtask adds tests
-  3. `cargo fmt`; `cargo clippy -- -D warnings`
+  3. `cargo fmt`; `cargo clippy --workspace -- -D warnings`
   4. Update `.progress.md`
   5. If N=3 of M≥5 → handoff via Agent (see `/context-reset`)
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
@@ -163,11 +163,15 @@ finding (Step 11) requires a design change rather than a code fix:
 1. `cargo build` — compiles clean
 2. `cargo test` — all green
 3. `cargo fmt -- --check` — no formatting drift
-4. `cargo clippy -- -D warnings` — clean
+4. `cargo clippy --workspace -- -D warnings` — clean (`--workspace` is required so leaf crates outside the default dep tree, e.g. `quartzite-renderer`, are linted; the bare form misses them)
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
 6. **actionlint gate** — if this task created or modified any `.github/workflows/*.yml` file, run `actionlint <file>` (or pass every changed workflow file in one invocation) and require a clean pass. Skip the gate only when no workflow file was touched. See AGENTS.md *Build & Test → Workflow files*.
-7. For each AC — confirm covered by test or manual verification
-8. Show summary table:
+7. **Panic-index sync.** Scan new/modified production sources for documented or direct panic sites and update `ai-docs/panic-index.md` if any are introduced:
+   - `rg '^\s*///\s*#\s*Panics' <changed-files>` — documented panic behaviour (primary signal; always present when a panic exists)
+   - `rg '\.expect\(|\.unwrap\(|panic!' <changed-files>` filtered to lines outside `#[cfg(test)]` modules — direct panic call sites
+   For each new hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Stage `panic-index.md` with the implementation commit. Skip when this task added no new production panics.
+8. For each AC — confirm covered by test or manual verification
+9. Show summary table:
 
 ```
 | # | Criterion | Test / Verification | Status |
@@ -175,7 +179,7 @@ finding (Step 11) requires a design change rather than a code fix:
 | AC1 | ... | tests::name | ✅ PASS |
 ```
 
-9. On ALL PASS → proceed to Step 9.5
+10. On ALL PASS → proceed to Step 9.5
 
 ### Step 9.5: Update documentation
 
@@ -223,7 +227,7 @@ For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of 
 After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 1. `cargo build` — must compile
 2. `cargo test` — all green
-3. `cargo clippy -- -D warnings` — clean
+3. `cargo clippy --workspace -- -D warnings` — clean
 4. Update `.progress.md`
 5. **PR body sync (unconditional).** Run `gh pr view <N> --json title,body` and re-read the body. Decide *after* reading whether `gh pr edit` is needed: edit if the body contradicts the new commits (renames, scope drift, AC status flips, cited counts that drifted), skip if it's still accurate. Never skip the read. Applies to every push during this step — not just review-fix commits that change public API. See AGENTS.md *Workflow*.
 6. **Resolve fixed review threads (unconditional).** For every PR review comment addressed by a `✅ Fixed` finding in this round, follow the GraphQL recipe in AGENTS.md *Workflow* → "PR review comment resolution" verbatim — reply via REST, query unresolved thread IDs via `reviewThreads`, then `resolveReviewThread` each fixed thread and verify `isResolved: true`. Threads behind `⚠️ Objected` findings stay open. Skipping this sub-step has caused the same correction twice (`ai-docs/learnings.md` entries #33 and #44) — the recipe is already in AGENTS.md; this sub-step exists so it is actually consulted.
@@ -237,24 +241,32 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-4. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-5. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, and spec/design now in `done/`.
-6. Commit:
+4. **Regenerate dependent artefacts.** If any source for an auto-generated file
+   was touched in this commit, regenerate now and stage the artefact in the same
+   commit so the CI sync-gate runs green on first push:
+   - `ai-docs/plans/INDEX.md` or `ai-docs/plans/done/**` changed → run
+     `bash scripts/gen-roadmap.sh` and stage `ROADMAP.md`.
+   - When new generators land, append the source→artefact relationship to
+     `ai-docs/context.md` (the auto-derived-artefact registry) and add a bullet
+     here.
+5. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+6. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), and spec/design now in `done/`.
+7. Commit:
    ```
    feat(<crate>): <short imperative description>
 
    <1-3 lines: what changed and why; key ACs covered>
    N new tests; all M tests green.
    ```
-7. `git push -u origin <branch>`
-8. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+8. `git push -u origin <branch>`
+9. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
    - **Summary** (bullet list of what changed)
    - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
      - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
      - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
      - Spec was written with `Tracked in: none` → omit this section
    - **Test plan** (checklist: one line per AC, plus clippy/build)
-9. Post the PR URL to the user.
+10. Post the PR URL to the user.
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
 
@@ -269,9 +281,9 @@ After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Work
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy -- -D warnings` clean? `cargo doc --no-deps --workspace` clean? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace` clean? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |

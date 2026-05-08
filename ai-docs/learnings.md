@@ -54,9 +54,7 @@ The workspace may grow more such relationships (e.g., a future tool that generat
 
 **How to apply:** in the `/task` Step 12 checklist (or its skill prose), add a *Regenerate dependent artefacts* sub-step that lists the known auto-generation triggers. Today: "if `ai-docs/plans/INDEX.md` or `ai-docs/plans/done/**` changed in this commit, run `./scripts/gen-roadmap.sh` and stage `ROADMAP.md`". When new generators land, append to the list.
 
-**Escalated?** no
-
-> Candidate for escalation to `.claude/skills/task/SKILL.md` Step 12 — adding a "Regenerate dependent artefacts" bullet between "update INDEX.md" and "stage all changed files". `/improve` should consider when ≥ 2 occurrences accumulate; the sync-gate caught this one, so the cost was bounded.
+**Escalated?** skill:task
 
 ### 2026-05-07 — documentation — `document_features::document_features!()` invocation must sit inline within the `//!` crate doc, immediately after a `## Feature flags` heading; main vs diagnostic features must be sectioned in Cargo.toml
 
@@ -786,7 +784,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** Always run `cargo clippy --workspace -- -D warnings` (not just `cargo clippy -- -D warnings`) to catch lints in leaf crates. The default-dep-tree clippy run is a subset, not a full check.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:code-review
 
 ### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
 
@@ -799,7 +797,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Why not in design or as an AC:** The design phase cannot enumerate panic sites that don't exist yet. `# Panics` sections are the canonical indicator — they are written at implementation time, so the check belongs at Step 9 after the code exists.
 
-**Escalated?** no
+**Escalated?** skill:task, agent:self-review, agent:review-findings
 
 ### 2026-05-08 — process — regenerate ROADMAP.md after every INDEX.md change
 
@@ -807,7 +805,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Whenever `ai-docs/plans/INDEX.md` is modified, run `bash scripts/gen-roadmap.sh` and stage `ROADMAP.md` in the same commit. The CI gate enforces this — ROADMAP.md must always be in sync with INDEX.md at commit time.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
