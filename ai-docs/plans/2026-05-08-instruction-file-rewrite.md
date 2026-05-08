@@ -1,6 +1,6 @@
 # Instruction-File Rewrite Plan (v4)
 
-**Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); methodology shakedown. **Read [`## Methodology limitations`](#methodology-limitations) below before re-using this template** — the v4.2 framework is method-development, not strong validation.
+**Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); methodology shakedown. **Read [`## Methodology limitations`](#methodology-limitations) and [`## Historical replay testing`](#historical-replay-testing-complement-to-v42) below before re-using this template** — v4.2 is clarity-stress-test, replay is rule-fires-on-real-input validation. v4.4 adds the replay methodology with one validated pilot.
 **Started:** 2026-05-08
 **Style reference:** [`ai-docs/agent-writing-style.md`](../agent-writing-style.md)
 **Tracked in:** none (this meta-plan has no single GitHub issue; each Phase 1 file has its own — see table below)
@@ -865,6 +865,143 @@ Phase 1 was a **methodology shakedown** that produced good infrastructure
 and concrete lessons. The infrastructure is reusable; the file-clarity
 claims are weaker than the closing comments suggest.
 
+## Historical replay testing (complement to v4.2)
+
+Phase 1 retrospective ([`## Methodology limitations`](#methodology-limitations))
+identified that v4.2 synthetic-probe methodology validates clarity-in-isolation
+against correlated readers, but doesn't measure whether rules actually fire on
+real input. **Historical replay testing** addresses this directly: feed a real
+historical buggy state to the current `self-review` / `review-findings` agent
+and check whether it catches the documented misread.
+
+Treat as a **complement** to v4.2, not a replacement. v4.2 = cheap clarity
+stress-test for new files; replay = expensive but high-information-value deep
+validation against documented misreads.
+
+### When to run
+
+- After a major instruction-file rewrite — confirms whether the rewrite
+  preserved enforcement, not just clarity
+- When `/improve` proposes escalating a rule that was previously v4.2-PASS —
+  replay confirms whether the proposed escalation is necessary, or whether
+  the existing rule was already sufficient and the misread was a one-off.
+  **A `/improve`-proposed escalation on a v4.2-PASS rule is the canonical
+  re-open trigger** for the corresponding closed Phase 1 issue.
+- Periodic surveillance on a rotating set of historical cases
+
+### Methodology
+
+**Inputs per case:**
+1. A `learnings.md` entry with file/line locations of the documented misread
+2. The buggy commit SHA (state where the misread was present)
+3. (Optional) historical context — spec/design from the PR
+
+**Setup — git worktree:**
+
+```bash
+# 1. Create replay worktree at the buggy state
+git worktree add /tmp/replay-<short-sha> <BUGGY_COMMIT>
+
+# 2. (Variant A — recommended) Overlay CURRENT instruction files
+cd /tmp/replay-<short-sha>
+git checkout master -- AGENTS.md \
+  ai-docs/code-style.md ai-docs/doc-convention.md ai-docs/agent-writing-style.md \
+  .claude/agents/review-findings.md .claude/agents/self-review.md
+```
+
+**Variants:**
+
+| Variant | Tests |
+|---|---|
+| **A — replay-on-current-rules** (overlay current instruction files) | Whether *current* rules would catch the misread. Higher-info test for retrospective. |
+| **B — replay-on-historical-rules** (no overlay) | How the agent actually performed at the time. Baseline / regression check. |
+
+**Subagent prompt** (review-findings, whole-codebase):
+
+```
+You are running as the review-findings agent on a quartzite codebase review.
+
+CRITICAL paths:
+- Codebase under review: /tmp/replay-<sha>
+- Use ABSOLUTE paths starting with /tmp/replay-<sha>/ for ALL reads
+- Do NOT read from the main checkout — different unrelated codebase
+
+PROCEDURE:
+1. Read /tmp/replay-<sha>/.claude/agents/review-findings.md and follow it
+2. Read AGENTS.md, ai-docs/code-style.md, ai-docs/doc-convention.md from worktree
+3. Read every *.spec.md and *.design.md in /tmp/replay-<sha>/ai-docs/plans/done/
+4. Walk the source tree
+5. Apply checklist mechanically. Output findings.
+```
+
+For `self-review` (diff-based), additionally specify the base_commit and HEAD.
+
+**Dual-model:** spawn Opus + Sonnet in parallel, same as v4.2.
+
+**Ground-truth comparison:**
+
+| Subagent flagged the documented violation? | Outcome |
+|---|---|
+| Yes, correct location + severity | ✅ True positive — rule fires on real input |
+| Yes, wrong severity | ⚠️ Partial — caught but undermarked |
+| No (or different findings, missed the known violation) | ❌ False negative — **re-open trigger** for the corresponding v4.2-PASS Phase 1 issue |
+
+**Cleanup:**
+
+```bash
+git worktree remove /tmp/replay-<sha> [--force]
+```
+
+### Methodology lessons (from the pilot run below)
+
+- **Replay surfaces both ground-truth signal AND noise.** Current-rules-on-historical-code may flag historical code that was correct under historical rules. Frame ground truth as the test signal; surface additional findings separately — they're audit byproduct, not test failure.
+- **Ground-truth labelling requires care.** Pull file/line and rule from the `learnings.md` entry + the fix-PR's diff + the escalation PR's instruction-file update.
+- **Spec/design unavailability:** older PRs may not have these. `review-findings` (whole-codebase) avoids spec-construction; `self-review` (diff-based) needs a synthesised minimal spec.
+- **Methodology divergence vs file-clarity divergence:** if Opus and Sonnet flag the violation but disagree on grouping or severity, that's a rule-wording question, not a file-clarity failure. Don't conflate.
+
+### Cost vs v4.2 synthetic-probe rerun
+
+Roughly the same cost (~1–2 hours per case for setup + dual-model run + analysis), but **much stronger evidence per case** because the test signal connects to documented ground truth rather than author-selected probes.
+
+### Pilot run — PR #149 `document_features` placement
+
+**Setup:**
+- Buggy commit: `22459307bd737235bd0543177766e2f527a0d4e6` (master pre-PR-#149)
+- Variant A — current instruction files overlaid on historical worktree
+- Documented misreads (ground truth):
+  - `src/lib.rs:9` — `document_features!()` BEFORE `//!` block (forbidden position A)
+  - `quartzite-core/src/lib.rs:15` — `document_features!()` AFTER attribute block, no preceding `## Feature flags` heading (forbidden position B)
+
+**Subagents:** Opus 4.7 and Sonnet 4.6 spawned in parallel via `general-purpose` `Agent` calls with `model` overrides.
+
+**Results:** ✅ **TRUE POSITIVE** for both. Both caught both violations as `major`, citing the correct rule (`doc-convention.md` § Feature flags rendering / `review-findings.md` § Checklist § 6).
+
+| Aspect | Opus | Sonnet |
+|---|---|---|
+| Ground truth caught? | ✅ both locations | ✅ both locations |
+| Severity | `major` | `major` |
+| Rule cited | `doc-convention.md` § Feature flags rendering | `doc-convention.md` § Feature flags rendering |
+| Grouping | One combined finding (applied "group same pattern" rule) | Two separate findings (kept ungrouped) |
+
+**Methodology divergence (interesting, not a failure):** Opus applied the `review-findings.md` § Rules "group same pattern across files into one finding" rule; Sonnet kept the findings separate. Both readings are defensible — this is a rule-wording question, not a file-clarity failure. Both models recognised both violations correctly.
+
+**Additional findings (~10–15 per agent, out of scope for ground truth):** marker-form discrepancies in `ObjectExt` trait methods, tracing-span gaps, file-size limits, etc. These are **current-rules applied to historical code** — historical code predates current rule clarifications. For replay-test purposes these are noise. For codebase-quality purposes they may be interesting audit byproducts, but each needs separate adjudication.
+
+**Implications for v4.2 verdicts:**
+- The `review-findings.md` v4.2 PASS verdict (#171) is **consistent** with this replay — the rules in `review-findings.md` do fire on at least this one documented misread.
+- The replay does not invalidate the v4.2 PASS — it provides positive evidence that the v4.2 PASS was warranted for this rule.
+- For full retrospective coverage, replay 2–3 more cases targeting different rules (marker-mutex, mutex `.expect()`, `--workspace` clippy).
+
+### Future replay batch (if undertaken)
+
+| Candidate | Tests rule | Expected outcome |
+|---|---|---|
+| Marker-mutex `_Simple._` + `#[inline]` co-occurrence (recent recurrence) | `_Simple._` / `#[inline]` mutual exclusion (AXIOM in code-style.md) | True positive expected |
+| Mutex `.lock().expect(...)` in production code | `.expect()` substitution rule (Library safety idioms) | True positive expected |
+| `cargo clippy` without `--workspace` | `--workspace` clippy rule (AGENTS.md Build & Test) | True positive expected (rule mandates the form) |
+
+If 2–3 replays produce true positives, the v4.2 PASS verdicts are well-supported. If any produce false negatives, that's a re-open trigger for the corresponding closed Phase 1 issue.
+
 ## Decision history
 
 - v1 — initial sketch: probes after rewrite (test-after); 2 rounds; flat
@@ -895,16 +1032,20 @@ claims are weaker than the closing comments suggest.
     cross-rule reasoning depth that the parent agent (or a Sonnet
     subagent) may not consistently apply. New subsection in Implementation
     hints provides the prompt template.
-- v4.3 — current. Methodology-limits retrospective added after Phase 1
-  completed (5 files all PASS round 1, 0 iterations). Documents the gap
-  between "what v4.2 actually validates" and "what the closing comments
-  imply." Eight known limitations enumerated (context-isolation bias,
-  model-correlation bias, probe-author selection bias, closed-question
-  bias, no post-validation feedback loop, Step 16 minimal sample,
-  all-PASS-round-1 smell, no calibration probe). Phase 2 / future
-  improvements list 7 concrete addressable changes; out-of-family model
-  noted as aspirational (no current tooling access). Status banner at
-  the top of this doc and the Goal section reframed to direct readers
-  at the limitations section before re-using the template. The v4.2
-  framework remains useful infrastructure; the validation claims it
-  produces are now appropriately bounded.
+- v4.3 — methodology-limits retrospective added after Phase 1 completed
+  (5 files all PASS round 1, 0 iterations). Documents the gap between
+  "what v4.2 actually validates" and "what the closing comments imply."
+  Eight known limitations enumerated; seven addressable Phase-2
+  improvements listed (out-of-family model aspirational, no current
+  tooling access). Status banner + Goal section reframed to direct
+  readers at the limitations section before re-using the template.
+- v4.4 — current. Adds **Historical replay testing** as a complement to
+  v4.2/v4.3, addressing the strongest limitation (no connection to
+  ground truth). Methodology section provides the worktree-based
+  setup, two variants (current rules vs historical rules), subagent
+  prompt template, ground-truth comparison table, and cleanup. Pilot
+  run on PR #149 (`document_features` placement) with both Opus and
+  Sonnet caught both documented violations as `major` — TRUE POSITIVE.
+  Confirms `review-findings.md` v4.2 PASS verdict (#171) is consistent
+  with rule-fires-on-real-input. The `/improve`-proposed-escalation-on-
+  v4.2-PASS-rule mechanism documented as the canonical re-open trigger.
