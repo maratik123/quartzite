@@ -823,6 +823,13 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
+### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._` (superseded by next entry)
+
+**What happened:** `WidgetExt` default method bodies (e.g. `fn geometry(&self) -> Rect { ... }`) carried `/// _Simple._` in their doc but no `#[inline]`. Reviewer flagged that the doc marker carries no optimizer hint. `#[inline]` was added alongside `/// _Simple._`.
+
+**Rule (superseded):** Default method bodies in a `trait` definition that qualify as simple need both `/// _Simple._` and `#[inline]`. — **This was wrong.** See next entry: the two are mutually exclusive; drop `_Simple._` when `#[inline]` is present.
+
+**Escalated?** no
 
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
