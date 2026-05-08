@@ -65,7 +65,6 @@ impl Brush {
     ///
     /// assert_eq!(Brush::solid(Color::WHITE).kind(), BrushKind::Solid(Color::WHITE));
     /// ```
-    // _Simple._
     #[inline]
     pub const fn kind(self) -> BrushKind {
         self.kind
@@ -74,7 +73,6 @@ impl Brush {
 
 impl Default for Brush {
     /// Returns a solid opaque white brush.
-    // _Simple._
     #[inline]
     fn default() -> Self {
         Self::solid(Color::WHITE)

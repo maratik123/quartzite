@@ -815,13 +815,14 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
-### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._`
+### 2026-05-08 — code-style — `_Simple._` and `#[inline]` are mutually exclusive; drop `_Simple._` when `#[inline]` is present
 
-**What happened:** `WidgetExt` default method bodies (e.g. `fn geometry(&self) -> Rect { ... }`) carried `/// _Simple._` in their doc but no `#[inline]`. Reviewer correctly flagged that `/// _Simple._` is a documentation convention and carries no optimizer hint. Default method bodies in a `trait` definition are not "inside `impl Trait for ConcreteFoo`", so they were missed by the existing `#[inline]` rule. Without `#[inline]` on the default body, the compiler will not inline it cross-crate without LTO.
+**What happened:** Default trait method bodies in `WidgetExt` ended up with both `/// _Simple._` in the doc comment and `#[inline]` on the fn. Reviewer corrected: if a fn already has `#[inline]`, `_Simple._` is redundant and should be dropped. `_Simple._` is only for positions where `#[inline]` can't go (abstract trait method declarations with no body, generic impls).
 
-**Rule:** Default method bodies in a `trait` definition that qualify as simple (≤1 non-simple call, no branches/loops) need **both** `/// _Simple._` in the doc **and** `#[inline]` on the `fn`. `/// _Simple._` marks the semantic; `#[inline]` carries the cross-crate inlining hint. Neither substitutes for the other. The `#[inline]` rule ("concrete fn or method inside `impl Trait for ConcreteFoo`") implicitly covers trait default bodies — treat them as concrete fns for this purpose.
+**Rule:** `_Simple._` (in any form: `/// _Simple._`, `// _Simple._`) and `#[inline]` are mutually exclusive on the same fn. Use `#[inline]` on any fn that has a body and is in a concrete position (concrete fn, default trait method, `impl Trait for ConcreteFoo` method). Use `_Simple._` only where `#[inline]` doesn't apply: abstract method declarations (no body) and generic impl methods (`impl<T> Trait for Foo<T>`). Never annotate the same fn with both.
 
 **Escalated?** no
+
 
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 

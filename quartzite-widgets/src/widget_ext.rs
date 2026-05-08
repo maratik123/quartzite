@@ -19,8 +19,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns the bounding rectangle in parent coordinates.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -35,8 +33,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Sets the bounding rectangle.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -59,8 +55,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns the widget's top-left position in parent coordinates.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -77,8 +71,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns the widget's current size.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -93,8 +85,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Resizes the widget, keeping its current position.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -117,8 +107,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Moves the widget to `point`, keeping its current size.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -144,8 +132,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Shows the widget by setting `visible = true`.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -161,8 +147,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Hides the widget by setting `visible = false`.
-    ///
-    /// _Simple._
     ///
     /// # Examples
     ///
@@ -181,8 +165,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns `true` when the widget is visible.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -197,8 +179,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Sets the visibility flag directly.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -222,8 +202,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns `true` when the widget accepts user input.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -238,8 +216,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Enables or disables the widget.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -263,8 +239,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Marks the widget as needing a repaint on the next render pass.
     ///
-    /// _Simple._
-    ///
     /// Sets `WidgetBase::pending_update` to `true`; the renderer consumes this flag.
     ///
     /// # Examples
@@ -285,8 +259,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns the preferred size hint; defaults to `Size::default()` (zero).
     ///
-    /// _Simple._
-    ///
     /// Override in concrete widgets to return a meaningful hint.
     ///
     /// # Examples
@@ -303,8 +275,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     /// Returns the minimum size from `WidgetBase::min_size`.
-    ///
-    /// _Simple._
     ///
     /// # Examples
     ///
@@ -323,8 +293,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Returns the maximum size from `WidgetBase::max_size`.
     ///
-    /// _Simple._
-    ///
     /// # Examples
     ///
     /// ```
@@ -342,8 +310,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Paints the widget using `painter`. Default implementation is a no-op.
     ///
-    /// _Simple._
-    ///
     /// Override in concrete widgets to render content.
     ///
     /// # Parameters
@@ -354,8 +320,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Called when the widget is resized to `size`.
     ///
-    /// _Simple._
-    ///
     /// # Parameters
     ///
     /// - `size`: the new widget size.
@@ -363,20 +327,14 @@ pub trait WidgetExt: AsWidget {
     fn on_resize(&mut self, _size: Size) {}
 
     /// Called when the widget becomes visible.
-    ///
-    /// _Simple._
     #[inline]
     fn on_show(&mut self) {}
 
     /// Called when the widget is hidden.
-    ///
-    /// _Simple._
     #[inline]
     fn on_hide(&mut self) {}
 
     /// Called when a mouse button is pressed over the widget.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -386,8 +344,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Called when a mouse button is released over the widget.
     ///
-    /// _Simple._
-    ///
     /// # Parameters
     ///
     /// - `event`: the mouse release event.
@@ -395,8 +351,6 @@ pub trait WidgetExt: AsWidget {
     fn on_mouse_release(&mut self, _event: &MouseEvent) {}
 
     /// Called when a key is pressed while the widget has focus.
-    ///
-    /// _Simple._
     ///
     /// # Parameters
     ///
@@ -406,8 +360,6 @@ pub trait WidgetExt: AsWidget {
 
     /// Called when a key is released while the widget has focus.
     ///
-    /// _Simple._
-    ///
     /// # Parameters
     ///
     /// - `event`: the key release event.
@@ -415,14 +367,10 @@ pub trait WidgetExt: AsWidget {
     fn on_key_release(&mut self, _event: &KeyEvent) {}
 
     /// Called when the widget gains keyboard focus.
-    ///
-    /// _Simple._
     #[inline]
     fn on_focus_in(&mut self) {}
 
     /// Called when the widget loses keyboard focus.
-    ///
-    /// _Simple._
     #[inline]
     fn on_focus_out(&mut self) {}
 }
