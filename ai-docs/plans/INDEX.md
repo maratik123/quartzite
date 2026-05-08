@@ -63,8 +63,16 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 |------|----------|--------|------------|
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
 
-> Tracking issues for further deferred items not represented as plans here:
-> #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on per-thread loops ✅ done), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
+Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
+
+- **#35** dynamic_properties — runtime read/write of non-schema properties
+- **#39** signals_blocked serde (persist across serialization) — blocked on #107
+- **#48** BlockingQueued connection type — ready (per-thread loops ✅ implemented)
+- **#52** object mobility / thread migration with stale `thread_id` invalidation
+- **#53** multi-window support — ready (#46, #73 ✅ implemented)
+- **#56** property system extensions — computed properties / bindings / custom getter/setter closures
+- **#58** Python interop crate (`quartzite-python` via PyO3)
+- **#107** object/property serialization layer (snapshot, save/restore)
 
 ## Dependency order
 
@@ -87,7 +95,7 @@ core-types ✅
 
 Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
 
-Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facade, public-api-docs, lookup-perf, inline-simple-fns, recursive-inline-annotations, signals-blocked, receiver-guard-auto, connect-queued-codegen, signal-emit-checked, macro-codegen-improvements, object-part-redesign, doc-convention, signal-emit-rename, signal-emit-macro, signal-to-signal, per-thread-event-loops, generic-fn-split, criterion-benchmarks (10 benches; 3 Bencher CI workflows), macro-object-bench (6 macro-derived criterion benches in root facade crate), codegen-simple-marker (dropped `#[inline]` from generated trait-impl methods; added missing `/// _Simple._` to `IntoValue::into_value` trait declaration; 10 codegen tests updated), codegen-inline-concrete-trait-impls (restored `#[inline]` on concrete-struct trait-impl method emissions in all three macro codegen modules; adds `generics` field to `ObjectImplInput`/`MetaEnumInput`; 11 new codegen tests). These touched multiple crates and are not part of the dependency tree.
+Maintenance plans (cross-cutting, all ✅): see [`../context.md` § Maintenance plans](../context.md#maintenance-plans-cross-cutting) for the canonical list. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
