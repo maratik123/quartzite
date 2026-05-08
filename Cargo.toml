@@ -9,6 +9,7 @@ members = [
     "quartzite-paint-api",
     "quartzite-paint",
     "quartzite-renderer",
+    "quartzite-widgets",
 ]
 resolver = "2"
 
@@ -38,6 +39,8 @@ std = ["quartzite-core/std", "quartzite-geometry/std"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]
+## Enable the built-in widget system (`quartzite-widgets` crate).
+widgets = ["dep:quartzite-widgets"]
 
 #! ### Diagnostic features
 #!
@@ -55,6 +58,7 @@ quartzite-runtime   = { path = "quartzite-runtime" }
 quartzite-geometry  = { path = "quartzite-geometry", default-features = false }
 quartzite-events    = { path = "quartzite-events", default-features = false }
 quartzite-paint-api = { path = "quartzite-paint-api", default-features = false }
+quartzite-widgets   = { path = "quartzite-widgets", optional = true }
 document-features   = "0.2"
 
 [[example]]

@@ -17,10 +17,10 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 - **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
 - **Painting API** (`quartzite-paint-api`) — `Painter` trait, `Color`, `Pen`, `Brush` — `no_std`-compatible.
 - **Renderer scaffold** (`quartzite-renderer`) — `WindowedApplication` + `VelloPainter` skeleton (vello + wgpu + winit).
+- **Widgets** (`quartzite-widgets`) — `WidgetBase`, `WidgetExt`, layouts (`BoxLayout`, `GridLayout`), and built-in widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
 
 ## Forward scope
 
-- **Widgets** (`quartzite-widgets`) — `Widget` trait built on the painting API.
 - **Style system** (`quartzite-style`) — declarative styling on top of widgets.
 - **Full renderer** — complete `VelloPainter` wgpu/vello surface setup.
 
@@ -31,7 +31,7 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 
 ## Status
 
-Early development. Core crates are implemented; widget and painting layers are next.
+Early development. Core crates and the widget system are implemented; full painting and theming layers are next.
 
 | Crate | Status |
 |---|---|
@@ -44,7 +44,7 @@ Early development. Core crates are implemented; widget and painting layers are n
 | `quartzite-paint-api` | ✅ implemented |
 | `quartzite-paint` | ✅ stub (full impl planned #47) |
 | `quartzite-renderer` | ✅ scaffold (WindowedApplication + VelloPainter skeleton) |
-| `quartzite-widgets` | planned (#46) |
+| `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style` | planned (#47) |
 
 ## Usage

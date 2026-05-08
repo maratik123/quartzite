@@ -1,0 +1,39 @@
+//! Widget system for quartzite: base widget hierarchy, layout system, and built-in widgets.
+//!
+//! # Overview
+//!
+//! The core types are [`WidgetBase`] (the hierarchy root) and [`WidgetExt`] (the blanket
+//! extension trait). All concrete widget types derive [`quartzite_macros::Extend`] with
+//! `#[base] widget_base: WidgetBase`, inheriting the full `AsWidget` and `AsObject` chains.
+//!
+//! Layout is handled by [`Layout`] — a resolver-parameterised trait implemented by
+//! [`BoxLayout`] and [`GridLayout`]. Geometry distribution requires a [`WidgetResolver`]
+//! that maps [`quartzite_core::ObjectId`] to `&mut dyn AsWidget`.
+//!
+//! # Features
+//!
+//! - [`widgets`] — all built-in concrete widgets (`Label`, `Button`, `LineEdit`, …)
+//! - [`layout`] — layout types (`BoxLayout`, `GridLayout`)
+#![deny(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::missing_errors_doc)]
+#![warn(clippy::missing_panics_doc)]
+#![warn(clippy::missing_safety_doc)]
+#![warn(clippy::doc_markdown)]
+#![warn(clippy::undocumented_unsafe_blocks)]
+#![deny(missing_docs)]
+
+pub mod enums;
+pub mod font;
+pub mod layout;
+pub mod palette;
+pub mod widget_base;
+pub mod widget_ext;
+pub mod widgets;
+
+pub use enums::{Alignment, CursorShape, FocusPolicy, SizePolicy};
+pub use font::Font;
+pub use layout::{BoxLayout, Direction, GridCell, GridLayout, Layout, WidgetResolver};
+pub use palette::Palette;
+pub use widget_base::{AsWidget, WidgetBase};
+pub use widget_ext::WidgetExt;
+pub use widgets::{Button, Container, Label, LineEdit, ScrollArea, ScrollPolicy, TextEdit};

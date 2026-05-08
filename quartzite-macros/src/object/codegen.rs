@@ -229,8 +229,11 @@ fn emit_write_property(type_ident: &Ident, props: &[PropField]) -> TokenStream {
             let notify_emit = p.notify.as_ref().map(|sig_ident| {
                 // CONSTRAINT: the notify signal must be `Signal<(PropType,)>` — one
                 // element tuple matching the property's type. Enforced at compile time.
+                // Clone from the field *after* assignment so:
+                // (a) type inference works (the assignment fixes the type of `v`), and
+                // (b) signals are emitted after the field is updated (standard semantics).
                 quote! {
-                    let __notify_val = v.clone();
+                    let __notify_val = this.#field.clone();
                     #cr::emit!(this.#sig_ident, &(__notify_val,));
                 }
             });
@@ -319,57 +322,50 @@ fn emit_connect_signal_dynamic(type_ident: &Ident, signals: &[SignalField]) -> T
 
 fn emit_signal_wrappers(type_ident: &Ident, signals: &[SignalField]) -> TokenStream {
     let cr = crate_root();
-    let methods: Vec<TokenStream> = signals.iter().filter(|s| !s.builtin).map(|s| {
-        let field = &s.ident;
-        let fn_name = Ident::new(&format!("emit_{field}"), field.span());
-        let fn_name_str = fn_name.to_string();
-        let args_ty = &s.args_ty;
-        let elems = tuple_elems(args_ty);
-        let params: Vec<TokenStream> = elems
-            .iter()
-            .enumerate()
-            .map(|(i, ty)| {
-                let arg = Ident::new(&format!("arg{i}"), field.span());
-                quote! { #arg: #ty }
-            })
-            .collect();
-        let arg_idents: Vec<Ident> = (0..elems.len())
-            .map(|i| Ident::new(&format!("arg{i}"), field.span()))
-            .collect();
-        let parameters_doc = if elems.is_empty() {
-            quote! {}
-        } else {
-            let bullets = (0..elems.len()).map(|i| {
-                let bullet = format!(
-                    " - `arg{i}`: the {i}-th positional argument forwarded to slots."
-                );
-                quote! { #[doc = #bullet] }
-            });
+    let methods: Vec<TokenStream> = signals
+        .iter()
+        .filter(|s| !s.builtin)
+        .map(|s| {
+            let field = &s.ident;
+            let fn_name = Ident::new(&format!("emit_{field}"), field.span());
+            let args_ty = &s.args_ty;
+            let elems = tuple_elems(args_ty);
+            let params: Vec<TokenStream> = elems
+                .iter()
+                .enumerate()
+                .map(|(i, ty)| {
+                    let arg = Ident::new(&format!("arg{i}"), field.span());
+                    quote! { #arg: #ty }
+                })
+                .collect();
+            let arg_idents: Vec<Ident> = (0..elems.len())
+                .map(|i| Ident::new(&format!("arg{i}"), field.span()))
+                .collect();
+            let parameters_doc = if elems.is_empty() {
+                quote! {}
+            } else {
+                let bullets = (0..elems.len()).map(|i| {
+                    let bullet =
+                        format!(" - `arg{i}`: the {i}-th positional argument forwarded to slots.");
+                    quote! { #[doc = #bullet] }
+                });
+                quote! {
+                    #[doc = ""]
+                    #[doc = " # Parameters"]
+                    #[doc = ""]
+                    #(#bullets)*
+                }
+            };
             quote! {
-                #[doc = ""]
-                #[doc = " # Parameters"]
-                #[doc = ""]
-                #(#bullets)*
+                #[doc = " Emits this signal unless signals are blocked on this object."]
+                #parameters_doc
+                #[inline]
+                pub fn #fn_name(&mut self, #(#params),*) {
+                    #cr::emit!(self.#field, &(#(#arg_idents,)*));
+                }
             }
-        };
-        let example_args = (0..elems.len())
-            .map(|i| format!("arg{i}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        let example_doc = format!(
-            " # Examples\n\n```no_run\n# fn example(obj: &mut Emitter) {{\n#     obj.{fn_name_str}({example_args});\n# }}\n```"
-        );
-        quote! {
-            #[doc = " Emits this signal unless signals are blocked on this object."]
-            #parameters_doc
-            #[doc = ""]
-            #[doc = #example_doc]
-            #[inline]
-            pub fn #fn_name(&mut self, #(#params),*) {
-                #cr::emit!(self.#field, &(#(#arg_idents,)*));
-            }
-        }
-    }).collect();
+        })
+        .collect();
     if methods.is_empty() {
         return quote! {};
     }

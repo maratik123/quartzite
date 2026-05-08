@@ -6,6 +6,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [widgets](done/2026-05-01-widgets.spec.md) | `quartzite-widgets` | ✅ implemented (64 unit + 82 doc tests) | — |
 | [project-docs](done/2026-05-08-project-docs.spec.md) | `quartzite` (facade) + repo-level docs + CI | ✅ implemented (0 new tests; README description block + comprehensive `lib.rs` rustdoc + `CONTRIBUTING.md` + auto-generated `ROADMAP.md` + CI sync-gate) | — |
 | [generic-simple-tags](done/2026-05-07-generic-simple-tags.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; annotation-only) | — |
 | [coverage-ci](done/2026-05-07-coverage-ci.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
@@ -60,7 +61,6 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
-| [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | graphics-stack #73 ✅ resolved — now unblocked — tracked in #46 |
 
 > Tracking issues for further deferred items not represented as plans here:
 > #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on per-thread loops ✅ done), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
@@ -77,8 +77,8 @@ core-types ✅
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets (#46)              🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
-│   │   └── paint-style/style      🔴 blocked on widgets #46 (needs AsWidget) + paint #47
+│   ├── widgets (#46)              ✅ implemented
+│   │   └── paint-style/style      🔴 blocked on paint #47
 │   └── paint-style/paint (#47)    🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
@@ -90,8 +90,8 @@ Maintenance plans (cross-cutting, all ✅): code-quality-cleanup, docs-and-facad
 
 ## Suggested next steps
 
-1. **Start** graphics-stack (geometry-events done; multi-platform CI now live; needs `quartzite-paint-api` thin crate then `quartzite-renderer`). This is the **single bottleneck** unblocking widgets (#46), paint+style (#47), and multi-window (#53).
-2. **After paint-api lands**, widgets (#46) and the paint portion of #47 unblock; paint-style/style and multi-window (#53) follow once widgets is done.
+1. **Start paint (#47)** — `quartzite-paint` full implementation (graphics-stack #73 ✅ resolved, widgets #46 ✅ done). This is the **single blocker** remaining for paint-style/style and multi-window (#53).
+2. **After paint #47 lands**, paint-style/style spec can activate; multi-window (#53) follows.
 3. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land

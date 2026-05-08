@@ -1977,6 +1977,7 @@ dependencies = [
  "quartzite-macros",
  "quartzite-paint-api",
  "quartzite-runtime",
+ "quartzite-widgets",
  "serial_test",
 ]
 
@@ -2087,6 +2088,19 @@ dependencies = [
  "slotmap",
  "thiserror 2.0.18",
  "tracing",
+]
+
+[[package]]
+name = "quartzite-widgets"
+version = "0.1.0"
+dependencies = [
+ "pretty_assertions",
+ "quartzite-core",
+ "quartzite-events",
+ "quartzite-geometry",
+ "quartzite-macros",
+ "quartzite-paint-api",
+ "rstest",
 ]
 
 [[package]]

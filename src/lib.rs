@@ -280,6 +280,18 @@ pub mod paint {
     pub use quartzite_paint_api::{Brush, BrushKind, Color, PaintError, Painter, Pen};
 }
 
+/// Re-exports the built-in widget system from [`quartzite_widgets`].
+///
+/// Provides `WidgetBase`, `WidgetExt`, layout types (`BoxLayout`, `GridLayout`), and concrete
+/// widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
+///
+/// Requires the `widgets` feature.
+#[cfg(feature = "widgets")]
+#[cfg_attr(docsrs, doc(cfg(feature = "widgets")))]
+pub mod widgets {
+    pub use quartzite_widgets::*;
+}
+
 /// Re-exports a curated set of types needed for typical usage — one glob covers a working import.
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
