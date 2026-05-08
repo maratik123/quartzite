@@ -815,6 +815,14 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
+### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._`
+
+**What happened:** `WidgetExt` default method bodies (e.g. `fn geometry(&self) -> Rect { ... }`) carried `/// _Simple._` in their doc but no `#[inline]`. Reviewer correctly flagged that `/// _Simple._` is a documentation convention and carries no optimizer hint. Default method bodies in a `trait` definition are not "inside `impl Trait for ConcreteFoo`", so they were missed by the existing `#[inline]` rule. Without `#[inline]` on the default body, the compiler will not inline it cross-crate without LTO.
+
+**Rule:** Default method bodies in a `trait` definition that qualify as simple (≤1 non-simple call, no branches/loops) need **both** `/// _Simple._` in the doc **and** `#[inline]` on the `fn`. `/// _Simple._` marks the semantic; `#[inline]` carries the cross-crate inlining hint. Neither substitutes for the other. The `#[inline]` rule ("concrete fn or method inside `impl Trait for ConcreteFoo`") implicitly covers trait default bodies — treat them as concrete fns for this purpose.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.
