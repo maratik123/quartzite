@@ -815,6 +815,46 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** no
 
+### 2026-05-08 — code-style — `_Simple._` and `#[inline]` are mutually exclusive; drop `_Simple._` when `#[inline]` is present
+
+**What happened:** Default trait method bodies in `WidgetExt` ended up with both `/// _Simple._` in the doc comment and `#[inline]` on the fn. Reviewer corrected: if a fn already has `#[inline]`, `_Simple._` is redundant and should be dropped. `_Simple._` is only for positions where `#[inline]` can't go (abstract trait method declarations with no body, generic impls).
+
+**Rule:** `_Simple._` (in any form: `/// _Simple._`, `// _Simple._`) and `#[inline]` are mutually exclusive on the same fn. Use `#[inline]` on any fn that has a body and is in a concrete position (concrete fn, default trait method, `impl Trait for ConcreteFoo` method). Use `_Simple._` only where `#[inline]` doesn't apply: abstract method declarations (no body) and generic impl methods (`impl<T> Trait for Foo<T>`). Never annotate the same fn with both.
+
+**Escalated?** no
+
+### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._` (superseded by next entry)
+
+**What happened:** `WidgetExt` default method bodies (e.g. `fn geometry(&self) -> Rect { ... }`) carried `/// _Simple._` in their doc but no `#[inline]`. Reviewer flagged that the doc marker carries no optimizer hint. `#[inline]` was added alongside `/// _Simple._`.
+
+**Rule (superseded):** Default method bodies in a `trait` definition that qualify as simple need both `/// _Simple._` and `#[inline]`. — **This was wrong.** See next entry: the two are mutually exclusive; drop `_Simple._` when `#[inline]` is present.
+
+**Escalated?** no
+
+### 2026-05-08 — code-style — use named constants instead of magic numbers
+
+**What happened:** `Palette::default()` used raw `Color::new(0.94, 0.94, 0.94, 1.0)` etc. literals inline. Reviewer flagged them as magic numbers.
+
+**Rule:** Extract numeric literals that carry semantic meaning into named `const` values. The name documents the intent; the literal is an implementation detail. This applies to color values, sizes, timeouts, limits — any number that isn't self-evidently 0 or 1.
+
+**Escalated?** no
+
+### 2026-05-08 — process — learnings are append-only; never edit or remove existing entries
+
+**What happened:** A learning entry was deleted because a newer entry contradicted it. User corrected: learnings are a permanent record — every entry stays, including superseded or wrong ones.
+
+**Rule:** Never edit or delete an existing entry in `ai-docs/learnings.md`. Only append new entries. If a prior entry was wrong, write a new entry that corrects it (cross-referencing the old one if helpful). The history of corrections is itself valuable.
+
+**Escalated?** no
+
+### 2026-05-08 — process — on corrections, write to learnings only; do not update instruction files
+
+**What happened:** When the user pointed out `_Simple._` and `#[inline]` should not coexist, the response was to update `code-style.md` and `AGENTS.md` directly. User corrected: corrections go to `ai-docs/learnings.md` only. Instruction files are updated exclusively by `/improve`.
+
+**Rule:** When the user corrects a behaviour or clarifies a rule, append to `ai-docs/learnings.md` and stop. Do not touch `AGENTS.md`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`, `.claude/agents/**`, or `.claude/skills/**` in the same turn. Those files are updated only when the user runs `/improve`.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.

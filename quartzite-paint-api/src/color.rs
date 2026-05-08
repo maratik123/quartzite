@@ -69,7 +69,6 @@ impl Color {
     /// use quartzite_paint_api::Color;
     /// assert_eq!(Color::RED.r(), 1.0);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn r(self) -> f32 {
         self.r
@@ -83,7 +82,6 @@ impl Color {
     /// use quartzite_paint_api::Color;
     /// assert_eq!(Color::GREEN.g(), 1.0);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn g(self) -> f32 {
         self.g
@@ -97,7 +95,6 @@ impl Color {
     /// use quartzite_paint_api::Color;
     /// assert_eq!(Color::BLUE.b(), 1.0);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn b(self) -> f32 {
         self.b
@@ -111,7 +108,6 @@ impl Color {
     /// use quartzite_paint_api::Color;
     /// assert_eq!(Color::TRANSPARENT.a(), 0.0);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn a(self) -> f32 {
         self.a
@@ -120,7 +116,6 @@ impl Color {
 
 impl Default for Color {
     /// Returns opaque black.
-    // _Simple._
     #[inline]
     fn default() -> Self {
         Self::BLACK

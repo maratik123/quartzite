@@ -1,0 +1,24 @@
+[package]
+name = "quartzite-widgets"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Widget system for quartzite: WidgetBase, layouts, and built-in widgets"
+
+[dependencies]
+quartzite-core     = { path = "../quartzite-core" }
+quartzite-macros   = { path = "../quartzite-macros" }
+quartzite-geometry = { path = "../quartzite-geometry" }
+quartzite-events   = { path = "../quartzite-events" }
+quartzite-paint-api = { path = "../quartzite-paint-api" }
+
+[dev-dependencies]
+rstest            = "0.26"
+pretty_assertions = "1"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

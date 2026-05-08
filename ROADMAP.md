@@ -19,8 +19,8 @@ core-types ✅
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets (#46)              🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
-│   │   └── paint-style/style      🔴 blocked on widgets #46 (needs AsWidget) + paint #47
+│   ├── widgets (#46)              ✅ implemented
+│   │   └── paint-style/style      🔴 blocked on paint #47
 │   └── paint-style/paint (#47)    🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
@@ -30,6 +30,7 @@ core-types ✅
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [widgets](ai-docs/plans/done/2026-05-01-widgets.spec.md) | `quartzite-widgets` | ✅ implemented (64 unit + 82 doc tests) | — |
 | [project-docs](ai-docs/plans/done/2026-05-08-project-docs.spec.md) | `quartzite` (facade) + repo-level docs + CI | ✅ implemented (0 new tests; README description block + comprehensive `lib.rs` rustdoc + `CONTRIBUTING.md` + auto-generated `ROADMAP.md` + CI sync-gate) | — |
 | [generic-simple-tags](ai-docs/plans/done/2026-05-07-generic-simple-tags.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; annotation-only) | — |
 | [coverage-ci](ai-docs/plans/done/2026-05-07-coverage-ci.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
@@ -85,4 +86,3 @@ core-types ✅
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
 | [paint-style](ai-docs/plans/deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
-| [widgets](ai-docs/plans/deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | graphics-stack #73 ✅ resolved — now unblocked — tracked in #46 |

@@ -46,7 +46,6 @@ impl Pen {
     /// use quartzite_paint_api::{Color, Pen};
     /// assert_eq!(Pen::new(Color::BLUE, 1.0).color(), Color::BLUE);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn color(self) -> Color {
         self.color
@@ -60,7 +59,6 @@ impl Pen {
     /// use quartzite_paint_api::{Color, Pen};
     /// assert_eq!(Pen::new(Color::BLACK, 3.5).width(), 3.5);
     /// ```
-    // _Simple._
     #[inline]
     pub const fn width(self) -> f32 {
         self.width
@@ -69,7 +67,6 @@ impl Pen {
 
 impl Default for Pen {
     /// Returns a 1-pixel opaque black pen.
-    // _Simple._
     #[inline]
     fn default() -> Self {
         Self::new(Color::BLACK, 1.0)
