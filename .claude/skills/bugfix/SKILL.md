@@ -134,7 +134,7 @@ Now open Edit.
 
 1. Run the failing test from Step 3: `cargo test test_name` — must turn green
 2. Run the full suite: `cargo test` — confirm nothing else broke
-3. Run `cargo clippy -- -D warnings` for changed files
+3. Run `cargo clippy --workspace -- -D warnings` for changed files
 4. Run `cargo fmt`
 5. **Delete the trace artifact:** `git rm ai-docs/bugfix/trace-*.md 2>/dev/null || rm -f ai-docs/bugfix/trace-*.md` (handles both tracked and untracked traces)
 

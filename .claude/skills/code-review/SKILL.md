@@ -58,7 +58,7 @@ For each `⬜ Open` finding in the `## AC Status` table (top-to-bottom):
 After every 3 fixes (or when all findings in a subtask are resolved):
 1. `cargo build` — must compile
 2. `cargo test` — all green
-3. `cargo clippy -- -D warnings` — clean
+3. `cargo clippy --workspace -- -D warnings` — clean
 4. `cargo fmt`
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean
 6. Update `## Files touched` and mark subtask `[x]` in progress file
@@ -69,7 +69,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 
 1. `cargo build` — PASS
 2. `cargo test` — all green
-3. `cargo clippy -- -D warnings` — clean
+3. `cargo clippy --workspace -- -D warnings` — clean
 4. `cargo fmt -- --check` — clean
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI)
 6. **Doc convention conformance.** For every changed `pub` item, verify it conforms to [`ai-docs/doc-convention.md`](../../../ai-docs/doc-convention.md) (summary tense, `# Parameters` on fns with ≥1 non-receiver arg, strict section order, `# Errors` / `# Panics` / `# Safety` where applicable). Methods inside `impl Trait for Type {}` blocks are exempt; the trait *definition* is not. Mechanical heading scan on changed files: `rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <file>`.
