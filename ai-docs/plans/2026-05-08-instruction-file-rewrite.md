@@ -1,6 +1,8 @@
 # Instruction-File Rewrite Plan (v4)
 
-**Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); methodology shakedown. **Read [`## Methodology limitations`](#methodology-limitations) and [`## Historical replay testing`](#historical-replay-testing-complement-to-v42) below before re-using this template** — v4.2 is clarity-stress-test, replay is rule-fires-on-real-input validation. v4.4 adds the replay methodology with one validated pilot.
+**Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); v4.4 replay batch validated 6/6; v5 retrofit bakes lessons into prescriptive workflow.
+
+**Workflow version: v5.** Phase 2 / new-file applications follow v5 by default. v4.x retrospective sections ([`## Methodology limitations`](#methodology-limitations), [`## Historical replay testing`](#historical-replay-testing-complement-to-v42)) remain as the rationale for v5's design — read them when applying the workflow to understand WHY each step is structured the way it is.
 **Started:** 2026-05-08
 **Style reference:** [`ai-docs/agent-writing-style.md`](../agent-writing-style.md)
 **Tracked in:** none (this meta-plan has no single GitHub issue; each Phase 1 file has its own — see table below)
@@ -119,16 +121,25 @@ no plan-level rule forces it.
     traceable to this file (quoted offending paragraph + line range)
 5.  Identify failure-likely hot spots (nested conditionals, decision
     trees, carve-outs, cross-references) with line ranges
-6.  Draft probes:
+6.  Draft probes (v5: 4 classes — see § Probe composition for full counts):
       - Class A (failure-targeted)  : 4-6 probes, drawn from step 4
       - Class B (failure-likely)    : 1-3 probes, drawn from step 5
+      - Class D (calibration)       : 1 probe — intentionally underspecified
+        in the file (a rule the file does NOT actually pin down) — surfaces
+        setup-bias if both models confidently converge on the same answer
+      - **Open-ended requirement:** at least 1-2 of the A+B probes must be
+        open-ended ("explain in your own words how rule X applies to Y") —
+        not yes/no, not multiple-choice. Closed forms produce convergence
+        too easily; open-ended forms surface interpretation differences that
+        closed forms hide.
     For each probe: question, full rubric, target section(s).
 7.  Build the COVERAGE MAP — table showing which top-level section
     each probe targets. Verify the coverage rules (below) hold;
     if not, draft additional Class B probes until they do.
 8.  ===> APPROVAL GATE 1:
-        - probe set (A + B)
+        - probe set (A + B + D)
         - rubrics
+        - open-ended probes flagged (at least 1-2 must be present)
         - coverage map (with section-share-aware override declarations
           where applicable)
       User accepts / amends / rejects BEFORE rewrite. <===
@@ -150,15 +161,29 @@ no plan-level rule forces it.
 10. Draft Class C probe — single literal-token control, anchored on a
     stable section of the rewritten file
 11. ===> APPROVAL GATE 2: Class C probe (small gate) <===
-12. Randomize all probes (A+B+C), spawn dual-model parallel test:
+12. Randomize all probes (A+B+C+D), spawn dual-model parallel test:
       - Subagent A: model="opus",   prompt="Read file. Answer probes 1..N."
       - Subagent B: model="sonnet", same prompt
-13. Evaluate per the rubric (mechanical, per-probe CORRECT/WRONG)
-14. If all probes CONVERGE on CORRECT → step 16
+13. Evaluate per the rubric (mechanical, per-probe CORRECT/WRONG).
+    **Class D special handling:** if both models confidently converge on
+    the same answer to the calibration probe, the test setup itself is
+    converging on training-data biases — flag the entire run as
+    SETUP-SUSPECT regardless of A/B/C results. Surface to user.
+14. If all probes (A+B+C) CONVERGE on CORRECT AND Class D didn't trigger
+    SETUP-SUSPECT → step 12.5
     Else → step 15
 15. Revise the failing-probe sections, re-randomize order, re-run.
     Cap: 3 rounds. After round 3 if still failing → surface to user
     with diagnosis + proposed revision.
+12.5 If `learnings.md` has documented misread events on this file's rules,
+     run **at least one historical replay case** (per § Historical replay
+     testing below) before declaring PASS. Connects test signal to ground
+     truth. If no documented misreads exist for this file (e.g., a brand-new
+     instruction file), skip — replay is not feasible without ground truth.
+
+     If replay produces a false negative on the documented misread → the
+     v5 PASS verdict is suspect; surface to user, sharpen the relevant
+     rule, re-run dual-model + replay until both pass.
 16. Semantic-preservation self-review — spawn an **Opus subagent**:
 
     ```
@@ -181,9 +206,20 @@ no plan-level rule forces it.
     On any WEAKENED or DROPPED finding → revise the rewrite to restore
     the rule, then **re-run the dual-model comprehension test (step 12)**
     since substantive changes invalidate prior CONVERGE.
+
+    **v5: always fire, even on empty diff.** When the rewrite step (9)
+    produced no edits, the Opus subagent returns trivial PRESERVED on
+    all rules — that's still a valuable run-record entry. Skipping Step
+    16 on empty diff (as Phase 1 did for #168-#171) leaves Step 16 with
+    a sample size of 1 — not enough to build a track record on whether
+    Opus catches subtle weakening Sonnet would miss.
 17. cargo build (sanity)
 18. Stage explicit files, commit, push -u, gh pr create — link the file's
-    GitHub issue (`Closes #N`)
+    GitHub issue (`Closes #N`).
+    **v5: closing comment uses honest framing template** (see Implementation
+    hints) — distinguishes "no divergence under test conditions" from "file
+    is unambiguous in production". If replay (12.5) was run, include its
+    results as positive evidence; if not run, note explicitly.
 19. (No inter-file sequencing — other Phase 1 files can be picked up in
     parallel by the same or different sessions)
 ```
@@ -242,6 +278,63 @@ file.
 (Answer: literally `ai-docs/context.md`. If models give different answers,
 throw out the test run and re-spawn — file isn't to blame.)
 
+### Class D — Calibration / setup-bias (1 probe) — v5
+
+A probe whose answer is **intentionally underspecified** in the file — a rule
+the file does NOT actually pin down, where any of several answers could
+reasonably be defended. If both models confidently converge on the *same*
+answer to a deliberately-ambiguous question, the test setup itself is
+converging (training-data biases, prompt-shape biases) — strong signal that
+the v5 PASS verdicts on this run are suspect.
+
+**Why:** v4.2's all-PASS-round-1 result across 5 files is either evidence the
+files were genuinely clear OR evidence the test isn't sensitive enough.
+Without a calibration probe we can't distinguish. Class D distinguishes.
+
+**Example (AGENTS.md):**
+
+> Per AGENTS.md, when a fn has both a `_Simple._` doc tag AND a `# Panics`
+> doc section, what's the recommended order of the two within the doc
+> comment, and why?
+
+(File doesn't actually specify this — `_Simple._` ordering vs `#`-headings
+isn't pinned down. Reasonable answers include "_Simple._ before all `#`
+headings", "_Simple._ after `# Examples`", or "no fixed rule". If both
+Opus and Sonnet confidently say the same thing without hedging, that's
+training-data convergence, not file clarity.)
+
+**Verdict logic:**
+- Both models hedge / acknowledge the file doesn't specify → ✅ healthy (file is honest about what it does and doesn't pin down; setup is reading correctly)
+- Both models confidently converge on the same answer → ⚠️ SETUP-SUSPECT — flag the run; the test bias may have masked real ambiguity in A/B/C
+- Models diverge → 🟡 expected (the rule is genuinely ambiguous; either is defensible)
+
+Class D failure does NOT count against the iteration cap — it's a setup
+signal, not a file-clarity signal. But it should be surfaced to the user
+who decides whether to trust the run's A/B/C verdicts.
+
+### Open-ended probe requirement — v5
+
+In v5, **at least 1–2 of the Class A + Class B probes must be open-ended**:
+
+> "Explain in your own words how rule X applies in scenario Y"
+
+NOT yes/no, NOT multiple-choice, NOT specific-fact. Closed forms produce
+convergence too easily because the answer space is narrow. Open-ended forms
+require the model to articulate the rule's substance, surfacing
+interpretation differences that closed forms hide.
+
+**Rubric for open-ended probes** is necessarily looser:
+
+- Required-present: load-bearing concepts that must appear (any phrasing)
+- Required-absent: concepts that, if present, indicate misread
+- Verdict: same binary CORRECT / WRONG, but the grader (parent agent)
+  applies semantic judgment rather than substring matching for required-
+  present concepts. State the judgment criterion at probe-draft time
+  (Gate 1 approval).
+
+Divergence on open-ended probes is a much stronger ambiguity signal than
+divergence on yes/no.
+
 ### Random ordering
 
 Each iteration shuffles probe order. Detects order-dependence (where a
@@ -250,14 +343,20 @@ with reshuffled order produces a *different* outcome than round 1 with the
 same probes, that's diagnostic information about ordering effects in the
 file's logical flow.
 
-### Total per file
+### Total per file (v5)
 
-| Class | Count |
-|---|---|
-| A — Failure-targeted | 4–6 |
-| B — Failure-likely | 1–3 |
-| C — Control | 1 |
-| **Total** | **6–10** |
+| Class | Count | Notes |
+|---|---|---|
+| A — Failure-targeted | 4–6 | At least 1 must be open-ended (counted toward A+B 1–2 open-ended quota) |
+| B — Failure-likely | 1–3 | At least 1 of A+B must be open-ended (combined quota) |
+| C — Control | 1 | Literal-token sanity check (unchanged from v4.2) |
+| D — Calibration | 1 | Intentionally-ambiguous answer (NEW in v5; surfaces setup-bias) |
+| **Total** | **7–11** | |
+
+**Open-ended quota:** at least 1–2 probes from A+B combined must be open-
+ended (state-the-rule-in-your-own-words style). Closed forms
+(yes/no, multiple-choice, specific-fact) for the remaining A/B probes are
+fine but should not be the entire test.
 
 ---
 
@@ -752,6 +851,86 @@ After the table and summary, output a final line: `END OF REVIEW`.
 - The summary's PASS/FAIL gate is explicit — N WEAKENED + L DROPPED must
   both be 0 for PASS; otherwise the parent agent must revise
 
+### Class D calibration probe template (v5)
+
+A calibration probe is a question whose answer is intentionally NOT pinned
+down by the file under test. Both models converging confidently = test
+setup is biased.
+
+**Drafting heuristic:**
+1. Read the file
+2. Identify a topic the file mentions but doesn't pin down (e.g., ordering between two optional sections; severity assignment for an edge case; default behaviour where the file is silent)
+3. Phrase as a question that could plausibly have multiple defensible answers
+4. Document the verdict logic explicitly: "if both models confidently say X, that's training-data convergence not file clarity"
+
+**Anti-patterns for Class D:**
+- Drafting a probe whose answer IS in the file but obscure (that's a Class A/B difficulty probe, not calibration)
+- Drafting a probe whose answer is genuinely random/unpredictable (no one model would converge confidently — defeats the purpose)
+- Tying the calibration to a topic the file is silent on by oversight (it should be a deliberate non-coverage; otherwise calibration becomes a backdoor coverage test)
+
+**Verdict:**
+- Both models hedge or acknowledge the file's silence → ✅ healthy
+- Both models confidently converge on same answer → ⚠️ SETUP-SUSPECT
+- Models diverge (one says X, other says Y) → 🟡 expected
+
+Class D failure does NOT count against iteration cap (it's setup signal).
+
+### Open-ended probe template (v5)
+
+```
+Probe (Class A or B, open-ended):
+
+Question: "Explain in your own words how <RULE> applies when <SCENARIO>.
+What does the agent do, and why?"
+
+Rubric (looser than closed-form):
+  Type: prose-with-semantic-judgment
+  Required-present (load-bearing concepts, any phrasing):
+    1. <concept 1 — load-bearing>
+    2. <concept 2 — load-bearing>
+  Required-absent (concepts that indicate misread):
+    1. <forbidden concept>
+  Grader: parent agent applies semantic judgment for required-present
+    (substring matching is too strict for open-ended). State the
+    judgment criterion at probe-draft time (Gate 1).
+  Verdict: same binary CORRECT / WRONG.
+```
+
+### Honest closing-comment template (v5)
+
+When a file passes v5 and you write the issue closing comment, use this
+language template instead of "the file is solid" or "the file is unambiguous":
+
+```
+The v5 methodology found no divergence on this file under the documented
+test conditions:
+- Step 12 dual-model comprehension test: <X>/<N> probes CONVERGE on round 1
+- Step 12.5 historical replay: <Y>/<Z> documented misread cases caught
+  by both models (or: not feasible — no documented misreads on this file's
+  rules)
+- Step 16 Opus semantic-preservation: <PRESERVED count>/<total> rules
+
+This validates clarity-in-isolation against correlated readers and (where
+replay was run) rule-fires-on-real-input on a sample of N documented cases.
+It does NOT prove the file is unambiguous in production conditions.
+
+See § Methodology limitations in the plan doc for the limits this
+methodology has not addressed.
+```
+
+### Decoupled probe-author flow (v5)
+
+To address probe-author selection bias (per § Methodology limitations), v5
+prescribes that a separate Opus subagent drafts the probe set BEFORE the
+parent agent runs the workflow:
+
+1. **Probe-drafting subagent** (model="opus"): reads file + learnings.md + style spec, drafts probes A/B/C/D + rubrics + coverage map, surfaces to user (Gate 1).
+2. **Workflow-execution agent** (parent / current session): receives the approved probe set, runs steps 9–18 against it, cannot influence probe wording.
+
+This breaks the I-drafted-probes-I-expected-to-pass loop. The trade-off is one extra subagent invocation upfront (~15-30 min).
+
+For Phase 1 retrospective (where this didn't fire), the existing replay batch (PR #176) provides external validation against ground truth — partial but real check on parent-agent bias.
+
 ### Reporting format for dual-model results
 
 For all-CONVERGE rounds, a per-probe summary table is sufficient:
@@ -1101,7 +1280,7 @@ Each ~1–2 hours per case if rule-shaped (vs process-shaped).
   improvements listed (out-of-family model aspirational, no current
   tooling access). Status banner + Goal section reframed to direct
   readers at the limitations section before re-using the template.
-- v4.4 — current. Adds **Historical replay testing** as a complement to
+- v4.4 — adds **Historical replay testing** as a complement to
   v4.2/v4.3, addressing the strongest limitation (no connection to
   ground truth). Methodology section provides the worktree-based
   setup, two variants (current rules vs historical rules), subagent
@@ -1119,3 +1298,39 @@ Each ~1–2 hours per case if rule-shaped (vs process-shaped).
   findings beyond ground truth that need separate adjudication. The
   `/improve`-proposed-escalation-on-v4.2-PASS-rule mechanism documented
   as the canonical re-open trigger.
+- v5 — current. **Retrofit:** bakes the v4.3 retrospective improvements
+  and v4.4 replay methodology into the prescriptive workflow steps so
+  future runs apply them by default. Workflow changes:
+  - Step 6: Class D (calibration) probe drafted alongside A+B+C
+  - Step 6: open-ended probe quota — at least 1–2 of A+B must be
+    open-ended (not yes/no, not multiple-choice)
+  - Step 12: Class D included in randomization; Class D's verdict
+    logic (SETUP-SUSPECT if both models confidently converge on
+    intentionally-ambiguous answer)
+  - Step 12.5 (NEW): if `learnings.md` has documented misreads on
+    this file's rules, run at least one historical replay case
+    before declaring PASS
+  - Step 16: always fires (no empty-diff escape) — builds Opus
+    self-review track record over time
+  - Step 18: closing-comment template uses honest framing
+    ("validates clarity-in-isolation against correlated readers,
+    not clarity-in-production-context")
+
+  Probe composition section gains Class D (calibration, 1 probe) and
+  open-ended quota (1–2 from A+B). Total probes per file: 7–11
+  (was 6–10).
+
+  Implementation hints gain: Class D drafting heuristic, open-ended
+  rubric template, honest closing-comment template, decoupled
+  probe-author flow (separate Opus subagent drafts probes — addresses
+  probe-author selection bias).
+
+  v5 is the prescriptive form; v4.x retrospective sections (Methodology
+  limitations, Historical replay testing) remain as the rationale for
+  why the v5 workflow looks the way it does. Future Phase 2 / new-file
+  applications follow v5.
+
+  **Phase 1 retrofit:** issue closing comments on #167–#171 / #174
+  receive follow-up comments adding (a) replay evidence from PR #176
+  where applicable, (b) honest framing per v4.3, (c) link to v5 status.
+  Done in same PR as the v5 workflow update.
