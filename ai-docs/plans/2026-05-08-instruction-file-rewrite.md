@@ -121,12 +121,18 @@ no plan-level rule forces it.
     traceable to this file (quoted offending paragraph + line range)
 5.  Identify failure-likely hot spots (nested conditionals, decision
     trees, carve-outs, cross-references) with line ranges
-6.  Draft probes (v5: 4 classes — see § Probe composition for full counts):
+6.  Draft probes — Classes A, B, D (Class C is drafted later, in step 10,
+    because it anchors on a stable section of the *rewritten* file and
+    cannot be drafted before the rewrite exists):
       - Class A (failure-targeted)  : 4-6 probes, drawn from step 4
       - Class B (failure-likely)    : 1-3 probes, drawn from step 5
-      - Class D (calibration)       : 1 probe — intentionally underspecified
-        in the file (a rule the file does NOT actually pin down) — surfaces
-        setup-bias if both models confidently converge on the same answer
+      - Class D (calibration)       : 1 probe — anchored on a topic the
+        file mentions but does NOT actually pin down (a deliberate
+        non-coverage). Class D **always runs** as 1 probe per file. Its
+        verdict logic has three outcomes (handled in step 13), and one
+        of those outcomes (both models confidently converge on the same
+        answer) flags the test setup as SETUP-SUSPECT — but Class D
+        itself is unconditionally part of every test run.
       - **Open-ended requirement:** at least 1-2 of the A+B probes must be
         open-ended ("explain in your own words how rule X applies to Y") —
         not yes/no, not multiple-choice. Closed forms produce convergence
@@ -165,26 +171,32 @@ no plan-level rule forces it.
       - Subagent A: model="opus",   prompt="Read file. Answer probes 1..N."
       - Subagent B: model="sonnet", same prompt
 13. Evaluate per the rubric (mechanical, per-probe CORRECT/WRONG).
-    **Class D special handling:** if both models confidently converge on
-    the same answer to the calibration probe, the test setup itself is
-    converging on training-data biases — flag the entire run as
-    SETUP-SUSPECT regardless of A/B/C results. Surface to user.
-14. If all probes (A+B+C) CONVERGE on CORRECT AND Class D didn't trigger
-    SETUP-SUSPECT → step 12.5
-    Else → step 15
-15. Revise the failing-probe sections, re-randomize order, re-run.
-    Cap: 3 rounds. After round 3 if still failing → surface to user
-    with diagnosis + proposed revision.
-12.5 If `learnings.md` has documented misread events on this file's rules,
-     run **at least one historical replay case** (per § Historical replay
-     testing below) before declaring PASS. Connects test signal to ground
-     truth. If no documented misreads exist for this file (e.g., a brand-new
-     instruction file), skip — replay is not feasible without ground truth.
+    **Class D verdict logic** has three outcomes:
+      - both models hedge / acknowledge the file's silence → ✅ healthy
+      - both models confidently converge on the same answer → ⚠️ SETUP-SUSPECT — flag the entire run; the test bias may have masked real ambiguity in A/B/C; surface to user
+      - models diverge (one says X, other says Y) → 🟡 expected (rule is genuinely ambiguous; either is defensible)
+    Class D failure does NOT count against the iteration cap — it's
+    setup signal, not file-clarity signal.
+14. **Branch on convergence:**
+      - All probes (A+B+C) CONVERGE on CORRECT AND Class D didn't
+        trigger SETUP-SUSPECT → step 16
+      - Otherwise → step 15
+15. Revise the failing-probe sections, re-randomize order, **loop back
+    to step 12**. Cap: 3 rounds. After round 3 if still failing → surface
+    to user with diagnosis + proposed revision.
+16. **Historical replay** — if `learnings.md` has documented misread
+    events on this file's rules, run **at least one replay case** (per
+    § Historical replay testing below) before declaring PASS. Connects
+    test signal to ground truth. If no documented misreads exist for
+    this file (e.g., a brand-new instruction file), skip with a one-line
+    note in the closing comment — replay is not feasible without ground
+    truth.
 
-     If replay produces a false negative on the documented misread → the
-     v5 PASS verdict is suspect; surface to user, sharpen the relevant
-     rule, re-run dual-model + replay until both pass.
-16. Semantic-preservation self-review — spawn an **Opus subagent**:
+    If replay produces a false negative on the documented misread → the
+    v5 PASS verdict is suspect; surface to user, sharpen the relevant
+    rule, **loop back to step 12** for dual-model + step 16 replay until
+    both pass.
+17. Semantic-preservation self-review — spawn an **Opus subagent**:
 
     ```
     Agent(
@@ -209,18 +221,18 @@ no plan-level rule forces it.
 
     **v5: always fire, even on empty diff.** When the rewrite step (9)
     produced no edits, the Opus subagent returns trivial PRESERVED on
-    all rules — that's still a valuable run-record entry. Skipping Step
-    16 on empty diff (as Phase 1 did for #168-#171) leaves Step 16 with
-    a sample size of 1 — not enough to build a track record on whether
-    Opus catches subtle weakening Sonnet would miss.
-17. cargo build (sanity)
-18. Stage explicit files, commit, push -u, gh pr create — link the file's
+    all rules — that's still a valuable run-record entry. Skipping
+    this step on empty diff (as Phase 1 did for #168–#171) leaves it
+    with a sample size of 1 — not enough to build a track record on
+    whether Opus catches subtle weakening Sonnet would miss.
+18. cargo build (sanity)
+19. Stage explicit files, commit, push -u, gh pr create — link the file's
     GitHub issue (`Closes #N`).
     **v5: closing comment uses honest framing template** (see Implementation
     hints) — distinguishes "no divergence under test conditions" from "file
-    is unambiguous in production". If replay (12.5) was run, include its
-    results as positive evidence; if not run, note explicitly.
-19. (No inter-file sequencing — other Phase 1 files can be picked up in
+    is unambiguous in production". If replay (step 16) was run, include
+    its results as positive evidence; if not run, note explicitly.
+20. (No inter-file sequencing — other Phase 1 files can be picked up in
     parallel by the same or different sessions)
 ```
 
@@ -1300,19 +1312,25 @@ Each ~1–2 hours per case if rule-shaped (vs process-shaped).
   as the canonical re-open trigger.
 - v5 — current. **Retrofit:** bakes the v4.3 retrospective improvements
   and v4.4 replay methodology into the prescriptive workflow steps so
-  future runs apply them by default. Workflow changes:
-  - Step 6: Class D (calibration) probe drafted alongside A+B+C
-  - Step 6: open-ended probe quota — at least 1–2 of A+B must be
-    open-ended (not yes/no, not multiple-choice)
-  - Step 12: Class D included in randomization; Class D's verdict
-    logic (SETUP-SUSPECT if both models confidently converge on
-    intentionally-ambiguous answer)
-  - Step 12.5 (NEW): if `learnings.md` has documented misreads on
+  future runs apply them by default. Workflow changes (per-file step
+  list grew from 19 to 20 steps after integer renumbering — replay was
+  inserted as a new step 16, bumping previous 16/17/18/19 to 17/18/19/20):
+  - Step 6: Class A+B+D drafted (Class C still drafted at step 10
+    after rewrite, since C anchors on a stable section of the rewritten
+    file). Open-ended probe quota: at least 1–2 of A+B must be
+    open-ended (not yes/no, not multiple-choice). Class D always runs
+    as 1 probe per file — verdict logic (handled at step 13) has three
+    outcomes; Class D is unconditionally part of every test run.
+  - Step 12: Class D included in randomization
+  - Step 13: explicit verdict logic for Class D — three outcomes
+    (healthy hedging / SETUP-SUSPECT confident-converge / expected
+    divergence). SETUP-SUSPECT does NOT count against iteration cap.
+  - Step 16 (NEW): if `learnings.md` has documented misreads on
     this file's rules, run at least one historical replay case
     before declaring PASS
-  - Step 16: always fires (no empty-diff escape) — builds Opus
-    self-review track record over time
-  - Step 18: closing-comment template uses honest framing
+  - Step 17 (was 16): Opus semantic-preservation self-review now
+    always fires — no empty-diff escape, builds track record over time
+  - Step 19 (was 18): closing-comment template uses honest framing
     ("validates clarity-in-isolation against correlated readers,
     not clarity-in-production-context")
 
