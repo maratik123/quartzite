@@ -862,3 +862,34 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 **Rule:** When writing to `ai-docs/learnings.md` during `/task` (or any non-`/improve` skill), always set `Escalated? no`. Do not touch `AGENTS.md`, `.claude/agents/**`, or `.claude/skills/**` on the basis of a new learnings entry. The Propagation Rule only triggers when you are *already* editing an instruction file for a separate reason — it does not authorize pre-emptive escalation. Run `/improve` when ≥3 unescalated entries accumulate.
 
 **Escalated?** AGENTS.md
+
+### 2026-05-08 — process — verify a GitHub Action's actual behaviour against its source; "the action defaults match" is not a free claim
+
+**What happened:** PR #179 (`/task #178`) added `mozilla-actions/sccache-action@v0.0.10` to five merge-gate compile jobs in `.github/workflows/ci.yml`. The spec and design both stated: *"No `env:` block, no `with:` block on the sccache-action step is required — the action's defaults (`SCCACHE_GHA_ENABLED=true`, `RUSTC_WRAPPER=sccache`) match the spec's GHA-backed decision and the leave-default cache-size decision."* That claim was **false**. The action's `src/setup.ts` exports only `SCCACHE_PATH`, `ACTIONS_CACHE_SERVICE_V2`, `ACTIONS_RESULTS_URL`, `ACTIONS_RUNTIME_TOKEN` — it does **not** set `RUSTC_WRAPPER` or `SCCACHE_GHA_ENABLED`. The README's "Rust code" subsection says these "should be set" — explicitly the user's responsibility. After PR #179 merged, sccache binary was installed in every compile job but cargo never invoked it, so AC4 (sccache stats visible in logs) silently failed and the cache stayed empty. PRs #180 and #181 (docs-only) wouldn't have benefited from sccache anyway, but on any source-touching PR we'd have paid setup overhead with zero compile savings.
+
+The user caught this by asking why subsequent PRs weren't faster. Reading the action's source code took ~2 minutes — should have been part of registry-query.
+
+**Rule:** **The registry-query rule (AGENTS.md § Dependency Versions) extends beyond version pinning. When integrating a third-party GitHub Action whose behaviour is load-bearing (i.e., whose claimed defaults are part of your design), verify the actual behaviour against the action's source — typically `action.yml` plus `src/main.ts` / `src/setup.ts` — not from the action's marketplace blurb, training-data memory, or even the README's "happy path" example.** The README often lists conditional / advanced setup separately (in this case "Rust code" had its own subsection mandating env vars); skipping past those subsections is the failure mode.
+
+Concrete check at task time:
+
+```bash
+# 1. Pull the action's setup script
+gh api /repos/<owner>/<action>/contents/src/setup.ts --jq '.content' | base64 -d \
+    | grep -inE 'exportVariable|process\.env|GITHUB_ENV|saveState'
+
+# 2. Pull action.yml
+gh api /repos/<owner>/<action>/contents/action.yml --jq '.content' | base64 -d
+```
+
+If the action's setup script doesn't export the env vars your design assumed it does, set them explicitly in your workflow (per-job `env:` block or `echo >> $GITHUB_ENV` after the action step). Don't rely on "the action probably sets it" without source verification.
+
+**Why this fits the existing registry-query rule:** the rule's stated motivation is *"Training-data version knowledge is months stale by default and treating it as authoritative has, in this repo, twice put the wrong major into a spec the user then had to correct."* The same logic applies one level deeper — the action's *behaviour* is also stale in training data (or the README skim), and treating it as authoritative without source verification put the wrong claim into the spec and design that the user had to correct.
+
+**How to apply — for `/task` flows that integrate a third-party Action:**
+
+- During the design phase, when the design assumes the action's defaults match the spec, include a registry-query-equivalent verification step that reads the action's `setup.ts` / `main.ts` for `exportVariable` / `GITHUB_ENV` writes.
+- Cite the source-line evidence in the design's "Implementation steps" section, not just the README's claim.
+- During the self-review phase, the reviewer checks: "did the design verify the action's behaviour against source, or only against README narrative?"
+
+**Escalated?** no
