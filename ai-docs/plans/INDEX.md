@@ -12,7 +12,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [criterion-benchmarks](done/2026-05-07-criterion-benchmarks.spec.md) | `quartzite-core` `quartzite-runtime` CI | ✅ implemented (0 new tests; 10 benches, 3 CI workflows) | — |
 | [cargo-doc-pages](done/2026-05-07-cargo-doc-pages.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only) | — |
 | [macro-object-bench](done/2026-05-07-macro-object-bench.spec.md) | `quartzite` (facade) | ✅ implemented (0 new tests; 6 benches via criterion + macro-derived fixture) | — |
-| [graphics-stack](2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-renderer` | 🟢 ready | — |
+| [graphics-stack](done/2026-05-03-graphics-stack.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-renderer` | ✅ implemented (39 new tests) | — |
 | [code-style-extraction](done/2026-05-07-code-style-extraction.spec.md) | (docs only) | ✅ implemented (0 new tests; docs only) | — |
 | [generic-fn-split](done/2026-05-07-generic-fn-split.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests; refactoring) | — |
 | [per-thread-event-loops](done/2026-05-06-per-thread-event-loops.spec.md) | `quartzite-core` `quartzite-macros` `quartzite-runtime` | ✅ implemented (7 new tests) | — |
@@ -59,8 +59,8 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
-| [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🔴 blocked, 🟡 spec-only | graphics-stack #73 (paint-api supplies `Painter`/`Color`/etc. for `quartzite-paint`); style portion additionally blocked on widgets #46 — tracked in #47 |
-| [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🔴 blocked, 🟡 spec-only | graphics-stack #73 (paint-api supplies the `Painter` trait used by `WidgetExt::paint`) — tracked in #46 |
+| [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
+| [widgets](deferred/2026-05-01-widgets.spec.md) | `quartzite-widgets` | 🟡 spec-only | graphics-stack #73 ✅ resolved — now unblocked — tracked in #46 |
 
 > Tracking issues for further deferred items not represented as plans here:
 > #35 (dynamic_properties), #39 (signals_blocked serde — blocked on #107), #48 (BlockingQueued — blocked on per-thread loops ✅ done), #52 (object mobility), #53 (multi-window — blocked on #46, #73), #56 (property extensions), #58 (Python interop), #59 (CI extras), #60 (docs extras), #107 (serialization layer).
@@ -70,16 +70,16 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 ```
 core-types ✅
 ├── geometry-events ✅
-│   └── graphics-stack             🟢 ready (no blocker — paint-api needs Point/Rect; both available)
-│       ├── quartzite-paint-api    (new thin crate; no_std; supplies Painter trait)
-│       ├── quartzite-paint        🔴 blocked on paint-api (issue #47)
-│       └── quartzite-renderer     (vello + wgpu + winit; part of graphics-stack #73)
+│   └── graphics-stack             ✅ implemented (quartzite-paint-api + quartzite-paint stub + quartzite-renderer scaffold)
+│       ├── quartzite-paint-api    ✅ (thin no_std crate; Painter trait + Color/Pen/Brush/PaintError)
+│       ├── quartzite-paint        ✅ stub (re-exports paint-api + Path stub; full impl #47)
+│       └── quartzite-renderer     ✅ scaffold (WindowedApplication + VelloPainter skeleton; vello+wgpu+winit)
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets (#46)              🔴 blocked on graphics-stack #73 (Painter trait lives in paint-api)
+│   ├── widgets (#46)              🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
 │   │   └── paint-style/style      🔴 blocked on widgets #46 (needs AsWidget) + paint #47
-│   └── paint-style/paint (#47)    🔴 blocked on graphics-stack #73 (paint-api types)
+│   └── paint-style/paint (#47)    🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```

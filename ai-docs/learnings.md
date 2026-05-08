@@ -764,6 +764,38 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+### 2026-05-08 — code-style — `quartzite_runtime::ApplicationError` has no `error` sub-module; it is re-exported at crate root
+
+**What happened:** The `/task` prompt for Task 7 referenced `quartzite_runtime::error::ApplicationError` as the import path for the integration test. That module path does not exist — `ApplicationError` is re-exported directly via `pub use application::{Application, ApplicationError, TreeAccessError}` in `quartzite_runtime/src/lib.rs`, so the correct import is `use quartzite_runtime::ApplicationError`.
+
+**Rule:** Before writing an import path for a type from another crate in this workspace, confirm the actual re-export path by reading the crate's `src/lib.rs`. Do not assume an `error` sub-module exists unless it is declared with `pub mod error` in that file.
+
+**Escalated?** no
+
+### 2026-05-08 — architecture — `WindowedApplication::new()` must return `Result<Self, RendererError>`, not `Result<Self, ApplicationError>`
+
+**What happened:** The design doc said `new() -> Result<Self, ApplicationError>`, but `EventLoop::new()` can also fail with `winit::error::EventLoopError`, which is not convertible to `ApplicationError`. Returning `ApplicationError` would force either panicking on EventLoop error or silently discarding it. The correct approach is to return `Result<Self, RendererError>` and add an `Application(#[from] ApplicationError)` variant to `RendererError`, so both failure modes are propagated cleanly.
+
+**Rule:** When a constructor wraps two independent fallible operations that produce different error types, the constructor's return error should be an encompassing error type (e.g., `RendererError`) with `#[from]` variants for each, not the error type of just one of them.
+
+**Escalated?** no
+
+### 2026-05-08 — tooling — `--workspace` clippy is required for leaf crates not in the default dep tree
+
+**What happened:** `cargo clippy -- -D warnings` (without `--workspace`) passed for `quartzite-renderer` because it is a leaf crate not depended upon by the workspace root or any default-dep member. Running `cargo clippy --workspace -- -D warnings` caught a `clippy::must_use_candidate` lint on `VelloPainter::new()` that the per-default-tree run missed.
+
+**Rule:** Always run `cargo clippy --workspace -- -D warnings` (not just `cargo clippy -- -D warnings`) to catch lints in leaf crates. The default-dep-tree clippy run is a subset, not a full check.
+
+**Escalated?** no
+
+### 2026-05-08 — process — regenerate ROADMAP.md after every INDEX.md change
+
+**What happened:** Updated `ai-docs/plans/INDEX.md` (marking graphics-stack ✅, unblocking widgets/paint-style) without re-running `scripts/gen-roadmap.sh`. The ROADMAP sync CI gate re-ran the generator, found a diff, and failed on PR #159.
+
+**Rule:** Whenever `ai-docs/plans/INDEX.md` is modified, run `bash scripts/gen-roadmap.sh` and stage `ROADMAP.md` in the same commit. The CI gate enforces this — ROADMAP.md must always be in sync with INDEX.md at commit time.
+
+**Escalated?** no
+
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.

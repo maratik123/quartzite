@@ -1,0 +1,20 @@
+[package]
+name = "quartzite-paint"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Backend-agnostic paint utilities for quartzite"
+
+[dependencies]
+quartzite-paint-api = { path = "../quartzite-paint-api" }
+quartzite-geometry  = { path = "../quartzite-geometry", default-features = false }
+
+[dev-dependencies]
+rstest = "0.26"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

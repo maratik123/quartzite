@@ -1,0 +1,20 @@
+[package]
+name = "quartzite-paint-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared paint types and Painter trait for quartzite (no_std)"
+
+[dependencies]
+quartzite-geometry = { path = "../quartzite-geometry", default-features = false }
+thiserror = { version = "2", default-features = false }
+
+[dev-dependencies]
+rstest = "0.26"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

@@ -190,6 +190,8 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //!   `Margins` and their floating-point `*F` variants.
 //! - [`events`] (`quartzite-events`) — event-dispatch types built on top of
 //!   the event-types primitives in `quartzite-event-types`.
+//! - [`paint`] (`quartzite-paint-api`) — `no_std`-compatible shared paint vocabulary:
+//!   `Color`, `Pen`, `Brush`, `BrushKind`, `Painter` trait, `PaintError`.
 //!
 //! Add quartzite to your `Cargo.toml`:
 //!
@@ -264,6 +266,20 @@ pub mod events {
     pub use quartzite_events::*;
 }
 
+/// Re-exports shared paint types and the [`Painter`](quartzite_paint_api::Painter) trait
+/// from [`quartzite_paint_api`].
+///
+/// This module exposes the thin, `no_std`-compatible painting vocabulary:
+/// [`Color`](quartzite_paint_api::Color), [`Pen`](quartzite_paint_api::Pen),
+/// [`Brush`](quartzite_paint_api::Brush) / [`BrushKind`](quartzite_paint_api::BrushKind),
+/// [`Painter`](quartzite_paint_api::Painter), and [`PaintError`](quartzite_paint_api::PaintError).
+///
+/// The concrete backend implementation lives in `quartzite-paint` (utilities) and
+/// `quartzite-renderer` (vello + wgpu + winit).
+pub mod paint {
+    pub use quartzite_paint_api::{Brush, BrushKind, Color, PaintError, Painter, Pen};
+}
+
 /// Re-exports a curated set of types needed for typical usage — one glob covers a working import.
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
@@ -305,6 +321,9 @@ pub mod prelude {
         AppDriver, Application, ApplicationError, EventLoop, ObjectRef, ObjectTree, PoolDriver,
         ThreadDriver, Timer, TimerConfig, TimerDriver, WeakRef,
     };
+
+    // quartzite-paint-api: shared paint vocabulary
+    pub use quartzite_paint_api::{Brush, BrushKind, Color, PaintError, Painter, Pen};
 }
 
 #[cfg(test)]
