@@ -790,11 +790,14 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 ### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
 
-**What happened:** Graphics-stack (#73) introduced three new crates (`quartzite-paint-api`, `quartzite-paint`, `quartzite-renderer`). The panic-index was not checked or updated during implementation or design. The new crates happen to have zero production panic sites, so no entry is needed this time — but the omission was only discovered after the fact.
+**What happened:** Graphics-stack (#73) introduced `WindowedApplication::run` which documents a platform-level panic (macOS main-thread requirement from `winit::run_app`) in its `# Panics` section. The panic-index was not checked or updated during implementation or at Step 9 (Verify). The omission was caught only after the PR merged.
 
-**Rule:** At Step 9 (Verify), grep production sources of all new/modified crates for `.expect(`, `.unwrap(`, and `panic!` outside `#[cfg(test)]` blocks. For each hit, add an entry to `ai-docs/panic-index.md` (location, invariant, why Result was not used, preferred fix). Stage and commit `panic-index.md` with the implementation commit if entries were added.
+**Rule:** At Step 9 (Verify), scan all new/modified production sources for two signals:
+1. `grep "# Panics" src/**/*.rs` — documented panic behaviour (primary signal; always present when a panic exists).
+2. `grep -n "\.expect\b\|\.unwrap\b\|panic!" src/**/*.rs` outside `#[cfg(test)]` — direct panic call sites.
+For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Stage and commit `panic-index.md` with the implementation commit.
 
-**Why not in design or as an AC:** The design phase cannot enumerate `.expect()` sites that don't exist yet, and adding "no panics" as a generic AC would be vacuous boilerplate. The right checkpoint is Step 9 (Verify), after the code exists and can actually be grepped.
+**Why not in design or as an AC:** The design phase cannot enumerate panic sites that don't exist yet. `# Panics` sections are the canonical indicator — they are written at implementation time, so the check belongs at Step 9 after the code exists.
 
 **Escalated?** no
 
