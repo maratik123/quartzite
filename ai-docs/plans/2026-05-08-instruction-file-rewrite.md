@@ -1,9 +1,9 @@
 # Instruction-File Rewrite Plan (v4)
 
-**Status:** in progress (Phase 0 lands in PR #166)
+**Status:** in progress (Phase 0 in PR #166; Phase 1 tracked in issues #167–#171)
 **Started:** 2026-05-08
 **Style reference:** [`ai-docs/agent-writing-style.md`](../agent-writing-style.md)
-**Tracked in:** none (multi-PR workflow plan, no single GitHub issue)
+**Tracked in:** none (this meta-plan has no single GitHub issue; each Phase 1 file has its own — see table below)
 
 ## Goal
 
@@ -69,17 +69,41 @@ PRs cite this doc as the standard.
 
 ---
 
-## Phase 1 — Rewrite cycle (5 PRs, sequential)
+## Phase 1 — Rewrite cycle (5 PRs, independent)
 
-### File order
+Each Phase 1 file has its own GitHub tracking issue and proceeds independently
+of the other four — work can be parallelised across sessions without
+inter-file sequencing. The numbered "order" below is a **recommended priority**
+(highest leverage first), not a sequencing requirement.
 
-| # | File | Why this order |
-|---|---|---|
-| 1 | `AGENTS.md` | Central reference; everything else cites it |
-| 2 | `ai-docs/code-style.md` | Most rule-dense; multiple decision trees |
-| 3 | `ai-docs/doc-convention.md` | Similar density to code-style |
-| 4 | `.claude/agents/self-review.md` | Reads (1) and (2) — verifies they're effective |
-| 5 | `.claude/agents/review-findings.md` | Same shape as (4) |
+### File order — recommended priority
+
+| # | File | Issue | Recommended priority rationale |
+|---|---|---|---|
+| 1 | `AGENTS.md` | [#167](https://github.com/maratik123/quartzite/issues/167) | Central reference; everything else cites it |
+| 2 | `ai-docs/code-style.md` | [#168](https://github.com/maratik123/quartzite/issues/168) | Most rule-dense; multiple decision trees; section-share-aware override expected |
+| 3 | `ai-docs/doc-convention.md` | [#169](https://github.com/maratik123/quartzite/issues/169) | Similar density to code-style |
+| 4 | `.claude/agents/self-review.md` | [#170](https://github.com/maratik123/quartzite/issues/170) | Reads (1)–(3) — verifies upstream rewrites are effective at agent-checklist depth |
+| 5 | `.claude/agents/review-findings.md` | [#171](https://github.com/maratik123/quartzite/issues/171) | Mirrors (4); often updated in lockstep per Propagation Rule |
+
+All five issues are labeled `blocked` until PR #166 (this Phase 0 PR) merges,
+since the rewrite cites `ai-docs/agent-writing-style.md` (the style spec) and
+this plan doc.
+
+### Cross-reference link sanity (per file)
+
+When a Phase 1 rewrite changes a section anchor, sibling files that link to
+the changed anchor break. **Each per-file workflow includes a cross-reference
+audit step**:
+
+- Pre-rewrite: `grep -rn "<file>#" ai-docs/ .claude/skills/ .claude/agents/`
+  to enumerate every link into this file's anchors
+- Post-rewrite: re-grep, verify every old anchor still resolves OR update the
+  linker file in the same PR (Propagation Rule applies)
+
+If two files cross-link heavily, the rewrite PRs may opt to bundle a small
+follow-up commit updating sibling anchors. That bundling is per-PR judgment;
+no plan-level rule forces it.
 
 ### Per-file workflow
 
@@ -125,8 +149,10 @@ PRs cite this doc as the standard.
     with diagnosis + proposed revision.
 16. Semantic-preservation self-review (every old rule still in new file)
 17. cargo build (sanity)
-18. Stage explicit files, commit, push -u, gh pr create
-19. Wait for user merge before next file
+18. Stage explicit files, commit, push -u, gh pr create — link the file's
+    GitHub issue (`Closes #N`)
+19. (No inter-file sequencing — other Phase 1 files can be picked up in
+    parallel by the same or different sessions)
 ```
 
 ---
@@ -469,7 +495,13 @@ template:
 - v3 — test-driven (probes BEFORE rewrite); 2 approval gates per file;
   iteration cap = 3; random ordering. Rejected on anti-clustering rule:
   flat 40% cap doesn't work for files with one rule-dominant section.
-- v4 — current. Adds section-share-aware anti-clustering (mechanical
-  override > 50% by lines, judgment-call override for rule-dominant
-  sections); adds probe-surface coverage requirement (≥ 60% sections
-  targeted) and Class B/C placement constraints.
+- v4 — adds section-share-aware anti-clustering (mechanical override > 50%
+  by lines, judgment-call override for rule-dominant sections); adds
+  probe-surface coverage requirement (≥ 60% sections targeted) and Class B/C
+  placement constraints.
+- v4.1 — current. Each Phase 1 file gets its own GitHub tracking issue
+  (#167–#171). Phase 1 PRs are now independent rather than sequential —
+  the file order in the table is a recommended priority, not a sequencing
+  requirement. Adds per-file cross-reference link-sanity audit step
+  (pre-rewrite grep + post-rewrite re-grep) so anchor breakages are caught
+  in the same PR that introduces them.
