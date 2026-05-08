@@ -29,6 +29,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert_eq!(w.geometry(), Default::default());
     /// ```
+    #[inline]
     fn geometry(&self) -> Rect {
         self.widget_base().geometry
     }
@@ -51,6 +52,7 @@ pub trait WidgetExt: AsWidget {
     /// w.set_geometry(Rect::new(Point::new(10, 20), Size::new(100, 50)));
     /// assert_eq!(w.geometry().left(), 10);
     /// ```
+    #[inline]
     fn set_geometry(&mut self, rect: Rect) {
         self.widget_base_mut().geometry = rect;
     }
@@ -68,6 +70,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert_eq!(w.pos(), Point::default());
     /// ```
+    #[inline]
     fn pos(&self) -> Point {
         self.widget_base().geometry.origin()
     }
@@ -84,6 +87,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert_eq!(w.size(), Default::default());
     /// ```
+    #[inline]
     fn size(&self) -> Size {
         self.widget_base().geometry.size()
     }
@@ -106,6 +110,7 @@ pub trait WidgetExt: AsWidget {
     /// w.resize(Size::new(200, 100));
     /// assert_eq!(w.size(), Size::new(200, 100));
     /// ```
+    #[inline]
     fn resize(&mut self, size: Size) {
         let origin = self.widget_base().geometry.origin();
         self.widget_base_mut().geometry = Rect::new(origin, size);
@@ -129,6 +134,7 @@ pub trait WidgetExt: AsWidget {
     /// w.move_to(Point::new(50, 50));
     /// assert_eq!(w.pos(), Point::new(50, 50));
     /// ```
+    #[inline]
     fn move_to(&mut self, point: Point) {
         let size = self.widget_base().geometry.size();
         self.widget_base_mut().geometry = Rect::new(point, size);
@@ -149,6 +155,7 @@ pub trait WidgetExt: AsWidget {
     /// w.show();
     /// assert!(w.is_visible());
     /// ```
+    #[inline]
     fn show(&mut self) {
         self.widget_base_mut().visible = true;
     }
@@ -167,6 +174,7 @@ pub trait WidgetExt: AsWidget {
     /// w.hide();
     /// assert!(!w.is_visible());
     /// ```
+    #[inline]
     fn hide(&mut self) {
         self.widget_base_mut().visible = false;
     }
@@ -183,6 +191,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert!(!w.is_visible());
     /// ```
+    #[inline]
     fn is_visible(&self) -> bool {
         self.widget_base().visible
     }
@@ -204,6 +213,7 @@ pub trait WidgetExt: AsWidget {
     /// w.set_visible(true);
     /// assert!(w.is_visible());
     /// ```
+    #[inline]
     fn set_visible(&mut self, visible: bool) {
         self.widget_base_mut().visible = visible;
     }
@@ -222,6 +232,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert!(w.is_enabled());
     /// ```
+    #[inline]
     fn is_enabled(&self) -> bool {
         self.widget_base().enabled
     }
@@ -243,6 +254,7 @@ pub trait WidgetExt: AsWidget {
     /// w.set_enabled(false);
     /// assert!(!w.is_enabled());
     /// ```
+    #[inline]
     fn set_enabled(&mut self, enabled: bool) {
         self.widget_base_mut().enabled = enabled;
     }
@@ -264,6 +276,7 @@ pub trait WidgetExt: AsWidget {
     /// w.update();
     /// assert!(w.widget_base().pending_update);
     /// ```
+    #[inline]
     fn update(&mut self) {
         self.widget_base_mut().pending_update = true;
     }
@@ -284,6 +297,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert_eq!(w.size_hint(), Default::default());
     /// ```
+    #[inline]
     fn size_hint(&self) -> Size {
         Size::default()
     }
@@ -302,6 +316,7 @@ pub trait WidgetExt: AsWidget {
     /// w.widget_base_mut().min_size = Size::new(10, 5);
     /// assert_eq!(w.minimum_size(), Size::new(10, 5));
     /// ```
+    #[inline]
     fn minimum_size(&self) -> Size {
         self.widget_base().min_size
     }
@@ -318,6 +333,7 @@ pub trait WidgetExt: AsWidget {
     /// let w = WidgetBase::new();
     /// assert_eq!(w.maximum_size(), Default::default());
     /// ```
+    #[inline]
     fn maximum_size(&self) -> Size {
         self.widget_base().max_size
     }
@@ -333,6 +349,7 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `painter`: mutable reference to the abstract paint interface.
+    #[inline]
     fn paint(&self, _painter: &mut dyn Painter) {}
 
     /// Called when the widget is resized to `size`.
@@ -342,16 +359,19 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `size`: the new widget size.
+    #[inline]
     fn on_resize(&mut self, _size: Size) {}
 
     /// Called when the widget becomes visible.
     ///
     /// _Simple._
+    #[inline]
     fn on_show(&mut self) {}
 
     /// Called when the widget is hidden.
     ///
     /// _Simple._
+    #[inline]
     fn on_hide(&mut self) {}
 
     /// Called when a mouse button is pressed over the widget.
@@ -361,6 +381,7 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `event`: the mouse press event.
+    #[inline]
     fn on_mouse_press(&mut self, _event: &MouseEvent) {}
 
     /// Called when a mouse button is released over the widget.
@@ -370,6 +391,7 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `event`: the mouse release event.
+    #[inline]
     fn on_mouse_release(&mut self, _event: &MouseEvent) {}
 
     /// Called when a key is pressed while the widget has focus.
@@ -379,6 +401,7 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `event`: the key press event.
+    #[inline]
     fn on_key_press(&mut self, _event: &KeyEvent) {}
 
     /// Called when a key is released while the widget has focus.
@@ -388,16 +411,19 @@ pub trait WidgetExt: AsWidget {
     /// # Parameters
     ///
     /// - `event`: the key release event.
+    #[inline]
     fn on_key_release(&mut self, _event: &KeyEvent) {}
 
     /// Called when the widget gains keyboard focus.
     ///
     /// _Simple._
+    #[inline]
     fn on_focus_in(&mut self) {}
 
     /// Called when the widget loses keyboard focus.
     ///
     /// _Simple._
+    #[inline]
     fn on_focus_out(&mut self) {}
 }
 

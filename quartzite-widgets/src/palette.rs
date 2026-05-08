@@ -4,6 +4,10 @@
 
 use quartzite_paint_api::Color;
 
+const LIGHT_GRAY: Color = Color::new(0.94, 0.94, 0.94, 1.0);
+const BUTTON_GRAY: Color = Color::new(0.88, 0.88, 0.88, 1.0);
+const SELECTION_BLUE: Color = Color::new(0.0, 0.47, 0.83, 1.0);
+
 /// A minimal colour palette for a widget.
 ///
 /// Stores the most frequently needed colour roles. Full theming and inheritance is
@@ -53,13 +57,13 @@ impl Default for Palette {
     #[inline]
     fn default() -> Self {
         Self {
-            window: Color::new(0.94, 0.94, 0.94, 1.0),
+            window: LIGHT_GRAY,
             window_text: Color::BLACK,
-            button: Color::new(0.88, 0.88, 0.88, 1.0),
+            button: BUTTON_GRAY,
             button_text: Color::BLACK,
             base: Color::WHITE,
             text: Color::BLACK,
-            highlight: Color::new(0.0, 0.47, 0.83, 1.0),
+            highlight: SELECTION_BLUE,
             highlighted_text: Color::WHITE,
         }
     }
