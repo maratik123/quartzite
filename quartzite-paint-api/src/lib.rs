@@ -17,11 +17,17 @@ extern crate alloc;
 mod brush;
 mod color;
 mod error;
+mod font;
+mod image;
 mod painter;
+mod path;
 mod pen;
 
 pub use brush::{Brush, BrushKind};
 pub use color::Color;
 pub use error::PaintError;
+pub use font::{Font, FontWeight};
+pub use image::{Image, ImageError};
 pub use painter::Painter;
+pub use path::{Path, Segment};
 pub use pen::Pen;

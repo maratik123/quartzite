@@ -1,7 +1,7 @@
 //! [`VelloPainter`] — vello + wgpu backed [`Painter`] implementation.
 
-use quartzite_geometry::{Point, Rect};
-use quartzite_paint_api::{Brush, Painter, Pen};
+use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
 
 /// A [`Painter`] implementation backed by vello + wgpu.
 ///
@@ -65,6 +65,26 @@ impl Painter for VelloPainter {
 
     #[inline]
     fn restore(&mut self) {}
+
+    #[inline]
+    fn draw_text(&mut self, _pos: Point, _text: &str, _font: &Font, _brush: &Brush) {}
+
+    #[inline]
+    fn draw_text_in(
+        &mut self,
+        _rect: Rect,
+        _text: &str,
+        _font: &Font,
+        _brush: &Brush,
+        _alignment: Alignment,
+    ) {
+    }
+
+    #[inline]
+    fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
+
+    #[inline]
+    fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
 }
 
 #[cfg(test)]
