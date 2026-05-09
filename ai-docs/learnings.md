@@ -893,3 +893,11 @@ If the action's setup script doesn't export the env vars your design assumed it 
 - During the self-review phase, the reviewer checks: "did the design verify the action's behaviour against source, or only against README narrative?"
 
 **Escalated?** no
+
+### 2026-05-09 — process — /task with a bare issue number should activate a matching deferred spec instead of starting a fresh interview
+
+**What happened:** `/task 47` was invoked. Issue #47 has a matching deferred spec at `ai-docs/plans/deferred/2026-05-01-paint-style.spec.md` (`**Tracked in:** #47`). Instead of moving that spec to `ai-docs/plans/` and confirming ACs with the user, the interview machinery was started and a spurious state file `ai-docs/plans/2026-05-09-paint-style.spec.md.state.md` was created.
+
+**Rule:** The `/task` deferred-activation keyword check ("activate", "start", "proceed") fires only on those literal words in the arg. When the arg is a bare issue number, load the issue body first, then check whether any deferred spec already has `**Tracked in:** #N` matching that issue. If found, treat it as "already have a spec" — move it to `ai-docs/plans/`, update `INDEX.md`, confirm ACs with the user, and skip to Step 6. Do not run the interview and do not create a state file.
+
+**Escalated?** no

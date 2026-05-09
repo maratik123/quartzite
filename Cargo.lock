@@ -2026,6 +2026,8 @@ version = "0.1.0"
 dependencies = [
  "libm",
  "pretty_assertions",
+ "quartzite-core",
+ "quartzite-macros",
  "rstest",
 ]
 

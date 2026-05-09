@@ -12,7 +12,6 @@
 //! It defines the thin shared vocabulary used by both `quartzite-paint`
 //! (backend-agnostic utilities) and `quartzite-renderer` (vello+wgpu+winit backend).
 
-#[cfg(test)]
 extern crate alloc;
 
 mod brush;

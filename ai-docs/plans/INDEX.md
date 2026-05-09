@@ -27,6 +27,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [thiserror-migration](done/2026-05-05-thiserror-migration.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [tracing-itertools](done/2026-05-05-tracing-itertools.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [log-facade](done/2026-05-05-log-facade.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
+| [paint-style](2026-05-09-paint-style.spec.md) | `quartzite-paint` `quartzite-style` `quartzite-paint-api` `quartzite-geometry` `quartzite-widgets` | 🟡 spec-only (no design yet) | — |
 ## Completed plans
 
 | Plan | Crate(s) | Status | Blocked by |
@@ -64,7 +65,6 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
-| [paint-style](deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
 
 Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
 
@@ -91,7 +91,7 @@ core-types ✅
 │   ├── auto-connection ✅
 │   ├── widgets (#46)              ✅ implemented
 │   │   └── paint-style/style      🔴 blocked on paint #47
-│   └── paint-style/paint (#47)    🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
+│   └── paint-style/paint (#47)    🟡 spec-only (no design yet; both blockers ✅ resolved)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```

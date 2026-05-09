@@ -1,6 +1,6 @@
 //! Internal helper trait for converting signal argument tuples to `Vec<Value>`.
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
 
 use crate::value::{IntoValue, Value};
 

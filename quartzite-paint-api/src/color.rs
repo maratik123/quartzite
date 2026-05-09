@@ -112,6 +112,28 @@ impl Color {
     pub const fn a(self) -> f32 {
         self.a
     }
+
+    /// Returns a copy of `self` with the alpha channel replaced by `a`.
+    ///
+    /// The other three channels are preserved unchanged.
+    ///
+    /// # Parameters
+    ///
+    /// - `a`: new alpha value in `[0.0, 1.0]`; `0.0` is fully transparent.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Color;
+    ///
+    /// let translucent = Color::RED.with_alpha(0.5);
+    /// assert_eq!(translucent.r(), 1.0);
+    /// assert_eq!(translucent.a(), 0.5);
+    /// ```
+    #[inline]
+    pub const fn with_alpha(self, a: f32) -> Self {
+        Self { a, ..self }
+    }
 }
 
 impl Default for Color {
@@ -161,5 +183,35 @@ mod tests {
     #[test]
     fn default_is_black() {
         assert_eq!(Color::default(), Color::BLACK);
+    }
+
+    #[test]
+    fn with_alpha_replaces_alpha_only() {
+        let translucent = Color::RED.with_alpha(0.5);
+        assert_eq!(translucent.r(), 1.0);
+        assert_eq!(translucent.g(), 0.0);
+        assert_eq!(translucent.b(), 0.0);
+        assert_eq!(translucent.a(), 0.5);
+    }
+
+    #[test]
+    fn with_alpha_zero_makes_fully_transparent() {
+        let invisible = Color::RED.with_alpha(0.0);
+        assert_eq!(invisible.a(), 0.0);
+        assert_eq!(invisible.r(), 1.0);
+    }
+
+    #[test]
+    fn with_alpha_quarter_preserves_red_channel() {
+        let quarter = Color::RED.with_alpha(0.25);
+        assert_eq!(quarter.r(), 1.0);
+        assert_eq!(quarter.a(), 0.25);
+    }
+
+    #[test]
+    fn with_alpha_is_const_fn() {
+        const TRANSLUCENT: Color = Color::RED.with_alpha(0.5);
+        assert_eq!(TRANSLUCENT.r(), 1.0);
+        assert_eq!(TRANSLUCENT.a(), 0.5);
     }
 }
