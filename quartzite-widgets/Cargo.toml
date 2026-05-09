@@ -9,11 +9,13 @@ repository.workspace = true
 description = "Widget system for quartzite: WidgetBase, layouts, and built-in widgets"
 
 [dependencies]
-quartzite-core     = { path = "../quartzite-core" }
-quartzite-macros   = { path = "../quartzite-macros" }
-quartzite-geometry = { path = "../quartzite-geometry" }
-quartzite-events   = { path = "../quartzite-events" }
-quartzite-paint-api = { path = "../quartzite-paint-api" }
+quartzite-core         = { path = "../quartzite-core" }
+quartzite-macros       = { path = "../quartzite-macros" }
+quartzite-geometry     = { path = "../quartzite-geometry" }
+quartzite-events       = { path = "../quartzite-events" }
+quartzite-paint-api    = { path = "../quartzite-paint-api" }
+quartzite-paint        = { path = "../quartzite-paint" }
+quartzite-style-types  = { path = "../quartzite-style-types" }
 
 [dev-dependencies]
 rstest            = "0.26"

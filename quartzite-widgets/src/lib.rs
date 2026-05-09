@@ -23,17 +23,16 @@
 #![deny(missing_docs)]
 
 pub mod enums;
-pub mod font;
 pub mod layout;
-pub mod palette;
 pub mod widget_base;
 pub mod widget_ext;
 pub mod widgets;
 
-pub use enums::{Alignment, CursorShape, FocusPolicy, SizePolicy};
-pub use font::Font;
+pub use enums::{CursorShape, FocusPolicy, SizePolicy};
 pub use layout::{BoxLayout, Direction, GridCell, GridLayout, Layout, WidgetResolver};
-pub use palette::Palette;
+pub use quartzite_geometry::Alignment;
+pub use quartzite_paint::{Font, FontWeight};
+pub use quartzite_style_types::{ColorRole, Palette};
 pub use widget_base::{AsWidget, WidgetBase};
 pub use widget_ext::WidgetExt;
 pub use widgets::{Button, Container, Label, LineEdit, ScrollArea, ScrollPolicy, TextEdit};

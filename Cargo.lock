@@ -2109,7 +2109,9 @@ dependencies = [
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-macros",
+ "quartzite-paint",
  "quartzite-paint-api",
+ "quartzite-style-types",
  "rstest",
 ]
 

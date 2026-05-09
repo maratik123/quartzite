@@ -2,29 +2,6 @@
 
 use quartzite_macros::MetaEnum;
 
-/// Controls how text or content is aligned within a widget's bounding box.
-///
-/// # Examples
-///
-/// ```
-/// use quartzite_widgets::Alignment;
-///
-/// assert_eq!(Alignment::Left as i64, 0);
-/// ```
-#[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
-pub enum Alignment {
-    /// Align to the left (horizontal) or top (vertical).
-    #[default]
-    Left = 0,
-    /// Center content within the available space.
-    Center = 1,
-    /// Align to the right (horizontal) or bottom (vertical).
-    Right = 2,
-    /// Justify content to fill the available space.
-    Justify = 3,
-}
-
 /// Determines whether and how a widget accepts keyboard focus.
 ///
 /// # Examples
@@ -103,19 +80,6 @@ pub enum CursorShape {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quartzite_core::{FromValue, IntoValue, Value};
-
-    #[test]
-    fn alignment_default_is_left() {
-        assert_eq!(Alignment::default(), Alignment::Left);
-    }
-
-    #[test]
-    fn alignment_into_value_round_trip() {
-        let v = Alignment::Center.into_value();
-        assert_eq!(v, Value::Int(1));
-        assert_eq!(Alignment::from_value(v), Ok(Alignment::Center));
-    }
 
     #[test]
     fn focus_policy_default_is_no_focus() {

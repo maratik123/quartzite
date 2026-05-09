@@ -148,6 +148,26 @@ impl Font {
     }
 }
 
+impl Default for Font {
+    /// Returns a 12-point `"sans-serif"` font with normal weight and all style flags off.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::{Font, FontWeight};
+    ///
+    /// let f = Font::default();
+    /// assert_eq!(f.family(), "sans-serif");
+    /// assert_eq!(f.size_pt(), 12.0);
+    /// assert_eq!(f.weight(), FontWeight::Normal);
+    /// assert!(!f.italic());
+    /// ```
+    #[inline]
+    fn default() -> Self {
+        Self::new("sans-serif", 12.0)
+    }
+}
+
 /// Canonical CSS-style font weight.
 ///
 /// Variant discriminants match the CSS numeric weight values (`100`–`900`).
@@ -231,5 +251,16 @@ mod tests {
         let f = Font::new(owned, 10.5);
         assert_eq!(f.family(), "DejaVu Sans");
         assert_eq!(f.size_pt(), 10.5);
+    }
+
+    #[test]
+    fn default_is_sans_serif_12pt_normal() {
+        let f = Font::default();
+        assert_eq!(f.family(), "sans-serif");
+        assert_eq!(f.size_pt(), 12.0);
+        assert_eq!(f.weight(), FontWeight::Normal);
+        assert!(!f.italic());
+        assert!(!f.underline());
+        assert!(!f.strikethrough());
     }
 }
