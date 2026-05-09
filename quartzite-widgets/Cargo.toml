@@ -18,8 +18,12 @@ quartzite-paint        = { path = "../quartzite-paint" }
 quartzite-style-types  = { path = "../quartzite-style-types" }
 
 [dev-dependencies]
-rstest            = "0.26"
-pretty_assertions = "1"
+rstest             = "0.26"
+pretty_assertions  = "1"
+nv-flip            = "0.1"
+image              = "0.25"
+tempfile           = "3"
+quartzite-renderer = { path = "../quartzite-renderer" }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

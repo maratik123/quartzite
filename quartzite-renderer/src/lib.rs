@@ -10,6 +10,7 @@
 
 pub mod application;
 mod error;
+pub mod render_harness;
 pub mod vello_painter;
 
 pub use application::WindowedApplication;
