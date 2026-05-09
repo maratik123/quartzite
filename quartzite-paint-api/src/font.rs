@@ -57,7 +57,6 @@ impl Font {
     /// ```
     ///
     /// _Simple._
-    #[inline]
     pub fn new(family: impl Into<String>, size_pt: f32) -> Self {
         Self {
             family: family.into(),

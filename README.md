@@ -15,7 +15,7 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 - **Signals/slots:** typed `Signal<Args>`, dynamic dispatch via `Object::invoke_method`, cross-thread queued connections.
 - **Event loop:** `Application` singleton, per-thread `EventLoop`, queued dispatcher.
 - **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
-- **Painting API** (`quartzite-paint-api`) — `Painter` trait, `Color`, `Pen`, `Brush` — `no_std`-compatible.
+- **Painting API** (`quartzite-paint-api`) — 11-method `Painter` trait (rect/line/text/image/path/transform/state), `Color`, `Pen`, `Brush`, `Font`, `Image`, `Path` — `no_std`-compatible.
 - **Renderer scaffold** (`quartzite-renderer`) — `WindowedApplication` + `VelloPainter` skeleton (vello + wgpu + winit).
 - **Widgets** (`quartzite-widgets`) — `WidgetBase`, `WidgetExt`, layouts (`BoxLayout`, `GridLayout`), and built-in widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
 
@@ -41,11 +41,12 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-runtime` | ✅ implemented |
 | `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
-| `quartzite-paint-api` | ✅ implemented |
-| `quartzite-paint` | ✅ stub (full impl planned #47) |
-| `quartzite-renderer` | ✅ scaffold (WindowedApplication + VelloPainter skeleton) |
+| `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush, Font, Image, Path, 11-method Painter trait) |
+| `quartzite-paint` | ✅ implemented (re-export shell over paint-api + Alignment from geometry) |
+| `quartzite-renderer` | ✅ scaffold (WindowedApplication + VelloPainter skeleton; no-op stubs for new Painter methods) |
 | `quartzite-widgets` | ✅ implemented (#46) |
-| `quartzite-style` | planned (#47) |
+| `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole) |
+| `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry) |
 
 ## Usage
 

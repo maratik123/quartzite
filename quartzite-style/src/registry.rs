@@ -19,8 +19,6 @@ use crate::Style;
 static REGISTRY: OnceLock<Mutex<Option<&'static dyn Style>>> = OnceLock::new();
 
 /// Lazily initialises and returns a reference to the registry mutex.
-///
-/// _Simple._
 #[inline]
 fn slot() -> &'static Mutex<Option<&'static dyn Style>> {
     REGISTRY.get_or_init(|| Mutex::new(None))
@@ -64,18 +62,34 @@ impl StyleRegistry {
     /// `'static` reference (the registry hands out `&'static dyn Style`).
     /// If a style was already installed, its box stays leaked — this is
     /// acceptable for a process-lifetime registry; typical applications swap
-    /// styles zero or one times.
-    ///
-    /// # Memory note
-    ///
-    /// Calling `set_style` once is free of leaks (the supplied box outlives
-    /// the process intentionally). Repeated calls retain the previous box's
+    /// styles zero or one times. Repeated calls retain each previous box's
     /// allocation for the rest of the process lifetime.
     ///
     /// # Parameters
     ///
     /// - `style`: the new style. Ownership is transferred to the registry
     ///   (leaked to `'static`).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Palette, Style, StyleRegistry};
+    /// use quartzite_widgets::AsWidget;
+    ///
+    /// struct NoopStyle;
+    /// impl Style for NoopStyle {
+    ///     fn draw_widget(
+    ///         &self,
+    ///         _w: &dyn AsWidget,
+    ///         _p: &mut dyn Painter,
+    ///         _pal: &Palette,
+    ///     ) {}
+    /// }
+    ///
+    /// StyleRegistry::set_style(Box::new(NoopStyle));
+    /// assert!(StyleRegistry::try_style().is_some());
+    /// ```
     pub fn set_style(style: Box<dyn Style>) {
         let leaked: &'static dyn Style = Box::leak(style);
         let mut guard = slot().lock().unwrap_or_else(|e| e.into_inner());

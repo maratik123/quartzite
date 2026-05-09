@@ -13,13 +13,14 @@
 | `quartzite-core` | ObjectBase, AsObject, Object, ObjectExt, Value, Signal, MetaObject — no_std compatible |
 | `quartzite-macros` | Proc-macro crate: `#[derive(Extend)]`, `#[derive(Object)]`, `#[object_part]`, `#[object_impl]` |
 | `quartzite-runtime` | Application, EventLoop, ObjectTree, ObjectRef, Timer, ObjectTreeExt, try_with_tree |
-| `quartzite-geometry` | Point/PointF, Size/SizeF, Rect/RectF, Margins — no_std, no alloc |
+| `quartzite-geometry` | Point/PointF, Size/SizeF, Rect/RectF, Margins, Alignment — no_std (now with `quartzite-core` + `quartzite-macros` deps for `MetaEnum` derive on `Alignment`, default-features = false to preserve `no_std`) |
 | `quartzite-event-types` | Event\<T\>, EventType\<T\>, EventFilter\<T\>, KeyEventKind, MouseEventKind, TimerEvent — no_std + alloc; intermediate crate between `quartzite-core` and `quartzite-events` |
 | `quartzite-events` | MouseEvent, KeyEvent, ResizeEvent, CloseEvent; re-exports from `quartzite-event-types` — no_std + alloc |
-| `quartzite-paint-api` | Thin `no_std` shared paint vocabulary: `Color`, `Pen`, `Brush`/`BrushKind`, `Painter` trait, `PaintError` — no platform deps; used by both `quartzite-paint` and `quartzite-renderer` |
-| `quartzite-paint` | Re-exports `quartzite-paint-api`; adds `Path` stub (full impl deferred to #47) — backend-agnostic, no renderer dep |
-| `quartzite-renderer` | Windowed rendering backend — `vello` + `wgpu` + `winit`; `WindowedApplication` (owns `Application` + `EventLoop<()>`), `VelloPainter` (skeleton `Painter` impl), `RendererError` |
-| `quartzite-style` | Style trait, Palette, StyleRegistry — planned (#47) |
+| `quartzite-paint-api` | Thin `no_std` shared paint vocabulary: `Color` (with `with_alpha`), `Pen`, `Brush`/`BrushKind`, `Font`/`FontWeight`, `Image`/`ImageError`, `Path`/`Segment`, 11-method `Painter` trait, `PaintError` — no platform deps; used by `quartzite-paint`, `quartzite-renderer`, `quartzite-widgets`, and `quartzite-style-types` |
+| `quartzite-paint` | Re-export shell: `quartzite-paint-api` types plus `Alignment` from `quartzite-geometry` — backend-agnostic, no renderer dep |
+| `quartzite-renderer` | Windowed rendering backend — `vello` + `wgpu` + `winit`; `WindowedApplication` (owns `Application` + `EventLoop<()>`), `VelloPainter` (skeleton `Painter` impl with no-op stubs for new draw_text/draw_text_in/draw_image/draw_path), `RendererError` |
+| `quartzite-style-types` | Leaf crate (no_std + alloc): `Palette` + `ColorRole` (+ `ColorRole::ALL`). Depends only on `quartzite-paint-api` for `Color`. Exists to break the otherwise-impossible `style ↔ widgets` Cargo cycle (widgets depends on this leaf, never on `quartzite-style`). |
+| `quartzite-style` | Downstream `std` crate: `Style` trait (`Send + Sync`, generic-only `draw_widget(&dyn AsWidget, &mut dyn Painter, &Palette)`), `StyleRegistry` (`OnceLock<Mutex<Option<&'static dyn Style>>>` storage with `Box::leak`, non-panicking `try_style() -> Option<&'static dyn Style>`, lock-poisoning recovery via `unwrap_or_else(\|e\| e.into_inner())`). Re-exports `Palette` and `ColorRole` from `quartzite-style-types`. |
 | `quartzite-widgets` | WidgetBase, WidgetExt, Layout (`BoxLayout`, `GridLayout`), `Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container` — widget system ✅ (#46) |
 | `quartzite` (workspace root + facade) | Re-exports sub-crates as `quartzite::core`, `quartzite::macros` (optional; `derive` feature, on by default), `quartzite::runtime`; curated `prelude` module; `examples/` at workspace root ✅ |
 
@@ -142,6 +143,14 @@ AsObject        AsWidget        AsWidget (generated)
 | `quartzite-events` no_std | `no_std + alloc` — needs `String` for `KeyEvent::text`. `MouseButton` and `KeyModifiers` use `bitflags!` (u8). |
 | `EventType<T>` shape | Nested enums `Key(KeyEventKind)`, `Mouse(MouseEventKind)` — discriminate kind without downcasting. Generic `T: 'static + Send + Sync = ()` for `User(T)` payload (winit style; app commits to one type; zero allocation, zero downcast). `Event<T>` is object-safe for fixed `T`. |
 | `PropertyFlags` representation | `pub type PropertyFlags = BitFlags<PropertyFlag>` via `enumflags2`. `PropertyFlag` is a `#[bitflags(default = Readable \| Writable \| Stored \| Designable)] #[repr(u8)]` enum. Named constructors (`none`, `read_write`, `read_only`) are `const fn` on `impl PropertyFlag`. Proc-macro codegen uses `make_bitflags!(PropertyFlag::{…})` via a `use ::quartzite::core::PropertyFlag;` import inside the generated hidden module; `enumflags2` is `#[doc(hidden)]` re-exported from `quartzite-core` for that path. |
+| `style ↔ widgets` Cargo cycle resolution | Two-crate split: `quartzite-style-types` is the leaf (`Palette`, `ColorRole`); `quartzite-style` is downstream (`Style` trait, `StyleRegistry`). `quartzite-widgets` re-exports `Palette`/`ColorRole` from the leaf only — never depends on `quartzite-style`. Enforced mechanically by `quartzite-widgets/tests/no_style_dep.rs`, which shells out to `cargo tree -p quartzite-widgets --prefix none --no-dedupe` and asserts no line starts with `"quartzite-style "` (trailing space anchors against `quartzite-style-types`). |
+| `StyleRegistry` storage | `static REGISTRY: OnceLock<Mutex<Option<&'static dyn Style>>>` in `quartzite-style/src/registry.rs`. `set_style(Box<dyn Style>)` calls `Box::leak` to obtain a `'static` reference; replacement leaks the prior box (acceptable for a process-lifetime registry — documented). Default accessor is non-panicking `try_style() -> Option<&'static dyn Style>` per AGENTS.md § *API Naming*. Lock-poisoning recovered via `lock().unwrap_or_else(\|e\| e.into_inner())`. `#[cfg(test)] pub(crate) fn clear_for_test()` and `poison_for_test()` helpers expose the slot for `serial_test` ordering. |
+| `Style` trait surface | Generic-only — single method `fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette)`. Trait bounds `Send + Sync` (required by global registry). No per-widget primitive methods (no `draw_button`/`draw_label`/etc.) on the trait — concrete `Style` impls dispatch on widget type internally via downcast or visitor. |
+| `Painter` trait shape (paint-api) | Pass-through (NOT stateful): pen/brush passed as call args rather than stored on the painter. 11 methods total: `draw_rect`/`fill_rect`/`draw_line`/`draw_text`/`draw_text_in`/`draw_image`/`draw_path` (drawing), `clip_rect`/`translate` (transform), `save`/`restore` (state stack — implementation delegated to concrete backend, no internal stack in the trait). Object-safe: no generics, no `Self` returns, no associated types. |
+| `Color` representation | `f32` channels in `[0.0, 1.0]` (NOT u8). `Color::new(r,g,b,a)`, named constants (`BLACK`/`WHITE`/`RED`/`GREEN`/`BLUE`/`TRANSPARENT`), `with_alpha(a: f32) -> Color` const fn for builder-style alpha replacement. |
+| `Path` representation | `Vec<Segment>` builder pattern in `quartzite-paint-api`; methods `move_to(p)`/`line_to(p)`/`cubic_to(c1, c2, p)`/`arc_to{centre, radii, start_angle, sweep_angle}`/`close()` return `&mut Self`. `Segment` is `#[non_exhaustive]` enum (`MoveTo`/`LineTo`/`CubicTo`/`ArcTo`/`Close`). `arc_to` semantics: centre-and-radii, radians, positive sweep CCW. |
+| `Image` representation | `quartzite-paint-api::Image { width: u32, height: u32, pixels: Vec<u8> }` — RGBA8 row-major, no per-pixel padding. Constructed via `Image::try_new(w, h, pixels) -> Result<Image, ImageError>` with `checked_mul` overflow guard. `ImageError` is `#[non_exhaustive]` thiserror with `PixelLengthMismatch { expected, actual }` and `Overflow` variants (latter for usize overflow on 32-bit targets). |
+| `Alignment` location | `quartzite-geometry::Alignment` (moved from `quartzite-widgets` in paint-style #47). `quartzite-widgets::Alignment` is now a `pub use` re-export — `TypeId::of::<widgets::Alignment>() == TypeId::of::<geometry::Alignment>()`. `MetaEnum` derive preserved; `quartzite-geometry` gained `quartzite-core` (`default-features = false`) and `quartzite-macros` deps to keep the derive expanding. Crate stays `no_std`. |
 
 ## Plans (Implementation Order)
 
@@ -153,11 +162,11 @@ Crate-level plans:
 4. `quartzite` (facade) — prelude re-exports, sub-crate re-exports, Cargo metadata, docs.rs config ✅
 5. `examples/` — runnable API examples at workspace root (hello_object, signals_slots, object_tree, timer) ✅
 6. `quartzite-geometry` + `quartzite-events` — geometry primitives + event model ✅
-7. `quartzite-paint-api` — thin no_std shared paint types + `Painter` trait; wired into `quartzite` facade ✅ (graphics-stack #73)
-8. `quartzite-paint` — re-exports paint-api + `Path` stub ✅ (graphics-stack #73; full impl deferred to #47)
-9. `quartzite-renderer` — `WindowedApplication` + `VelloPainter` skeleton (vello+wgpu+winit) ✅ (graphics-stack #73)
-10. `quartzite-widgets` — WidgetBase, WidgetExt, BoxLayout, GridLayout, Label, Button, LineEdit, TextEdit, ScrollArea, Container ✅ (#46)
-11. `quartzite-paint` (full) + `quartzite-style` — complete painter + theming (#47, unblocked)
+7. `quartzite-paint-api` — thin no_std shared paint types + `Painter` trait; wired into `quartzite` facade ✅ (graphics-stack #73; extended in paint-style #47 with `Color::with_alpha`, `Font`/`FontWeight`, `Image`/`ImageError`, `Path`/`Segment`, and four new `Painter` methods `draw_text`/`draw_text_in`/`draw_image`/`draw_path`)
+8. `quartzite-paint` — re-export shell over `quartzite-paint-api` + `Alignment` from `quartzite-geometry` ✅ (graphics-stack #73; full vocabulary completed in paint-style #47)
+9. `quartzite-renderer` — `WindowedApplication` + `VelloPainter` skeleton (vello+wgpu+winit) ✅ (graphics-stack #73; new `Painter` methods land as no-op stubs in paint-style #47, real implementations deferred to a follow-up plan)
+10. `quartzite-widgets` — WidgetBase, WidgetExt, BoxLayout, GridLayout, Label, Button, LineEdit, TextEdit, ScrollArea, Container ✅ (#46; refactored in paint-style #47 to drop local `Alignment`/`Font`/`Palette` and re-export from upstream)
+11. `quartzite-style-types` + `quartzite-style` — leaf (`Palette`, `ColorRole`) + downstream (`Style` trait, `StyleRegistry`) ✅ (paint-style #47). Two-crate split exists to break the `style ↔ widgets` Cargo cycle; widgets depends on the leaf only, enforced by a `cargo tree -p quartzite-widgets` integration test.
 
 ### Maintenance plans (cross-cutting)
 

@@ -27,7 +27,8 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [thiserror-migration](done/2026-05-05-thiserror-migration.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [tracing-itertools](done/2026-05-05-tracing-itertools.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [log-facade](done/2026-05-05-log-facade.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
-| [paint-style](2026-05-09-paint-style.spec.md) | `quartzite-paint` `quartzite-style` `quartzite-paint-api` `quartzite-geometry` `quartzite-widgets` | 🟡 spec-only (no design yet) | — |
+| [paint-style](done/2026-05-09-paint-style.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-geometry` `quartzite-widgets` `quartzite-style-types` (new) `quartzite-style` (new) | ✅ implemented (38 new tests; full Painter trait + paint-side Font/Image/Path; new `quartzite-style-types` leaf + `quartzite-style` downstream crates with `Box::leak`-backed `StyleRegistry`; `Alignment` moved to `quartzite-geometry`; `style ↔ widgets` cycle broken by leaf-crate split, enforced by `cargo tree` integration test) | — |
+
 ## Completed plans
 
 | Plan | Crate(s) | Status | Blocked by |
@@ -72,7 +73,7 @@ Tracked future work without dedicated specs (cross-cutting items only — not pl
 - **#39** signals_blocked serde (persist across serialization) — blocked on #107
 - **#48** BlockingQueued connection type — ready (per-thread loops ✅ implemented)
 - **#52** object mobility / thread migration with stale `thread_id` invalidation
-- **#53** multi-window support — ready (#46, #73 ✅ implemented)
+- **#53** multi-window support — ready (#46, #47, #73 all ✅ implemented)
 - **#56** property system extensions — computed properties / bindings / custom getter/setter closures
 - **#58** Python interop crate (`quartzite-python` via PyO3)
 - **#107** object/property serialization layer (snapshot, save/restore)
@@ -83,15 +84,14 @@ Tracked future work without dedicated specs (cross-cutting items only — not pl
 core-types ✅
 ├── geometry-events ✅
 │   └── graphics-stack             ✅ implemented (quartzite-paint-api + quartzite-paint stub + quartzite-renderer scaffold)
-│       ├── quartzite-paint-api    ✅ (thin no_std crate; Painter trait + Color/Pen/Brush/PaintError)
-│       ├── quartzite-paint        ✅ stub (re-exports paint-api + Path stub; full impl #47)
-│       └── quartzite-renderer     ✅ scaffold (WindowedApplication + VelloPainter skeleton; vello+wgpu+winit)
+│       ├── quartzite-paint-api    ✅ (thin no_std crate; 11-method Painter trait + Color/Pen/Brush/Font/Image/Path/PaintError)
+│       ├── quartzite-paint        ✅ (re-export shell over paint-api + Alignment from geometry; full vocabulary completed in #47)
+│       └── quartzite-renderer     ✅ scaffold (WindowedApplication + VelloPainter skeleton; vello+wgpu+winit; new Painter methods land as no-op stubs)
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets (#46)              ✅ implemented
-│   │   └── paint-style/style      🔴 blocked on paint #47
-│   └── paint-style/paint (#47)    🟡 spec-only (no design yet; both blockers ✅ resolved)
+│   ├── widgets (#46)              ✅ implemented (refactored in #47 to re-export Alignment / Font / Palette from upstream)
+│   └── paint-style (#47)          ✅ implemented (full Painter trait + paint-side Font/Image/Path; quartzite-style-types leaf + quartzite-style downstream)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
@@ -102,9 +102,10 @@ Maintenance plans (cross-cutting, all ✅): see [`../context.md` § Maintenance 
 
 ## Suggested next steps
 
-1. **Start paint (#47)** — `quartzite-paint` full implementation (graphics-stack #73 ✅ resolved, widgets #46 ✅ done). This is the **single blocker** remaining for paint-style/style and multi-window (#53).
-2. **After paint #47 lands**, paint-style/style spec can activate; multi-window (#53) follows.
-3. **Expand** `quartzite` facade prelude as new crates are implemented
+1. **Multi-window support (#53)** — both paint-style (#47) ✅ and widgets (#46) ✅ are now landed; the multi-window track is unblocked. Likely the next biggest milestone.
+2. **Concrete `Style` implementation in `quartzite-style`** — the `Style` trait shipped in #47 with no built-in concrete impl. A "Quartzite Default" struct whose `draw_widget` covers Button/Label/TextEdit/ScrollArea is the natural follow-up.
+3. **Real `Painter` impls in `quartzite-renderer`** — `VelloPainter`'s new `draw_text`/`draw_text_in`/`draw_image`/`draw_path` methods landed as no-op stubs in #47; flesh them out against vello once usage pressure justifies it.
+4. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land
 6. `#[inline]` rule (recursive — see [`ai-docs/code-style.md` → `#[inline]` and the `_Simple._` doc tag](../code-style.md#inline-and-the-_simple_-doc-tag)) is enforced by AGENTS.md and review agents; new simple fns must carry the marker matching their shape — `#[inline]` on concrete fns, `_Simple._` doc tag on generic fns and on trait method declarations whose every conforming impl is required to be simple

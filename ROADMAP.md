@@ -13,15 +13,14 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 core-types ✅
 ├── geometry-events ✅
 │   └── graphics-stack             ✅ implemented (quartzite-paint-api + quartzite-paint stub + quartzite-renderer scaffold)
-│       ├── quartzite-paint-api    ✅ (thin no_std crate; Painter trait + Color/Pen/Brush/PaintError)
-│       ├── quartzite-paint        ✅ stub (re-exports paint-api + Path stub; full impl #47)
-│       └── quartzite-renderer     ✅ scaffold (WindowedApplication + VelloPainter skeleton; vello+wgpu+winit)
+│       ├── quartzite-paint-api    ✅ (thin no_std crate; 11-method Painter trait + Color/Pen/Brush/Font/Image/Path/PaintError)
+│       ├── quartzite-paint        ✅ (re-export shell over paint-api + Alignment from geometry; full vocabulary completed in #47)
+│       └── quartzite-renderer     ✅ scaffold (WindowedApplication + VelloPainter skeleton; vello+wgpu+winit; new Painter methods land as no-op stubs)
 ├── macros ✅
 ├── runtime ✅
 │   ├── auto-connection ✅
-│   ├── widgets (#46)              ✅ implemented
-│   │   └── paint-style/style      🔴 blocked on paint #47
-│   └── paint-style/paint (#47)    🟡 spec-only (graphics-stack #73 ✅ resolved — now unblocked)
+│   ├── widgets (#46)              ✅ implemented (refactored in #47 to re-export Alignment / Font / Palette from upstream)
+│   └── paint-style (#47)          ✅ implemented (full Painter trait + paint-side Font/Image/Path; quartzite-style-types leaf + quartzite-style downstream)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
@@ -51,6 +50,7 @@ core-types ✅
 | [thiserror-migration](ai-docs/plans/done/2026-05-05-thiserror-migration.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [tracing-itertools](ai-docs/plans/done/2026-05-05-tracing-itertools.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [log-facade](ai-docs/plans/done/2026-05-05-log-facade.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
+| [paint-style](ai-docs/plans/done/2026-05-09-paint-style.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-geometry` `quartzite-widgets` `quartzite-style-types` (new) `quartzite-style` (new) | ✅ implemented (38 new tests; full Painter trait + paint-side Font/Image/Path; new `quartzite-style-types` leaf + `quartzite-style` downstream crates with `Box::leak`-backed `StyleRegistry`; `Alignment` moved to `quartzite-geometry`; `style ↔ widgets` cycle broken by leaf-crate split, enforced by `cargo tree` integration test) | — |
 
 ## Completed plans
 
@@ -89,4 +89,3 @@ core-types ✅
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
-| [paint-style](ai-docs/plans/deferred/2026-05-01-paint-style.spec.md) | `quartzite-paint` `quartzite-style` | 🟡 spec-only | style portion blocked on widgets #46 — tracked in #47; paint-api blocker (#73) ✅ resolved |
