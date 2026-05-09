@@ -10,6 +10,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            # Any future Rust artefact (e.g. .cargo/config.toml, clippy.toml) must be
+            # added here in the same PR that introduces it to keep the matrix gate accurate.
+            rust:
+              - '**/*.rs'
+              - '**/Cargo.toml'
+              - 'Cargo.lock'
+              - '.github/workflows/**'
+              - 'rust-toolchain*'
+
   format:
     name: Format
     runs-on: ubuntu-latest
@@ -24,6 +46,8 @@ jobs:
 
   build:
     name: Build
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -49,6 +73,8 @@ jobs:
 
   test:
     name: Test
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -74,6 +100,8 @@ jobs:
 
   clippy:
     name: Clippy
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -101,39 +129,47 @@ jobs:
 
   features-pass:
     name: Feature matrix
-    needs: features
+    needs: [changes, features]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - run: |
-          if [[ "${{ needs.features.result }}" != "success" ]]; then exit 1; fi
+          c="${{ needs.changes.result }}"
+          r="${{ needs.features.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   build-pass:
     name: Build
-    needs: build
+    needs: [changes, build]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - run: |
-          if [[ "${{ needs.build.result }}" != "success" ]]; then exit 1; fi
+          c="${{ needs.changes.result }}"
+          r="${{ needs.build.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   test-pass:
     name: Test
-    needs: test
+    needs: [changes, test]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - run: |
-          if [[ "${{ needs.test.result }}" != "success" ]]; then exit 1; fi
+          c="${{ needs.changes.result }}"
+          r="${{ needs.test.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   clippy-pass:
     name: Clippy
-    needs: clippy
+    needs: [changes, clippy]
     runs-on: ubuntu-latest
     if: always()
     steps:
       - run: |
-          if [[ "${{ needs.clippy.result }}" != "success" ]]; then exit 1; fi
+          c="${{ needs.changes.result }}"
+          r="${{ needs.clippy.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   roadmap-sync:
     name: ROADMAP sync
@@ -155,7 +191,9 @@ jobs:
           if [[ "${{ needs.roadmap-sync.result }}" != "success" ]]; then exit 1; fi
 
   docs:
-    name: Docs
+    name: Docs (build)
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -177,8 +215,21 @@ jobs:
         env:
           RUSTDOCFLAGS: "-D warnings -D missing-docs"
 
+  docs-pass:
+    name: Docs
+    needs: [changes, docs]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          c="${{ needs.changes.result }}"
+          r="${{ needs.docs.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
+
   features:
     name: Feature matrix
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     env:
       SCCACHE_GHA_ENABLED: "true"
