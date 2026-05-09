@@ -1,0 +1,19 @@
+[package]
+name = "quartzite-style-types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Leaf crate for quartzite-style: Palette and ColorRole types (no_std + alloc)"
+
+[dependencies]
+quartzite-paint-api = { path = "../quartzite-paint-api" }
+
+[dev-dependencies]
+rstest = "0.26"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

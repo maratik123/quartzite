@@ -1975,8 +1975,10 @@ dependencies = [
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-macros",
+ "quartzite-paint",
  "quartzite-paint-api",
  "quartzite-runtime",
+ "quartzite-style",
  "quartzite-widgets",
  "serial_test",
 ]
@@ -2026,6 +2028,8 @@ version = "0.1.0"
 dependencies = [
  "libm",
  "pretty_assertions",
+ "quartzite-core",
+ "quartzite-macros",
  "rstest",
 ]
 
@@ -2091,6 +2095,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-style"
+version = "0.1.0"
+dependencies = [
+ "quartzite-geometry",
+ "quartzite-paint",
+ "quartzite-paint-api",
+ "quartzite-style-types",
+ "quartzite-widgets",
+ "serial_test",
+]
+
+[[package]]
+name = "quartzite-style-types"
+version = "0.1.0"
+dependencies = [
+ "quartzite-paint-api",
+ "rstest",
+]
+
+[[package]]
 name = "quartzite-widgets"
 version = "0.1.0"
 dependencies = [
@@ -2099,7 +2123,9 @@ dependencies = [
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-macros",
+ "quartzite-paint",
  "quartzite-paint-api",
+ "quartzite-style-types",
  "rstest",
 ]
 

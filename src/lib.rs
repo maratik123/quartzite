@@ -266,18 +266,40 @@ pub mod events {
     pub use quartzite_events::*;
 }
 
-/// Re-exports shared paint types and the [`Painter`](quartzite_paint_api::Painter) trait
-/// from [`quartzite_paint_api`].
+/// Re-exports the full backend-agnostic paint vocabulary from [`quartzite_paint`].
 ///
-/// This module exposes the thin, `no_std`-compatible painting vocabulary:
-/// [`Color`](quartzite_paint_api::Color), [`Pen`](quartzite_paint_api::Pen),
-/// [`Brush`](quartzite_paint_api::Brush) / [`BrushKind`](quartzite_paint_api::BrushKind),
-/// [`Painter`](quartzite_paint_api::Painter), and [`PaintError`](quartzite_paint_api::PaintError).
+/// This module exposes [`Brush`](quartzite_paint_api::Brush) /
+/// [`BrushKind`](quartzite_paint_api::BrushKind),
+/// [`Color`](quartzite_paint_api::Color), [`Font`](quartzite_paint_api::Font) /
+/// [`FontWeight`](quartzite_paint_api::FontWeight),
+/// [`Image`](quartzite_paint_api::Image) /
+/// [`ImageError`](quartzite_paint_api::ImageError),
+/// [`Path`](quartzite_paint_api::Path) / [`Segment`](quartzite_paint_api::Segment),
+/// [`PaintError`](quartzite_paint_api::PaintError),
+/// [`Painter`](quartzite_paint_api::Painter), and [`Pen`](quartzite_paint_api::Pen),
+/// plus [`Alignment`](quartzite_geometry::Alignment) (re-exported through
+/// `quartzite-paint` for vocabulary completeness).
 ///
-/// The concrete backend implementation lives in `quartzite-paint` (utilities) and
-/// `quartzite-renderer` (vello + wgpu + winit).
+/// The concrete backend implementation lives in `quartzite-renderer`
+/// (vello + wgpu + winit).
 pub mod paint {
-    pub use quartzite_paint_api::{Brush, BrushKind, Color, PaintError, Painter, Pen};
+    pub use quartzite_paint::*;
+}
+
+/// Re-exports the styling layer ([`Style`](quartzite_style::Style),
+/// [`StyleRegistry`](quartzite_style::StyleRegistry), [`Palette`](quartzite_style_types::Palette),
+/// [`ColorRole`](quartzite_style_types::ColorRole)).
+///
+/// `Palette` and `ColorRole` originate in [`quartzite_style_types`] (the
+/// leaf crate) and reach this module via [`quartzite_style`]'s own
+/// re-export — a single `use quartzite::style::*;` therefore covers the
+/// full vocabulary.
+///
+/// Requires the `style` feature.
+#[cfg(feature = "style")]
+#[cfg_attr(docsrs, doc(cfg(feature = "style")))]
+pub mod style {
+    pub use quartzite_style::*;
 }
 
 /// Re-exports the built-in widget system from [`quartzite_widgets`].
@@ -335,7 +357,13 @@ pub mod prelude {
     };
 
     // quartzite-paint-api: shared paint vocabulary
-    pub use quartzite_paint_api::{Brush, BrushKind, Color, PaintError, Painter, Pen};
+    pub use quartzite_paint_api::{
+        Brush, BrushKind, Color, Font, FontWeight, Image, ImageError, PaintError, Painter, Path,
+        Pen, Segment,
+    };
+
+    // quartzite-geometry: alignment (lives next to the paint vocabulary)
+    pub use quartzite_geometry::Alignment;
 }
 
 #[cfg(test)]

@@ -13,11 +13,13 @@
 #[cfg(feature = "std")]
 extern crate std;
 
+mod alignment;
 mod margins;
 mod point;
 mod rect;
 mod size;
 
+pub use alignment::Alignment;
 pub use margins::Margins;
 pub use point::{Point, PointF};
 pub use rect::{Rect, RectF};
