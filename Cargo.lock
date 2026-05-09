@@ -1975,8 +1975,10 @@ dependencies = [
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-macros",
+ "quartzite-paint",
  "quartzite-paint-api",
  "quartzite-runtime",
+ "quartzite-style",
  "quartzite-widgets",
  "serial_test",
 ]

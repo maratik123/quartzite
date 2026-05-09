@@ -43,6 +43,13 @@ std = ["quartzite-core/std", "quartzite-geometry/std"]
 derive = ["dep:quartzite-macros"]
 ## Enable the built-in widget system (`quartzite-widgets` crate).
 widgets = ["dep:quartzite-widgets"]
+## Enable the styling layer (`quartzite-style` crate).
+##
+## When enabled, `quartzite::style` re-exports the `Style` trait, `StyleRegistry`,
+## `Palette`, and `ColorRole` (the latter two surface from the upstream
+## `quartzite-style-types` leaf via `quartzite-style`'s own re-export) for
+## one-stop styling-vocabulary access.
+style = ["dep:quartzite-style"]
 
 #! ### Diagnostic features
 #!
@@ -54,14 +61,16 @@ widgets = ["dep:quartzite-widgets"]
 verbose-tracing = ["quartzite-core/verbose-tracing", "quartzite-runtime/verbose-tracing"]
 
 [dependencies]
-quartzite-core      = { path = "quartzite-core", default-features = false }
-quartzite-macros    = { path = "quartzite-macros", optional = true }
-quartzite-runtime   = { path = "quartzite-runtime" }
-quartzite-geometry  = { path = "quartzite-geometry", default-features = false }
-quartzite-events    = { path = "quartzite-events", default-features = false }
-quartzite-paint-api = { path = "quartzite-paint-api", default-features = false }
-quartzite-widgets   = { path = "quartzite-widgets", optional = true }
-document-features   = "0.2"
+quartzite-core         = { path = "quartzite-core", default-features = false }
+quartzite-macros       = { path = "quartzite-macros", optional = true }
+quartzite-runtime      = { path = "quartzite-runtime" }
+quartzite-geometry     = { path = "quartzite-geometry", default-features = false }
+quartzite-events       = { path = "quartzite-events", default-features = false }
+quartzite-paint-api    = { path = "quartzite-paint-api", default-features = false }
+quartzite-paint        = { path = "quartzite-paint" }
+quartzite-style        = { path = "quartzite-style", optional = true }
+quartzite-widgets      = { path = "quartzite-widgets", optional = true }
+document-features      = "0.2"
 
 [[example]]
 name = "hello_object"

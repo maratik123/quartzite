@@ -1,5 +1,5 @@
-# Progress: paint-style #47 — ACTIVE
-_Updated: 2026-05-09 (15 of 16 subtasks done; final dispatch in progress)_
+# Progress: paint-style #47 — READY FOR VERIFY
+_Updated: 2026-05-09 (16 of 16 subtasks done; all 16 ACs PASS — handing off to /task Step 9)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
@@ -12,7 +12,7 @@ _Updated: 2026-05-09 (15 of 16 subtasks done; final dispatch in progress)_
 
 ## Next action
 
-**Do this immediately:** Implement subtask 12 — drop `quartzite-widgets`'s local `Alignment`/`Font`/`Palette` types and replace them with re-exports from upstream crates (`quartzite-geometry::Alignment`, `quartzite-paint::{Font, FontWeight}`, `quartzite-style-types::{ColorRole, Palette}`). Critical guard-rail: do **NOT** add `quartzite-style` as a dep to widgets — that's the cycle-break the leaf crate exists to enforce. AC13's `cargo tree` assertion is left for subtask 16.
+All 16 subtasks committed; every AC is PASS. The branch is ready for `/task` Step 9 (Verify), Step 9.5 (docs sweep), Step 10 (self-review), and Step 12 (PR open). No code-level work remains in this plan.
 
 ## Subtasks
 
@@ -31,7 +31,7 @@ _Updated: 2026-05-09 (15 of 16 subtasks done; final dispatch in progress)_
 - [x] 13. quartzite-style: new downstream crate scaffold
 - [x] 14. quartzite-style: Style trait (Send + Sync, generic-only `draw_widget`)
 - [x] 15. quartzite-style: StyleRegistry (Box::leak, Mutex+OnceLock, poison-recovery test, `clear_for_test`/`poison_for_test` helpers)
-- [ ] 16. facade re-exports (`quartzite::paint::*`, `quartzite::style::*`) + `cargo tree -p quartzite-widgets` assertion + workspace doc/clippy gate  ← CURRENT
+- [x] 16. facade re-exports (`quartzite::paint::*`, `quartzite::style::*`) + `cargo tree -p quartzite-widgets` assertion + workspace doc/clippy gate
 
 ## Subtask 12 details (next)
 
@@ -107,13 +107,13 @@ After subtask 12: update this file's "Next action" + "Subtasks" + "Files touched
 | AC7 | PASS | `try_new_accepts_correct_length` + `try_new_rejects_short_buffer` green in `image.rs` |
 | AC8 | PASS | `painter_is_object_safe`, `all_methods_reachable_through_trait_object` (11-counter), `boxed_painter_dispatches_all_new_methods` green in `painter.rs` |
 | AC9 | PASS | `default_has_non_transparent_color_for_every_role` (loop over `ColorRole::ALL`) + `with_role_replaces_slot_only` green in `quartzite-style-types/src/palette.rs` |
-| AC10 | NOT_TESTED | Subtask 15 (StyleRegistry try_style + poison-recovery) |
-| AC11 | NOT_TESTED | Subtask 14 (Style trait) |
-| AC12 | PASS (partial) | `discriminants_match_legacy_widget_alignment` green; `into_value_round_trip` green; final assertion against widgets-side type happens in subtask 12 |
-| AC13 | NOT_TESTED | Subtask 16 (cargo tree assertion) |
-| AC14 | PASS (partial) | `cargo build -p quartzite-geometry --no-default-features` green; paint-api no-default-features still green; `quartzite-style-types --no-default-features` green |
-| AC15 | PASS (partial) | `cargo doc -D warnings -D missing-docs --workspace` clean at the subtask-11 commit; will re-run at the final gate |
-| AC16 | PASS | `clippy --workspace -- -D warnings` clean at the subtask-11 commit |
+| AC10 | PASS | `try_style_returns_none_before_set` + `try_style_returns_some_after_set` + `set_style_replaces_previous` + `try_style_recovers_from_poisoned_mutex` all `#[serial]` and green in `quartzite-style/src/registry.rs` |
+| AC11 | PASS | `concrete_style_with_only_draw_widget_satisfies_trait` + `style_trait_object_is_send_sync` green in `quartzite-style/src/style.rs` |
+| AC12 | PASS | `discriminants_match_legacy_widget_alignment` + `into_value_round_trip` green against `quartzite_geometry::Alignment`; `widgets_alignment_is_geometry_alignment` TypeId-equality green |
+| AC13 | PASS | `quartzite-widgets/tests/re_exports.rs` (5 TypeId tests) + `quartzite-widgets/tests/no_style_dep.rs` (cargo-tree assertion) all green |
+| AC14 | PASS | `cargo build -p quartzite-paint-api --no-default-features` green; `cargo build -p quartzite-geometry --no-default-features` green; `cargo build -p quartzite-style-types --no-default-features` green |
+| AC15 | PASS | `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` clean at the subtask-16 commit |
+| AC16 | PASS | `cargo clippy --workspace -- -D warnings` clean at the subtask-16 commit |
 
 ## Files touched
 
@@ -135,12 +135,29 @@ After subtask 12: update this file's "Next action" + "Subtasks" + "Files touched
 - `quartzite-style-types/src/lib.rs` — NEW (subtask 9; `#![no_std]` + `extern crate alloc;` + module declarations and re-exports of `ColorRole`, `Palette`)
 - `quartzite-style-types/src/color_role.rs` — NEW (subtask 10; `ColorRole` enum + `ColorRole::ALL` const + 3 unit tests)
 - `quartzite-style-types/src/palette.rs` — NEW (subtask 11; `Palette` struct + `color`/`with_role`/`Default` impls + 4 unit tests, AC9 contract)
+- `quartzite-paint-api/src/font.rs` — added `Default` impl (12-pt sans-serif normal) + `default_is_sans_serif_12pt_normal` test (subtask 12; required so `WidgetBase::new` keeps calling `Font::default()` after the re-export)
+- `quartzite-widgets/Cargo.toml` — added `quartzite-paint` and `quartzite-style-types` deps (subtask 12)
+- `quartzite-widgets/src/enums.rs` — removed `Alignment` enum + its tests; kept `FocusPolicy`/`SizePolicy`/`CursorShape` (subtask 12)
+- `quartzite-widgets/src/font.rs` — DELETED (subtask 12; replaced by `pub use quartzite_paint::{Font, FontWeight};` re-export)
+- `quartzite-widgets/src/palette.rs` — DELETED (subtask 12; replaced by `pub use quartzite_style_types::{ColorRole, Palette};` re-export)
+- `quartzite-widgets/src/lib.rs` — drop local `font`/`palette` modules; re-export `Alignment` / `Font` / `FontWeight` / `ColorRole` / `Palette` from upstream (subtask 12)
+- `quartzite-widgets/tests/re_exports.rs` — NEW (subtask 12; 5 TypeId equality tests, AC13 contract part 1)
+- `Cargo.toml` (root) — added `quartzite-style` to `[workspace.members]` (subtask 13); added `quartzite-paint` (non-optional) + `quartzite-style` (optional, gated by new `style` feature) to facade `[dependencies]` (subtask 16); added `style` feature
+- `quartzite-style/Cargo.toml` — NEW (subtask 13; std-using crate; deps on `quartzite-paint`, `quartzite-paint-api`, `quartzite-widgets`, `quartzite-style-types`; dev-dep on `serial_test`)
+- `quartzite-style/src/lib.rs` — NEW (subtask 13; module declarations + `pub use` re-exports of `Style`, `StyleRegistry`, `Palette`, `ColorRole`)
+- `quartzite-style/src/style.rs` — NEW (subtask 14; `Style: Send + Sync` trait + `concrete_style_with_only_draw_widget_satisfies_trait` + `style_trait_object_is_send_sync` tests, AC11 contract)
+- `quartzite-style/src/registry.rs` — NEW (subtask 15; `StyleRegistry` namespace + `Box::leak`-backed `OnceLock<Mutex<Option<&'static dyn Style>>>` + 4 `#[serial]` tests + `clear_for_test`/`poison_for_test` helpers, AC10 contract)
+- `quartzite-widgets/tests/no_style_dep.rs` — NEW (subtask 16; cargo-tree shellout asserting `quartzite-widgets` does not depend on `quartzite-style`, AC13 contract part 2)
+- `src/lib.rs` (facade) — extend `pub mod paint` to glob-re-export `quartzite_paint::*`; new `pub mod style` (gated by the `style` feature) glob-re-exporting `quartzite_style::*`; extend `prelude` with `Font`, `FontWeight`, `Image`, `ImageError`, `Path`, `Segment`, `Alignment` (subtask 16)
 
 ## Commit log on this branch
 
 - e03c82c: `feat(paint-style): geometry+paint-api foundation (subtasks 1–3 of 16)`
-- (subtasks 4–7): `feat(paint-style): paint-api Font/Image/Path + extended Painter (subtasks 4–7 of 16)`
-- (subtasks 8–11, this dispatch): `feat(paint-style): paint re-export shell + quartzite-style-types crate (subtasks 8–11 of 16)`
+- bb5a192: `feat(paint-style): paint-api Font/Image/Path + extended Painter (subtasks 4–7 of 16)`
+- 10be207: `feat(paint-style): paint re-export shell + quartzite-style-types crate (subtasks 8–11 of 16)`
+- 22bb149: `feat(paint-style): widgets refactor — re-export upstream Alignment/Font/Palette (subtask 12 of 16)`
+- b62fdc9: `feat(paint-style): quartzite-style crate — Style trait + StyleRegistry (subtasks 13–15 of 16)`
+- (this dispatch's final commit): `feat(paint-style): facade re-exports + cargo tree assertion + final verification (subtask 16 of 16)`
 
 ## Handoff guardrails
 
