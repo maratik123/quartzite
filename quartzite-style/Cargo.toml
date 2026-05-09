@@ -1,0 +1,22 @@
+[package]
+name = "quartzite-style"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Style trait and StyleRegistry for quartzite (std)"
+
+[dependencies]
+quartzite-style-types = { path = "../quartzite-style-types" }
+quartzite-paint        = { path = "../quartzite-paint" }
+quartzite-paint-api    = { path = "../quartzite-paint-api" }
+quartzite-widgets      = { path = "../quartzite-widgets" }
+
+[dev-dependencies]
+serial_test = "3"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

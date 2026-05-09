@@ -10,6 +10,7 @@ members = [
     "quartzite-paint",
     "quartzite-renderer",
     "quartzite-style-types",
+    "quartzite-style",
     "quartzite-widgets",
 ]
 resolver = "2"

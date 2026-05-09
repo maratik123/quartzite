@@ -1,5 +1,5 @@
 # Progress: paint-style #47 — ACTIVE
-_Updated: 2026-05-09 (12 of 16 subtasks done; final dispatch in progress)_
+_Updated: 2026-05-09 (15 of 16 subtasks done; final dispatch in progress)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
@@ -28,10 +28,10 @@ _Updated: 2026-05-09 (12 of 16 subtasks done; final dispatch in progress)_
 - [x] 10. quartzite-style-types: ColorRole enum + ColorRole::ALL constant (3 unit tests)
 - [x] 11. quartzite-style-types: Palette (color/with_role, default, ColorRole indexing) (4 unit tests + 6 doctests; AC9 PASS)
 - [x] 12. quartzite-widgets: remove local Alignment/Font/Palette, re-export from upstream
-- [ ] 13. quartzite-style: new downstream crate scaffold  ← CURRENT
-- [ ] 14. quartzite-style: Style trait (Send + Sync, generic-only `draw_widget`)
-- [ ] 15. quartzite-style: StyleRegistry (Box::leak, Mutex+OnceLock, poison-recovery test, `clear_for_test`/`poison_for_test` helpers)
-- [ ] 16. facade re-exports (`quartzite::paint::*`, `quartzite::style::*`) + `cargo tree -p quartzite-widgets` assertion + workspace doc/clippy gate
+- [x] 13. quartzite-style: new downstream crate scaffold
+- [x] 14. quartzite-style: Style trait (Send + Sync, generic-only `draw_widget`)
+- [x] 15. quartzite-style: StyleRegistry (Box::leak, Mutex+OnceLock, poison-recovery test, `clear_for_test`/`poison_for_test` helpers)
+- [ ] 16. facade re-exports (`quartzite::paint::*`, `quartzite::style::*`) + `cargo tree -p quartzite-widgets` assertion + workspace doc/clippy gate  ← CURRENT
 
 ## Subtask 12 details (next)
 
