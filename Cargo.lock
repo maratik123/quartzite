@@ -2093,6 +2093,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-style-types"
+version = "0.1.0"
+dependencies = [
+ "quartzite-paint-api",
+ "rstest",
+]
+
+[[package]]
 name = "quartzite-widgets"
 version = "0.1.0"
 dependencies = [
