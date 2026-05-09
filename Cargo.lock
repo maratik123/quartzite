@@ -2098,6 +2098,7 @@ dependencies = [
 name = "quartzite-style"
 version = "0.1.0"
 dependencies = [
+ "quartzite-geometry",
  "quartzite-paint",
  "quartzite-paint-api",
  "quartzite-style-types",

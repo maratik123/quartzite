@@ -147,10 +147,15 @@ pub(crate) fn poison_for_test() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use quartzite_paint_api::Painter;
+    use core::sync::atomic::{AtomicUsize, Ordering};
+    use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
     use quartzite_style_types::Palette;
     use quartzite_widgets::AsWidget;
     use serial_test::serial;
+
+    /// Records how many times each fixture's `draw_widget` body executed.
+    static A_CALLS: AtomicUsize = AtomicUsize::new(0);
+    static B_CALLS: AtomicUsize = AtomicUsize::new(0);
 
     /// Marker fixture A.
     struct StyleA;
@@ -162,6 +167,7 @@ mod tests {
             _painter: &mut dyn Painter,
             _palette: &Palette,
         ) {
+            A_CALLS.fetch_add(1, Ordering::SeqCst);
         }
     }
 
@@ -175,7 +181,46 @@ mod tests {
             _painter: &mut dyn Painter,
             _palette: &Palette,
         ) {
+            B_CALLS.fetch_add(1, Ordering::SeqCst);
         }
+    }
+
+    /// No-op `Painter` used solely to satisfy the trait-method signature.
+    struct NullPainter;
+
+    impl Painter for NullPainter {
+        fn draw_rect(&mut self, _rect: quartzite_geometry::Rect, _pen: &Pen, _brush: &Brush) {}
+        fn fill_rect(&mut self, _rect: quartzite_geometry::Rect, _brush: &Brush) {}
+        fn draw_line(
+            &mut self,
+            _from: quartzite_geometry::Point,
+            _to: quartzite_geometry::Point,
+            _pen: &Pen,
+        ) {
+        }
+        fn clip_rect(&mut self, _rect: quartzite_geometry::Rect) {}
+        fn translate(&mut self, _delta: quartzite_geometry::Point) {}
+        fn save(&mut self) {}
+        fn restore(&mut self) {}
+        fn draw_text(
+            &mut self,
+            _pos: quartzite_geometry::Point,
+            _text: &str,
+            _font: &Font,
+            _brush: &Brush,
+        ) {
+        }
+        fn draw_text_in(
+            &mut self,
+            _rect: quartzite_geometry::Rect,
+            _text: &str,
+            _font: &Font,
+            _brush: &Brush,
+            _alignment: quartzite_geometry::Alignment,
+        ) {
+        }
+        fn draw_image(&mut self, _rect: quartzite_geometry::Rect, _image: &Image) {}
+        fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
     }
 
     #[test]
@@ -223,5 +268,56 @@ mod tests {
         // guard — try_style() therefore returns Some(_) without panicking.
         let recovered = StyleRegistry::try_style();
         assert!(recovered.is_some(), "poison-recovery branch returned None");
+    }
+
+    #[test]
+    #[serial]
+    fn registered_style_dispatches_draw_widget() {
+        clear_for_test();
+        let before_a = A_CALLS.load(Ordering::SeqCst);
+        let before_b = B_CALLS.load(Ordering::SeqCst);
+
+        StyleRegistry::set_style(Box::new(StyleA));
+        let style = StyleRegistry::try_style().expect("style was just installed");
+        let widget = quartzite_widgets::WidgetBase::new();
+        let mut painter = NullPainter;
+        let palette = Palette::default();
+        style.draw_widget(&widget, &mut painter, &palette);
+
+        StyleRegistry::set_style(Box::new(StyleB));
+        let style = StyleRegistry::try_style().expect("style was just replaced");
+        style.draw_widget(&widget, &mut painter, &palette);
+
+        assert_eq!(A_CALLS.load(Ordering::SeqCst), before_a + 1);
+        assert_eq!(B_CALLS.load(Ordering::SeqCst), before_b + 1);
+
+        // Exercise the NullPainter trait-impl bodies so coverage doesn't
+        // regress on the no-op stubs.
+        use quartzite_geometry::{Point, Rect, Size};
+        let p: &mut dyn Painter = &mut painter;
+        let pen = Pen::new(quartzite_paint_api::Color::BLACK, 1.0);
+        let brush = Brush::solid(quartzite_paint_api::Color::WHITE);
+        let rect = Rect::new(Point::new(0, 0), Size::new(1, 1));
+        let pt = Point::new(0, 0);
+        let font = Font::new("a", 1.0);
+        let image = Image::try_new(1, 1, vec![0u8, 0, 0, 0]).unwrap();
+        let path = Path::new();
+        p.draw_rect(rect, &pen, &brush);
+        p.fill_rect(rect, &brush);
+        p.draw_line(pt, pt, &pen);
+        p.clip_rect(rect);
+        p.translate(pt);
+        p.save();
+        p.restore();
+        p.draw_text(pt, "x", &font, &brush);
+        p.draw_text_in(
+            rect,
+            "x",
+            &font,
+            &brush,
+            quartzite_geometry::Alignment::Left,
+        );
+        p.draw_image(rect, &image);
+        p.draw_path(&path, &pen, &brush);
     }
 }

@@ -86,27 +86,30 @@ impl ColorRole {
 mod tests {
     use super::*;
 
-    /// The arm count of an exhaustive match over `ColorRole` must equal
-    /// `ALL.len()`. Adding a new variant without extending `ALL` fails this
-    /// test (the match still compiles after the extension because the new
-    /// arm contributes another `+ 1`).
+    /// `ALL` lists every variant exactly once. Loops over the slice and runs
+    /// an exhaustive `match` per role to count it — every arm is therefore
+    /// executed, which both proves the slice contents and forces the test to
+    /// fail to compile if a new variant is added without an arm here.
     #[test]
     fn all_constant_lists_every_variant() {
-        let sample = ColorRole::Window;
-        let variant_count: usize = match sample {
-            ColorRole::Window => 1,
-            ColorRole::WindowText => 1,
-            ColorRole::Button => 1,
-            ColorRole::ButtonText => 1,
-            ColorRole::Base => 1,
-            ColorRole::Text => 1,
-            ColorRole::Highlight => 1,
-            ColorRole::HighlightedText => 1,
-            ColorRole::Link => 1,
-            ColorRole::LinkVisited => 1,
-            ColorRole::BrightText => 1,
-        } * 11;
-        assert_eq!(ColorRole::ALL.len(), variant_count);
+        let mut count = 0_usize;
+        for role in ColorRole::ALL {
+            match role {
+                ColorRole::Window
+                | ColorRole::WindowText
+                | ColorRole::Button
+                | ColorRole::ButtonText
+                | ColorRole::Base
+                | ColorRole::Text
+                | ColorRole::Highlight
+                | ColorRole::HighlightedText
+                | ColorRole::Link
+                | ColorRole::LinkVisited
+                | ColorRole::BrightText => count += 1,
+            }
+        }
+        assert_eq!(ColorRole::ALL.len(), count);
+        assert_eq!(count, 11);
     }
 
     #[test]

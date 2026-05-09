@@ -90,6 +90,8 @@ impl Painter for VelloPainter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quartzite_geometry::Size;
+    use quartzite_paint_api::{BrushKind, Color};
 
     #[test]
     fn vello_painter_new_does_not_panic() {
@@ -101,5 +103,33 @@ mod tests {
         // Both construct without panic; unit-struct equality is trivially true.
         let _a = VelloPainter::new();
         let _b = VelloPainter::default();
+    }
+
+    #[test]
+    fn all_painter_methods_are_invocable() {
+        // The skeleton stubs are no-ops; this test just exercises every
+        // `Painter` method to confirm dispatch through `&mut dyn Painter`
+        // compiles and runs without panicking.
+        let mut p: Box<dyn Painter> = Box::new(VelloPainter::new());
+        let pen = Pen::new(Color::BLACK, 1.0);
+        let brush = Brush::solid(Color::WHITE);
+        assert_eq!(brush.kind(), BrushKind::Solid(Color::WHITE));
+        let rect = Rect::new(Point::new(0, 0), Size::new(10, 10));
+        let origin = Point::new(0, 0);
+        let font = Font::new("Arial", 12.0);
+        let image = Image::try_new(1, 1, vec![0u8, 0, 0, 0]).unwrap();
+        let path = Path::new();
+
+        p.draw_rect(rect, &pen, &brush);
+        p.fill_rect(rect, &brush);
+        p.draw_line(origin, origin, &pen);
+        p.clip_rect(rect);
+        p.translate(origin);
+        p.save();
+        p.restore();
+        p.draw_text(origin, "hi", &font, &brush);
+        p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
+        p.draw_image(rect, &image);
+        p.draw_path(&path, &pen, &brush);
     }
 }

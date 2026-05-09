@@ -16,6 +16,7 @@ quartzite-widgets      = { path = "../quartzite-widgets" }
 
 [dev-dependencies]
 serial_test = "3"
+quartzite-geometry = { path = "../quartzite-geometry" }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
