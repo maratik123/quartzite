@@ -151,11 +151,16 @@ pub fn snapshot_assert(name: &str, image: &RgbaImage) {
 ///
 /// The closure form of [`RenderHarness::render_widget`] is wrapped here
 /// so the widget snapshot tests don't repeat the `|p| widget.paint(p)`
-/// idiom on every line. Skipping (`SKIP_RENDER_SNAPSHOT=1`) is handled by
-/// [`snapshot_assert`] **after** the render — for v1 the cost is
-/// negligible (no-op paint, single clear-colour readback) and the
-/// alternative would short-circuit the harness entirely, hiding GPU
-/// init regressions on local-dev skip runs.
+/// idiom on every line.
+///
+/// **Skip-env layering** (v1 call path, see `tests/snapshots.rs`):
+/// each `#[test]` fn calls a `harness_or_skip` helper that checks
+/// `SKIP_RENDER_SNAPSHOT=1` *before* constructing a [`RenderHarness`] —
+/// so when the env is set, this fn is never reached. As a defence-in-depth
+/// check, the inner [`snapshot_assert`] also early-returns on the same
+/// env, which protects callers that skip the outer guard (e.g. tests
+/// that opt to construct a harness for unrelated reasons and only later
+/// decide to snapshot).
 pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn WidgetExt) {
     let image = harness.render_widget(|p| widget.paint(p));
     snapshot_assert(name, &image);

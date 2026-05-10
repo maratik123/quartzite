@@ -78,6 +78,11 @@ impl RenderHarness {
     /// Initialisation is synchronous at the test boundary: wgpu's async
     /// adapter and device requests are wrapped in [`pollster::block_on`].
     ///
+    /// # Parameters
+    ///
+    /// - `width`: render-target width in pixels; must be `> 0`.
+    /// - `height`: render-target height in pixels; must be `> 0`.
+    ///
     /// # Errors
     ///
     /// Returns [`RendererError::Paint`] wrapping [`PaintError::Other`] if:
@@ -199,6 +204,14 @@ impl RenderHarness {
     ///
     /// The widget-specific shorthand is provided by the test-side helper
     /// (`tests/support/mod.rs`).
+    ///
+    /// # Parameters
+    ///
+    /// - `paint`: closure invoked exactly once with a `&mut dyn Painter`
+    ///   pointing at this harness's [`VelloPainter`]. The vello scene is
+    ///   reset before `paint` runs, so callers should not rely on prior
+    ///   render state. To render multiple widgets in a single image, the
+    ///   closure can drive several `paint` calls sequentially.
     ///
     /// # Panics
     ///

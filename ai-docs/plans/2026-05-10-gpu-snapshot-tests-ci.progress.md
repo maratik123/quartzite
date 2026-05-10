@@ -5,7 +5,7 @@ _Updated: 2026-05-10 (subtask 12 complete — all 12 subtasks done)_
 
 **Branch:** feat/2026-05-10-gpu-snapshot-tests-ci
 **base_commit:** 6ebcc274b4c45928d73050f5383f96feaa18a41e
-**Last build:** PASS (cargo build clean; `cargo test -p quartzite-widgets --test support_internals` 8/8; `WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots` 5/5 against committed goldens; `SKIP_RENDER_SNAPSHOT=1 cargo test -p quartzite-renderer --test xvfb_smoke` 1/1; `cargo fmt --check` clean; `cargo clippy --workspace -- -D warnings` clean; per-crate widget/renderer tests clippy clean; doc gate clean workspace-wide; `cargo build -p quartzite --no-default-features` clean; `actionlint .github/workflows/ci.yml` clean)
+**Last build:** PASS — round-1 self-review fixes applied: `RenderHarness::new` and `render_widget` gained `# Parameters` doc sections; design subtask-3 row updated to `STORAGE_BINDING | COPY_SRC` with vello-compute-shader rationale; `snapshot_widget` doc rewritten to describe two-layer skip. cargo build clean; `cargo test --workspace` (with `WGPU_BACKEND=vulkan`) all green incl. xvfb_smoke and 5/5 widget snapshots; `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, doc gate, `cargo build -p quartzite --no-default-features`, `actionlint .github/workflows/ci.yml` all clean.
 
 **Issue:** #192
 **Spec:** ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md
@@ -80,3 +80,35 @@ _Updated: 2026-05-10 (subtask 12 complete — all 12 subtasks done)_
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md` — initial spec (committed)
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.design.md` — initial design + round-2 fixes + subtask-4 trait-bound finalisation + subtask-7/10 v1 bootstrap policy
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.progress.md` — this file
+
+## Self-Review (Round 1)
+
+**Verdict:** REJECT
+
+**What was checked:**
+- Diff `git diff 6ebcc274b4c45928d73050f5383f96feaa18a41e..HEAD` (10 commits, 22 files, +2695/-391).
+- All 11 ACs in the spec walked back through the diff (per AC-Status table; spot-checked the helper, harness, snapshot suite, CI workflow, scripts/update-snapshots.sh, CONTRIBUTING.md, panic-index entries).
+- `RenderHarness` public API + readback path (`quartzite-renderer/src/render_harness.rs`).
+- `tests/support/mod.rs` snapshot helper (env-var precedence, golden-missing path, mismatch artifact paths, `pixel_diff` LUT fallback).
+- `tests/support_internals.rs` env-guard discipline (`ENV_LOCK` + safety comments).
+- `tests/snapshots.rs` skip + harness construction.
+- `tests/xvfb_smoke.rs` Linux/non-Linux split + worker-thread escape via `EventLoopBuilderExtX11::with_any_thread` / `EventLoopBuilderExtWayland::with_any_thread`.
+- `.github/workflows/ci.yml` (matrix shape, `continue-on-error: ${{ !matrix.required }}`, `gpu-tests-pass` aggregator, env propagation, `timeout 60 xvfb-run -a …`, `actions/upload-artifact@v7` failure paths, `SKIP_RENDER_SNAPSHOT: "1"` on existing `test` job).
+- `actionlint .github/workflows/ci.yml` → exit 0.
+- `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings` (per AGENTS.md gate; both clean).
+- `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` (clean).
+- Panic audit on changed files: every production `expect(…)` in `render_harness.rs::render_widget` has a corresponding entry in `ai-docs/panic-index.md` (covers (a)–(d)).
+- File sizes: all new/grown files well under hard limits (max 392 lines incl. tests).
+- `_Simple._` / `#[inline]` markers: `align_up` (concrete, simple → `#[inline]` ✓), `width()` / `height()` (concrete getters → `#[inline]` ✓). No co-occurrence of `#[inline]` + `_Simple._`.
+- Cargo.lock versions match live `crates.io` `max_stable_version` per design's verified-current table.
+
+| # | File:line | Severity | Finding | Status |
+|---|-----------|----------|---------|--------|
+| 1 | `quartzite-renderer/src/render_harness.rs:97` | major | `RenderHarness::new(width: u32, height: u32)` is missing the required `# Parameters` doc section. `ai-docs/doc-convention.md` lines 66–77 require `# Parameters` on every public fn / method with ≥1 argument other than the receiver. Existing workspace convention (`quartzite-paint-api/src/painter.rs:48` and the sibling `WindowedApplication::run` at `quartzite-renderer/src/application.rs:45`) follows this. The two `u32` arguments deserve documented units / ranges (esp. given the zero-extent error path). | ✅ Fixed — added `# Parameters` section documenting both args' units and the `> 0` invariant |
+| 2 | `quartzite-renderer/src/render_harness.rs:221` | major | `RenderHarness::render_widget<F>(&mut self, paint: F)` is missing the required `# Parameters` doc section. The `paint` closure's contract (called once with a `&mut dyn Painter`, scene reset before invocation, expected ownership semantics) is non-trivial and worth one bullet. Same convention rule as finding 1. | ✅ Fixed — added `# Parameters` section documenting the `paint` closure's contract (called once, scene-reset semantics, multi-paint sequencing) |
+| 3 | `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.design.md:171` | nit | Design subtask-3 row claims the offscreen texture uses `RENDER_ATTACHMENT \| COPY_SRC`. As-built code at `quartzite-renderer/src/render_harness.rs:125` uses `STORAGE_BINDING \| COPY_SRC` (vello 0.8's compute-shader path requires storage binding). The implementation is correct; the design row is stale. Either annotate the row with the deviation (mirroring how subtask 4 was already updated to record the closure-form trait-bound deviation) or update inline. Not a blocker since subtask 4 already established the precedent of recording such deviations in-place. | ✅ Fixed — design subtask-3 row updated in-place; added the vello-compute-shader rationale for `STORAGE_BINDING` over `RENDER_ATTACHMENT` |
+| 4 | `quartzite-widgets/tests/support/mod.rs:155-158` | nit | Doc paragraph on `snapshot_widget` claims "Skipping (`SKIP_RENDER_SNAPSHOT=1`) is handled by `snapshot_assert` **after** the render". The actual snapshot suite (`tests/snapshots.rs::harness_or_skip`) short-circuits *before* harness construction, so when the env is set the GPU path is never entered via this caller. The helper is technically correct in isolation (a future caller that invokes `snapshot_widget` without `harness_or_skip` would still get the late-skip behaviour the comment describes), but the comment reads as if it were describing the v1 call path — a one-line clarification ("if a future caller skips `harness_or_skip`, the late skip in `snapshot_assert` still preserves correctness — it does not short-circuit the harness") would prevent misreading. | ✅ Fixed — rewrote the doc paragraph to describe the two-layer skip (outer `harness_or_skip` short-circuits before harness; inner `snapshot_assert` is a defence-in-depth fallback) |
+
+Findings 1 and 2 are blocker-by-checklist (the §6 Documentation block in `.claude/agents/self-review.md` lists *missing `# Parameters`* under "REJECT on any of"). Findings 3 and 4 would not by themselves block APPROVE.
+
+
