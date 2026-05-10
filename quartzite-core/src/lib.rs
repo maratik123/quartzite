@@ -11,7 +11,7 @@
 //!
 //! - **Property layer** — [`value::Value`] implements `serde::Serialize`/`Deserialize`.
 //! - **Object layer** — [`snapshot::ObjectSnapshot`] captures all
-//!   [`Stored`][meta::PropertyFlag::Stored] properties of a single object.
+//!   [`Stored`](meta::PropertyFlag::Stored) properties of a single object.
 //! - **Tree layer** — [`snapshot::TreeSnapshot`] captures an entire `ObjectTree` including
 //!   parent/child relationships.
 //!

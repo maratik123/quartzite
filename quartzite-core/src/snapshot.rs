@@ -5,12 +5,12 @@
 //! This module is the entry point for the quartzite snapshot layer. It provides
 //! three levels of granularity:
 //!
-//! 1. **Property layer** — [`Value`][crate::value::Value] itself implements `serde::Serialize` /
+//! 1. **Property layer** — [`Value`](crate::value::Value) itself implements `serde::Serialize` /
 //!    `serde::Deserialize` (enabled by the `serde` cargo feature). Any
 //!    `serde`-compatible backend can be used.
 //!
 //! 2. **Object layer** — [`ObjectSnapshot`] captures all
-//!    [`Stored`][crate::meta::PropertyFlag::Stored] properties of a single
+//!    [`Stored`](crate::meta::PropertyFlag::Stored) properties of a single
 //!    object (produced by `quartzite_runtime::snapshot::capture_object`,
 //!    restored by `quartzite_runtime::snapshot::restore_object`).
 //!
@@ -25,13 +25,13 @@
 //! |---|---|
 //! | `ConnectionTable` entries (signal connections) | **Dropped.** Connections hold runtime closures with no portable representation. Caller re-establishes them after restore. |
 //! | `signals_blocked` flag | **Reset to `false`.** Persisting this state is tracked in [#39](https://github.com/maratik123/quartzite/issues/39). |
-//! | Non-`Stored` properties | **Skipped.** Properties without [`PropertyFlag::Stored`][crate::meta::PropertyFlag::Stored] are not included in the snapshot. |
+//! | Non-`Stored` properties | **Skipped.** Properties without [`PropertyFlag::Stored`](crate::meta::PropertyFlag::Stored) are not included in the snapshot. |
 //!
 //! ## `Value::Custom` round-trip
 //!
-//! [`Value::Custom`][crate::value::Value::Custom] payloads are round-tripped via
+//! [`Value::Custom`](crate::value::Value::Custom) payloads are round-tripped via
 //! [`typetag`](https://crates.io/crates/typetag). Every concrete
-//! [`CustomValue`][crate::value::CustomValue] implementation that should survive
+//! [`CustomValue`](crate::value::CustomValue) implementation that should survive
 //! serialization must be annotated:
 //!
 //! ```ignore
@@ -88,7 +88,7 @@ pub const CURRENT_SCHEMA_VERSION: u32 = 1;
 #[non_exhaustive]
 pub enum SerializeError {
     /// `read_property` returned `None` for a property that is listed as
-    /// [`Stored`][crate::meta::PropertyFlag::Stored] in the object's meta.
+    /// [`Stored`](crate::meta::PropertyFlag::Stored) in the object's meta.
     ///
     /// This indicates a meta-system invariant violation — the meta declared the
     /// property as readable and stored, but the object did not return a value
@@ -103,13 +103,13 @@ pub enum SerializeError {
         property: String,
     },
 
-    /// The requested [`ObjectId`][crate::ObjectId] was not found in the tree during capture.
+    /// The requested [`ObjectId`](crate::ObjectId) was not found in the tree during capture.
     ///
-    /// This occurs when `capture_tree` is called with an [`ObjectId`][crate::ObjectId] that is
+    /// This occurs when `capture_tree` is called with an [`ObjectId`](crate::ObjectId) that is
     /// not present in the provided `ObjectTree`.
     #[error("object id {id} is not present in the tree")]
     ObjectNotInTree {
-        /// The raw `u64` of the [`ObjectId`][crate::ObjectId] that was not found.
+        /// The raw `u64` of the [`ObjectId`](crate::ObjectId) that was not found.
         id: u64,
     },
 }

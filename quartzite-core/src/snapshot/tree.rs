@@ -26,7 +26,7 @@ pub struct ObjectNode {
     pub snapshot: ObjectSnapshot,
     /// Ordered child nodes.
     pub children: Vec<ObjectNode>,
-    /// The original [`ObjectId`][crate::ObjectId] raw u64 of this object at capture time.
+    /// The original [`ObjectId`](crate::ObjectId) raw u64 of this object at capture time.
     ///
     /// Used by `quartzite_runtime::snapshot::restore_tree` to build an
     /// `old_id → new_id` remap table so that intra-tree `Value::Object`
@@ -70,8 +70,8 @@ impl TreeSnapshot {
     ///
     /// # Errors
     ///
-    /// Returns [`DeserializeError::UnsupportedVersion`][crate::snapshot::DeserializeError::UnsupportedVersion]
-    /// when `schema_version` exceeds [`CURRENT_SCHEMA_VERSION`][crate::snapshot::CURRENT_SCHEMA_VERSION].
+    /// Returns [`DeserializeError::UnsupportedVersion`](crate::snapshot::DeserializeError::UnsupportedVersion)
+    /// when `schema_version` exceeds [`CURRENT_SCHEMA_VERSION`](crate::snapshot::CURRENT_SCHEMA_VERSION).
     ///
     /// # Examples
     ///

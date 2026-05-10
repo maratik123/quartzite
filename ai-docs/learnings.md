@@ -914,3 +914,15 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **Rule:** The `/task` deferred-activation keyword check ("activate", "start", "proceed") fires only on those literal words in the arg. When the arg is a bare issue number, load the issue body first, then check whether any deferred spec already has `**Tracked in:** #N` matching that issue. If found, treat it as "already have a spec" — move it to `ai-docs/plans/`, update `INDEX.md`, confirm ACs with the user, and skip to Step 6. Do not run the interview and do not create a state file.
 
 **Escalated?** no
+
+### 2026-05-10 — documentation — prefer inline form `[`Foo`](path)` over reference form `[`Foo`][path]` for intra-doc links
+
+**What happened:** Post-merge code review of PR #200 (issue #199 docs cleanup) surfaced 24 intra-doc links across 8 files using the CommonMark **reference-style** form `` [`Foo`][crate::path::Foo] `` instead of the **inline** form `` [`Foo`](crate::path::Foo) ``. Both forms render to identical HTML, but the workspace was inconsistent — 100+ inline-form sites against 24 reference-form sites concentrated in the snapshot module (one author's stylistic choice).
+
+**Rule:** Use the inline form `` [`Foo`](path::Foo) `` for intra-doc links throughout the codebase. This matches the dominant convention in the Rust ecosystem — `std`, the rustdoc book examples, tokio, serde, and most popular crates use the inline form. Reference form is the minority style; reserve it only when the link target legitimately contains characters that would break the inline form (rare for Rust paths). When auditing or writing new doc comments, pick inline; when touching a file with reference-form links, convert them in the same edit.
+
+**Why:** consistency makes the codebase navigable; aligning with the ecosystem default reduces cognitive load for newcomers; the only tooling-equivalent variation is form (rendered output is identical), so the choice is purely stylistic and there's no reason to retain two forms.
+
+**How to apply:** when writing or reviewing doc comments, the intra-doc link form is `` [`Type`](crate::path::Type) `` — text in `[]`, target in `()`. Reject the reference form `` [`Type`][crate::path::Type] `` in review unless the target genuinely cannot be expressed inline.
+
+**Escalated?** no

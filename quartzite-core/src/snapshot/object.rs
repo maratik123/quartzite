@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::value::Value;
 
-/// A serializable snapshot of a single object's [`Stored`][crate::meta::PropertyFlag::Stored]
+/// A serializable snapshot of a single object's [`Stored`](crate::meta::PropertyFlag::Stored)
 /// properties.
 ///
 /// Produced by the capture functions in `quartzite-runtime::snapshot` and consumed by the
@@ -31,6 +31,6 @@ use crate::value::Value;
 pub struct ObjectSnapshot {
     /// The class name used to reconstruct the object via the runtime factory.
     pub class_name: String,
-    /// The [`Stored`][crate::meta::PropertyFlag::Stored] property values keyed by name.
+    /// The [`Stored`](crate::meta::PropertyFlag::Stored) property values keyed by name.
     pub properties: BTreeMap<String, Value>,
 }
