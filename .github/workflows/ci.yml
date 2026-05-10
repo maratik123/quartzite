@@ -199,14 +199,18 @@ jobs:
           set -e
           mkdir -p target/debug/deps target/agility-sdk
 
+          # NuGet packages are zip with a non-standard internal layout;
+          # GNU tar on `windows-latest` rejects them as "not a tar
+          # archive". Use 7z (available by default on `windows-latest`)
+          # for the .nupkg downloads.
+
           # 1. WARP 1.0.19 (NuGet `Microsoft.Direct3D.WARP`).
           curl.exe -L --retry 5 \
             "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.19" \
-            -o warp.zip
-          tar -xf warp.zip -C target/agility-sdk build/native/bin/x64/d3d10warp.dll
-          cp target/agility-sdk/build/native/bin/x64/d3d10warp.dll target/debug/
-          cp target/agility-sdk/build/native/bin/x64/d3d10warp.dll target/debug/deps/
-          rm -rf target/agility-sdk/build warp.zip
+            -o warp.nupkg
+          7z.exe e -y warp.nupkg -otarget/debug "build/native/bin/x64/d3d10warp.dll"
+          cp target/debug/d3d10warp.dll target/debug/deps/
+          rm warp.nupkg
 
           # 2. DXC v1.9.2602 (`dxc_2026_02_20.zip`). vello's compute
           # shaders need DXC; system fxc lacks the required feature
@@ -214,7 +218,7 @@ jobs:
           curl.exe -L --retry 5 \
             "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip" \
             -o dxc.zip
-          7z.exe e dxc.zip -odxc bin/x64/dxc.exe bin/x64/dxcompiler.dll
+          7z.exe e -y dxc.zip -odxc "bin/x64/dxc.exe" "bin/x64/dxcompiler.dll"
           cygpath --windows "$PWD/dxc" >> "$GITHUB_PATH"
           rm dxc.zip
 
@@ -222,9 +226,9 @@ jobs:
           # Provides the modern D3D12 runtime features vello expects.
           curl.exe -L --retry 5 \
             "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.2" \
-            -o agility.zip
-          tar -xf agility.zip -C target/agility-sdk build/native/bin/x64
-          rm agility.zip
+            -o agility.nupkg
+          7z.exe x -y agility.nupkg -otarget/agility-sdk "build/native/bin/x64/*"
+          rm agility.nupkg
           SDK_PATH="$(cygpath --windows "$PWD/target/agility-sdk/build/native/bin/x64")"
           {
             echo "WGPU_DX12_AGILITY_SDK_PATH=$SDK_PATH"
