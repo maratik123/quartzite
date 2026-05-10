@@ -4,20 +4,30 @@ use alloc::{boxed::Box, collections::BTreeMap, string::String, sync::Arc, vec::V
 #[cfg(feature = "std")]
 use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Trait for user-defined value types stored inside `Value::Custom`.
 ///
 /// Implementors must support cloning (`clone_box`), downcast (`as_any`), and
 /// `Debug` formatting (required as a supertrait so that `Box<dyn CustomValue>`
 /// and `Arc<dyn CustomValue>` are automatically `Debug`).
 ///
+/// When the `serde` feature is enabled, every concrete implementation of this
+/// trait must additionally be annotated with `#[typetag::serde]` on its `impl`
+/// block so that `Value::Custom` can be serialized and deserialized correctly.
+/// Without the annotation, the impl will fail to compile when `serde` is active.
+///
 /// # Examples
 ///
 /// ```
 /// use quartzite_core::value::CustomValue;
 ///
+/// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 /// #[derive(Debug, Clone)]
 /// struct MyVal(i32);
 ///
+/// #[cfg_attr(feature = "serde", typetag::serde)]
 /// impl CustomValue for MyVal {
 ///     fn type_name(&self) -> &'static str { "MyVal" }
 ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
@@ -27,6 +37,7 @@ use std::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 /// let v: Box<dyn CustomValue> = Box::new(MyVal(42));
 /// assert_eq!(v.type_name(), "MyVal");
 /// ```
+#[cfg_attr(feature = "serde", typetag::serde)]
 pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// Returns a static string identifying the concrete type (e.g. `"MyVal"`).
     ///
@@ -35,9 +46,11 @@ pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// ```
     /// use quartzite_core::value::CustomValue;
     ///
+    /// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     /// #[derive(Debug, Clone)]
     /// struct MyVal;
     ///
+    /// #[cfg_attr(feature = "serde", typetag::serde)]
     /// impl CustomValue for MyVal {
     ///     fn type_name(&self) -> &'static str { "MyVal" }
     ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
@@ -55,9 +68,11 @@ pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// ```
     /// use quartzite_core::value::CustomValue;
     ///
+    /// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     /// #[derive(Debug, Clone)]
     /// struct MyVal;
     ///
+    /// #[cfg_attr(feature = "serde", typetag::serde)]
     /// impl CustomValue for MyVal {
     ///     fn type_name(&self) -> &'static str { "MyVal" }
     ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
@@ -76,9 +91,11 @@ pub trait CustomValue: core::any::Any + core::fmt::Debug + Send + Sync {
     /// ```
     /// use quartzite_core::value::CustomValue;
     ///
+    /// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     /// #[derive(Debug, Clone)]
     /// struct MyVal(i32);
     ///
+    /// #[cfg_attr(feature = "serde", typetag::serde)]
     /// impl CustomValue for MyVal {
     ///     fn type_name(&self) -> &'static str { "MyVal" }
     ///     fn clone_box(&self) -> Box<dyn CustomValue> { Box::new(self.clone()) }
@@ -536,16 +553,117 @@ impl IntoValue for core::time::Duration {
     }
 }
 
+// --- Serde impls (feature-gated) ---
+
+#[cfg(feature = "serde")]
+impl Serialize for WeakObjectRef {
+    #[inline]
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.0.serialize(s)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for WeakObjectRef {
+    #[inline]
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Ok(WeakObjectRef(u64::deserialize(d)?))
+    }
+}
+
+/// Proxy enum used by [`Deserialize`] for [`Value`].
+///
+/// Must match the variant order and names of [`Value`] exactly so that
+/// backends that use the variant index (e.g. bincode) round-trip correctly.
+#[cfg(feature = "serde")]
+#[derive(Deserialize)]
+enum ValueProxy {
+    Null,
+    Bool(bool),
+    Int(i64),
+    Float(f64),
+    String(String),
+    List(Vec<Value>),
+    Map(BTreeMap<String, Value>),
+    Bytes(Vec<u8>),
+    Custom(Box<dyn CustomValue>),
+    Object(u64),
+    Duration(u64, u32),
+}
+
+#[cfg(feature = "serde")]
+impl From<ValueProxy> for Value {
+    fn from(p: ValueProxy) -> Self {
+        match p {
+            ValueProxy::Null => Value::Null,
+            ValueProxy::Bool(v) => Value::Bool(v),
+            ValueProxy::Int(v) => Value::Int(v),
+            ValueProxy::Float(v) => Value::Float(v),
+            ValueProxy::String(v) => Value::String(v),
+            ValueProxy::List(v) => Value::List(v),
+            ValueProxy::Map(v) => Value::Map(v),
+            ValueProxy::Bytes(v) => Value::Bytes(v),
+            ValueProxy::Custom(b) => Value::Custom(Arc::from(b)),
+            ValueProxy::Object(id) => Value::Object(WeakObjectRef(id)),
+            ValueProxy::Duration(secs, nanos) => {
+                Value::Duration(core::time::Duration::new(secs, nanos))
+            }
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl Serialize for Value {
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeTupleVariant;
+        match self {
+            Value::Null => s.serialize_unit_variant("Value", 0, "Null"),
+            Value::Bool(v) => s.serialize_newtype_variant("Value", 1, "Bool", v),
+            Value::Int(v) => s.serialize_newtype_variant("Value", 2, "Int", v),
+            Value::Float(v) => s.serialize_newtype_variant("Value", 3, "Float", v),
+            Value::String(v) => s.serialize_newtype_variant("Value", 4, "String", v),
+            Value::List(v) => s.serialize_newtype_variant("Value", 5, "List", v),
+            Value::Map(v) => s.serialize_newtype_variant("Value", 6, "Map", v),
+            Value::Bytes(v) => s.serialize_newtype_variant("Value", 7, "Bytes", v),
+            Value::Custom(arc) => {
+                // typetag provides Serialize for Box<dyn CustomValue>; clone_box is the
+                // minimal cost path to avoid double-borrowing the Arc's inner dyn.
+                let boxed: Box<dyn CustomValue> = arc.as_ref().clone_box();
+                s.serialize_newtype_variant("Value", 8, "Custom", &boxed)
+            }
+            Value::Object(WeakObjectRef(id)) => {
+                s.serialize_newtype_variant("Value", 9, "Object", id)
+            }
+            Value::Duration(d) => {
+                let mut tv = s.serialize_tuple_variant("Value", 10, "Duration", 2)?;
+                tv.serialize_field(&d.as_secs())?;
+                tv.serialize_field(&d.subsec_nanos())?;
+                tv.end()
+            }
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> Deserialize<'de> for Value {
+    #[inline]
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Ok(ValueProxy::deserialize(d)?.into())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rstest::rstest;
 
-    // --- Minimal CustomValue for testing ---
+    // --- Minimal CustomValue for testing (non-serde path) ---
 
+    #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
     #[derive(Debug, Clone)]
     struct MyCustom;
 
+    #[cfg_attr(feature = "serde", typetag::serde)]
     impl CustomValue for MyCustom {
         fn type_name(&self) -> &'static str {
             "MyCustom"
@@ -784,5 +902,166 @@ mod tests {
     fn i64_round_trip() {
         assert_eq!(i64::from_value(Value::Int(i64::MAX)), Ok(i64::MAX));
         assert_eq!(i64::from_value(Value::Int(i64::MIN)), Ok(i64::MIN));
+    }
+
+    // --- Serde round-trip tests ---
+
+    #[cfg(feature = "serde")]
+    mod serde_tests {
+        use super::*;
+        use std::collections::BTreeMap;
+
+        fn rt_json(v: &Value) -> Value {
+            let s = serde_json::to_string(v).expect("serialize failed");
+            serde_json::from_str(&s).expect("deserialize failed")
+        }
+
+        fn rt_bincode(v: &Value) -> Value {
+            let bytes =
+                bincode::serde::encode_to_vec(v, bincode::config::standard()).expect("encode");
+            let (val, _) =
+                bincode::serde::decode_from_slice::<Value, _>(&bytes, bincode::config::standard())
+                    .expect("decode");
+            val
+        }
+
+        fn assert_eq_json(v: &Value) {
+            assert_eq!(rt_json(v), *v);
+        }
+
+        fn assert_eq_bincode(v: &Value) {
+            assert_eq!(rt_bincode(v), *v);
+        }
+
+        #[test]
+        fn null_round_trips() {
+            assert_eq_json(&Value::Null);
+            assert_eq_bincode(&Value::Null);
+        }
+
+        #[rstest]
+        #[case(Value::Bool(true))]
+        #[case(Value::Bool(false))]
+        #[case(Value::Int(0))]
+        #[case(Value::Int(i64::MIN))]
+        #[case(Value::Int(i64::MAX))]
+        #[case(Value::Float(0.0))]
+        #[case(Value::Float(1.5))]
+        #[case(Value::Float(-3.0))]
+        #[case(Value::String(String::new()))]
+        #[case(Value::String("ascii".into()))]
+        #[case(Value::String("üñíçødé".into()))]
+        #[case(Value::Bytes(vec![]))]
+        #[case(Value::Bytes(vec![0, 128, 255]))]
+        #[case(Value::Object(WeakObjectRef(0)))]
+        #[case(Value::Object(WeakObjectRef(1)))]
+        #[case(Value::Object(WeakObjectRef(u64::MAX)))]
+        #[case(Value::Duration(core::time::Duration::ZERO))]
+        #[case(Value::Duration(core::time::Duration::from_secs(1)))]
+        fn scalar_round_trips_json(#[case] v: Value) {
+            assert_eq_json(&v);
+        }
+
+        #[rstest]
+        #[case(Value::Bool(true))]
+        #[case(Value::Bool(false))]
+        #[case(Value::Int(0))]
+        #[case(Value::Int(i64::MIN))]
+        #[case(Value::Int(i64::MAX))]
+        #[case(Value::Float(0.0))]
+        #[case(Value::Float(1.5))]
+        #[case(Value::Float(-3.0))]
+        #[case(Value::String(String::new()))]
+        #[case(Value::String("ascii".into()))]
+        #[case(Value::Bytes(vec![]))]
+        #[case(Value::Bytes(vec![0, 128, 255]))]
+        #[case(Value::Object(WeakObjectRef(0)))]
+        #[case(Value::Object(WeakObjectRef(u64::MAX)))]
+        #[case(Value::Duration(core::time::Duration::ZERO))]
+        #[case(Value::Duration(core::time::Duration::from_secs(1)))]
+        fn scalar_round_trips_bincode(#[case] v: Value) {
+            assert_eq_bincode(&v);
+        }
+
+        #[test]
+        fn list_round_trips() {
+            let v = Value::List(vec![Value::Int(1), Value::Bool(true), Value::Null]);
+            assert_eq_json(&v);
+            assert_eq_bincode(&v);
+        }
+
+        #[test]
+        fn map_round_trips() {
+            let mut m = BTreeMap::new();
+            m.insert("k1".into(), Value::Int(42));
+            m.insert("k2".into(), Value::Bool(false));
+            let v = Value::Map(m);
+            assert_eq_json(&v);
+            assert_eq_bincode(&v);
+        }
+
+        #[test]
+        fn float_nan_round_trips_bincode() {
+            let nan = Value::Float(f64::NAN);
+            let out = rt_bincode(&nan);
+            assert!(matches!(out, Value::Float(f) if f.is_nan()));
+        }
+
+        #[test]
+        fn malformed_bincode_returns_err() {
+            let res = bincode::serde::decode_from_slice::<Value, _>(
+                &[0xff; 16],
+                bincode::config::standard(),
+            );
+            assert!(res.is_err());
+        }
+
+        // --- Custom (typetag) round-trip ---
+
+        #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+        struct MyTypedCustom {
+            v: i64,
+        }
+
+        #[typetag::serde]
+        impl CustomValue for MyTypedCustom {
+            fn type_name(&self) -> &'static str {
+                "MyTypedCustom"
+            }
+
+            fn clone_box(&self) -> Box<dyn CustomValue> {
+                Box::new(self.clone())
+            }
+
+            fn as_any(&self) -> &dyn core::any::Any {
+                self
+            }
+        }
+
+        #[test]
+        fn custom_round_trips_json() {
+            let v = Value::Custom(Arc::new(MyTypedCustom { v: 42 }));
+            let out = rt_json(&v);
+            match out {
+                Value::Custom(arc) => {
+                    let c = arc.as_any().downcast_ref::<MyTypedCustom>().unwrap();
+                    assert_eq!(c.v, 42);
+                }
+                other => panic!("expected Custom, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn custom_round_trips_bincode() {
+            let v = Value::Custom(Arc::new(MyTypedCustom { v: -7 }));
+            let out = rt_bincode(&v);
+            match out {
+                Value::Custom(arc) => {
+                    let c = arc.as_any().downcast_ref::<MyTypedCustom>().unwrap();
+                    assert_eq!(c.v, -7);
+                }
+                other => panic!("expected Custom, got {other:?}"),
+            }
+        }
     }
 }

@@ -18,6 +18,7 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 - **Painting API** (`quartzite-paint-api`) — 11-method `Painter` trait (rect/line/text/image/path/transform/state), `Color`, `Pen`, `Brush`, `Font`, `Image`, `Path` — `no_std`-compatible.
 - **Renderer scaffold** (`quartzite-renderer`) — `WindowedApplication` + `VelloPainter` skeleton (vello + wgpu + winit) + `RenderHarness` offscreen test harness for snapshot testing.
 - **Widgets** (`quartzite-widgets`) — `WidgetBase`, `WidgetExt`, layouts (`BoxLayout`, `GridLayout`), and built-in widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
+- **Snapshot / save-restore** (`serde` feature) — `capture_object` / `restore_object` / `capture_tree` / `restore_tree` with JSON and bincode support; `Value::Custom` round-trips via `typetag`.
 
 ## Forward scope
 

@@ -4,6 +4,19 @@
 //! All runtime-specific functionality (event loops, timers, thread pools) lives in
 //! `quartzite-runtime`.
 //!
+//! ## Serialization
+//!
+//! Enable the `serde` feature to access [`snapshot`] — the snapshot/save-restore layer.
+//! It provides three levels of granularity:
+//!
+//! - **Property layer** — [`value::Value`] implements `serde::Serialize`/`Deserialize`.
+//! - **Object layer** — [`snapshot::ObjectSnapshot`] captures all
+//!   [`Stored`][meta::PropertyFlag::Stored] properties of a single object.
+//! - **Tree layer** — [`snapshot::TreeSnapshot`] captures an entire `ObjectTree` including
+//!   parent/child relationships.
+//!
+//! Capture and restore functions live in `quartzite_runtime::snapshot`.
+//!
 //! # Feature flags
 #![doc = document_features::document_features!()]
 #![cfg_attr(not(feature = "std"), no_std)]
@@ -28,6 +41,9 @@ pub mod meta;
 pub mod object_base;
 pub mod receiver_guard;
 pub mod signal;
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+pub mod snapshot;
 pub mod traits;
 pub mod value;
 
@@ -67,3 +83,10 @@ pub use signal::{
 };
 pub use traits::{AsObject, Object, ObjectExt, SignalCallback};
 pub use value::{CustomValue, FromValue, IntoValue, TypeError, Value, WeakObjectRef};
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+pub use snapshot::{
+    CURRENT_SCHEMA_VERSION, DeserializeError, ObjectNode, ObjectSnapshot, SerializeError,
+    TreeSnapshot,
+};
