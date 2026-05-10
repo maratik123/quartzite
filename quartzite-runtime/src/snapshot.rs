@@ -3,13 +3,13 @@
 //! This module provides three levels of granularity:
 //!
 //! 1. **Object layer** — [`capture_object`] / [`restore_object`] operate on a
-//!    single [`Object`][quartzite_core::Object] and its
-//!    [`Stored`][quartzite_core::meta::PropertyFlag::Stored] properties.
+//!    single [`Object`](quartzite_core::Object) and its
+//!    [`Stored`](quartzite_core::meta::PropertyFlag::Stored) properties.
 //!
 //! 2. **Tree layer** — [`capture_tree`] / [`restore_tree`] snapshot an entire
-//!    [`ObjectTree`][crate::ObjectTree] including parent/child relationships.
-//!    Intra-tree [`WeakObjectRef`][quartzite_core::value::WeakObjectRef]
-//!    payloads are remapped to the fresh [`ObjectId`][quartzite_core::ObjectId]s
+//!    [`ObjectTree`](crate::ObjectTree) including parent/child relationships.
+//!    Intra-tree [`WeakObjectRef`](quartzite_core::value::WeakObjectRef)
+//!    payloads are remapped to the fresh [`ObjectId`](quartzite_core::ObjectId)s
 //!    minted during restore.
 //!
 //! ## What is NOT preserved

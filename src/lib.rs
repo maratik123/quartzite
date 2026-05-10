@@ -274,7 +274,7 @@ pub mod events {
 ///   `serde::Deserialize`; any backend works.
 /// - **Object level** — [`capture_object`](quartzite_runtime::snapshot::capture_object) /
 ///   [`restore_object`](quartzite_runtime::snapshot::restore_object) snapshot a single
-///   object's [`Stored`][quartzite_core::meta::PropertyFlag::Stored] properties.
+///   object's [`Stored`](quartzite_core::meta::PropertyFlag::Stored) properties.
 /// - **Tree level** — [`capture_tree`](quartzite_runtime::snapshot::capture_tree) /
 ///   [`restore_tree`](quartzite_runtime::snapshot::restore_tree) snapshot an entire
 ///   [`ObjectTree`](crate::runtime::ObjectTree) including parent/child structure.

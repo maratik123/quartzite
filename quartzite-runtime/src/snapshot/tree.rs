@@ -15,7 +15,7 @@ use super::object::{capture_object, restore_object};
 /// [`TreeSnapshot`].
 ///
 /// The walk is depth-first. Only
-/// [`Stored`][quartzite_core::meta::PropertyFlag::Stored] properties are
+/// [`Stored`](quartzite_core::meta::PropertyFlag::Stored) properties are
 /// included in each node's snapshot.
 ///
 /// # Parameters
@@ -69,7 +69,7 @@ fn capture_node(tree: &ObjectTree, id: ObjectId) -> Result<ObjectNode, Serialize
 /// tree is completely fresh — it does not merge into or mutate any existing tree.
 ///
 /// After restore:
-/// - Each object is constructed via the process-wide [`ObjectFactory`][crate::factory::ObjectFactory].
+/// - Each object is constructed via the process-wide [`ObjectFactory`](crate::factory::ObjectFactory).
 /// - `Stored` properties are written back; non-`Stored` properties retain their defaults.
 /// - Signal connections are **dropped** — the restored objects start with empty connection
 ///   tables and `signals_blocked = false`.

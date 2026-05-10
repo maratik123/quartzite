@@ -7,7 +7,7 @@ use quartzite_core::{
 
 use crate::factory::ObjectFactory;
 
-/// Captures all [`Stored`][PropertyFlag::Stored] properties of `obj` into an
+/// Captures all [`Stored`](PropertyFlag::Stored) properties of `obj` into an
 /// [`ObjectSnapshot`].
 ///
 /// Properties without the `Stored` flag are silently skipped.
