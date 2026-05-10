@@ -80,6 +80,10 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
       SCCACHE_CACHE_SIZE: "2G"
+      # Skip GPU snapshot tests on the default (non-GPU) test lane so its
+      # runtime is unaffected. The dedicated `gpu-tests` job runs them
+      # against per-OS GPU backends with the correct drivers installed.
+      SKIP_RENDER_SNAPSHOT: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -127,6 +131,63 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+  gpu-tests:
+    name: GPU tests
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ${{ matrix.os }}
+    # Per the v1 bootstrap policy: only the Linux lane is required at PR
+    # merge time. Windows/macOS lanes run but `continue-on-error: true`
+    # until their per-backend goldens are bootstrapped in follow-up PRs.
+    continue-on-error: ${{ !matrix.required }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
+      WGPU_BACKEND: ${{ matrix.wgpu_backend }}
+      WGPU_ADAPTER_NAME: ${{ matrix.wgpu_adapter_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            required: true
+            wgpu_backend: vulkan
+            wgpu_adapter_name: llvmpipe
+          - os: windows-latest
+            required: false
+            wgpu_backend: dx12
+            wgpu_adapter_name: Microsoft
+          - os: macos-latest
+            required: false
+            wgpu_backend: metal
+            wgpu_adapter_name: ""
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux GPU stack
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb
+      - name: Vulkan diagnostics
+        if: runner.os == 'Linux'
+        run: vulkaninfo --summary || true
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.10
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          # Distinct from the `*-stable` key used by build/test/clippy/docs
+          # to avoid cache thrash with the existing test job.
+          shared-key: ${{ runner.os }}-stable-gpu
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Snapshot tests
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: cargo test -p quartzite-widgets --test snapshots
+
   features-pass:
     name: Feature matrix
     needs: [changes, features]
@@ -169,6 +230,17 @@ jobs:
       - run: |
           c="${{ needs.changes.result }}"
           r="${{ needs.clippy.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
+
+  gpu-tests-pass:
+    name: GPU tests
+    needs: [changes, gpu-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          c="${{ needs.changes.result }}"
+          r="${{ needs.gpu-tests.result }}"
           if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   roadmap-sync:
