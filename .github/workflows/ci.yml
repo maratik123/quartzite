@@ -187,6 +187,30 @@ jobs:
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: cargo test -p quartzite-widgets --test snapshots
+      - name: Windowed smoke test (Linux only)
+        if: runner.os == 'Linux'
+        # `xvfb-run` does not enforce a timeout on its inner process. If
+        # the exit-on-resume logic ever regresses, the test would consume
+        # the entire job quota — `timeout 60` is the hard upper bound.
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: timeout 60 xvfb-run -a cargo test -p quartzite-renderer --test xvfb_smoke
+      - name: Upload Xvfb log on failure
+        if: failure() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xvfb-log-${{ runner.os }}
+          path: /tmp/.X*.log
+          if-no-files-found: ignore
+      - name: Upload snapshot failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-snapshot-failures-${{ runner.os }}
+          path: |
+            quartzite-widgets/tests/snapshots/**/*.actual.png
+            quartzite-widgets/tests/snapshots/**/*.diff.png
+          if-no-files-found: ignore
 
   features-pass:
     name: Feature matrix
