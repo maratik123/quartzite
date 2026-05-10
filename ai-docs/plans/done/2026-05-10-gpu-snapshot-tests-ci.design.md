@@ -370,3 +370,126 @@ Each subtask is ≤ ~150 lines of diff and reviewable in isolation.
   hasn't been bootstrapped for); local dev is told how to bootstrap
   via the same message. No special-cased behaviour beyond the panic
   text.
+
+## Post-implementation refinements
+
+These changes landed *after* the original Step-10 self-review APPROVE
+(at commit `f033deb`) in response to actual CI failures, PR review
+comments, and a coverage-gap signal. The decomposition rows above are
+preserved for historical accuracy; this section is the canonical record
+of how the as-built shape differs.
+
+### Subtask 6 / 7 — shared-fallback golden layout
+
+Original rows: 5 vulkan-only goldens under
+`quartzite-widgets/tests/snapshots/vulkan/`; Windows + macOS lanes were
+`continue-on-error: ${{ !matrix.required }}` until follow-up bootstrap
+PRs landed.
+
+As-built (commit `3739569`): goldens are looked up via "backend
+override → shared default → fail":
+
+- `quartzite-widgets/tests/snapshots/shared/<name>.png` — cross-backend
+  default. While `VelloPainter` is no-op every backend writes
+  byte-identical `Rgba8Unorm` clear-colour pixels, so a single shared
+  golden covers Linux + Windows + macOS. The 5 v1 goldens live here.
+- `quartzite-widgets/tests/snapshots/<backend>/<name>.png` — per-backend
+  override. Used when a backend produces pixels that drift beyond
+  `FLIP_TOLERANCE` from the shared default (typical once real
+  rasterization lands).
+
+Regeneration always writes to the per-backend dir matching the
+`WGPU_BACKEND` env (so `update-snapshots.sh --backend vulkan` always
+writes to `tests/snapshots/vulkan/`). Bootstrapping a fresh `shared/`
+default is a manual step: regen on one backend, then `mv <backend>/* shared/`.
+
+Two new internals tests cover the new paths
+(`shared_fallback_used_when_backend_dir_empty`,
+`backend_override_takes_precedence_over_shared`).
+
+`continue-on-error` is dropped — all 3 OS lanes are required at
+PR-merge time.
+
+### Subtask 9 — `xvfb_smoke` worker-thread bypass
+
+Original row: test calls `WindowedApplication::new()` and runs
+`event_loop.exit()` from `resumed`.
+
+As-built (commit `39e28f7`): `cargo test` runs every `#[test]` on a
+worker thread; winit 0.30's default `EventLoop::new()` enforces a
+main-thread check on Linux and panics otherwise. The test now
+constructs `quartzite_runtime::Application` directly and builds the
+`EventLoop` via
+`EventLoop::builder()` + `EventLoopBuilderExtX11::with_any_thread(true)`
++ `EventLoopBuilderExtWayland::with_any_thread(true)`. Production
+code (`WindowedApplication`) keeps the strict default; the bypass
+stays scoped to the test. Behaviour is otherwise identical to the
+original row.
+
+### Subtask 10 — Linux apt set + Windows DX12 install dance
+
+Original row: Linux apt installs `mesa-vulkan-drivers vulkan-tools xvfb`;
+Windows lane uses the system DX12 / WARP runtime.
+
+As-built:
+
+- **Linux apt set** gains `libxkbcommon-x11-0` (commit `f78d660`). winit's
+  X11 backend dlopens `libxkbcommon-x11.so` at runtime via `xkbcommon-dl`;
+  the package is not preinstalled on `ubuntu-latest` and the `xvfb_smoke`
+  test panics without it.
+- **Windows DX12 install dance** (commits `05fa02c`, `ce8b251`,
+  `3160f89`) — mirrors `gfx-rs/wgpu`'s own CI. After the rust-cache
+  restore, the Windows lane downloads:
+  - **WARP 1.0.19** (NuGet `Microsoft.Direct3D.WARP`) — `d3d10warp.dll`
+    placed in `target/debug/` and `target/debug/deps/`.
+  - **DXC v1.9.2602** (Microsoft DXC GitHub release `dxc_2026_02_20.zip`)
+    — `dxc.exe` + `dxcompiler.dll` added to `PATH`.
+  - **D3D12 Agility SDK 1.619.2** (NuGet `Microsoft.Direct3D.D3D12`) —
+    binaries extracted to `target/agility-sdk/build/native/bin/x64`;
+    `WGPU_DX12_AGILITY_SDK_PATH` / `_VERSION` / `_REQUIRE` env vars set.
+  - `WGPU_DX12_COMPILER=dxc` env set.
+
+  Uses `7z` for the NuGet `.nupkg` extracts (GNU tar on `windows-latest`
+  rejects them as "not a tar archive"). Without the install dance the
+  snapshot suite crashes with `STATUS_ACCESS_VIOLATION` on the first
+  compute dispatch — vello requires modern D3D12 runtime features the
+  bare `windows-latest` image does not ship by default. Drops the
+  earlier `continue-on-error: ${{ matrix.os == 'windows-latest' }}`;
+  Windows is now a required lane.
+
+### Coverage workflow GPU install
+
+Not in the original 12 subtasks. Codecov flagged 144 uncovered lines in
+`render_harness.rs` because `coverage.yml` ran on a bare `ubuntu-latest`
+without a Vulkan ICD, so the harness's adapter request failed and every
+GPU code path short-circuited via "no GPU adapter; skipping" branches.
+
+As-built (commit `e5d59bf`): `coverage.yml` mirrors the gpu-tests Linux
+lane — apt-installs `mesa-vulkan-drivers vulkan-tools xvfb
+libxkbcommon-x11-0`, sets `WGPU_BACKEND=vulkan` +
+`WGPU_ADAPTER_NAME=llvmpipe` + `LIBGL_ALWAYS_SOFTWARE=1`, runs
+`vulkaninfo --summary` for diagnostics, and wraps `cargo llvm-cov` in
+`timeout 600 xvfb-run -a`. `render_harness.rs` patch coverage went from
+20.87% → 90.65%; project coverage stayed essentially flat against the
+master baseline.
+
+### Documentation refinements
+
+- Round-1 self-review (commit `f033deb`): `# Parameters` doc sections
+  added on `RenderHarness::new` and `render_widget`; design subtask-3
+  texture-usage row corrected to `STORAGE_BINDING | COPY_SRC`
+  (vello's compute-shader path requires storage binding);
+  `snapshot_widget` doc clarified to describe the two-layer skip.
+- `CONTRIBUTING.md` § *GPU snapshot tests* (commits `cfcabc0`,
+  `55cde9c`, `3739569`, `3160f89`) gained, beyond what subtask 12
+  required: a Required-tooling table with per-distro install commands
+  (Debian-Ubuntu / Fedora / Arch / Gentoo) and macOS / Windows
+  no-install notes; a "Reproduce the CI Linux lane locally" recipe;
+  the shared/<backend>/ goldens-layout explainer.
+- `ai-docs/panic-index.md` (commit `39e28f7`) gained an entry for the
+  `RenderHarness::render_widget` panic sites (vello render error, wgpu
+  buffer mapping failure, channel send/recv failure, `RgbaImage::from_raw`
+  returning `None`).
+- `.gitignore` (commit `39e28f7`) gained `tests/snapshots/**/*.actual.png`
+  + `*.diff.png` patterns so accidental `git add` cannot capture
+  test-failure artifacts.
