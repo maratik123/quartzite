@@ -3,3 +3,7 @@
 /.claude/settings.local.json
 rust_out
 librust_out.rlib
+
+# Snapshot test failure artifacts (regenerated on demand; never committed).
+**/tests/snapshots/**/*.actual.png
+**/tests/snapshots/**/*.diff.png
