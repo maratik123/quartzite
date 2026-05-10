@@ -135,7 +135,8 @@ same set on any apt-based distro is enough:
 
 ```sh
 # Debian / Ubuntu
-sudo apt-get install -y mesa-vulkan-drivers vulkan-tools libvulkan1 xvfb
+sudo apt-get install -y \
+  mesa-vulkan-drivers vulkan-tools libvulkan1 xvfb libxkbcommon-x11-0
 ```
 
 ```sh

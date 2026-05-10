@@ -170,7 +170,15 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers vulkan-tools xvfb
+          # mesa-vulkan-drivers + vulkan-tools: Vulkan ICD (lavapipe) + vulkaninfo
+          # xvfb: virtual X server for the windowed smoke test
+          # libxkbcommon-x11-0: winit's X11 backend dlopens libxkbcommon-x11.so
+          # at runtime via xkbcommon-dl; not preinstalled on ubuntu-latest
+          sudo apt-get install -y \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            xvfb \
+            libxkbcommon-x11-0
       - name: Vulkan diagnostics
         if: runner.os == 'Linux'
         run: vulkaninfo --summary || true
