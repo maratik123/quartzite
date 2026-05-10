@@ -46,7 +46,7 @@ pub struct Button {
 }
 
 impl Button {
-    /// Creates a `Button` with the given `text`.
+    /// Creates a [`Button`] with the given `text`.
     ///
     /// # Parameters
     ///

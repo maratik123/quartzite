@@ -8,11 +8,11 @@ use crate::{id::ObjectId, receiver_guard::ReceiverGuard, signal::Signal};
 
 /// Core data carried by every object in the quartzite object tree.
 ///
-/// `ObjectBase` provides identity ([`ObjectId`]), optional name, thread-affinity
+/// [`ObjectBase`] provides identity ([`ObjectId`]), optional name, thread-affinity
 /// tracking, and a lifetime token for safe signal delivery ([`ReceiverGuard`]).
 ///
 /// Objects are typically created through a higher-level type that includes an
-/// `ObjectBase` field and derives `Extend` (from `quartzite-macros`).
+/// [`ObjectBase`] field and derives `Extend` (from `quartzite-macros`).
 ///
 /// # Examples
 ///
@@ -58,7 +58,7 @@ pub struct ObjectBase {
 }
 
 impl ObjectBase {
-    /// Creates an anonymous `ObjectBase` with a freshly allocated [`ObjectId`].
+    /// Creates an anonymous [`ObjectBase`] with a freshly allocated [`ObjectId`].
     ///
     /// # Examples
     ///
@@ -81,7 +81,7 @@ impl ObjectBase {
         }
     }
 
-    /// Creates an `ObjectBase` with the given name and a freshly allocated [`ObjectId`].
+    /// Creates an [`ObjectBase`] with the given name and a freshly allocated [`ObjectId`].
     ///
     /// # Parameters
     ///
@@ -103,7 +103,7 @@ impl ObjectBase {
         }
     }
 
-    /// Creates an `ObjectBase` with the given `id` and no name.
+    /// Creates an [`ObjectBase`] with the given `id` and no name.
     ///
     /// The caller is responsible for ensuring `id` is unique among all live objects.
     /// Duplicate IDs cause incorrect tree lookups.

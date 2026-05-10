@@ -116,7 +116,7 @@ pub struct GridLayout {
 }
 
 impl GridLayout {
-    /// Creates a new empty `GridLayout`.
+    /// Creates a new empty [`GridLayout`].
     ///
     /// # Examples
     ///

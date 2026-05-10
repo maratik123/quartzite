@@ -29,7 +29,7 @@ pub struct Label {
 }
 
 impl Label {
-    /// Creates a `Label` with the given `text` and default (left) alignment.
+    /// Creates a [`Label`] with the given `text` and default (left) alignment.
     ///
     /// # Parameters
     ///

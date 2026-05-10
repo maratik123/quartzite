@@ -10,7 +10,7 @@
 //! property/reflection model — implemented in idiomatic Rust with no native
 //! dependencies, no foreign ABI, and no codegen outside proc-macros.
 //!
-//! quartzite organises application state as a tree of `Object`s with
+//! quartzite organises application state as a tree of [`Object`](core::Object)s with
 //! reflection metadata, communicates between objects via typed signals/slots,
 //! exposes typed fields as introspectable properties, and dispatches work
 //! through per-thread event loops. The [`prelude`] is a single glob-import
@@ -159,7 +159,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! # Timers
 //!
 //! [`Timer`](runtime::Timer) schedules deferred or periodic work against an
-//! execution context (`AppDriver`, `PoolDriver`, `ThreadDriver`):
+//! execution context ([`AppDriver`](runtime::AppDriver), [`PoolDriver`](runtime::PoolDriver), [`ThreadDriver`](runtime::ThreadDriver)):
 //!
 //! ```ignore
 //! use quartzite::prelude::*;
@@ -181,17 +181,17 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! - [`core`] (`quartzite-core`) — object trait, signals, properties,
 //!   reflection, value types. `no_std`-compatible when the `std` feature is
 //!   disabled (requires `alloc`).
-//! - [`runtime`] (`quartzite-runtime`) — `Application`, `EventLoop`,
-//!   `ObjectTree`, `Timer`. Requires `std`.
-//! - [`macros`] (`quartzite-macros`) — `Extend`, `DeriveObject`,
-//!   `object_impl`, `object_part`, `MetaEnum`. Requires the `derive` feature
+//! - [`runtime`] (`quartzite-runtime`) — [`Application`](runtime::Application), [`EventLoop`](runtime::EventLoop),
+//!   [`ObjectTree`](runtime::ObjectTree), [`Timer`](runtime::Timer). Requires `std`.
+//! - [`macros`] (`quartzite-macros`) — [`Extend`](macros::Extend), [`DeriveObject`](macros::Object),
+//!   [`object_impl`](macros::object_impl), [`object_part`](macros::object_part), [`MetaEnum`](macros::MetaEnum). Requires the `derive` feature
 //!   (on by default).
-//! - [`geometry`] (`quartzite-geometry`) — `Point`, `Size`, `Rect`,
-//!   `Margins` and their floating-point `*F` variants.
+//! - [`geometry`] (`quartzite-geometry`) — [`Point`](geometry::Point), [`Size`](geometry::Size), [`Rect`](geometry::Rect),
+//!   [`Margins`](geometry::Margins) and their floating-point `*F` variants.
 //! - [`events`] (`quartzite-events`) — event-dispatch types built on top of
 //!   the event-types primitives in `quartzite-event-types`.
 //! - [`paint`] (`quartzite-paint-api`) — `no_std`-compatible shared paint vocabulary:
-//!   `Color`, `Pen`, `Brush`, `BrushKind`, `Painter` trait, `PaintError`.
+//!   [`Color`](paint::Color), [`Pen`](paint::Pen), [`Brush`](paint::Brush), [`BrushKind`](paint::BrushKind), [`Painter`](paint::Painter) trait, [`PaintError`](paint::PaintError).
 //!
 //! Add quartzite to your `Cargo.toml`:
 //!
@@ -236,7 +236,7 @@ pub mod core {
 /// is no need for a direct dependency on `quartzite-macros` or `quartzite-core`. The macros
 /// resolve all generated paths through `::quartzite::core` automatically.
 ///
-/// Most macros (`Extend`, `Object`, `object_impl`, `object_part`) are already included in [`prelude`].
+/// Most macros ([`Extend`](macros::Extend), [`Object`](macros::Object), [`object_impl`](macros::object_impl), [`object_part`](macros::object_part)) are already included in [`prelude`].
 ///
 /// Requires the `derive` feature (enabled by default).
 #[cfg(feature = "derive")]
@@ -254,14 +254,14 @@ pub mod runtime {
 
 /// Re-exports geometry primitives from [`quartzite_geometry`].
 ///
-/// Provides integer (`Point`, `Size`, `Rect`, `Margins`) and float (`PointF`, `SizeF`, `RectF`) types.
+/// Provides integer ([`Point`](geometry::Point), [`Size`](geometry::Size), [`Rect`](geometry::Rect), [`Margins`](geometry::Margins)) and float ([`PointF`](geometry::PointF), [`SizeF`](geometry::SizeF), [`RectF`](geometry::RectF)) types.
 pub mod geometry {
     pub use quartzite_geometry::*;
 }
 
 /// Re-exports the event model from [`quartzite_events`].
 ///
-/// Provides `MouseEvent`, `KeyEvent`, `ResizeEvent`, `CloseEvent`, `TimerEvent`, `EventFilter`, and `EventType`.
+/// Provides [`MouseEvent`](events::MouseEvent), [`KeyEvent`](events::KeyEvent), [`ResizeEvent`](events::ResizeEvent), [`CloseEvent`](events::CloseEvent), [`TimerEvent`](events::TimerEvent), [`EventFilter`](events::EventFilter), and [`EventType`](events::EventType).
 pub mod events {
     pub use quartzite_events::*;
 }
@@ -277,7 +277,7 @@ pub mod events {
 ///   object's [`Stored`][quartzite_core::meta::PropertyFlag::Stored] properties.
 /// - **Tree level** — [`capture_tree`](quartzite_runtime::snapshot::capture_tree) /
 ///   [`restore_tree`](quartzite_runtime::snapshot::restore_tree) snapshot an entire
-///   `ObjectTree` including parent/child structure.
+///   [`ObjectTree`](crate::runtime::ObjectTree) including parent/child structure.
 ///
 /// Signal connections and `signals_blocked` are **not** preserved; re-establish
 /// connections after restore.
@@ -319,7 +319,7 @@ pub mod paint {
 /// [`StyleRegistry`](quartzite_style::StyleRegistry), [`Palette`](quartzite_style::Palette),
 /// [`ColorRole`](quartzite_style::ColorRole)).
 ///
-/// `Palette` and `ColorRole` originate in `quartzite-style-types` (the leaf
+/// [`Palette`](quartzite_style::Palette) and [`ColorRole`](quartzite_style::ColorRole) originate in `quartzite-style-types` (the leaf
 /// crate) and reach this module via [`quartzite_style`]'s own re-export —
 /// a single `use quartzite::style::*;` therefore covers the full vocabulary.
 /// `quartzite-style-types` is not a direct dependency of this crate, so it
@@ -334,8 +334,8 @@ pub mod style {
 
 /// Re-exports the built-in widget system from [`quartzite_widgets`].
 ///
-/// Provides `WidgetBase`, `WidgetExt`, layout types (`BoxLayout`, `GridLayout`), and concrete
-/// widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
+/// Provides [`WidgetBase`](widgets::WidgetBase), [`WidgetExt`](widgets::WidgetExt), layout types ([`BoxLayout`](widgets::BoxLayout), [`GridLayout`](widgets::GridLayout)), and concrete
+/// widgets ([`Label`](widgets::Label), [`Button`](widgets::Button), [`LineEdit`](widgets::LineEdit), [`TextEdit`](widgets::TextEdit), [`ScrollArea`](widgets::ScrollArea), [`Container`](widgets::Container)).
 ///
 /// Requires the `widgets` feature.
 #[cfg(feature = "widgets")]

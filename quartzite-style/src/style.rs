@@ -1,6 +1,6 @@
 //! [`Style`] — trait describing how to paint a widget.
 //!
-//! Concrete `Style` implementations route on widget type via downcast or a
+//! Concrete [`Style`] implementations route on widget type via downcast or a
 //! visitor; per-widget primitive methods (`draw_button`, `draw_label`, …) are
 //! intentionally **not** part of the trait surface. The [`Style`] trait carries
 //! a `Send + Sync` bound because [`StyleRegistry`](crate::StyleRegistry) hands
@@ -12,7 +12,7 @@ use quartzite_widgets::AsWidget;
 
 /// Painting strategy for the widget tree.
 ///
-/// A `Style` is the single hook a renderer uses to draw any concrete widget:
+/// A [`Style`] is the single hook a renderer uses to draw any concrete widget:
 /// [`draw_widget`](Self::draw_widget) takes the widget as `&dyn AsWidget`,
 /// inspects the runtime type (via downcast or a visitor pattern, depending on
 /// the concrete impl), and dispatches to the appropriate drawing routine.

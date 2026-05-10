@@ -4,7 +4,7 @@
 //!
 //! The core types are [`WidgetBase`] (the hierarchy root) and [`WidgetExt`] (the blanket
 //! extension trait). All concrete widget types derive [`quartzite_macros::Extend`] with
-//! `#[base] widget_base: WidgetBase`, inheriting the full `AsWidget` and `AsObject` chains.
+//! `#[base] widget_base: WidgetBase`, inheriting the full [`AsWidget`] and [`quartzite_core::AsObject`] chains.
 //!
 //! Layout is handled by [`Layout`] — a resolver-parameterised trait implemented by
 //! [`BoxLayout`] and [`GridLayout`]. Geometry distribution requires a [`WidgetResolver`]
@@ -12,8 +12,8 @@
 //!
 //! # Features
 //!
-//! - [`widgets`] — all built-in concrete widgets (`Label`, `Button`, `LineEdit`, …)
-//! - [`layout`] — layout types (`BoxLayout`, `GridLayout`)
+//! - [`widgets`] — all built-in concrete widgets ([`Label`], [`Button`], [`LineEdit`], …)
+//! - [`layout`] — layout types ([`BoxLayout`], [`GridLayout`])
 #![deny(rustdoc::broken_intra_doc_links)]
 #![warn(clippy::missing_errors_doc)]
 #![warn(clippy::missing_panics_doc)]

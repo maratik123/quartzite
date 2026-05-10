@@ -29,11 +29,11 @@ type SignalIndex = usize;
 /// assert_eq!(record.signal_index, 0);
 /// ```
 pub struct ConnectionRecord {
-    /// `ObjectId` of the object that owns the signal.
+    /// [`ObjectId`] of the object that owns the signal.
     pub sender_id: ObjectId,
-    /// Index of the signal in the sender's `MetaObject::signals` slice.
+    /// Index of the signal in the sender's [`MetaObject::signals`](quartzite_core::MetaObject::signals) slice.
     pub signal_index: SignalIndex,
-    /// `ObjectId` of the object that owns the slot.
+    /// [`ObjectId`] of the object that owns the slot.
     pub receiver_id: ObjectId,
 }
 
@@ -59,7 +59,7 @@ pub struct ConnectionTable {
 }
 
 impl ConnectionTable {
-    /// Creates a new, empty `ConnectionTable`.
+    /// Creates a new, empty [`ConnectionTable`].
     ///
     /// Returns an `Arc` because the table is shared between the application and the
     /// queued-dispatcher registration. Queued dispatch routes to per-thread event loops

@@ -26,5 +26,6 @@ tempfile           = "3"
 quartzite-renderer = { path = "../quartzite-renderer" }
 
 [package.metadata.docs.rs]
+all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]

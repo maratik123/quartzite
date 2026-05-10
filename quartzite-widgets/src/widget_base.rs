@@ -11,7 +11,7 @@ use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
 /// Hierarchy root for all quartzite widgets.
 ///
 /// Every concrete widget holds a `#[base] widget_base: WidgetBase` field and
-/// receives the `AsWidget` and `AsObject` implementations for free via
+/// receives the [`AsWidget`] and [`quartzite_core::AsObject`] implementations for free via
 /// `#[derive(Extend)]`.
 ///
 /// Fields are `pub` so [`crate::WidgetExt`] can read and write them through the
@@ -48,9 +48,9 @@ pub struct WidgetBase {
     pub font: Arc<Font>,
     /// Shared palette; multiple widgets may reference the same `Arc`.
     pub palette: Arc<Palette>,
-    /// `ObjectId` of the layout manager attached to this widget, if any.
+    /// [`ObjectId`] of the layout manager attached to this widget, if any.
     pub layout: Option<ObjectId>,
-    /// `ObjectId`s of installed event filters (dispatch deferred to plan #47).
+    /// [`ObjectId`]s of installed event filters (dispatch deferred to plan #47).
     pub event_filters: Vec<ObjectId>,
     /// Set to `true` by [`crate::WidgetExt::update`]; consumed by the renderer.
     pub pending_update: bool,
@@ -61,7 +61,7 @@ pub struct WidgetBase {
 }
 
 impl WidgetBase {
-    /// Creates a new anonymous `WidgetBase` with default values.
+    /// Creates a new anonymous [`WidgetBase`] with default values.
     ///
     /// The widget starts hidden (`visible = false`), enabled, with zero geometry and
     /// default font/palette shared instances.

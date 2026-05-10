@@ -372,6 +372,55 @@ those for a hand-picked subset is a regression.
 - Cross-crate links use the workspace crate name:
   `` [`quartzite_core::ObjectBase`] ``. Inside the same crate, prefer the
   shortest unambiguous form (`` [`super::Type`] `` or just `` [`Type`] ``).
+- **Cross-crate links must target direct dependencies.** A
+  `` [Type](other_crate::path) `` link only resolves when `other_crate` is
+  a direct entry in the linking crate's `[dependencies]`. If the target
+  lives in a transitive dep, either re-route through a direct dep that
+  re-exports it, or demote the link to plain backticked prose. The
+  `--all-features` doc gate (PR #197) compiles every gated module, so a
+  link that bypasses a direct dep fails
+  `#![deny(rustdoc::broken_intra_doc_links)]` at build time.
+
+  ```text
+  // Before — broken: quartzite_style_types is a transitive dep of quartzite,
+  //                  not a direct one.
+  /// [`Palette`](quartzite_style_types::Palette)
+  // After — works: quartzite_style is a direct dep and re-exports Palette.
+  /// [`Palette`](quartzite_style::Palette)
+  ```
+
+- **Backticked identifiers in prose should be intra-doc links when in scope.**
+  A bare `` `Foo` `` in prose renders as inert code-style text. When `Foo`
+  resolves to an item in scope (own crate, or a direct dep), wrap it as
+  `` [`Foo`] `` so the reader can navigate. Leave bare when the candidate is
+  a generic placeholder (`T`, `Self`, `K`), a Cargo feature name
+  (`` `serde` ``, `` `std` ``), or an English noun that happens to be
+  capitalized (the concept *Object*, the tool *Cargo*, *GUI*).
+
+  ```text
+  // Before — inert text:
+  /// quartzite organises application state as a tree of `Object`s.
+  // After — clickable link:
+  /// quartzite organises application state as a tree of [`Object`]s.
+  ```
+
+- **Bare qualified paths follow the same direct-dep rule.** A backticked
+  qualified path in prose (`` `pkg::path::Item` ``) should be wrapped as an
+  intra-doc link (`` [`pkg::path::Item`] ``) when `pkg` is a direct dep of
+  the linking crate. When it isn't, the link is structurally impossible —
+  leave bare. Don't introduce a broken link to "match the convention." The
+  most common case in this workspace is a downstream crate referenced from
+  an upstream one (e.g., `quartzite-core` mentioning `quartzite_runtime::*`):
+  the dep edge runs the other way, so the link cannot exist.
+
+  ```text
+  // Inside quartzite-core (which does NOT depend on quartzite-runtime).
+  // Before — would-be broken if linkified: quartzite_runtime is downstream.
+  /// Capture and restore functions live in `quartzite_runtime::snapshot`.
+  // After — unchanged: bare backticks are correct here. A
+  // [`quartzite_runtime::snapshot`] would fail intra-doc-link resolution.
+  /// Capture and restore functions live in `quartzite_runtime::snapshot`.
+  ```
 
 ## Language
 

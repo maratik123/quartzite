@@ -39,7 +39,7 @@ pub struct LineEdit {
 }
 
 impl LineEdit {
-    /// Creates a new empty `LineEdit`.
+    /// Creates a new empty [`LineEdit`].
     ///
     /// # Examples
     ///
