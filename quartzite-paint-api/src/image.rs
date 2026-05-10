@@ -1,6 +1,6 @@
 //! [`Image`] — raw RGBA8 pixel buffer used by `Painter::draw_image`.
 //!
-//! `Image` lives in `quartzite-paint-api` (rather than `quartzite-paint`) so the
+//! [`Image`] lives in `quartzite-paint-api` (rather than `quartzite-paint`) so the
 //! [`Painter`](crate::Painter) trait can name `&Image` directly without a circular
 //! re-export through the higher-level paint crate.
 
@@ -12,7 +12,7 @@ use alloc::vec::Vec;
 /// Each pixel is four bytes — `R`, `G`, `B`, `A` — straight (non-premultiplied) alpha.
 ///
 /// V1 supports only RGBA8. PNG / JPEG / etc. decoding is deferred to a follow-up
-/// plan; construct an `Image` from already-decoded pixels via [`Image::try_new`].
+/// plan; construct an [`Image`] from already-decoded pixels via [`Image::try_new`].
 ///
 /// # Examples
 ///

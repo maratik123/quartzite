@@ -33,7 +33,7 @@ pub struct TextEdit {
 }
 
 impl TextEdit {
-    /// Creates a new empty `TextEdit`.
+    /// Creates a new empty [`TextEdit`].
     ///
     /// # Examples
     ///

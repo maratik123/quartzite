@@ -19,7 +19,7 @@ use core::sync::atomic::{AtomicU64, Ordering};
 pub struct ObjectId(u64);
 
 impl ObjectId {
-    /// Allocates a fresh, process-unique `ObjectId`.
+    /// Allocates a fresh, process-unique [`ObjectId`].
     ///
     /// # Examples
     ///
@@ -80,7 +80,7 @@ impl Default for ObjectId {
 pub struct ConnectionId(u64);
 
 impl ConnectionId {
-    /// Allocates a fresh, process-unique `ConnectionId`.
+    /// Allocates a fresh, process-unique [`ConnectionId`].
     ///
     /// Normally called internally by `Signal::connect*`. Exposed publicly so that
     /// runtimes can create synthetic connection records.

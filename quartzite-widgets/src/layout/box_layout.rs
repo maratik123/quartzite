@@ -50,7 +50,7 @@ pub struct BoxLayout {
 }
 
 impl BoxLayout {
-    /// Creates a new empty `BoxLayout` with the given `direction`.
+    /// Creates a new empty [`BoxLayout`] with the given `direction`.
     ///
     /// # Parameters
     ///

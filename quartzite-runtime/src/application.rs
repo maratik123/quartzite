@@ -20,7 +20,7 @@ use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tre
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ApplicationError {
-    /// An `Application` instance already exists in this process.
+    /// An [`Application`] instance already exists in this process.
     #[error("Application already exists")]
     AlreadyExists,
 }
@@ -56,8 +56,8 @@ impl Application {
     ///
     /// # Errors
     ///
-    /// Returns [`ApplicationError::AlreadyExists`] if an `Application` has already been
-    /// installed in this process. Only one `Application` may exist per process.
+    /// Returns [`ApplicationError::AlreadyExists`] if an [`Application`] has already been
+    /// installed in this process. Only one [`Application`] may exist per process.
     ///
     /// # Examples
     ///

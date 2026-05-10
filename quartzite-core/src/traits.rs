@@ -1,4 +1,4 @@
-//! Core object traits: `AsObject`, `Object`, `ObjectExt`, and `SignalCallback`.
+//! Core object traits: [`AsObject`], [`Object`], [`ObjectExt`], and [`SignalCallback`].
 
 #[cfg(not(feature = "std"))]
 use alloc::boxed::Box;
@@ -11,18 +11,18 @@ use crate::{
     value::Value,
 };
 
-/// Boxed callback type used by `Object::connect_signal`.
+/// Boxed callback type used by [`Object::connect_signal`].
 ///
 /// The `Send` bound future-proofs the API for queued (cross-thread) signal delivery,
 /// which is handled by `quartzite-runtime`.
 pub type SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>;
 
 /// Object-safe accessor trait. Every concrete object type implements this to expose
-/// its `ObjectBase` and allow `Any`-based downcasting.
+/// its [`ObjectBase`] and allow `Any`-based downcasting.
 ///
 /// This trait is deliberately minimal so that `Box<dyn AsObject>` remains valid.
 pub trait AsObject {
-    /// Returns a shared reference to this object's `ObjectBase`.
+    /// Returns a shared reference to this object's [`ObjectBase`].
     ///
     /// _Simple._
     ///
@@ -37,7 +37,7 @@ pub trait AsObject {
     /// ```
     fn object_base(&self) -> &ObjectBase;
 
-    /// Returns a mutable reference to this object's `ObjectBase`.
+    /// Returns a mutable reference to this object's [`ObjectBase`].
     ///
     /// _Simple._
     ///
@@ -85,11 +85,11 @@ pub trait AsObject {
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
-/// Full meta-system trait. Extends `AsObject` with property access, method invocation,
+/// Full meta-system trait. Extends [`AsObject`] with property access, method invocation,
 /// and signal connection. Also, object-safe: all methods use `&str`, `&[Value]`, and
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject + Send {
-    /// Returns the static `MetaObject` descriptor for this type.
+    /// Returns the static [`MetaObject`] descriptor for this type.
     ///
     /// _Simple._
     ///
@@ -225,9 +225,9 @@ pub trait Object: AsObject + Send {
 /// Ergonomic blanket-impl extension. Methods here are not object-safe (e.g., generics
 /// in `downcast_ref`), so they live in a separate trait that is not dyn-compatible.
 ///
-/// Automatically implemented for every type that implements `AsObject`.
+/// Automatically implemented for every type that implements [`AsObject`].
 pub trait ObjectExt: AsObject {
-    /// Returns the unique `ObjectId` of this object.
+    /// Returns the unique [`ObjectId`] of this object.
     ///
     /// _Simple._
     ///
@@ -336,7 +336,7 @@ pub trait ObjectExt: AsObject {
     }
 }
 
-/// Blanket implementation — every `AsObject` automatically gets `ObjectExt`.
+/// Blanket implementation — every [`AsObject`] automatically gets [`ObjectExt`].
 impl<T: AsObject> ObjectExt for T {}
 
 #[cfg(test)]

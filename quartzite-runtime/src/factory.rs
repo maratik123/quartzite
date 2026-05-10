@@ -41,7 +41,7 @@ pub struct ObjectFactory {
 }
 
 impl ObjectFactory {
-    /// Creates an empty `ObjectFactory` with no registered constructors.
+    /// Creates an empty [`ObjectFactory`] with no registered constructors.
     ///
     /// # Examples
     ///
@@ -59,7 +59,7 @@ impl ObjectFactory {
     /// Installs `factory` as the process-wide singleton.
     ///
     /// Called by [`Application::new`](crate::Application::new) automatically — explicit
-    /// calls are needed only when using the factory without an `Application`.
+    /// calls are needed only when using the factory without an [`Application`](crate::Application).
     ///
     /// # Parameters
     ///

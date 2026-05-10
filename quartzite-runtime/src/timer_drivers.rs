@@ -51,7 +51,7 @@ pub struct ThreadDriver {
 }
 
 impl ThreadDriver {
-    /// Creates a new idle `ThreadDriver`.
+    /// Creates a new idle [`ThreadDriver`].
     ///
     /// # Examples
     ///
@@ -138,7 +138,7 @@ pub struct AppDriver {
 }
 
 impl AppDriver {
-    /// Creates a new idle `AppDriver`.
+    /// Creates a new idle [`AppDriver`].
     ///
     /// # Examples
     ///
@@ -270,7 +270,7 @@ pub struct PoolDriver {
 }
 
 impl PoolDriver {
-    /// Creates a new `PoolDriver` and spawns its background scheduling thread.
+    /// Creates a new [`PoolDriver`] and spawns its background scheduling thread.
     ///
     /// # Examples
     ///

@@ -5,7 +5,7 @@
 //! This module is the entry point for the quartzite snapshot layer. It provides
 //! three levels of granularity:
 //!
-//! 1. **Property layer** — `Value` itself implements `serde::Serialize` /
+//! 1. **Property layer** — [`Value`][crate::value::Value] itself implements `serde::Serialize` /
 //!    `serde::Deserialize` (enabled by the `serde` cargo feature). Any
 //!    `serde`-compatible backend can be used.
 //!
@@ -103,9 +103,9 @@ pub enum SerializeError {
         property: String,
     },
 
-    /// The requested `ObjectId` was not found in the tree during capture.
+    /// The requested [`ObjectId`][crate::ObjectId] was not found in the tree during capture.
     ///
-    /// This occurs when `capture_tree` is called with an `ObjectId` that is
+    /// This occurs when `capture_tree` is called with an [`ObjectId`][crate::ObjectId] that is
     /// not present in the provided `ObjectTree`.
     #[error("object id {id} is not present in the tree")]
     ObjectNotInTree {

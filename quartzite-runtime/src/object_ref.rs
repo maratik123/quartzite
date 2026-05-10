@@ -28,7 +28,7 @@ pub struct ObjectRef<T> {
 }
 
 impl<T> ObjectRef<T> {
-    /// Wraps `id` in a typed `ObjectRef`.
+    /// Wraps `id` in a typed [`ObjectRef`].
     ///
     /// _Simple._
     ///
@@ -74,7 +74,7 @@ impl<T> ObjectRef<T> {
         self.id
     }
 
-    /// Converts this `ObjectRef` into a [`WeakRef`] with no liveness guarantee.
+    /// Converts this [`ObjectRef`] into a [`WeakRef`] with no liveness guarantee.
     ///
     /// _Simple._
     ///
@@ -141,7 +141,7 @@ pub struct WeakRef<T> {
 }
 
 impl<T> WeakRef<T> {
-    /// Wraps `id` in a typed `WeakRef`.
+    /// Wraps `id` in a typed [`WeakRef`].
     ///
     /// _Simple._
     ///

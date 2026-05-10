@@ -7,7 +7,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 
 /// A generic container widget that holds child widget ids.
 ///
-/// `Container` acts as a simple parent for grouping widgets. Children are
+/// [`Container`] acts as a simple parent for grouping widgets. Children are
 /// tracked by id; layout is delegated to the widget's associated [`Layout`](crate::Layout).
 ///
 /// # Examples
@@ -29,7 +29,7 @@ pub struct Container {
 }
 
 impl Container {
-    /// Creates a new empty `Container`.
+    /// Creates a new empty [`Container`].
     ///
     /// # Examples
     ///

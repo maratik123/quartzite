@@ -446,7 +446,7 @@ fn emit_connect_auto_wrappers(type_ident: &Ident, signals: &[SignalField]) -> To
             " # Examples\n\n```no_run\n# fn example(obj: &mut Emitter, receiver: &quartzite::core::ObjectBase) {{\n#     obj.{fn_name_str}(receiver, |_| {{}});\n# }}\n```"
         );
         quote! {
-            #[doc = " Connects this signal to a slot with `Auto` delivery."]
+            #[doc = " Connects this signal to a slot with [`quartzite::core::ConnectionType::Auto`] delivery."]
             #[doc = ""]
             #[doc = " Same-thread emits call `f` directly; cross-thread emits post to the dispatcher."]
             #[doc = " The slot is silently skipped once `receiver` has been dropped."]
@@ -501,7 +501,7 @@ fn emit_connect_queued_wrappers(type_ident: &Ident, signals: &[SignalField]) -> 
             " # Examples\n\n```no_run\n# fn example(obj: &mut Receiver, receiver: &quartzite::core::ObjectBase) {{\n#     obj.{fn_name_str}(receiver, |_| {{}});\n# }}\n```"
         );
         quote! {
-            #[doc = " Connects this signal to a slot with `Queued` delivery."]
+            #[doc = " Connects this signal to a slot with [`quartzite::core::ConnectionType::Queued`] delivery."]
             #[doc = ""]
             #[doc = " The slot is always posted to the receiver's dispatcher, even when emitted"]
             #[doc = " from the same thread. The slot is silently skipped once `receiver` has been"]

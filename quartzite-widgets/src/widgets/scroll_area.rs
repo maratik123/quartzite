@@ -52,7 +52,7 @@ pub struct ScrollArea {
 }
 
 impl ScrollArea {
-    /// Creates a new empty `ScrollArea` with `AsNeeded` scroll policies.
+    /// Creates a new empty [`ScrollArea`] with [`AsNeeded`](ScrollPolicy::AsNeeded) scroll policies.
     ///
     /// # Examples
     ///
