@@ -318,37 +318,43 @@ on a doctest that *imports* a feature-gated item — `no_run` is for
 "compiles but cannot run" (event loops, GUI apps), not for "should not
 even compile under this configuration."
 
-### Intra-doc links to feature-gated modules — three-site sync
+### Intra-doc links to feature-gated modules — `--all-features` everywhere
 
 When a `pub use` or intra-doc link in a crate's prose points into a
 feature-gated module, every site that builds rustdoc for that crate must
 enable the feature, or `rustdoc::broken_intra_doc_links` fires under
-`-D warnings`. **Three sites must stay in sync** — if you add or rename a
-feature-gated module that has docs referencing it, update all three in the
-same PR:
+`-D warnings`. The convention here is **`--all-features` everywhere** so
+that adding a new gated module never requires editing a flag list — and
+no gated module ever silently slips out of the doc build:
 
 1. **`.github/workflows/ci.yml`** — the `cargo doc` invocation in the
-   docs job (`--features serde`, etc.).
-2. **`.github/workflows/docs.yml`** (or whichever workflow publishes to
-   GitHub Pages) — the `cargo doc` invocation that renders the public
-   docs.html. Same flag, same reason — drift between CI and Pages produced
-   one bug.
-3. **`Cargo.toml`** — `[package.metadata.docs.rs] features = […]` in
-   every crate whose docs.rs page references the feature-gated items.
-   Controls docs.rs auto-builds; missed entry = stale or broken docs.rs
-   page even when CI is green.
+   docs job runs with `--all-features`.
+2. **`.github/workflows/docs.yml`** (the GitHub Pages publish workflow) —
+   `cargo doc` runs with `--all-features`. Drift between CI and Pages
+   produced one bug; using the same flag in both forecloses it.
+3. **`Cargo.toml`** — `[package.metadata.docs.rs]` uses
+   `all-features = true` in every crate whose docs.rs page may reference
+   feature-gated items. Hand-picked `features = […]` lists are the failure
+   mode — they go stale the moment a new gated module is added.
 
 The local `AGENTS.md` *Build & Test* doc-gate command (and the matching
-copies in `.claude/skills/task/SKILL.md` and `.claude/agents/self-review.md`)
-are **the local mirror** of site 1 — they exist so an agent reproduces the
-CI doc gate before pushing. They must list the same `--features` set as
-the CI command.
+copies in `.claude/skills/task/SKILL.md`, `.claude/skills/code-review/SKILL.md`,
+and `.claude/agents/self-review.md`) are **the local mirror** of site 1 —
+they exist so an agent reproduces the CI doc gate before pushing. They use
+the same `--all-features` flag.
 
-When introducing a new feature that adds public API behind it:
-- Audit all three sites + the local doc-gate copies in the same PR.
-- Reviewer check: when the diff touches `#[cfg(feature)]`-gated public
-  modules / re-exports, or modifies any `[features]` table, walk the three
-  sites + local copies and confirm the feature is listed in each.
+The `--all-features` convention assumes features are additive (no two
+features mutually exclusive). If a feature is ever introduced that
+genuinely conflicts with another (e.g., picking one of two backends), this
+section needs revisiting — at that point the workflow flag set must be
+narrowed to a coherent superset, and that superset becomes the new
+sync target.
+
+Reviewer check: when the diff touches `#[cfg(feature)]`-gated public
+modules / re-exports, or modifies any `[features]` table, confirm the
+workflow `cargo doc` invocations and every crate's docs.rs metadata still
+use `--all-features` / `all-features = true`. A diff that swaps either of
+those for a hand-picked subset is a regression.
 
 ## Linking and code references
 

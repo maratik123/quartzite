@@ -84,7 +84,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 6. Documentation
 
-Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --features serde 2>&1` and check (the `--features serde` flag is required so intra-doc links into the `serde`-gated `snapshot` module resolve — matches CI):
+Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features 2>&1` and check (the `--all-features` flag is required so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI):
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
@@ -97,7 +97,8 @@ On any error or warning → REJECT with the exact rustdoc message as the finding
 
 **Feature-gated documentation sync ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md#feature-gated-documentation)).** When the diff touches a `#[cfg(feature = "...")]`-gated public module / re-export, or modifies any `[features]` table, REJECT when any of the following is missed:
 - A new doctest that *imports* a feature-gated item is `no_run`-gated (or unguarded) instead of `cfg_attr`-gated. `no_run` does not skip rustc compile-check — under `-D warnings` it breaks the build when the feature is off.
-- The CI `cargo doc` command in `.github/workflows/ci.yml`, the GH-Pages publish command in `.github/workflows/docs.yml`, and `[package.metadata.docs.rs] features = […]` in every crate whose docs reference the gated items, are not all in sync on the new feature.
+- Either workflow (`.github/workflows/ci.yml`, `.github/workflows/docs.yml`) runs `cargo doc` with anything narrower than `--all-features` (or with a hand-picked feature subset that omits the new feature). The default is `--all-features` precisely so a new gated module never silently slips out of the doc build.
+- Any crate whose `[package.metadata.docs.rs]` block uses a hand-picked `features = […]` list instead of `all-features = true` (the convention) — drift from the workflow's flag set is the failure mode.
 
 Mechanical heading scan to spot missing or out-of-order sections in a changed file:
 
