@@ -101,11 +101,24 @@ requirement.
 
 The `quartzite-widgets` crate ships an integration-test suite at
 `quartzite-widgets/tests/snapshots.rs` that renders each built-in widget
-through an offscreen `RenderHarness` (in `quartzite-renderer`) and compares
-the readback against committed PNG goldens under
-`quartzite-widgets/tests/snapshots/<backend>/`. The Linux lane of the CI
-`gpu-tests` job is required at PR merge time; Windows / macOS lanes are
-non-blocking until follow-up PRs bootstrap their per-backend goldens.
+through an offscreen `RenderHarness` (in `quartzite-renderer`) and
+compares the readback against committed PNG goldens under
+`quartzite-widgets/tests/snapshots/`.
+
+Layout:
+
+- `tests/snapshots/shared/<name>.png` — cross-backend default. Used when
+  no per-backend override exists. While the renderer is no-op, every
+  backend (vulkan, dx12, metal, …) writes byte-identical clear-colour
+  pixels, so a single shared golden covers all three CI lanes.
+- `tests/snapshots/<backend>/<name>.png` — per-backend override. Created
+  when one backend produces pixels that drift beyond `FLIP_TOLERANCE`
+  from the shared golden (typical once `VelloPainter` actually
+  rasterizes content).
+
+Lookup order is "backend override → shared default → fail". All three
+CI `gpu-tests` lanes (Linux/vulkan, Windows/dx12, macOS/metal) are
+required at PR merge time.
 
 A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
 exercises the full windowed pipeline (`WindowedApplication` + a real winit
@@ -242,7 +255,10 @@ scripts/update-snapshots.sh --backend metal
 
 The script sets `QUARTZITE_REGENERATE_SNAPSHOTS=1` and runs the snapshot
 suite; the helper writes new PNGs into `tests/snapshots/<backend>/`
-instead of comparing.
+instead of comparing. Regenerated PNGs are *per-backend overrides* — to
+seed (or refresh) the cross-backend `tests/snapshots/shared/` default,
+run the regen with one backend and then `mv tests/snapshots/<backend>/*
+tests/snapshots/shared/`.
 
 ### Intentional visual diffs
 
@@ -254,12 +270,19 @@ When a PR's code change *intentionally* alters rendered pixels:
    / `*.diff.png` next to its golden. Confirm the change is the one you
    intended.
 3. Run `scripts/update-snapshots.sh --backend vulkan` locally and commit
-   the regenerated PNGs in the same PR. Reviewers see the new pixels in
-   the diff.
-4. For Windows / macOS lanes (currently non-blocking), bootstrap their
-   goldens in a follow-up PR — contributors with access to those
-   platforms run the regen script and commit
-   `tests/snapshots/{dx12,metal}/`.
+   the regenerated PNGs in the same PR.
+   - If the new pixels are uniform across all backends (typical for the
+     no-op renderer state), `mv` the result from `tests/snapshots/vulkan/`
+     to `tests/snapshots/shared/`. One commit covers all CI lanes.
+   - If the pixel change is backend-specific (e.g. text rendering drift
+     on macOS only), commit the override under
+     `tests/snapshots/<backend>/` and leave `shared/` alone. The lookup
+     prefers overrides over shared.
+4. Reviewers see the new pixels in the PR diff.
+5. For Windows / macOS overrides, contributors with access to those
+   platforms run the regen script there and commit the resulting
+   `tests/snapshots/{dx12,metal}/` files. Until that lands, the shared
+   golden is what their CI lane compares against.
 
 See [`AGENTS.md` § Build & Test](AGENTS.md#build--test) for the strict
 gate that runs against every PR.

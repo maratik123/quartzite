@@ -14,8 +14,8 @@ use std::sync::Mutex;
 
 use image::{Rgba, RgbaImage};
 use support::{
-    BACKEND_ENV, DEFAULT_BACKEND_DIR, FLIP_TOLERANCE, REGEN_ENV, SKIP_ENV, backend_dir_name,
-    snapshot_assert_at,
+    BACKEND_ENV, DEFAULT_BACKEND_DIR, FLIP_TOLERANCE, REGEN_ENV, SHARED_DIR_NAME, SKIP_ENV,
+    backend_dir_name, snapshot_assert_at,
 };
 
 /// Process-global mutex serialising env-var mutation across these tests.
@@ -163,6 +163,15 @@ fn missing_golden_panics_with_helpful_message() {
         .or_else(|| panic.downcast_ref::<&'static str>().copied())
         .unwrap_or("");
     assert!(msg.contains("golden missing"), "msg was: {msg}");
+    // Both lookup paths are listed in the panic message.
+    assert!(
+        msg.contains("backend override:"),
+        "backend hint missing: {msg}"
+    );
+    assert!(
+        msg.contains("shared fallback:"),
+        "shared hint missing: {msg}"
+    );
     assert!(
         msg.contains("update-snapshots.sh"),
         "regen hint missing: {msg}"
@@ -173,6 +182,56 @@ fn missing_golden_panics_with_helpful_message() {
         actual.exists(),
         "actual.png not written at {}",
         actual.display()
+    );
+}
+
+#[test]
+fn shared_fallback_used_when_backend_dir_empty() {
+    use std::fs;
+    let env = EnvGuard::new();
+    env.set(BACKEND_ENV, "vulkan");
+    let tmp = tempfile::tempdir().unwrap();
+    // Manually pre-populate shared/ as if the contributor had bootstrapped it.
+    let shared_dir = tmp.path().join(SHARED_DIR_NAME);
+    fs::create_dir_all(&shared_dir).unwrap();
+    let img = solid(4, 4, [42, 42, 42, 255]);
+    img.save(shared_dir.join("fallback_test.png")).unwrap();
+    // No vulkan/<name>.png — the helper should fall back to shared/ and pass.
+    snapshot_assert_at(tmp.path(), "fallback_test", &img);
+    // Confirm no per-backend artifacts were written (no mismatch happened).
+    let actual = tmp.path().join("vulkan").join("fallback_test.actual.png");
+    assert!(
+        !actual.exists(),
+        "actual.png should not appear on a successful shared-fallback match"
+    );
+}
+
+#[test]
+fn backend_override_takes_precedence_over_shared() {
+    use std::fs;
+    let env = EnvGuard::new();
+    env.set(BACKEND_ENV, "vulkan");
+    let tmp = tempfile::tempdir().unwrap();
+    // Shared has solid black; backend override has solid white.
+    let shared_dir = tmp.path().join(SHARED_DIR_NAME);
+    let backend_dir = tmp.path().join("vulkan");
+    fs::create_dir_all(&shared_dir).unwrap();
+    fs::create_dir_all(&backend_dir).unwrap();
+    solid(4, 4, [0, 0, 0, 255])
+        .save(shared_dir.join("override_test.png"))
+        .unwrap();
+    solid(4, 4, [255, 255, 255, 255])
+        .save(backend_dir.join("override_test.png"))
+        .unwrap();
+    // Pass solid white. Comparing against the shared (black) golden would
+    // explode FLIP_TOLERANCE; comparing against the backend (white)
+    // override matches. A successful run proves precedence.
+    let actual = solid(4, 4, [255, 255, 255, 255]);
+    snapshot_assert_at(tmp.path(), "override_test", &actual);
+    let actual_artifact = backend_dir.join("override_test.actual.png");
+    assert!(
+        !actual_artifact.exists(),
+        "no mismatch artifact expected on override match"
     );
 }
 

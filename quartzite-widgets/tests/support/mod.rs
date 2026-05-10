@@ -20,9 +20,27 @@
 //!   with `<name>.actual.png` + `<name>.diff.png` written next to the
 //!   golden when the per-pixel mean error exceeds [`FLIP_TOLERANCE`].
 //!
-//! The backend directory under `tests/snapshots/` is derived from the
-//! `WGPU_BACKEND` env var (`vulkan` / `dx12` / `metal`) and falls back to
-//! `auto` when unset (per spec AC2).
+//! ## Per-backend dir + shared fallback
+//!
+//! Goldens live under `tests/snapshots/`:
+//! - `tests/snapshots/<backend>/<name>.png` — per-backend override. Used
+//!   when the backend produces pixels that drift from the cross-backend
+//!   default (typical once real rasterization lands).
+//! - `tests/snapshots/shared/<name>.png` — cross-backend default. Used
+//!   when no per-backend override exists. Today's all-clear-colour
+//!   goldens live here because the renderer is no-op and every backend
+//!   produces byte-identical output.
+//!
+//! Lookup order is "backend override → shared default → fail".
+//! Regeneration always writes to the per-backend dir matching the
+//! `WGPU_BACKEND` env (so `update-snapshots.sh --backend vulkan` always
+//! writes to `tests/snapshots/vulkan/`). Bootstrapping a fresh `shared/`
+//! default is a manual step: regen on one backend, then `mv <backend>/* shared/`.
+//!
+//! The backend directory name is derived from the `WGPU_BACKEND` env var
+//! (`vulkan` / `dx12` / `metal`) and falls back to `auto` when unset
+//! (per spec AC2). The `shared/` fallback fires regardless of the resolved
+//! backend dir.
 
 #![allow(dead_code)] // not every sibling test calls every helper
 
@@ -56,9 +74,14 @@ pub const BACKEND_ENV: &str = "WGPU_BACKEND";
 /// Default backend-dir name when `WGPU_BACKEND` is unset (spec AC2).
 pub const DEFAULT_BACKEND_DIR: &str = "auto";
 
+/// Cross-backend fallback dir name. Goldens here apply to every backend
+/// that does not have a per-backend override at `<root>/<backend>/`.
+pub const SHARED_DIR_NAME: &str = "shared";
+
 /// Compares `image` against the golden at
-/// `<root>/<backend_dir>/<name>.png`, writing artifact PNGs and panicking
-/// on mismatch.
+/// `<root>/<backend_dir>/<name>.png`, falling back to
+/// `<root>/shared/<name>.png` when no per-backend override exists. Writes
+/// artifact PNGs and panics on mismatch.
 ///
 /// `root` is the directory containing the per-backend subdirs (typically
 /// `quartzite-widgets/tests/snapshots`). The widget snapshot suite calls
@@ -73,57 +96,78 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
         return;
     }
     let backend_dir = backend_dir_name();
-    let dir = root.join(&backend_dir);
-    let golden_path = dir.join(format!("{name}.png"));
+    let backend_path = root.join(&backend_dir).join(format!("{name}.png"));
+    let shared_path = root.join(SHARED_DIR_NAME).join(format!("{name}.png"));
 
     if std::env::var_os(REGEN_ENV).is_some_and(|v| !v.is_empty()) {
-        std::fs::create_dir_all(&dir)
-            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", dir.display()));
+        // Regen always writes to the per-backend dir. Bootstrapping a new
+        // shared default is a manual step (regen, then mv <backend>/* shared/).
+        let backend_dir_path = root.join(&backend_dir);
+        std::fs::create_dir_all(&backend_dir_path)
+            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", backend_dir_path.display()));
         image
-            .save(&golden_path)
-            .unwrap_or_else(|e| panic!("write golden {}: {e}", golden_path.display()));
+            .save(&backend_path)
+            .unwrap_or_else(|e| panic!("write golden {}: {e}", backend_path.display()));
         eprintln!(
             "snapshot_assert({name}): wrote golden {} (regen mode)",
-            golden_path.display()
+            backend_path.display()
         );
         return;
     }
 
-    if !golden_path.exists() {
-        let actual_path = dir.join(format!("{name}.actual.png"));
-        std::fs::create_dir_all(&dir)
-            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", dir.display()));
+    let golden_path: &Path = if backend_path.exists() {
+        &backend_path
+    } else if shared_path.exists() {
+        &shared_path
+    } else {
+        let actual_path = root.join(&backend_dir).join(format!("{name}.actual.png"));
+        let actual_dir = actual_path.parent().unwrap_or(root);
+        std::fs::create_dir_all(actual_dir)
+            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", actual_dir.display()));
         let _ = image.save(&actual_path);
         panic!(
-            "snapshot_assert({name}): golden missing at {}\n\
-             actual saved to {}\n\
+            "snapshot_assert({name}): golden missing\n\
+             tried backend override: {}\n\
+             tried shared fallback:  {}\n\
+             actual saved to:        {}\n\
              regenerate via: scripts/update-snapshots.sh --backend {backend_dir}",
-            golden_path.display(),
+            backend_path.display(),
+            shared_path.display(),
             actual_path.display(),
         );
-    }
+    };
 
-    let golden = image::open(&golden_path)
+    let golden = image::open(golden_path)
         .unwrap_or_else(|e| panic!("open golden {}: {e}", golden_path.display()))
         .into_rgba8();
 
+    // Mismatch artifacts always land in the per-backend dir so it's
+    // obvious which backend produced the diverging output, even when the
+    // golden being compared against was the shared fallback.
+    let backend_dir_path = root.join(&backend_dir);
+    let actual_path = backend_dir_path.join(format!("{name}.actual.png"));
+    let diff_path = backend_dir_path.join(format!("{name}.diff.png"));
+
     if golden.dimensions() != image.dimensions() {
-        let actual_path = dir.join(format!("{name}.actual.png"));
+        std::fs::create_dir_all(&backend_dir_path)
+            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", backend_dir_path.display()));
         let _ = image.save(&actual_path);
         panic!(
             "snapshot_assert({name}): dimension mismatch — golden {:?}, actual {:?}\n\
-             actual saved to {}\n\
+             golden:  {}\n\
+             actual:  {}\n\
              regenerate via: scripts/update-snapshots.sh --backend {backend_dir}",
             golden.dimensions(),
             image.dimensions(),
+            golden_path.display(),
             actual_path.display(),
         );
     }
 
     let report = pixel_diff(&golden, image);
     if report.mean > FLIP_TOLERANCE {
-        let actual_path = dir.join(format!("{name}.actual.png"));
-        let diff_path = dir.join(format!("{name}.diff.png"));
+        std::fs::create_dir_all(&backend_dir_path)
+            .unwrap_or_else(|e| panic!("create snapshot dir {}: {e}", backend_dir_path.display()));
         let _ = image.save(&actual_path);
         let _ = report.diff.save(&diff_path);
         panic!(
