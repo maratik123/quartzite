@@ -1,5 +1,5 @@
 # Progress: gpu-snapshot-tests-ci — ACTIVE
-_Updated: 2026-05-10 (subtask 8 complete)_
+_Updated: 2026-05-10 (subtask 9 complete)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
@@ -13,7 +13,7 @@ _Updated: 2026-05-10 (subtask 8 complete)_
 
 ## Next action
 
-**Do this immediately:** subtask 9 — `quartzite-renderer/tests/xvfb_smoke.rs`: Linux-only `#[cfg(target_os = "linux")] #[test] fn xvfb_smoke()` honouring `SKIP_RENDER_SNAPSHOT=1` and constructing `WindowedApplication` + `ApplicationHandler` that calls `event_loop.exit()` from `resumed`. Non-Linux compile-only stub (`xvfb_smoke_skipped`) so the test binary always exists.
+**Do this immediately:** subtask 10 — add the `gpu-tests` matrix job to `.github/workflows/ci.yml` (3-OS, `fail-fast: false`, `continue-on-error: ${{ !matrix.required }}` with `required: true` only on `ubuntu-latest`). Includes `vulkaninfo --summary` diagnostic on Linux, `apt install mesa-vulkan-drivers vulkan-tools xvfb` on Linux, `WGPU_BACKEND` per OS, `SKIP_RENDER_SNAPSHOT: "1"` on the existing `test` job, plus `gpu-tests-pass` aggregator. Cache `shared-key: ${{ runner.os }}-stable-gpu`. Run `actionlint .github/workflows/ci.yml` before `git add`.
 
 ## Subtasks
 
@@ -25,8 +25,8 @@ _Updated: 2026-05-10 (subtask 8 complete)_
 - [x] 6. `quartzite-widgets/tests/support/mod.rs` snapshot helper + `tests/support_internals.rs` unit tests (skip / regen / missing-golden / match / mismatch)
 - [x] 7. Five widget snapshot tests in `quartzite-widgets/tests/snapshots.rs` + 5 vulkan goldens (Linux-only v1)
 - [x] 8. `scripts/update-snapshots.sh` (POSIX bash, optional `--backend {vulkan,dx12,metal}` flag)
-- [ ] 9. `quartzite-renderer/tests/xvfb_smoke.rs` (Linux-only test fn + non-Linux compile-only stub)  ← CURRENT
-- [ ] 10. `gpu-tests` matrix job in `.github/workflows/ci.yml` (Win/Mac `continue-on-error: true` in v1) + `gpu-tests-pass` aggregator
+- [x] 9. `quartzite-renderer/tests/xvfb_smoke.rs` (Linux-only test fn + non-Linux compile-only stub)
+- [ ] 10. `gpu-tests` matrix job in `.github/workflows/ci.yml` (Win/Mac `continue-on-error: true` in v1) + `gpu-tests-pass` aggregator  ← CURRENT
 - [ ] 11. xvfb_smoke step in Linux lane (timeout 60 + xvfb apt) + `actions/upload-artifact@v7` on failure
 - [ ] 12. `## GPU snapshot tests` section in `CONTRIBUTING.md`
 
@@ -53,14 +53,14 @@ _Updated: 2026-05-10 (subtask 8 complete)_
 | AC1 | PASS — `RenderHarness::new(width, height) -> Result<Self, RendererError>` + `render_widget` (closure form) implemented; AC1 explicitly allows trait-bound finalisation |
 | AC2 | PASS (helper layer) — `tests/support/mod.rs` ships `snapshot_assert` (+ `snapshot_assert_at` for tempdir-driven internals tests). 8/8 internals tests pass: backend-dir mapping, skip env, regen env, missing golden, match, mismatch (writes `*.actual.png` + `*.diff.png`), dimension mismatch. End-to-end exercise with the harness + real goldens lands in subtask 7. |
 | AC3 | PASS (Linux/vulkan) — `quartzite-widgets/tests/snapshots.rs` ships `label_renders`, `button_renders`, `line_edit_renders`, `box_layout_renders`, `grid_layout_renders`; 5 vulkan goldens committed under `tests/snapshots/vulkan/`; all 5 pass against goldens locally (`WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots`). v1 bootstrap policy keeps `dx12/`/`metal/` deferred to follow-up PRs. |
-| AC4 | NOT_TESTED — `SKIP_RENDER_SNAPSHOT=1` honoured by GPU smoke test today; full coverage pending subtasks 6 (helper) + 9 (xvfb smoke) + 10 (CI env) |
+| AC4 | PASS (test side) — `SKIP_RENDER_SNAPSHOT=1` honoured by: GPU smoke test in `render_harness.rs`, snapshot helper `tests/support/mod.rs`, widget snapshot suite (`harness_or_skip`), and `xvfb_smoke` test. CI side (existing `test` job env addition) lands in subtask 10. |
 | AC5 | NOT_TESTED — pending subtask 10 (`gpu-tests` matrix job) |
 | AC6 | NOT_TESTED — pending subtask 11 (artifact upload on failure) |
 | AC7 | PASS — `scripts/update-snapshots.sh` present, executable, supports `--backend {vulkan,dx12,metal}` (validated locally). Auto-detect based on `WGPU_BACKEND` env or `uname -s`. Bad-backend exits with code 2; vulkan regen run produces byte-identical PNGs (deterministic). |
 | AC8 | NOT_TESTED — pending subtask 12 (`CONTRIBUTING.md`) |
 | AC9 | PASS (so far) — `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, doc gate, `cargo build -p quartzite --no-default-features` all green at HEAD; `actionlint` not yet exercised (no workflow file modified yet — fires in subtasks 10+11) |
 | AC10 | PASS (so far) — `Cargo.lock` refreshed; `nv-flip` 0.1.2, `image` 0.25.10, `tempfile` 3.27.0 match live `crates.io` `max_stable_version` (queried 2026-05-10) |
-| AC11 | NOT_TESTED — pending subtasks 9 (test) + 11 (CI step) |
+| AC11 | PASS (test side) — `quartzite-renderer/tests/xvfb_smoke.rs` ships the Linux-only test fn + non-Linux compile-only stub. `SKIP_RENDER_SNAPSHOT=1` path validated locally (xvfb-run not available locally). CI step (`timeout 60 xvfb-run -a` + `apt install xvfb`) lands in subtask 11. |
 
 ## Files touched
 
@@ -73,6 +73,7 @@ _Updated: 2026-05-10 (subtask 8 complete)_
 - `quartzite-widgets/tests/snapshots.rs` — new (subtask 7): 5 widget/layout snapshot tests + `harness_or_skip` helper that honours `SKIP_RENDER_SNAPSHOT=1` and missing-adapter
 - `quartzite-widgets/tests/snapshots/vulkan/{label,button,line_edit,box_layout,grid_layout}.png` — new (subtask 7): 5 committed goldens (~326 bytes each, 64x64 clear-colour PNG)
 - `scripts/update-snapshots.sh` — new (subtask 8): POSIX bash, executable, `--backend {vulkan,dx12,metal}` plus auto-detect via `WGPU_BACKEND` / `uname -s`
+- `quartzite-renderer/tests/xvfb_smoke.rs` — new (subtask 9): Linux-only `xvfb_smoke()` test that honours `SKIP_RENDER_SNAPSHOT=1`, constructs `WindowedApplication`, runs an `ExitOnResume` `ApplicationHandler` that calls `event_loop.exit()` immediately. Non-Linux compile-only stub `xvfb_smoke_skipped()`.
 - `Cargo.lock` — refreshed
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md` — initial spec (committed)
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.design.md` — initial design + round-2 fixes + subtask-4 trait-bound finalisation + subtask-7/10 v1 bootstrap policy
