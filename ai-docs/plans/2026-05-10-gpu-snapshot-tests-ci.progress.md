@@ -1,11 +1,11 @@
 # Progress: gpu-snapshot-tests-ci — ACTIVE
-_Updated: 2026-05-10 (subtask 5 complete)_
+_Updated: 2026-05-10 (subtask 6 complete)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** feat/2026-05-10-gpu-snapshot-tests-ci
 **base_commit:** 6ebcc274b4c45928d73050f5383f96feaa18a41e
-**Last build:** PASS (cargo build clean; `cargo fmt --check` clean; `cargo clippy --workspace -- -D warnings` clean; doc gate clean for `quartzite-renderer`)
+**Last build:** PASS (cargo build clean; `cargo test -p quartzite-widgets --test support_internals` 8/8; `cargo fmt --check` clean; `cargo clippy --workspace -- -D warnings` clean; per-crate `cargo clippy -p {quartzite-widgets,quartzite-renderer} --tests -- -D warnings` clean; doc gate clean workspace-wide; `cargo build -p quartzite --no-default-features` clean)
 
 **Issue:** #192
 **Spec:** ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md
@@ -13,7 +13,7 @@ _Updated: 2026-05-10 (subtask 5 complete)_
 
 ## Next action
 
-**Do this immediately:** subtask 6 — implement `quartzite-widgets/tests/support/mod.rs` with `snapshot_assert(name, image)` + `FLIP_TOLERANCE = 0.05`; back it with `quartzite-widgets/tests/support_internals.rs` unit tests covering skip / regen / missing-golden / match / mismatch using `tempfile::TempDir` per scenario.
+**Do this immediately:** subtask 7 — write 5 widget snapshot tests in `quartzite-widgets/tests/snapshots.rs` (`label_renders`, `button_renders`, `line_edit_renders`, `box_layout_renders`, `grid_layout_renders`) using `RenderHarness` + `support::snapshot_assert`. Bootstrap goldens via `WGPU_BACKEND=vulkan QUARTZITE_REGENERATE_SNAPSHOTS=1 cargo test -p quartzite-widgets --test snapshots`; commit `tests/snapshots/vulkan/{label,button,line_edit,box_layout,grid_layout}.png` (5 PNGs). Do NOT create `dx12/` or `metal/` directories.
 
 ## Subtasks
 
@@ -22,8 +22,8 @@ _Updated: 2026-05-10 (subtask 5 complete)_
 - [x] 3. RenderHarness::new — wgpu Instance/Adapter/Device/Queue + offscreen Texture + vello Renderer
 - [x] 4. RenderHarness::render_widget — paint closure → render_to_texture → readback to RgbaImage
 - [x] 5. `pub use render_harness::RenderHarness;` + lib.rs `//!` doc paragraph
-- [ ] 6. `quartzite-widgets/tests/support/mod.rs` snapshot helper + `tests/support_internals.rs` unit tests (skip / regen / missing-golden / match / mismatch)  ← CURRENT
-- [ ] 7. Five widget snapshot tests in `quartzite-widgets/tests/snapshots.rs` + 5 vulkan goldens (Linux-only v1)
+- [x] 6. `quartzite-widgets/tests/support/mod.rs` snapshot helper + `tests/support_internals.rs` unit tests (skip / regen / missing-golden / match / mismatch)
+- [ ] 7. Five widget snapshot tests in `quartzite-widgets/tests/snapshots.rs` + 5 vulkan goldens (Linux-only v1)  ← CURRENT
 - [ ] 8. `scripts/update-snapshots.sh` (POSIX bash, optional `--backend {vulkan,dx12,metal}` flag)
 - [ ] 9. `quartzite-renderer/tests/xvfb_smoke.rs` (Linux-only test fn + non-Linux compile-only stub)
 - [ ] 10. `gpu-tests` matrix job in `.github/workflows/ci.yml` (Win/Mac `continue-on-error: true` in v1) + `gpu-tests-pass` aggregator
@@ -51,7 +51,7 @@ _Updated: 2026-05-10 (subtask 5 complete)_
 | AC | Status |
 |----|--------|
 | AC1 | PASS — `RenderHarness::new(width, height) -> Result<Self, RendererError>` + `render_widget` (closure form) implemented; AC1 explicitly allows trait-bound finalisation |
-| AC2 | NOT_TESTED — pending subtask 6 (`snapshot_assert` helper) |
+| AC2 | PASS (helper layer) — `tests/support/mod.rs` ships `snapshot_assert` (+ `snapshot_assert_at` for tempdir-driven internals tests). 8/8 internals tests pass: backend-dir mapping, skip env, regen env, missing golden, match, mismatch (writes `*.actual.png` + `*.diff.png`), dimension mismatch. End-to-end exercise with the harness + real goldens lands in subtask 7. |
 | AC3 | NOT_TESTED — pending subtask 7 (5 widget snapshot tests + vulkan goldens) |
 | AC4 | NOT_TESTED — `SKIP_RENDER_SNAPSHOT=1` honoured by GPU smoke test today; full coverage pending subtasks 6 (helper) + 9 (xvfb smoke) + 10 (CI env) |
 | AC5 | NOT_TESTED — pending subtask 10 (`gpu-tests` matrix job) |
@@ -68,6 +68,8 @@ _Updated: 2026-05-10 (subtask 5 complete)_
 - `quartzite-renderer/Cargo.toml` — wgpu 29 → 28 (vello 0.8 alignment); image 0.25 (default-features=false) regular dep
 - `quartzite-renderer/src/lib.rs` — added `pub mod render_harness;` (subtask 3) + `pub use render_harness::RenderHarness;` and offscreen-testing `//!` doc paragraph (subtask 5)
 - `quartzite-renderer/src/render_harness.rs` — new file: `RenderHarness` struct, `new(width, height)`, `width()`, `height()`, `render_widget(closure)`, `align_up` const helper, hand-rolled `Debug`, three Err-path tests + 1 GPU smoke test
+- `quartzite-widgets/tests/support/mod.rs` — new (subtask 6): snapshot helper (`snapshot_assert`, `snapshot_assert_at`, `backend_dir_name`, `FLIP_TOLERANCE = 0.05`, RGBA→RGB8 + nv-flip diff)
+- `quartzite-widgets/tests/support_internals.rs` — new (subtask 6): 8 unit tests covering env-var matrix + match / mismatch / dimension paths via `tempfile::TempDir`
 - `Cargo.lock` — refreshed
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md` — initial spec (committed)
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.design.md` — initial design + round-2 fixes + subtask-4 trait-bound finalisation + subtask-7/10 v1 bootstrap policy
