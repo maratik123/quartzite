@@ -122,14 +122,13 @@ required at PR merge time.
 
 The Windows lane mirrors `gfx-rs/wgpu`'s own CI: it installs a fresh
 **WARP 1.0.19** redistributable, **DXC v1.9.2602**, and the **D3D12
-Agility SDK 1.619.2** before running the snapshot suite, because the
-system WARP on `windows-latest` is the broken 1.0.13+ version where
-shader debug info hangs the device
-([gfx-rs/wgpu#8368](https://github.com/gfx-rs/wgpu/issues/8368)). The
+Agility SDK 1.619.2** before running the snapshot suite, because vello
+requires modern D3D12 runtime features that `windows-latest` does not
+ship by default. Without the install dance the snapshot suite crashes
+with `STATUS_ACCESS_VIOLATION` during the first compute dispatch. The
 DLLs are placed next to the test binary (`target/debug/` +
 `target/debug/deps/`) so wgpu's DLL search order picks them up at run
-time. The local follow-up issue tracking the install dance is
-[#195](https://github.com/maratik123/quartzite/issues/195).
+time.
 
 A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
 exercises the full windowed pipeline (`WindowedApplication` + a real winit

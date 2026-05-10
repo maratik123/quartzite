@@ -184,14 +184,15 @@ jobs:
           # to avoid cache thrash with the existing test job.
           shared-key: ${{ runner.os }}-stable-gpu
           save-if: ${{ github.ref == 'refs/heads/master' }}
-      # Windows DX12 stack: the system WARP on `windows-latest` is the
-      # broken 1.0.13+ version where shader debug info hangs the device
-      # (gfx-rs/wgpu#8368). vello's compute pipeline trips it before the
-      # harness can produce pixels. Mirror gfx-rs/wgpu's CI: drop a fresh
-      # WARP redist + DXC + Agility SDK next to the test binary so wgpu
-      # picks them up via DLL search order. Step runs after rust-cache
-      # restore so the cache cannot overwrite the freshly-installed DLLs.
-      # Versions verified live on 2026-05-10.
+      # Windows DX12 stack: vello requires modern D3D12 runtime features
+      # that `windows-latest` does not ship by default. Mirror the install
+      # dance gfx-rs/wgpu uses on its own CI — drop the D3D12 Agility SDK,
+      # the DirectX Shader Compiler (DXC), and a redistributable WARP
+      # next to the test binary so wgpu picks them up via DLL search
+      # order at run time. Without this, the snapshot suite crashes with
+      # `STATUS_ACCESS_VIOLATION` during the first compute dispatch.
+      # Step runs after rust-cache restore so the cache cannot overwrite
+      # the freshly-installed DLLs. Versions verified live 2026-05-10.
       - name: Install Windows DX12 stack
         if: runner.os == 'Windows'
         shell: bash
