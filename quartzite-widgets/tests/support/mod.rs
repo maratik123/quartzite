@@ -30,6 +30,8 @@ use std::path::{Path, PathBuf};
 
 use image::{Rgb, RgbImage, RgbaImage};
 use nv_flip::{DEFAULT_PIXELS_PER_DEGREE, FlipImageRgb8, FlipPool, flip, magma_lut};
+use quartzite_renderer::RenderHarness;
+use quartzite_widgets::WidgetExt;
 
 /// Workspace-wide perceptual-diff tolerance. The mean FLIP score across
 /// the image must be at or below this value for a snapshot to pass.
@@ -142,6 +144,21 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
 /// snapshot root to `quartzite-widgets/tests/snapshots`.
 pub fn snapshot_assert(name: &str, image: &RgbaImage) {
     snapshot_assert_at(&default_snapshot_root(), name, image);
+}
+
+/// Renders `widget` into `harness` and asserts against the committed
+/// golden for `name`.
+///
+/// The closure form of [`RenderHarness::render_widget`] is wrapped here
+/// so the widget snapshot tests don't repeat the `|p| widget.paint(p)`
+/// idiom on every line. Skipping (`SKIP_RENDER_SNAPSHOT=1`) is handled by
+/// [`snapshot_assert`] **after** the render — for v1 the cost is
+/// negligible (no-op paint, single clear-colour readback) and the
+/// alternative would short-circuit the harness entirely, hiding GPU
+/// init regressions on local-dev skip runs.
+pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn WidgetExt) {
+    let image = harness.render_widget(|p| widget.paint(p));
+    snapshot_assert(name, &image);
 }
 
 /// Resolves the on-disk root for committed goldens — `<crate>/tests/snapshots`.

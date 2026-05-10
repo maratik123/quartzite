@@ -136,7 +136,11 @@ fn regen_env_writes_golden() {
     let img = solid(3, 3, [11, 22, 33, 255]);
     snapshot_assert_at(tmp.path(), "regen_test", &img);
     let golden = tmp.path().join("vulkan").join("regen_test.png");
-    assert!(golden.exists(), "golden not written at {}", golden.display());
+    assert!(
+        golden.exists(),
+        "golden not written at {}",
+        golden.display()
+    );
     // Round-trip: written PNG decodes back to identical pixels.
     let decoded = image::open(&golden).unwrap().into_rgba8();
     assert_eq!(decoded.dimensions(), (3, 3));
@@ -165,7 +169,11 @@ fn missing_golden_panics_with_helpful_message() {
     );
     // Actual artifact written for reviewer convenience.
     let actual = tmp.path().join("vulkan").join("missing_test.actual.png");
-    assert!(actual.exists(), "actual.png not written at {}", actual.display());
+    assert!(
+        actual.exists(),
+        "actual.png not written at {}",
+        actual.display()
+    );
 }
 
 #[test]
@@ -220,7 +228,11 @@ fn mismatching_golden_writes_artifacts_and_panics() {
     );
     let actual = tmp.path().join("vulkan").join("mismatch_test.actual.png");
     let diff = tmp.path().join("vulkan").join("mismatch_test.diff.png");
-    assert!(actual.exists(), "actual.png not written at {}", actual.display());
+    assert!(
+        actual.exists(),
+        "actual.png not written at {}",
+        actual.display()
+    );
     assert!(diff.exists(), "diff.png not written at {}", diff.display());
 }
 
