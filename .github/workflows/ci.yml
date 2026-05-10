@@ -136,13 +136,6 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
-    # Windows is currently advisory: GitHub's `windows-latest` only ships
-    # WARP as a DX12 adapter, and vello's compute-shader pipeline trips
-    # WARP into STATUS_ACCESS_VIOLATION before the harness can produce
-    # pixels. Linux + macOS lanes are required. Tracked locally in #195;
-    # upstream root-cause is gfx-rs/wgpu#8368 ("Multiple Failures on
-    # Latest WARP", external driver bug, device removals).
-    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
@@ -191,6 +184,54 @@ jobs:
           # to avoid cache thrash with the existing test job.
           shared-key: ${{ runner.os }}-stable-gpu
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      # Windows DX12 stack: the system WARP on `windows-latest` is the
+      # broken 1.0.13+ version where shader debug info hangs the device
+      # (gfx-rs/wgpu#8368). vello's compute pipeline trips it before the
+      # harness can produce pixels. Mirror gfx-rs/wgpu's CI: drop a fresh
+      # WARP redist + DXC + Agility SDK next to the test binary so wgpu
+      # picks them up via DLL search order. Step runs after rust-cache
+      # restore so the cache cannot overwrite the freshly-installed DLLs.
+      # Versions verified live on 2026-05-10.
+      - name: Install Windows DX12 stack
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p target/debug/deps target/agility-sdk
+
+          # 1. WARP 1.0.19 (NuGet `Microsoft.Direct3D.WARP`).
+          curl.exe -L --retry 5 \
+            "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.19" \
+            -o warp.zip
+          tar -xf warp.zip -C target/agility-sdk build/native/bin/x64/d3d10warp.dll
+          cp target/agility-sdk/build/native/bin/x64/d3d10warp.dll target/debug/
+          cp target/agility-sdk/build/native/bin/x64/d3d10warp.dll target/debug/deps/
+          rm -rf target/agility-sdk/build warp.zip
+
+          # 2. DXC v1.9.2602 (`dxc_2026_02_20.zip`). vello's compute
+          # shaders need DXC; system fxc lacks the required feature
+          # support.
+          curl.exe -L --retry 5 \
+            "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip" \
+            -o dxc.zip
+          7z.exe e dxc.zip -odxc bin/x64/dxc.exe bin/x64/dxcompiler.dll
+          cygpath --windows "$PWD/dxc" >> "$GITHUB_PATH"
+          rm dxc.zip
+
+          # 3. D3D12 Agility SDK 1.619.2 (`Microsoft.Direct3D.D3D12`).
+          # Provides the modern D3D12 runtime features vello expects.
+          curl.exe -L --retry 5 \
+            "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.2" \
+            -o agility.zip
+          tar -xf agility.zip -C target/agility-sdk build/native/bin/x64
+          rm agility.zip
+          SDK_PATH="$(cygpath --windows "$PWD/target/agility-sdk/build/native/bin/x64")"
+          {
+            echo "WGPU_DX12_AGILITY_SDK_PATH=$SDK_PATH"
+            echo "WGPU_DX12_AGILITY_SDK_VERSION=619"
+            echo "WGPU_DX12_AGILITY_SDK_REQUIRE=1"
+            echo "WGPU_DX12_COMPILER=dxc"
+          } >> "$GITHUB_ENV"
       - name: Snapshot tests
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
