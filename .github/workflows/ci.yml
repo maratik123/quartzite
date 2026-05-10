@@ -136,6 +136,11 @@ jobs:
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     runs-on: ${{ matrix.os }}
+    # Windows is currently advisory: GitHub's `windows-latest` only ships
+    # WARP as a DX12 adapter, and vello's compute-shader pipeline trips
+    # WARP into STATUS_ACCESS_VIOLATION before the harness can produce
+    # pixels. Tracked as a follow-up; Linux + macOS lanes are required.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     env:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"

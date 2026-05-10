@@ -116,9 +116,13 @@ Layout:
   from the shared golden (typical once `VelloPainter` actually
   rasterizes content).
 
-Lookup order is "backend override → shared default → fail". All three
-CI `gpu-tests` lanes (Linux/vulkan, Windows/dx12, macOS/metal) are
-required at PR merge time.
+Lookup order is "backend override → shared default → fail". The
+**Linux** and **macOS** CI `gpu-tests` lanes are required at PR merge
+time. The **Windows** lane is currently advisory (`continue-on-error:
+true`) because GitHub's `windows-latest` runner only exposes WARP as a
+DX12 adapter and vello's compute-shader pipeline crashes WARP with
+`STATUS_ACCESS_VIOLATION`; tracked as a follow-up against vello +
+wgpu/WARP compatibility.
 
 A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
 exercises the full windowed pipeline (`WindowedApplication` + a real winit
