@@ -241,7 +241,14 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-4. **Regenerate dependent artefacts.** If any source for an auto-generated file
+4. **Inbox propagation — parse the just-finalised spec (and its design if present) and append rows to `ai-docs/deferred/_inbox.md`.**
+   - Run the parser (per *Inbox propagation* rules below) against `ai-docs/plans/done/YYYY-MM-DD-name.spec.md`.
+   - Run the parser against `ai-docs/plans/done/YYYY-MM-DD-name.design.md` if that file exists.
+   - Build the live dedupe set `H`: every `Source`-cell path appearing in the 8 thematic files (`ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.md`). `widget-backlog.md` is NOT in `H` — its rows are tracked via the `Notes` cell, not via thematic-file membership.
+   - For each candidate row, dedupe at *file* granularity: if the candidate's `Source` path is in `H`, skip the entire file (all of its sections); otherwise append the row to `ai-docs/deferred/_inbox.md` below the existing body.
+   - Emit one `WARN: <spec-path> :: <section heading> — unrecognised body shape, no rows emitted` line to stdout for any section whose body matches none of the six shape rules; the row count for that section is zero and Step 12 continues normally.
+   - The Step 12 commit (sub-step 7 below) stages `_inbox.md` alongside the existing artefacts.
+5. **Regenerate dependent artefacts.** If any source for an auto-generated file
    was touched in this commit, regenerate now and stage the artefact in the same
    commit so the CI sync-gate runs green on first push:
    - `ai-docs/plans/INDEX.md` or `ai-docs/plans/done/**` changed → run
@@ -249,26 +256,64 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
    - When new generators land, append the source→artefact relationship to
      `ai-docs/context.md` (the auto-derived-artefact registry) and add a bullet
      here.
-5. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-6. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), and spec/design now in `done/`.
-7. Commit:
+6. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+7. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), `ai-docs/deferred/_inbox.md` (rows appended in sub-step 4), and spec/design now in `done/`.
+8. Commit:
    ```
    feat(<crate>): <short imperative description>
 
    <1-3 lines: what changed and why; key ACs covered>
    N new tests; all M tests green.
    ```
-8. `git push -u origin <branch>`
-9. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
-   - **Summary** (bullet list of what changed)
-   - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
-     - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
-     - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
-     - Spec was written with `Tracked in: none` → omit this section
-   - **Test plan** (checklist: one line per AC, plus clippy/build)
-10. Post the PR URL to the user.
+9. `git push -u origin <branch>`
+10. `gh pr create --title "..." --body "$(cat <<'EOF' ... EOF)"` — body must include:
+    - **Summary** (bullet list of what changed)
+    - **Tracking** — reference the issue captured in the spec's `**Tracked in:**` field:
+      - PR fully resolves the issue → `Closes #<N>` (auto-closes on merge)
+      - PR partially addresses or is related (multi-PR effort, shared umbrella issue) → `Refs #<N>` (no `Closes`)
+      - Spec was written with `Tracked in: none` → omit this section
+    - **Test plan** (checklist: one line per AC, plus clippy/build)
+11. Post the PR URL to the user.
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
+
+#### Inbox propagation — parser rules and per-row mapping
+
+The Step 12 sub-step 4 "inbox propagation" parser walks one or more spec/design files, locates each of the three target headings (`## Out of scope` / `## Deferred` / `## Open questions`, exact h2 match anchored on `^## <Heading>$`), classifies the body shape using the six ordered rules below, and emits one row to `ai-docs/deferred/_inbox.md` per parsed item. The rules are ordered — the first match wins; rule ordering matters (pipe-bullet and bold-bullet shapes take precedence over plain bullets). For mixed-shape bodies (rare; a single section containing two shapes), classify per line using the same ordering — every line goes through the same six rules.
+
+**Shape rule 1 — NONE sentinel.** Body matches one of: `_None._` / `None.` / `None`; `(none — …)` / `(none -- …)` / `_(none)_`; `None — …` / `None - …` (the word `None` followed by an em-dash or hyphen and prose); `None at spec time.` / `None blocking …`. Matcher: collapse whitespace, lower-case, strip wrapping `_` and `()`, then test `^none\b.*$` with no `- ` bullet lines and no `|` table pipes. **Emit zero rows; emit zero warnings.** The only silent case.
+
+**Shape rule 2 — TABLE.** Section body's first non-blank line starts with `|` and is followed by a `|---|...|` separator line. Per-row extraction: skip header + separator; for each data row `| C1 | C2 | C3? | ... |`, `Item` = `C1` (verbatim, including markdown formatting); if C2 is non-empty, append ` — <C2>` to `Item` (carries rationale into the inbox row). Subsequent columns are ignored. Terminate row collection on first blank line or first `^## ` heading.
+
+**Shape rule 3 — PIPEBULLET3.** Bullet lines match `^- (.+?) \| (.+?) \| (.+?)$` — three `|`-separated fields. Per-row extraction: `Item` = field 1 + ` — ` + field 2 (the third field is metadata such as "Separate issue needed?" and is dropped).
+
+**Shape rule 4 — PIPEBULLET2.** Bullet lines match `^- (.+?) \| (.+?)$` — two `|`-separated fields. Per-row extraction: `Item` = field 1 + ` — ` + field 2.
+
+**Shape rule 5 — BOLDBULLET.** Bullet lines match `^- \*\*([^*]+)\*\*\s*[—-]\s*(.+)$` — a bolded leading term followed by an em-dash or hyphen and prose. Per-row extraction: `Item` = `**<term>**` + ` — ` + `<prose>` (the leading bold survives into the inbox so the term/explanation split is preserved).
+
+**Shape rule 6 — PLAINBULLET.** Bullet lines match `^- (.+)$` and do NOT match rules 3 / 4 / 5 above. Per-row extraction: `Item` = the entire bullet text, verbatim. **Multi-line continuation:** lines starting with 2+ spaces of indentation and no leading `- ` are joined into the preceding bullet with a single space — common in wrapped real-corpus bullets.
+
+**Unrecognised shape.** A section with a non-blank body that matches none of the six rules emits one stdout warning and zero rows:
+
+```
+WARN: <spec-path> :: <section heading> — unrecognised body shape, no rows emitted
+```
+
+Step 12 continues normally; `_inbox.md` is unchanged for that section.
+
+**Per-row mapping.** Each parsed item becomes a 4-cell `_inbox.md` row:
+
+```
+| <Item> | [<source-label>](<source-path>) | <section-key> | — |
+```
+
+- **`<Item>`** — value produced by the matched shape rule. If `<Item>` contains a literal `|`, escape it as `\|` (markdown table convention).
+- **`<source-label>`** — derived from the source filename: strip the `YYYY-MM-DD-` date prefix and the `.spec.md` / `.design.md` suffix; append ` spec` or ` design` accordingly. Examples: `2026-05-09-paint-style.spec.md` → `paint-style spec`; `2026-05-01-auto-connection.design.md` → `auto-connection design`.
+- **`<source-path>`** — `../plans/done/<filename>` (relative to `_inbox.md`'s location in `ai-docs/deferred/`).
+- **`<section-key>`** — one of three literal tokens: `## Out of scope` → `out-of-scope`; `## Deferred` → `deferred`; `## Open questions` → `open-question` (singular `open-question`, NOT `open-questions`, matches the AGENTS.md AXIOM table cell text).
+- **`—`** — the literal em-dash, identical to the un-triaged marker used in the 8 thematic files' `Tracked` column. Cell-4-`Tracked` invariant honoured.
+
+**Dedupe rule (file-level).** Before running the parser, build the set `H` = every `Source`-cell relative path appearing in any `^|` row of the 8 thematic files (`ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.md`). Normalisation: strip trailing `/`, strip `#...` anchor fragments, strip leading `./`, strip leading/trailing whitespace; preserve case. For each candidate row, if its `Source` path is in `H`, skip the **entire file** (all of its sections) — file-level dedupe avoids re-harvesting any portion of a file whose other sections were already drained into thematic files by the manual extraction passes. `widget-backlog.md` is NOT in `H` (its rows are tracked via the `Notes` cell, not via thematic-file membership).
 
 **FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
 
@@ -286,4 +331,4 @@ After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Work
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `_inbox.md` parsed and appended (or warning logged for unrecognised shape) and staged? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |

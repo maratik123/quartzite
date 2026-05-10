@@ -240,7 +240,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/plans/*.progress.md` | Active task progress / handoff state |
 | `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
 | `ai-docs/plans/deferred/` | Blocked or future plans |
-| `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only; introduced in Issue A2). |
+| `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only). |
 | `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 | `.claude/agents/spec-writer.md` | Spec-writer subagent (`model: opus`) — drafts the task spec one interview round per invocation; invoked by the `/interview` orchestrator |
