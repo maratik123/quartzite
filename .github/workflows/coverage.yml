@@ -15,10 +15,31 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      # Pick lavapipe (software Vulkan) so render_harness.rs GPU paths
+      # actually run under coverage instead of falling into the
+      # "no GPU adapter; skipping" branch.
+      WGPU_BACKEND: vulkan
+      WGPU_ADAPTER_NAME: llvmpipe
+      LIBGL_ALWAYS_SOFTWARE: "1"
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
+      - name: Install Linux GPU stack
+        # Mirror the gpu-tests Linux lane so the GPU code paths in
+        # `quartzite-renderer::render_harness` and the widget snapshot
+        # suite are actually executed (and therefore counted) under
+        # llvm-cov. xvfb + libxkbcommon-x11-0 cover the xvfb_smoke test.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            xvfb \
+            libxkbcommon-x11-0
+      - name: Vulkan diagnostics
+        run: vulkaninfo --summary || true
       - name: Cache dependencies
         uses: actions/cache@v5
         with:
@@ -33,7 +54,11 @@ jobs:
         with:
           tool: cargo-llvm-cov
       - name: Generate coverage
-        run: cargo llvm-cov --workspace --lcov --output-path lcov.info --doctests
+        # `xvfb-run -a` wraps the whole llvm-cov invocation so the
+        # xvfb_smoke integration test sees a running display server.
+        # `timeout 600` is generous (the suite typically finishes well
+        # under that) but bounds runaway loops.
+        run: timeout 600 xvfb-run -a cargo llvm-cov --workspace --lcov --output-path lcov.info --doctests
       - name: Upload to Codecov
         uses: codecov/codecov-action@v6
         with:

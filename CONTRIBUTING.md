@@ -97,6 +97,206 @@ Files under `examples/` and criterion bench files under `benches/` (declared
 with `[[bench]] harness = false`) are exempt from the `#[cfg(test)] mod tests`
 requirement.
 
+## GPU snapshot tests
+
+The `quartzite-widgets` crate ships an integration-test suite at
+`quartzite-widgets/tests/snapshots.rs` that renders each built-in widget
+through an offscreen `RenderHarness` (in `quartzite-renderer`) and
+compares the readback against committed PNG goldens under
+`quartzite-widgets/tests/snapshots/`.
+
+Layout:
+
+- `tests/snapshots/shared/<name>.png` — cross-backend default. Used when
+  no per-backend override exists. While the renderer is no-op, every
+  backend (vulkan, dx12, metal, …) writes byte-identical clear-colour
+  pixels, so a single shared golden covers all three CI lanes.
+- `tests/snapshots/<backend>/<name>.png` — per-backend override. Created
+  when one backend produces pixels that drift beyond `FLIP_TOLERANCE`
+  from the shared golden (typical once `VelloPainter` actually
+  rasterizes content).
+
+Lookup order is "backend override → shared default → fail". All three
+CI `gpu-tests` lanes (Linux/vulkan, Windows/dx12, macOS/metal) are
+required at PR merge time.
+
+The Windows lane mirrors `gfx-rs/wgpu`'s own CI: it installs a fresh
+**WARP 1.0.19** redistributable, **DXC v1.9.2602**, and the **D3D12
+Agility SDK 1.619.2** before running the snapshot suite, because vello
+requires modern D3D12 runtime features that `windows-latest` does not
+ship by default. Without the install dance the snapshot suite crashes
+with `STATUS_ACCESS_VIOLATION` during the first compute dispatch. The
+DLLs are placed next to the test binary (`target/debug/` +
+`target/debug/deps/`) so wgpu's DLL search order picks them up at run
+time.
+
+A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
+exercises the full windowed pipeline (`WindowedApplication` + a real winit
+`EventLoop`) under `xvfb-run`. It asserts only on clean startup + clean exit
+(no pixel comparison).
+
+### Required tooling
+
+You can short-circuit all of this with `SKIP_RENDER_SNAPSHOT=1` (see
+*Skip GPU work* below) and contribute without installing anything. The
+following table lists what you need only if you actually want to **run**
+the GPU-touching tests locally:
+
+| Tool | Purpose | When required |
+|---|---|---|
+| Vulkan ICD (driver) | offscreen snapshot tests use a real or software Vulkan adapter via wgpu / vello | unless `SKIP_RENDER_SNAPSHOT=1` |
+| `vulkaninfo` | adapter-enumeration diagnostics; useful when wgpu fails to pick the adapter you expected | optional |
+| **lavapipe** (software Vulkan, ships in mesa) | reproduces the *exact* adapter the CI Linux lane uses (`WGPU_ADAPTER_NAME=llvmpipe`) | only for full CI parity |
+| `xvfb` + `xvfb-run` | hosts the Linux `xvfb_smoke` test under a virtual X server | only when running `--test xvfb_smoke` against a headless display |
+| `actionlint` | strict gate before staging any `.github/workflows/*.yml` change (see [`AGENTS.md`](AGENTS.md)) | only when editing workflow files |
+
+#### Install — Linux
+
+CI's Ubuntu lane installs `mesa-vulkan-drivers vulkan-tools xvfb` (one
+line in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — the
+same set on any apt-based distro is enough:
+
+```sh
+# Debian / Ubuntu
+sudo apt-get install -y \
+  mesa-vulkan-drivers vulkan-tools libvulkan1 xvfb libxkbcommon-x11-0
+```
+
+```sh
+# Fedora
+sudo dnf install -y mesa-vulkan-drivers vulkan-tools xorg-x11-server-Xvfb
+```
+
+```sh
+# Arch
+sudo pacman -S vulkan-mesa-layers vulkan-tools xorg-server-xvfb
+```
+
+```sh
+# Gentoo
+sudo emerge -av media-libs/mesa dev-util/vulkan-tools \
+                x11-misc/xvfb-run x11-base/xorg-server
+# Required USE flags / VIDEO_CARDS:
+#   media-libs/mesa     vulkan          (always)  +  VIDEO_CARDS=lavapipe (CI parity)
+#   x11-base/xorg-server xvfb           (provides /usr/bin/Xvfb)
+```
+
+`actionlint` is not in the main Portage tree; install via `go install
+github.com/rhysd/actionlint/cmd/actionlint@latest` (or the equivalent
+release binary on any OS).
+
+#### Install — macOS
+
+The offscreen suite uses Metal; no install is needed. The `xvfb_smoke`
+test is `#[cfg(target_os = "linux")]` and compiles to a no-op stub on
+macOS — nothing to set up. Install `actionlint` via `brew install
+actionlint` only if you edit `.github/workflows/*.yml`.
+
+#### Install — Windows
+
+The offscreen suite uses DX12 / WARP; no install is needed. The
+`xvfb_smoke` test is Linux-only and compiles to a no-op stub. Install
+`actionlint` via `winget install rhysd.actionlint` (or `scoop install
+actionlint`) only if you edit `.github/workflows/*.yml`.
+
+### Run snapshots locally
+
+```sh
+# Linux (vulkan + lavapipe via mesa-vulkan-drivers)
+WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots
+
+# Windows (dx12 + WARP)
+WGPU_BACKEND=dx12 cargo test -p quartzite-widgets --test snapshots
+
+# macOS (metal)
+WGPU_BACKEND=metal cargo test -p quartzite-widgets --test snapshots
+```
+
+The backend dir is derived from `WGPU_BACKEND`; an unset value resolves to
+`auto` so locally-bootstrapped goldens don't accidentally land in the CI
+backend directories.
+
+### Skip GPU work
+
+When you don't have a working GPU adapter locally (or just want a fast
+`cargo test` cycle), set the workspace-wide skip env:
+
+```sh
+SKIP_RENDER_SNAPSHOT=1 cargo test --workspace
+```
+
+The flag is honoured by every snapshot test, the offscreen harness's GPU
+smoke test, and the `xvfb_smoke` integration test. Each prints a clear
+`eprintln!` notice and passes. The CI `test` job (the non-GPU lane) sets
+this env so its runtime is unaffected by the snapshot suite.
+
+### Reproduce the CI Linux lane locally
+
+When debugging a CI-only failure, run the exact same env the
+`gpu-tests` Linux lane uses (`WGPU_ADAPTER_NAME=llvmpipe` + software
+GL):
+
+```sh
+WGPU_BACKEND=vulkan WGPU_ADAPTER_NAME=llvmpipe LIBGL_ALWAYS_SOFTWARE=1 \
+  cargo test -p quartzite-widgets --test snapshots
+
+timeout 60 xvfb-run -a cargo test -p quartzite-renderer --test xvfb_smoke
+```
+
+The `WGPU_ADAPTER_NAME` filter requires lavapipe to be present in your
+mesa build — verify with `vulkaninfo --summary | grep llvmpipe`. On
+Gentoo this is `VIDEO_CARDS="… lavapipe"`; on Debian / Ubuntu it ships
+in `mesa-vulkan-drivers` by default; same for Fedora's
+`mesa-vulkan-drivers` and Arch's `vulkan-mesa-layers`.
+
+### Regenerate goldens
+
+`scripts/update-snapshots.sh` regenerates the committed PNGs:
+
+```sh
+# Auto-detect from `uname` / WGPU_BACKEND
+scripts/update-snapshots.sh
+
+# Or force a specific backend
+scripts/update-snapshots.sh --backend vulkan
+scripts/update-snapshots.sh --backend dx12
+scripts/update-snapshots.sh --backend metal
+```
+
+The script sets `QUARTZITE_REGENERATE_SNAPSHOTS=1` and runs the snapshot
+suite; the helper writes new PNGs into `tests/snapshots/<backend>/`
+instead of comparing. Regenerated PNGs are *per-backend overrides* — to
+seed (or refresh) the cross-backend `tests/snapshots/shared/` default,
+run the regen with one backend and then `mv tests/snapshots/<backend>/*
+tests/snapshots/shared/`.
+
+### Intentional visual diffs
+
+When a PR's code change *intentionally* alters rendered pixels:
+
+1. Push the code change to the feature branch and let CI run.
+2. The Linux `gpu-tests` lane fails. Open the failing run, download the
+   `gpu-snapshot-failures-Linux` artifact, and inspect each `*.actual.png`
+   / `*.diff.png` next to its golden. Confirm the change is the one you
+   intended.
+3. Run `scripts/update-snapshots.sh --backend vulkan` locally and commit
+   the regenerated PNGs in the same PR.
+   - If the new pixels are uniform across all backends (typical for the
+     no-op renderer state), `mv` the result from `tests/snapshots/vulkan/`
+     to `tests/snapshots/shared/`. One commit covers all CI lanes.
+   - If the pixel change is backend-specific (e.g. text rendering drift
+     on macOS only), commit the override under
+     `tests/snapshots/<backend>/` and leave `shared/` alone. The lookup
+     prefers overrides over shared.
+4. Reviewers see the new pixels in the PR diff.
+5. For Windows / macOS overrides, contributors with access to those
+   platforms run the regen script there and commit the resulting
+   `tests/snapshots/{dx12,metal}/` files. Until that lands, the shared
+   golden is what their CI lane compares against.
+
+See [`AGENTS.md` § Build & Test](AGENTS.md#build--test) for the strict
+gate that runs against every PR.
+
 ## License
 
 Submitting a contribution means agreeing to dual-license it under MIT and

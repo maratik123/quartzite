@@ -80,6 +80,10 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
       RUSTC_WRAPPER: "sccache"
       SCCACHE_CACHE_SIZE: "2G"
+      # Skip GPU snapshot tests on the default (non-GPU) test lane so its
+      # runtime is unaffected. The dedicated `gpu-tests` job runs them
+      # against per-OS GPU backends with the correct drivers installed.
+      SKIP_RENDER_SNAPSHOT: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -127,6 +131,141 @@ jobs:
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
+  gpu-tests:
+    name: GPU tests
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ${{ matrix.os }}
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      RUSTC_WRAPPER: "sccache"
+      SCCACHE_CACHE_SIZE: "2G"
+      WGPU_BACKEND: ${{ matrix.wgpu_backend }}
+      WGPU_ADAPTER_NAME: ${{ matrix.wgpu_adapter_name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            wgpu_backend: vulkan
+            wgpu_adapter_name: llvmpipe
+          - os: windows-latest
+            wgpu_backend: dx12
+            wgpu_adapter_name: Microsoft
+          - os: macos-latest
+            wgpu_backend: metal
+            wgpu_adapter_name: ""
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux GPU stack
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # mesa-vulkan-drivers + vulkan-tools: Vulkan ICD (lavapipe) + vulkaninfo
+          # xvfb: virtual X server for the windowed smoke test
+          # libxkbcommon-x11-0: winit's X11 backend dlopens libxkbcommon-x11.so
+          # at runtime via xkbcommon-dl; not preinstalled on ubuntu-latest
+          sudo apt-get install -y \
+            mesa-vulkan-drivers \
+            vulkan-tools \
+            xvfb \
+            libxkbcommon-x11-0
+      - name: Vulkan diagnostics
+        if: runner.os == 'Linux'
+        run: vulkaninfo --summary || true
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.10
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          # Distinct from the `*-stable` key used by build/test/clippy/docs
+          # to avoid cache thrash with the existing test job.
+          shared-key: ${{ runner.os }}-stable-gpu
+          save-if: ${{ github.ref == 'refs/heads/master' }}
+      # Windows DX12 stack: vello requires modern D3D12 runtime features
+      # that `windows-latest` does not ship by default. Mirror the install
+      # dance gfx-rs/wgpu uses on its own CI — drop the D3D12 Agility SDK,
+      # the DirectX Shader Compiler (DXC), and a redistributable WARP
+      # next to the test binary so wgpu picks them up via DLL search
+      # order at run time. Without this, the snapshot suite crashes with
+      # `STATUS_ACCESS_VIOLATION` during the first compute dispatch.
+      # Step runs after rust-cache restore so the cache cannot overwrite
+      # the freshly-installed DLLs. Versions verified live 2026-05-10.
+      - name: Install Windows DX12 stack
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p target/debug/deps target/agility-sdk
+
+          # NuGet packages are zip with a non-standard internal layout;
+          # GNU tar on `windows-latest` rejects them as "not a tar
+          # archive". Use 7z (available by default on `windows-latest`)
+          # for the .nupkg downloads.
+
+          # 1. WARP 1.0.19 (NuGet `Microsoft.Direct3D.WARP`).
+          curl.exe -L --retry 5 \
+            "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.19" \
+            -o warp.nupkg
+          7z.exe e -y warp.nupkg -otarget/debug "build/native/bin/x64/d3d10warp.dll"
+          cp target/debug/d3d10warp.dll target/debug/deps/
+          rm warp.nupkg
+
+          # 2. DXC v1.9.2602 (`dxc_2026_02_20.zip`). vello's compute
+          # shaders need DXC; system fxc lacks the required feature
+          # support.
+          curl.exe -L --retry 5 \
+            "https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.9.2602/dxc_2026_02_20.zip" \
+            -o dxc.zip
+          7z.exe e -y dxc.zip -odxc "bin/x64/dxc.exe" "bin/x64/dxcompiler.dll"
+          cygpath --windows "$PWD/dxc" >> "$GITHUB_PATH"
+          rm dxc.zip
+
+          # 3. D3D12 Agility SDK 1.619.2 (`Microsoft.Direct3D.D3D12`).
+          # Provides the modern D3D12 runtime features vello expects.
+          curl.exe -L --retry 5 \
+            "https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.619.2" \
+            -o agility.nupkg
+          7z.exe x -y agility.nupkg -otarget/agility-sdk "build/native/bin/x64/*"
+          rm agility.nupkg
+          SDK_PATH="$(cygpath --windows "$PWD/target/agility-sdk/build/native/bin/x64")"
+          {
+            echo "WGPU_DX12_AGILITY_SDK_PATH=$SDK_PATH"
+            echo "WGPU_DX12_AGILITY_SDK_VERSION=619"
+            echo "WGPU_DX12_AGILITY_SDK_REQUIRE=1"
+            echo "WGPU_DX12_COMPILER=dxc"
+          } >> "$GITHUB_ENV"
+      - name: Snapshot tests
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: cargo test -p quartzite-widgets --test snapshots
+      - name: Windowed smoke test (Linux only)
+        if: runner.os == 'Linux'
+        # `xvfb-run` does not enforce a timeout on its inner process. If
+        # the exit-on-resume logic ever regresses, the test would consume
+        # the entire job quota — `timeout 60` is the hard upper bound.
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: timeout 60 xvfb-run -a cargo test -p quartzite-renderer --test xvfb_smoke
+      - name: Upload Xvfb log on failure
+        if: failure() && runner.os == 'Linux'
+        uses: actions/upload-artifact@v7
+        with:
+          name: xvfb-log-${{ runner.os }}
+          path: /tmp/.X*.log
+          if-no-files-found: ignore
+      - name: Upload snapshot failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gpu-snapshot-failures-${{ runner.os }}
+          path: |
+            quartzite-widgets/tests/snapshots/**/*.actual.png
+            quartzite-widgets/tests/snapshots/**/*.diff.png
+          if-no-files-found: ignore
+
   features-pass:
     name: Feature matrix
     needs: [changes, features]
@@ -169,6 +308,17 @@ jobs:
       - run: |
           c="${{ needs.changes.result }}"
           r="${{ needs.clippy.result }}"
+          if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
+
+  gpu-tests-pass:
+    name: GPU tests
+    needs: [changes, gpu-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          c="${{ needs.changes.result }}"
+          r="${{ needs.gpu-tests.result }}"
           if [[ "$c" != "success" ]] || [[ "$r" != "success" && "$r" != "skipped" ]]; then exit 1; fi
 
   roadmap-sync:
