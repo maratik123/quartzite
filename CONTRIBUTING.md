@@ -97,6 +97,90 @@ Files under `examples/` and criterion bench files under `benches/` (declared
 with `[[bench]] harness = false`) are exempt from the `#[cfg(test)] mod tests`
 requirement.
 
+## GPU snapshot tests
+
+The `quartzite-widgets` crate ships an integration-test suite at
+`quartzite-widgets/tests/snapshots.rs` that renders each built-in widget
+through an offscreen `RenderHarness` (in `quartzite-renderer`) and compares
+the readback against committed PNG goldens under
+`quartzite-widgets/tests/snapshots/<backend>/`. The Linux lane of the CI
+`gpu-tests` job is required at PR merge time; Windows / macOS lanes are
+non-blocking until follow-up PRs bootstrap their per-backend goldens.
+
+A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
+exercises the full windowed pipeline (`WindowedApplication` + a real winit
+`EventLoop`) under `xvfb-run`. It asserts only on clean startup + clean exit
+(no pixel comparison).
+
+### Run snapshots locally
+
+```sh
+# Linux (vulkan + lavapipe via mesa-vulkan-drivers)
+WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots
+
+# Windows (dx12 + WARP)
+WGPU_BACKEND=dx12 cargo test -p quartzite-widgets --test snapshots
+
+# macOS (metal)
+WGPU_BACKEND=metal cargo test -p quartzite-widgets --test snapshots
+```
+
+The backend dir is derived from `WGPU_BACKEND`; an unset value resolves to
+`auto` so locally-bootstrapped goldens don't accidentally land in the CI
+backend directories.
+
+### Skip GPU work
+
+When you don't have a working GPU adapter locally (or just want a fast
+`cargo test` cycle), set the workspace-wide skip env:
+
+```sh
+SKIP_RENDER_SNAPSHOT=1 cargo test --workspace
+```
+
+The flag is honoured by every snapshot test, the offscreen harness's GPU
+smoke test, and the `xvfb_smoke` integration test. Each prints a clear
+`eprintln!` notice and passes. The CI `test` job (the non-GPU lane) sets
+this env so its runtime is unaffected by the snapshot suite.
+
+### Regenerate goldens
+
+`scripts/update-snapshots.sh` regenerates the committed PNGs:
+
+```sh
+# Auto-detect from `uname` / WGPU_BACKEND
+scripts/update-snapshots.sh
+
+# Or force a specific backend
+scripts/update-snapshots.sh --backend vulkan
+scripts/update-snapshots.sh --backend dx12
+scripts/update-snapshots.sh --backend metal
+```
+
+The script sets `QUARTZITE_REGENERATE_SNAPSHOTS=1` and runs the snapshot
+suite; the helper writes new PNGs into `tests/snapshots/<backend>/`
+instead of comparing.
+
+### Intentional visual diffs
+
+When a PR's code change *intentionally* alters rendered pixels:
+
+1. Push the code change to the feature branch and let CI run.
+2. The Linux `gpu-tests` lane fails. Open the failing run, download the
+   `gpu-snapshot-failures-Linux` artifact, and inspect each `*.actual.png`
+   / `*.diff.png` next to its golden. Confirm the change is the one you
+   intended.
+3. Run `scripts/update-snapshots.sh --backend vulkan` locally and commit
+   the regenerated PNGs in the same PR. Reviewers see the new pixels in
+   the diff.
+4. For Windows / macOS lanes (currently non-blocking), bootstrap their
+   goldens in a follow-up PR — contributors with access to those
+   platforms run the regen script and commit
+   `tests/snapshots/{dx12,metal}/`.
+
+See [`AGENTS.md` § Build & Test](AGENTS.md#build--test) for the strict
+gate that runs against every PR.
+
 ## License
 
 Submitting a contribution means agreeing to dual-license it under MIT and

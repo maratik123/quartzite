@@ -1,11 +1,11 @@
 # Progress: gpu-snapshot-tests-ci — ACTIVE
-_Updated: 2026-05-10 (subtask 11 complete)_
+_Updated: 2026-05-10 (subtask 12 complete — all 12 subtasks done)_
 
 > Read THIS FIRST → ready to continue. No need to re-read the codebase.
 
 **Branch:** feat/2026-05-10-gpu-snapshot-tests-ci
 **base_commit:** 6ebcc274b4c45928d73050f5383f96feaa18a41e
-**Last build:** PASS (cargo build clean; `cargo test -p quartzite-widgets --test support_internals` 8/8; `WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots` 5/5 against committed goldens; `cargo fmt --check` clean; `cargo clippy --workspace -- -D warnings` clean; per-crate widget-tests clippy clean; doc gate clean workspace-wide; `cargo build -p quartzite --no-default-features` clean)
+**Last build:** PASS (cargo build clean; `cargo test -p quartzite-widgets --test support_internals` 8/8; `WGPU_BACKEND=vulkan cargo test -p quartzite-widgets --test snapshots` 5/5 against committed goldens; `SKIP_RENDER_SNAPSHOT=1 cargo test -p quartzite-renderer --test xvfb_smoke` 1/1; `cargo fmt --check` clean; `cargo clippy --workspace -- -D warnings` clean; per-crate widget/renderer tests clippy clean; doc gate clean workspace-wide; `cargo build -p quartzite --no-default-features` clean; `actionlint .github/workflows/ci.yml` clean)
 
 **Issue:** #192
 **Spec:** ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md
@@ -13,7 +13,7 @@ _Updated: 2026-05-10 (subtask 11 complete)_
 
 ## Next action
 
-**Do this immediately:** subtask 12 — append a `## GPU snapshot tests` section to `CONTRIBUTING.md` covering: how to run snapshots locally, `SKIP_RENDER_SNAPSHOT=1`, regen via `scripts/update-snapshots.sh`, intentional-diff workflow, and how `xvfb_smoke` fits in. Cross-link `AGENTS.md § Build & Test`.
+**All 12 subtasks complete.** Orchestrator picks up at `/task` Step 9 (verify) — `cargo build`, `cargo test`, `cargo clippy --workspace -- -D warnings`, `cargo fmt -- --check`, doc gate, `cargo build -p quartzite --no-default-features`, `actionlint .github/workflows/ci.yml`. After APPROVE, push and `gh pr create`.
 
 ## Subtasks
 
@@ -28,7 +28,7 @@ _Updated: 2026-05-10 (subtask 11 complete)_
 - [x] 9. `quartzite-renderer/tests/xvfb_smoke.rs` (Linux-only test fn + non-Linux compile-only stub)
 - [x] 10. `gpu-tests` matrix job in `.github/workflows/ci.yml` (Win/Mac `continue-on-error: true` in v1) + `gpu-tests-pass` aggregator
 - [x] 11. xvfb_smoke step in Linux lane (timeout 60 + xvfb apt) + `actions/upload-artifact@v7` on failure
-- [ ] 12. `## GPU snapshot tests` section in `CONTRIBUTING.md`  ← CURRENT
+- [x] 12. `## GPU snapshot tests` section in `CONTRIBUTING.md`
 
 ## Key discoveries (don't re-investigate)
 
@@ -57,8 +57,8 @@ _Updated: 2026-05-10 (subtask 11 complete)_
 | AC5 | PASS (workflow level) — `gpu-tests` matrix job present with 3 OS lanes; Linux runs apt + `vulkaninfo --summary` + `cargo test -p quartzite-widgets --test snapshots`; per-OS `WGPU_BACKEND` and `WGPU_ADAPTER_NAME`; `gpu-tests-pass` aggregator added. `actionlint` clean. End-to-end CI run validates on PR. |
 | AC6 | PASS — `if: failure()` upload step in `gpu-tests` runs `actions/upload-artifact@v7` with name `gpu-snapshot-failures-${{ runner.os }}` and globs `**/*.actual.png` + `**/*.diff.png`. Successful runs upload nothing (`if-no-files-found: ignore`). Linux also uploads `/tmp/.X*.log` for xvfb diagnostics. |
 | AC7 | PASS — `scripts/update-snapshots.sh` present, executable, supports `--backend {vulkan,dx12,metal}` (validated locally). Auto-detect based on `WGPU_BACKEND` env or `uname -s`. Bad-backend exits with code 2; vulkan regen run produces byte-identical PNGs (deterministic). |
-| AC8 | NOT_TESTED — pending subtask 12 (`CONTRIBUTING.md`) |
-| AC9 | PASS (so far) — `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, doc gate, `cargo build -p quartzite --no-default-features` all green at HEAD; `actionlint .github/workflows/ci.yml` clean after subtask-10 edits. |
+| AC8 | PASS — `## GPU snapshot tests` section appended to `CONTRIBUTING.md` covering: per-OS run command, `SKIP_RENDER_SNAPSHOT=1`, regen via `scripts/update-snapshots.sh`, intentional-diff workflow with artifact-download, and the `xvfb_smoke` Linux test. Cross-links `AGENTS.md § Build & Test`. |
+| AC9 | PASS — `cargo fmt --check`, `cargo clippy --workspace -- -D warnings`, doc gate (`RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace`), `cargo build -p quartzite --no-default-features` all green at HEAD; `actionlint .github/workflows/ci.yml` clean after subtasks 10 and 11. |
 | AC10 | PASS (so far) — `Cargo.lock` refreshed; `nv-flip` 0.1.2, `image` 0.25.10, `tempfile` 3.27.0 match live `crates.io` `max_stable_version` (queried 2026-05-10) |
 | AC11 | PASS — `quartzite-renderer/tests/xvfb_smoke.rs` Linux test + non-Linux stub; CI step `timeout 60 xvfb-run -a cargo test -p quartzite-renderer --test xvfb_smoke` lands in `gpu-tests` Linux lane after the offscreen step; Linux apt installs `xvfb`; test honours `SKIP_RENDER_SNAPSHOT=1`. End-to-end CI run validates on PR. |
 
@@ -75,6 +75,7 @@ _Updated: 2026-05-10 (subtask 11 complete)_
 - `scripts/update-snapshots.sh` — new (subtask 8): POSIX bash, executable, `--backend {vulkan,dx12,metal}` plus auto-detect via `WGPU_BACKEND` / `uname -s`
 - `quartzite-renderer/tests/xvfb_smoke.rs` — new (subtask 9): Linux-only `xvfb_smoke()` test that honours `SKIP_RENDER_SNAPSHOT=1`, constructs `WindowedApplication`, runs an `ExitOnResume` `ApplicationHandler` that calls `event_loop.exit()` immediately. Non-Linux compile-only stub `xvfb_smoke_skipped()`.
 - `.github/workflows/ci.yml` — modified (subtask 10 + 11): added `SKIP_RENDER_SNAPSHOT: "1"` to existing `test` job env; new `gpu-tests` matrix job (3-OS, `continue-on-error: ${{ !matrix.required }}` with Linux required, mesa+vulkan-tools+xvfb apt, `vulkaninfo --summary`, `LIBGL_ALWAYS_SOFTWARE=1`, cache `shared-key: ${{ runner.os }}-stable-gpu`); Linux `timeout 60 xvfb-run -a cargo test ... --test xvfb_smoke` step; `if: failure()` artifact uploads via `actions/upload-artifact@v7` (snapshot diffs + xvfb log); new `gpu-tests-pass` aggregator. `actionlint` clean after both subtasks.
+- `CONTRIBUTING.md` — modified (subtask 12): added `## GPU snapshot tests` section between `## Tests` and `## License`.
 - `Cargo.lock` — refreshed
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.spec.md` — initial spec (committed)
 - `ai-docs/plans/2026-05-10-gpu-snapshot-tests-ci.design.md` — initial design + round-2 fixes + subtask-4 trait-bound finalisation + subtask-7/10 v1 bootstrap policy
