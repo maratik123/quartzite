@@ -112,6 +112,69 @@ exercises the full windowed pipeline (`WindowedApplication` + a real winit
 `EventLoop`) under `xvfb-run`. It asserts only on clean startup + clean exit
 (no pixel comparison).
 
+### Required tooling
+
+You can short-circuit all of this with `SKIP_RENDER_SNAPSHOT=1` (see
+*Skip GPU work* below) and contribute without installing anything. The
+following table lists what you need only if you actually want to **run**
+the GPU-touching tests locally:
+
+| Tool | Purpose | When required |
+|---|---|---|
+| Vulkan ICD (driver) | offscreen snapshot tests use a real or software Vulkan adapter via wgpu / vello | unless `SKIP_RENDER_SNAPSHOT=1` |
+| `vulkaninfo` | adapter-enumeration diagnostics; useful when wgpu fails to pick the adapter you expected | optional |
+| **lavapipe** (software Vulkan, ships in mesa) | reproduces the *exact* adapter the CI Linux lane uses (`WGPU_ADAPTER_NAME=llvmpipe`) | only for full CI parity |
+| `xvfb` + `xvfb-run` | hosts the Linux `xvfb_smoke` test under a virtual X server | only when running `--test xvfb_smoke` against a headless display |
+| `actionlint` | strict gate before staging any `.github/workflows/*.yml` change (see [`AGENTS.md`](AGENTS.md)) | only when editing workflow files |
+
+#### Install — Linux
+
+CI's Ubuntu lane installs `mesa-vulkan-drivers vulkan-tools xvfb` (one
+line in [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) — the
+same set on any apt-based distro is enough:
+
+```sh
+# Debian / Ubuntu
+sudo apt-get install -y mesa-vulkan-drivers vulkan-tools libvulkan1 xvfb
+```
+
+```sh
+# Fedora
+sudo dnf install -y mesa-vulkan-drivers vulkan-tools xorg-x11-server-Xvfb
+```
+
+```sh
+# Arch
+sudo pacman -S vulkan-mesa-layers vulkan-tools xorg-server-xvfb
+```
+
+```sh
+# Gentoo
+sudo emerge -av media-libs/mesa dev-util/vulkan-tools \
+                x11-misc/xvfb-run x11-base/xorg-server
+# Required USE flags / VIDEO_CARDS:
+#   media-libs/mesa     vulkan          (always)  +  VIDEO_CARDS=lavapipe (CI parity)
+#   x11-base/xorg-server xvfb           (provides /usr/bin/Xvfb)
+```
+
+`actionlint` is not in the main Portage tree; install via `go install
+github.com/rhysd/actionlint/cmd/actionlint@latest` (or the equivalent
+release binary on any OS).
+
+#### Install — macOS
+
+The offscreen suite uses Metal; no install is needed. The `xvfb_smoke`
+test is `#[cfg(target_os = "linux")]` and compiles to a no-op stub on
+macOS — nothing to set up. Install `actionlint` via `brew install
+actionlint` only if you edit `.github/workflows/*.yml`.
+
+#### Install — Windows
+
+The offscreen suite uses DX12 / WARP; no install is needed. The
+`xvfb_smoke` test is Linux-only and compiles to a no-op stub. Install
+`actionlint` via `winget install rhysd.actionlint` (or `scoop install
+actionlint`) only if you edit `.github/workflows/*.yml`.
+
 ### Run snapshots locally
 
 ```sh
@@ -142,6 +205,25 @@ The flag is honoured by every snapshot test, the offscreen harness's GPU
 smoke test, and the `xvfb_smoke` integration test. Each prints a clear
 `eprintln!` notice and passes. The CI `test` job (the non-GPU lane) sets
 this env so its runtime is unaffected by the snapshot suite.
+
+### Reproduce the CI Linux lane locally
+
+When debugging a CI-only failure, run the exact same env the
+`gpu-tests` Linux lane uses (`WGPU_ADAPTER_NAME=llvmpipe` + software
+GL):
+
+```sh
+WGPU_BACKEND=vulkan WGPU_ADAPTER_NAME=llvmpipe LIBGL_ALWAYS_SOFTWARE=1 \
+  cargo test -p quartzite-widgets --test snapshots
+
+timeout 60 xvfb-run -a cargo test -p quartzite-renderer --test xvfb_smoke
+```
+
+The `WGPU_ADAPTER_NAME` filter requires lavapipe to be present in your
+mesa build — verify with `vulkaninfo --summary | grep llvmpipe`. On
+Gentoo this is `VIDEO_CARDS="… lavapipe"`; on Debian / Ubuntu it ships
+in `mesa-vulkan-drivers` by default; same for Fedora's
+`mesa-vulkan-drivers` and Arch's `vulkan-mesa-layers`.
 
 ### Regenerate goldens
 
