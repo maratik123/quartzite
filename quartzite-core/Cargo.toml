@@ -54,6 +54,6 @@ name = "signal_property"
 harness = false
 
 [package.metadata.docs.rs]
-features = ["std"]
+features = ["std", "serde"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]
