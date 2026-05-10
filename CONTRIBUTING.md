@@ -121,8 +121,11 @@ Lookup order is "backend override → shared default → fail". The
 time. The **Windows** lane is currently advisory (`continue-on-error:
 true`) because GitHub's `windows-latest` runner only exposes WARP as a
 DX12 adapter and vello's compute-shader pipeline crashes WARP with
-`STATUS_ACCESS_VIOLATION`; tracked as a follow-up against vello +
-wgpu/WARP compatibility.
+`STATUS_ACCESS_VIOLATION`. Tracked locally in
+[issue #195](https://github.com/maratik123/quartzite/issues/195);
+upstream root-cause is
+[gfx-rs/wgpu#8368](https://github.com/gfx-rs/wgpu/issues/8368)
+("Multiple Failures on Latest WARP", external driver bug).
 
 A separate Linux-only smoke test (`quartzite-renderer/tests/xvfb_smoke.rs`)
 exercises the full windowed pipeline (`WindowedApplication` + a real winit
