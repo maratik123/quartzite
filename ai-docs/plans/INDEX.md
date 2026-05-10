@@ -6,6 +6,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [object-property-serialization-layer](done/2026-05-10-object-property-serialization-layer.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (34 new tests — 8 core error/type unit tests, 5 object-layer unit tests, 8 tree-layer unit tests incl. WeakObjectRef remap, 13 integration tests covering JSON + bincode + CustomValue; `serde` Cargo feature on quartzite-core/runtime/facade; `Value`/`WeakObjectRef` Serialize/Deserialize; typetag supertrait on CustomValue; `ObjectSnapshot`, `TreeSnapshot`, `ObjectNode`, `SerializeError`, `DeserializeError`; `capture_object`/`restore_object`/`capture_tree`/`restore_tree`; `quartzite::snapshot` facade module) | — |
 | [gpu-snapshot-tests-ci](done/2026-05-10-gpu-snapshot-tests-ci.spec.md) | `quartzite-renderer` `quartzite-widgets` CI / repo config | ✅ implemented (15 new tests — 4 harness incl. GPU smoke, 8 helper-internals, 5 widget snapshots; 5 vulkan goldens committed; new `gpu-tests` matrix CI job with Win/Mac `continue-on-error: true` until per-backend goldens are bootstrapped; `xvfb_smoke` Linux integration test; `actions/upload-artifact@v7` for `*.actual.png`/`*.diff.png` on failure; `scripts/update-snapshots.sh`; CONTRIBUTING.md `## GPU snapshot tests` section; wgpu pinned 29 → 28 to match vello 0.8) | — |
 | [ci-skip-rust-matrix](done/2026-05-09-ci-skip-rust-matrix.spec.md) | CI / repo config | ✅ implemented (0 new tests; CI config only — `dorny/paths-filter@v4` `changes` job gates Rust matrix on Rust-affecting paths; aggregators reshaped to treat `skipped` as `success`; new `docs-pass` aggregator) | — |
 | [interview-spec-writer-subagent](done/2026-05-09-interview-spec-writer-subagent.spec.md) | Claude Code tooling (`.claude/agents/`, `.claude/skills/interview/`, `AGENTS.md`) | ✅ implemented (0 new tests; instruction-file-only — extracts `/interview` spec-drafting into `spec-writer` opus subagent with structured YAML output; AC4–AC7 live tests deferred to post-merge per Verification protocol) | — |
@@ -71,13 +72,12 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
 
 - **#35** dynamic_properties — runtime read/write of non-schema properties
-- **#39** signals_blocked serde (persist across serialization) — blocked on #107
+- **#39** signals_blocked serde (persist across serialization) — unblocked by #107 ✅
 - **#48** BlockingQueued connection type — ready (per-thread loops ✅ implemented)
 - **#52** object mobility / thread migration with stale `thread_id` invalidation
 - **#53** multi-window support — ready (#46, #47, #73 all ✅ implemented)
 - **#56** property system extensions — computed properties / bindings / custom getter/setter closures
 - **#58** Python interop crate (`quartzite-python` via PyO3)
-- **#107** object/property serialization layer (snapshot, save/restore)
 
 ## Dependency order
 
@@ -97,13 +97,14 @@ core-types ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
 
-Serialization-layer track (#107) is independent of the dependency chain above and itself blocks #39.
+Serialization-layer track (#107) ✅ implemented — unblocks #39.
 
 Maintenance plans (cross-cutting, all ✅): see [`../context.md` § Maintenance plans](../context.md#maintenance-plans-cross-cutting) for the canonical list. These touched multiple crates and are not part of the dependency tree.
 
 ## Suggested next steps
 
-1. **Multi-window support (#53)** — both paint-style (#47) ✅ and widgets (#46) ✅ are now landed; the multi-window track is unblocked. Likely the next biggest milestone.
+1. **`signals_blocked` persistence (#39)** — now unblocked by the serialization layer (#107 ✅); small targeted change to carry `signals_blocked` through `ObjectSnapshot` / restore.
+2. **Multi-window support (#53)** — both paint-style (#47) ✅ and widgets (#46) ✅ are now landed; the multi-window track is unblocked. Likely the next biggest milestone.
 2. **Concrete `Style` implementation in `quartzite-style`** — the `Style` trait shipped in #47 with no built-in concrete impl. A "Quartzite Default" struct whose `draw_widget` covers Button/Label/TextEdit/ScrollArea is the natural follow-up.
 3. **Real `Painter` impls in `quartzite-renderer`** — `VelloPainter`'s new `draw_text`/`draw_text_in`/`draw_image`/`draw_path` methods landed as no-op stubs in #47; flesh them out against vello once usage pressure justifies it. The offscreen `RenderHarness` (#192) is now in place to snapshot real-pixel output against goldens as soon as draw methods produce content.
 4. **Bootstrap Windows/macOS snapshot goldens (#192 follow-up)** — `gpu-snapshot-tests-ci` shipped Linux/vulkan goldens only; Win/Mac matrix lanes are `continue-on-error: true` until contributors with those platforms run `scripts/update-snapshots.sh` and commit the per-backend PNGs. Drop `continue-on-error` once both lanes are green.

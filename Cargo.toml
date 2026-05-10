@@ -43,6 +43,8 @@ std = ["quartzite-core/std", "quartzite-geometry/std"]
 derive = ["dep:quartzite-macros"]
 ## Enable the built-in widget system (`quartzite-widgets` crate).
 widgets = ["dep:quartzite-widgets"]
+## Enable snapshot serialization/deserialization (`serde` + `typetag` in `quartzite-core`).
+serde = ["quartzite-core/serde", "quartzite-runtime/serde"]
 ## Enable the styling layer (`quartzite-style` crate).
 ##
 ## When enabled, `quartzite::style` re-exports the `Style` trait, `StyleRegistry`,

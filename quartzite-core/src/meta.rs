@@ -27,7 +27,12 @@ pub enum PropertyFlag {
     Writable = 0b0000_0010,
     /// A change notification signal exists for this property.
     Notify = 0b0000_0100,
-    /// Property value is saved when the object is serialized.
+    /// Property value is included when the object is snapshot-serialized.
+    ///
+    /// Properties with this flag are captured by
+    /// `quartzite_runtime::snapshot::capture_object` and restored by
+    /// `quartzite_runtime::snapshot::restore_object` / `restore_tree`.
+    /// Requires the `serde` cargo feature on `quartzite-core`.
     Stored = 0b0000_1000,
     /// Property is visible in design tools.
     Designable = 0b0001_0000,

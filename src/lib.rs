@@ -266,6 +266,35 @@ pub mod events {
     pub use quartzite_events::*;
 }
 
+/// Snapshot capture and restore for objects and object trees.
+///
+/// Provides three levels of granularity:
+///
+/// - **Property level** — [`Value`](crate::core::Value) is `serde::Serialize` /
+///   `serde::Deserialize`; any backend works.
+/// - **Object level** — [`capture_object`](quartzite_runtime::snapshot::capture_object) /
+///   [`restore_object`](quartzite_runtime::snapshot::restore_object) snapshot a single
+///   object's [`Stored`][quartzite_core::meta::PropertyFlag::Stored] properties.
+/// - **Tree level** — [`capture_tree`](quartzite_runtime::snapshot::capture_tree) /
+///   [`restore_tree`](quartzite_runtime::snapshot::restore_tree) snapshot an entire
+///   `ObjectTree` including parent/child structure.
+///
+/// Signal connections and `signals_blocked` are **not** preserved; re-establish
+/// connections after restore.
+///
+/// Requires the `serde` feature.
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+pub mod snapshot {
+    pub use quartzite_core::snapshot::{
+        CURRENT_SCHEMA_VERSION, DeserializeError, ObjectNode, ObjectSnapshot, SerializeError,
+        TreeSnapshot,
+    };
+    pub use quartzite_runtime::snapshot::{
+        capture_object, capture_tree, restore_object, restore_tree,
+    };
+}
+
 /// Re-exports the full backend-agnostic paint vocabulary from [`quartzite_paint`].
 ///
 /// This module exposes [`Brush`](quartzite_paint_api::Brush) /

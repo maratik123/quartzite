@@ -33,6 +33,9 @@ pub(crate) mod object_id;
 pub mod object_ref;
 pub mod object_tree;
 pub mod object_tree_ext;
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+pub mod snapshot;
 pub mod thread_pool;
 pub mod timer;
 pub mod timer_drivers;
