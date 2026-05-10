@@ -316,13 +316,14 @@ pub mod paint {
 }
 
 /// Re-exports the styling layer ([`Style`](quartzite_style::Style),
-/// [`StyleRegistry`](quartzite_style::StyleRegistry), [`Palette`](quartzite_style_types::Palette),
-/// [`ColorRole`](quartzite_style_types::ColorRole)).
+/// [`StyleRegistry`](quartzite_style::StyleRegistry), [`Palette`](quartzite_style::Palette),
+/// [`ColorRole`](quartzite_style::ColorRole)).
 ///
-/// `Palette` and `ColorRole` originate in [`quartzite_style_types`] (the
-/// leaf crate) and reach this module via [`quartzite_style`]'s own
-/// re-export — a single `use quartzite::style::*;` therefore covers the
-/// full vocabulary.
+/// `Palette` and `ColorRole` originate in `quartzite-style-types` (the leaf
+/// crate) and reach this module via [`quartzite_style`]'s own re-export —
+/// a single `use quartzite::style::*;` therefore covers the full vocabulary.
+/// `quartzite-style-types` is not a direct dependency of this crate, so it
+/// is named in prose only, not linked.
 ///
 /// Requires the `style` feature.
 #[cfg(feature = "style")]

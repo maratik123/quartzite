@@ -361,7 +361,7 @@ jobs:
           shared-key: ${{ runner.os }}-stable
           save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Docs
-        run: cargo doc --no-deps --workspace --features serde
+        run: cargo doc --no-deps --workspace --all-features
         env:
           RUSTDOCFLAGS: "-D warnings -D missing-docs"
 

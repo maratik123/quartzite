@@ -894,6 +894,19 @@ If the action's setup script doesn't export the env vars your design assumed it 
 
 **Escalated?** no
 
+### 2026-05-10 — documentation — enable all feature-gated optional features when running cargo doc, and in package.metadata.docs.rs, to get full doc coverage
+
+**What happened:** The CI docs job ran `cargo doc --no-deps --workspace` without `--features serde`. Intra-doc links in `quartzite-core/src/lib.rs` that pointed to items in the `serde`-gated `snapshot` module (`[`snapshot`]`, `[`snapshot::ObjectSnapshot`]`, `[`snapshot::TreeSnapshot`]`) failed to resolve, breaking the docs build.
+
+**Rule:** When a crate uses `#[cfg(feature = "...")]` to gate public modules or items, all three of the following must include those features or intra-doc links silently break under `-D warnings`:
+1. The CI `cargo doc` command in `.github/workflows/ci.yml` (`--features serde`).
+2. The GH Pages publish command in `.github/workflows/docs.yml` (`--features serde`) — same command, same flag, same reason.
+3. `features = [...]` in `[package.metadata.docs.rs]` of every crate whose docs reference those items (controls docs.rs builds).
+
+All three must be kept in sync whenever a new optional feature adds public API with intra-doc links.
+
+**Escalated?** no
+
 ### 2026-05-09 — process — /task with a bare issue number should activate a matching deferred spec instead of starting a fresh interview
 
 **What happened:** `/task 47` was invoked. Issue #47 has a matching deferred spec at `ai-docs/plans/deferred/2026-05-01-paint-style.spec.md` (`**Tracked in:** #47`). Instead of moving that spec to `ai-docs/plans/` and confirming ACs with the user, the interview machinery was started and a spurious state file `ai-docs/plans/2026-05-09-paint-style.spec.md.state.md` was created.

@@ -84,7 +84,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 6. Documentation
 
-Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 2>&1` and check:
+Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features 2>&1` and check (the `--all-features` flag is required so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI):
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
@@ -94,6 +94,11 @@ Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 
 On any error or warning → REJECT with the exact rustdoc message as the finding.
 
 **Doc convention conformance ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md)).** For every changed `pub` item — `pub fn` / `pub struct` / `pub enum` / `pub trait` / `pub union` / `pub macro_rules!` and every method declared inside a `pub trait` body — verify the convention. **Trait-impl exemption (AC4):** methods inside `impl Trait for Type {}` blocks are EXEMPT — do NOT REJECT for missing convention sections on them. The trait *definition* is **not** exempt.
+
+**Feature-gated documentation sync ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md#feature-gated-documentation)).** When the diff touches a `#[cfg(feature = "...")]`-gated public module / re-export, or modifies any `[features]` table, REJECT when any of the following is missed:
+- A new doctest that *imports* a feature-gated item is `no_run`-gated (or unguarded) instead of `cfg_attr`-gated. `no_run` does not skip rustc compile-check — under `-D warnings` it breaks the build when the feature is off.
+- Either workflow (`.github/workflows/ci.yml`, `.github/workflows/docs.yml`) runs `cargo doc` with anything narrower than `--all-features` (or with a hand-picked feature subset that omits the new feature). The default is `--all-features` precisely so a new gated module never silently slips out of the doc build.
+- Any crate whose `[package.metadata.docs.rs]` block uses a hand-picked `features = […]` list instead of `all-features = true` (the convention) — drift from the workflow's flag set is the failure mode.
 
 Mechanical heading scan to spot missing or out-of-order sections in a changed file:
 

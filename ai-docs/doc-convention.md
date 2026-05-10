@@ -281,6 +281,81 @@ be inert decoration.
   both: (a) macro is inline within `//!` after a heading; (b) any new
   feature lands under the right `#! ###` section per its audience.
 
+## Feature-gated documentation
+
+Documentation that references items behind `#[cfg(feature = "X")]` re-exports
+or modules requires two distinct precautions. Both have failed silently in
+this workspace and broken `RUSTDOCFLAGS="-D warnings"` builds.
+
+### Doctests on feature-gated items
+
+When a doctest exercises items that exist only behind a cargo feature
+(`#[cfg(feature = "serde")]` re-export, `serde::Serialize` derive, etc.),
+the doctest must be **`cfg_attr`-gated**, not `no_run`-gated.
+
+`no_run` only suppresses doctest *execution*. It still runs `rustc` against
+the doctest body, so a missing type behind a disabled feature fails the
+build with `error[E0432]: unresolved import`.
+
+The correct guard is to gate the entire doctest behind the feature so it
+is omitted from compilation when the feature is off:
+
+```rust
+/// # Examples
+///
+#[cfg_attr(feature = "serde", doc = "```")]
+#[cfg_attr(not(feature = "serde"), doc = "```ignore")]
+/// use my_crate::serde_gated::Foo;
+/// let f: Foo = serde_json::from_str("…").unwrap();
+/// # assert!(true);
+/// ```
+pub use serde_gated::Foo;
+```
+
+When the feature is on, the fence is the runnable form (` ``` `); when off,
+it is `ignore`d so rustdoc skips the body entirely. **Never** use `no_run`
+on a doctest that *imports* a feature-gated item — `no_run` is for
+"compiles but cannot run" (event loops, GUI apps), not for "should not
+even compile under this configuration."
+
+### Intra-doc links to feature-gated modules — `--all-features` everywhere
+
+When a `pub use` or intra-doc link in a crate's prose points into a
+feature-gated module, every site that builds rustdoc for that crate must
+enable the feature, or `rustdoc::broken_intra_doc_links` fires under
+`-D warnings`. The convention here is **`--all-features` everywhere** so
+that adding a new gated module never requires editing a flag list — and
+no gated module ever silently slips out of the doc build:
+
+1. **`.github/workflows/ci.yml`** — the `cargo doc` invocation in the
+   docs job runs with `--all-features`.
+2. **`.github/workflows/docs.yml`** (the GitHub Pages publish workflow) —
+   `cargo doc` runs with `--all-features`. Drift between CI and Pages
+   produced one bug; using the same flag in both forecloses it.
+3. **`Cargo.toml`** — `[package.metadata.docs.rs]` uses
+   `all-features = true` in every crate whose docs.rs page may reference
+   feature-gated items. Hand-picked `features = […]` lists are the failure
+   mode — they go stale the moment a new gated module is added.
+
+The local `AGENTS.md` *Build & Test* doc-gate command (and the matching
+copies in `.claude/skills/task/SKILL.md`, `.claude/skills/code-review/SKILL.md`,
+and `.claude/agents/self-review.md`) are **the local mirror** of site 1 —
+they exist so an agent reproduces the CI doc gate before pushing. They use
+the same `--all-features` flag.
+
+The `--all-features` convention assumes features are additive (no two
+features mutually exclusive). If a feature is ever introduced that
+genuinely conflicts with another (e.g., picking one of two backends), this
+section needs revisiting — at that point the workflow flag set must be
+narrowed to a coherent superset, and that superset becomes the new
+sync target.
+
+Reviewer check: when the diff touches `#[cfg(feature)]`-gated public
+modules / re-exports, or modifies any `[features]` table, confirm the
+workflow `cargo doc` invocations and every crate's docs.rs metadata still
+use `--all-features` / `all-features = true`. A diff that swaps either of
+those for a hand-picked subset is a regression.
+
 ## Linking and code references
 
 - **Backtick every Rust identifier in prose.** Type names, function names,

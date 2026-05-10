@@ -30,7 +30,7 @@ cargo test -- --nocapture             # show stdout
 cargo clippy --workspace -- -D warnings   # lint (strict; --workspace catches leaf crates outside the default dep tree)
 cargo fmt                             # fix formatting
 cargo fmt -- --check                  # check only
-RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace   # doc gate (matches CI)
+RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features   # doc gate (matches CI; --all-features so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them)
 cargo build -p quartzite --no-default-features   # verify derive-free / no_std path compiles
 actionlint .github/workflows/<file>.yml   # required gate for any new/modified workflow file
 ```

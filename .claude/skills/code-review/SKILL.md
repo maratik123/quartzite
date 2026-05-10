@@ -60,7 +60,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 2. `cargo test` — all green
 3. `cargo clippy --workspace -- -D warnings` — clean
 4. `cargo fmt`
-5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` — clean (`--all-features` so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI)
 6. Update `## Files touched` and mark subtask `[x]` in progress file
 
 **Context handoff rule:** if the finding count is ≥ 10 and more than half remain open, spawn a sub-agent per subtask rather than working inline — pass the progress file path so it can resume.
@@ -71,7 +71,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 2. `cargo test` — all green
 3. `cargo clippy --workspace -- -D warnings` — clean
 4. `cargo fmt -- --check` — clean
-5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — clean (matches CI)
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` — clean (`--all-features` so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI)
 6. **Doc convention conformance.** For every changed `pub` item, verify it conforms to [`ai-docs/doc-convention.md`](../../../ai-docs/doc-convention.md) (summary tense, `# Parameters` on fns with ≥1 non-receiver arg, strict section order, `# Errors` / `# Panics` / `# Safety` where applicable). Methods inside `impl Trait for Type {}` blocks are exempt; the trait *definition* is not. Mechanical heading scan on changed files: `rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <file>`.
 7. Update progress file: `**Last build:** PASS`
 
