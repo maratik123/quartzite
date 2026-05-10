@@ -84,7 +84,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 
 ### 6. Documentation
 
-Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 2>&1` and check:
+Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --features serde 2>&1` and check (the `--features serde` flag is required so intra-doc links into the `serde`-gated `snapshot` module resolve — matches CI):
 - Exits with code 0 (no doc errors)?
 - No `warning:` lines in output (broken intra-doc links, missing items, etc.)?
 - Public items added by this diff have at least a one-line doc comment?
@@ -94,6 +94,10 @@ Run `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace 
 On any error or warning → REJECT with the exact rustdoc message as the finding.
 
 **Doc convention conformance ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md)).** For every changed `pub` item — `pub fn` / `pub struct` / `pub enum` / `pub trait` / `pub union` / `pub macro_rules!` and every method declared inside a `pub trait` body — verify the convention. **Trait-impl exemption (AC4):** methods inside `impl Trait for Type {}` blocks are EXEMPT — do NOT REJECT for missing convention sections on them. The trait *definition* is **not** exempt.
+
+**Feature-gated documentation sync ([`ai-docs/doc-convention.md`](../../ai-docs/doc-convention.md#feature-gated-documentation)).** When the diff touches a `#[cfg(feature = "...")]`-gated public module / re-export, or modifies any `[features]` table, REJECT when any of the following is missed:
+- A new doctest that *imports* a feature-gated item is `no_run`-gated (or unguarded) instead of `cfg_attr`-gated. `no_run` does not skip rustc compile-check — under `-D warnings` it breaks the build when the feature is off.
+- The CI `cargo doc` command in `.github/workflows/ci.yml`, the GH-Pages publish command in `.github/workflows/docs.yml`, and `[package.metadata.docs.rs] features = […]` in every crate whose docs reference the gated items, are not all in sync on the new feature.
 
 Mechanical heading scan to spot missing or out-of-order sections in a changed file:
 

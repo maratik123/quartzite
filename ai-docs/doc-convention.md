@@ -281,6 +281,75 @@ be inert decoration.
   both: (a) macro is inline within `//!` after a heading; (b) any new
   feature lands under the right `#! ###` section per its audience.
 
+## Feature-gated documentation
+
+Documentation that references items behind `#[cfg(feature = "X")]` re-exports
+or modules requires two distinct precautions. Both have failed silently in
+this workspace and broken `RUSTDOCFLAGS="-D warnings"` builds.
+
+### Doctests on feature-gated items
+
+When a doctest exercises items that exist only behind a cargo feature
+(`#[cfg(feature = "serde")]` re-export, `serde::Serialize` derive, etc.),
+the doctest must be **`cfg_attr`-gated**, not `no_run`-gated.
+
+`no_run` only suppresses doctest *execution*. It still runs `rustc` against
+the doctest body, so a missing type behind a disabled feature fails the
+build with `error[E0432]: unresolved import`.
+
+The correct guard is to gate the entire doctest behind the feature so it
+is omitted from compilation when the feature is off:
+
+```rust
+/// # Examples
+///
+#[cfg_attr(feature = "serde", doc = "```")]
+#[cfg_attr(not(feature = "serde"), doc = "```ignore")]
+/// use my_crate::serde_gated::Foo;
+/// let f: Foo = serde_json::from_str("…").unwrap();
+/// # assert!(true);
+/// ```
+pub use serde_gated::Foo;
+```
+
+When the feature is on, the fence is the runnable form (` ``` `); when off,
+it is `ignore`d so rustdoc skips the body entirely. **Never** use `no_run`
+on a doctest that *imports* a feature-gated item — `no_run` is for
+"compiles but cannot run" (event loops, GUI apps), not for "should not
+even compile under this configuration."
+
+### Intra-doc links to feature-gated modules — three-site sync
+
+When a `pub use` or intra-doc link in a crate's prose points into a
+feature-gated module, every site that builds rustdoc for that crate must
+enable the feature, or `rustdoc::broken_intra_doc_links` fires under
+`-D warnings`. **Three sites must stay in sync** — if you add or rename a
+feature-gated module that has docs referencing it, update all three in the
+same PR:
+
+1. **`.github/workflows/ci.yml`** — the `cargo doc` invocation in the
+   docs job (`--features serde`, etc.).
+2. **`.github/workflows/docs.yml`** (or whichever workflow publishes to
+   GitHub Pages) — the `cargo doc` invocation that renders the public
+   docs.html. Same flag, same reason — drift between CI and Pages produced
+   one bug.
+3. **`Cargo.toml`** — `[package.metadata.docs.rs] features = […]` in
+   every crate whose docs.rs page references the feature-gated items.
+   Controls docs.rs auto-builds; missed entry = stale or broken docs.rs
+   page even when CI is green.
+
+The local `AGENTS.md` *Build & Test* doc-gate command (and the matching
+copies in `.claude/skills/task/SKILL.md` and `.claude/agents/self-review.md`)
+are **the local mirror** of site 1 — they exist so an agent reproduces the
+CI doc gate before pushing. They must list the same `--features` set as
+the CI command.
+
+When introducing a new feature that adds public API behind it:
+- Audit all three sites + the local doc-gate copies in the same PR.
+- Reviewer check: when the diff touches `#[cfg(feature)]`-gated public
+  modules / re-exports, or modifies any `[features]` table, walk the three
+  sites + local copies and confirm the feature is listed in each.
+
 ## Linking and code references
 
 - **Backtick every Rust identifier in prose.** Type names, function names,

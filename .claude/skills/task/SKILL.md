@@ -164,7 +164,7 @@ finding (Step 11) requires a design change rather than a code fix:
 2. `cargo test` — all green
 3. `cargo fmt -- --check` — no formatting drift
 4. `cargo clippy --workspace -- -D warnings` — clean (`--workspace` is required so leaf crates outside the default dep tree, e.g. `quartzite-renderer`, are linted; the bare form misses them)
-5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace` — no doc errors or warnings (matches CI)
+5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --features serde` — no doc errors or warnings (matches CI; `--features serde` required so intra-doc links into the `serde`-gated `snapshot` module resolve)
 6. **actionlint gate** — if this task created or modified any `.github/workflows/*.yml` file, run `actionlint <file>` (or pass every changed workflow file in one invocation) and require a clean pass. Skip the gate only when no workflow file was touched. See AGENTS.md *Build & Test → Workflow files*.
 7. **Panic-index sync.** Scan new/modified production sources for documented or direct panic sites and update `ai-docs/panic-index.md` if any are introduced:
    - `rg '^\s*///\s*#\s*Panics' <changed-files>` — documented panic behaviour (primary signal; always present when a panic exists)
@@ -281,7 +281,7 @@ After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Work
 | Step 8 | Design doc with GO? Test Design section present? |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace` clean? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace --features serde` clean (note: `--features serde`, not bare — required so intra-doc links into the `serde`-gated `snapshot` module resolve)? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE before deleting progress file? |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
