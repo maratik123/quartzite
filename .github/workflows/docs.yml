@@ -34,7 +34,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
       - name: Build docs
-        run: cargo doc --no-deps --workspace
+        run: cargo doc --no-deps --workspace --features serde
         env:
           RUSTDOCFLAGS: "-D warnings -D missing-docs"
       - name: Create redirect index
