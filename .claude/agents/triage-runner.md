@@ -55,7 +55,7 @@ Per-source candidate rules:
 Run **exactly one** call per `/triage` session:
 
 ```
-gh issue list --state all --json number,title --limit 500
+gh issue list --state all --json number,state,title --limit 500
 ```
 
 **Pagination watchdog.** If the response array has length ≥ 450 (= 0.9 × 500), halt the run with the verbatim message:
@@ -67,15 +67,77 @@ either (a) raising the `--limit` via skill code, or (b) introducing
 pagination. No mutations performed in this run.
 ```
 
-Otherwise build a local `{title → #N}` map. For each cell-iteration candidate, exact-title-match dedupe against the map. If the proposed title already matches an existing issue:
+Otherwise build a local **`{number → {state, title}}`** map keyed by issue number — used by both the existing dedupe path AND Phase 4.5's bridge sweep. Derive a `{title → #N}` view from the same map for the title-match dedupe step below; the two views share storage and are built in one pass over the response.
+
+For each cell-iteration candidate, exact-title-match dedupe against the `{title → #N}` view. If the proposed title already matches an existing issue:
 
 - **Matched issue OPEN.** Skip `gh issue create` for that row; write the existing `#N` into the destination cell (cell 4 for thematic / `_inbox.md`; `Notes` for widget-backlog) as if it were a fresh promotion. Log the dedupe hit in the run summary.
-- **Matched issue CLOSED.** Still treat as a match; write the closed `#N`. Issue C's bridge (when it lands) flags closed-state mismatches on a future run.
+- **Matched issue CLOSED.** Still treat as a match; write the closed `#N`. The Phase 4.5 bridge flags closed-state mismatches on a future run.
 
 Edge cases recorded in the run summary but not auto-resolved:
 
 - **Matched issue's title was rephrased after creation** → out of reach of exact-match dedupe; the agent will propose a duplicate; user can decline during approval (the alternative — fuzzy matching — has too many false positives).
 - **Title not matched but row's `Source` link already cites an issue** → not a dedupe path; the row's `Tracked` cell already holds `#N`, so the row is not a candidate.
+
+### Phase 4.5: Bridge sweep
+
+The bridge detects divergence between md state and `gh issue` state. Runs after Phase 4's map is built, before Phase 5's title drafting, so the user sees stale-tracked rows in the same overall batch as untracked candidates.
+
+**Iterate `Tracked` refs across the 10 row sources:**
+- 8 thematic files: cell 4 (`Tracked`) when it holds `#N`.
+- `_inbox.md`: cell 4 (`Tracked`) **only when it holds `#N`** — `—` rows route to Phase 7's drain step and are explicitly excluded.
+- `widget-backlog.md`: `Notes` cell when it holds a `tracked: #N — ` prefix. Anchor on `| Widget | Status | Notes |` column header; ignore bare `Tracked:` substrings in prose (`widget-backlog.md:89` blockquote).
+
+**Look up each `#N` in the Phase 4 `{number → {state, title}}` map.** If `#N` is NOT in the map, record as an *orphan ref* in the diagnostics block of the bridge sub-section — no per-conflict prompt opens for orphans.
+
+**Classify each map hit into one of three conflict types:**
+
+| Type | Condition | Notes |
+|---|---|---|
+| 1 — Stale tracked | Map entry's `state` is `CLOSED` | Canonical case: `#60` refs in `ci-docs-workflow.md`. Closed-as-not-planned folds into this type per spec. |
+| 2 — Status mismatch | Map entry's `state` is `OPEN` AND row asserts done | Only widget-backlog can produce this in current schema (`Status: ✅` ⇒ asserts done). Thematic files + `_inbox.md` have no `Status` column. |
+| 3 — Untracked candidate | Row's `Tracked` cell = `—` | Counted only; **no per-conflict prompt**. Already handled by Phase 6 sweep + Phase 7 drain. |
+
+**Idempotency short-circuit for type 1.** Before classifying as type 1, check the cell content for the literal substring `(closed)` after `#N`. If present, the conflict was already resolved on a prior `/triage` run — skip classification (no prompt).
+
+**Collect all type-1 and type-2 conflicts as a batched preamble**, listing file path + cell location + `#N` + classification + a one-line diff preview. The user sees the full conflict surface before any per-conflict prompt opens (mirrors Phase 6's batched-table mental model, distinct conflict shape).
+
+**For each type-1 or type-2 conflict, open a per-conflict prompt** (each decision involves a diff and is consequential — mirrors Phase 7's drain UX, not Phase 6's batched table):
+
+```
+Conflict N of M — <type 1: stale tracked | type 2: status mismatch>
+  File:     <path>
+  Cell:     <line N: column 4 / Notes>
+  Tracked:  #N — <issue title from map>
+  Issue state: <CLOSED | OPEN>
+  Row state:   <implied open | ✅ done>
+
+  Diff preview:
+    md:   <current row text>
+    gh:   #N <title> [<state>]
+
+Action? (m)update md / (i)update issue / (k)keep both
+```
+
+**Action semantics:**
+
+- **`update md`** (write to md, no gh mutation):
+  - **Type 1 (stale tracked):** rewrite the cell to keep `#N` and append ` (closed)` after it.
+    - Thematic-file cell 4: `#60` → `#60 (closed)`.
+    - `_inbox.md` cell 4: same — `#60` → `#60 (closed)`.
+    - `widget-backlog.md` `Notes`: `tracked: #60 — needs button group` → `tracked: #60 (closed) — needs button group`.
+  - **Type 2 (status mismatch, widget-backlog `Status: ✅` vs OPEN gh issue):** follow-up prompt picks one of `🟡 v2` / `🤔 undecided` / `❌ dropped` / `📭 future` to replace `✅`. Defensible default: `🟡 v2` (OPEN means still planned but not done). `Notes` cell unchanged.
+  - **Concurrent-edit guard** (B's Phase 6 / Phase 7.5 rule, verbatim): re-read the row immediately before the write; abort with diff on mismatch; mtime not part of the check.
+
+- **`update issue`** (write to gh, no md mutation):
+  - **Type 1:** user asserts md row is right (work still open) — `gh issue reopen <N>`. Diff preview: `CLOSED` → `OPEN`. User confirms via yes/no prompt before the call runs.
+  - **Type 2:** user asserts md row is right (work done) — `gh issue close <N>`. Diff preview: `OPEN` → `CLOSED`. User confirms.
+  - **No `gh issue edit` calls in v1** — body drift is out of scope for the bridge.
+  - **Failure handling:** if `gh issue close/reopen` fails, surface the error, leave the conflict unresolved in the run summary, continue with next conflict. No retry, no md mutation.
+
+- **`keep both`**: no mutation. Capture user-supplied free-text reason in the bridge sub-section. Conflict re-surfaces on next `/triage` run (no marker is written that short-circuits it).
+
+**Phase 4.5 is read-only on `ai-docs/deferred/**` until the user resolves conflicts.** Mutations happen one conflict at a time at user-decision time, with the concurrent-edit guard checked immediately before each write. No batched mutation pass — this matches Phase 7's drain shape.
 
 ### Phase 5: Draft titles and bodies
 
@@ -157,9 +219,29 @@ For each queue entry, sequentially in collection order:
 
 Re-count rows in every `ai-docs/deferred/*.md` file post-rewrite. Rewrite the count column in `ai-docs/deferred-items.md` to match the new counts.
 
-Emit the run-output summary per the skill body's *Run-output summary* section:
+Emit the run-output summary per the skill body's *Run-output summary* section. Sub-section order:
 
 - Status table covering all 10 row sources (before / after counts).
+- **Bridge sub-section** (md ↔ gh issue divergence; placed here for visibility near the top of the summary):
+  ```
+  ## Bridge sub-section (md ↔ gh issue divergence)
+
+  Conflicts detected: <total>
+    Type 1 (stale tracked):   <count>
+    Type 2 (status mismatch): <count>
+    Type 3 (untracked count): <count>   # reported only, no per-row prompt
+
+  Orphan #N refs (issue not in bulk-list map): <count>
+    <list, one per line>
+
+  Resolutions:
+    update md:    <count>   <list: file + cell + #N + before/after>
+    update issue: <count>   <list: #N + before-state → after-state>
+    keep both:    <count>   <list: file + cell + #N + user reason>
+
+  gh issue calls made by bridge this run:
+    <list of close/reopen commands actually executed>
+  ```
 - Issues created (`#N` + one-line title each).
 - Rows declined (file path + `Item` cell content).
 - Inbox actions (sort / promote / drop, with destination thematic file).

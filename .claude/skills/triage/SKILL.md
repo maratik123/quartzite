@@ -1,9 +1,9 @@
 ---
 name: triage
-description: "Batched promotion of untracked rows to gh issues; drains _inbox.md; reconciles md ↔ gh issue divergence (bridge ships in Issue C). Default threshold ≥ 3 unhandled rows."
+description: "Batched promotion of untracked rows to gh issues; drains _inbox.md; reconciles md ↔ gh issue divergence via the bridge sweep. Default threshold ≥ 3 unhandled rows."
 argument-hint: "[N — override default threshold]"
 disable-model-invocation: true
-allowed-tools: Bash(gh issue create *) Bash(gh issue edit *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh api *) Bash(grep *) Bash(rg *) Read Edit
+allowed-tools: Bash(gh issue create *) Bash(gh issue edit *) Bash(gh issue close *) Bash(gh issue reopen *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh api *) Bash(grep *) Bash(rg *) Read Edit
 ---
 
 Launch the `triage-runner` subagent. The subagent reads `.claude/agents/triage-runner.md` for full instructions.
@@ -41,11 +41,23 @@ One prompt per row, four actions:
 
 ## Bridge
 
-<!-- Issue C (#205) fills in this section with the md ↔ gh issue
-divergence-detection workflow. Until C lands, `/triage` ships the
-promotion + drain flows above; no drift detection runs. -->
+After the bulk `gh issue list` call and before the cell-iteration sweep, the subagent walks every `Tracked`-column ref across the 10 row sources (cell 4 in the 8 thematic files + `_inbox.md` **only** when the cell holds `#N`; the `Notes` cell in `widget-backlog.md` when the cell holds a `tracked: #N —` prefix) and looks up each `#N` in the local `{number → {state, title}}` map built in Phase 4. `_inbox.md` rows whose `Tracked` cell = `—` are explicitly excluded — those route to the per-entry drain step.
 
-_Not yet implemented. See [Issue #205](https://github.com/maratik123/quartzite/issues/205)._
+Three conflict types reported (no silent overwrite — every type-1 and type-2 conflict surfaces a diff and asks the user):
+
+- **Stale tracked.** Row's `Tracked` cell holds `#N` and the map reports that issue is CLOSED. Canonical example: the `#60` references in `ci-docs-workflow.md`.
+- **Status mismatch.** `widget-backlog.md` row's `Status` cell = `✅` but the linked `#N` issue is OPEN. (Thematic files have no `Status` column; this direction does not fire for them — the reverse case, thematic-file row with `#N` that closed-as-not-planned, folds into stale-tracked.)
+- **Untracked candidate count.** Row's `Tracked` cell = `—`. Reported as a count for situational awareness only — these rows are already handled by the cell-iteration sweep (thematic + widget-backlog) and the `_inbox.md` drain step.
+
+For each detected type-1 or type-2 conflict, the user picks one of three actions (per-conflict prompt, mirroring the drain step's per-entry shape):
+
+- **`update md`** — rewrite the md cell to reflect gh state. Type-1 rewrites leave `#N` in place and append ` (closed)` inline; type-2 rewrites the widget-backlog `Status` cell to a non-done status the user picks from a follow-up prompt (default `🟡 v2`). Concurrent-edit guard (content-snapshot, not mtime) inherited from the cell-iteration sweep.
+- **`update issue`** — close or reopen the gh issue to match the md row. Before any `gh issue close` / `gh issue reopen` call, the bridge surfaces a diff preview (current state → proposed state) and requires explicit user confirmation. The bridge **never** silently rewrites issue state or body.
+- **`keep both`** — record the divergence in the run output with a user-supplied reason; make no mutation. The conflict re-surfaces on the next `/triage` run.
+
+Issues that exist in `gh` but have no md row anywhere are explicitly **not** flagged — asymmetric drift is by design.
+
+The bridge appends a sub-section to the run-output summary listing every conflict, its type, the user's resolution, and any `gh issue close` / `gh issue reopen` calls made. See `.claude/agents/triage-runner.md` Phase 4.5 for the operational specification.
 
 ## Run-output summary
 
