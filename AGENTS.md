@@ -201,6 +201,9 @@ Per source:
 > | `.claude/agents/self-review.md` | `.claude/skills/code-review/SKILL.md` AND `.claude/agents/review-findings.md` (Review group) |
 > | `.claude/skills/interview/SKILL.md` | `.claude/agents/spec-writer.md` (Interview group — Rule-5 substring blacklist mirrors live in `spec-writer.md`) |
 > | `.claude/agents/spec-writer.md` | `.claude/skills/interview/SKILL.md` (Interview group — orchestrator-side validation may need to update if the contract shifts) |
+> | `.claude/skills/triage/SKILL.md` | `.claude/agents/triage-runner.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
+> | `.claude/agents/triage-runner.md` | `.claude/skills/triage/SKILL.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
+> | `.claude/skills/next/SKILL.md` | `.claude/skills/triage/SKILL.md` AND `.claude/agents/triage-runner.md` (Triage group) |
 > | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
@@ -208,6 +211,7 @@ When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/ag
 
 **Sync groups (canonical):**
 - **Review group:** `.claude/skills/code-review/SKILL.md` (workflow) ↔ `.claude/agents/review-findings.md` (findings producer) ↔ `.claude/agents/self-review.md` (fix validator)
+- **Triage group:** `.claude/skills/triage/SKILL.md` (skill body) ↔ `.claude/agents/triage-runner.md` (subagent — `model: opus`) ↔ `.claude/skills/next/SKILL.md` (the *Candidates needing `/triage`* section text references `/triage`).
 - **Interview group:** `.claude/skills/interview/SKILL.md` (orchestrator) ↔ `.claude/agents/spec-writer.md` (subagent — `model: opus`) ↔ `AGENTS.md` (Rule-5 substring-blacklist source-of-truth — every new pre-resolved-rule addition to AGENTS.md must spawn a corresponding blacklist entry in `spec-writer.md`).
 
 > The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
@@ -244,6 +248,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 | `.claude/agents/spec-writer.md` | Spec-writer subagent (`model: opus`) — drafts the task spec one interview round per invocation; invoked by the `/interview` orchestrator |
+| `.claude/skills/triage/SKILL.md` + `.claude/agents/triage-runner.md` | `/triage` skill — batched promotion of `Tracked` = `—` rows in `ai-docs/deferred/*.md` (+ `🟡 v2` rows in `widget-backlog.md`) to gh issues; drains `_inbox.md` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`. |
 
 ## Corrections Log
 
