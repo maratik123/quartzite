@@ -7,19 +7,19 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Item | Source | Status | Tracked |
 |------|--------|--------|---------|
 | `BlockingQueued` connection type \| threading model not yet decided | [core-types spec](../plans/done/2026-05-01-core-types.spec.md) | | #48 |
-| Signal-to-signal connections \| needs runtime design first | [core-types spec](../plans/done/2026-05-01-core-types.spec.md) | | #49 |
+| Signal-to-signal connections \| needs runtime design first | [core-types spec](../plans/done/2026-05-01-core-types.spec.md) | | #49 (closed) |
 | `BlockingQueued` connection type \| depends on per-thread loops | [runtime spec](../plans/done/2026-05-01-runtime.spec.md) | | #48 |
-| Enforcing the signals_blocked check at `Signal` level rather than codegen level \| requires API redesign (#38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 |
-| `auto_cross_thread_slot_not_posted_after_receiver_destroyed` test \| requires `Weak<ReceiverGuard>` in the auto slot entry; `AutoSlotInner` does not hold a guard in v1 | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 |
-| `ReceiverGuard` for `Auto` connections \| `connect_auto` currently accepts no guard; cross-thread Auto slots will post even after the receiver is destroyed; requires `ConnectionTable` integration | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 |
+| Enforcing the signals_blocked check at `Signal` level rather than codegen level \| requires API redesign (#38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 (closed) |
+| `auto_cross_thread_slot_not_posted_after_receiver_destroyed` test \| requires `Weak<ReceiverGuard>` in the auto slot entry; `AutoSlotInner` does not hold a guard in v1 | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 (closed) |
+| `ReceiverGuard` for `Auto` connections \| `connect_auto` currently accepts no guard; cross-thread Auto slots will post even after the receiver is destroyed; requires `ConnectionTable` integration | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 (closed) |
 
 ## Out of scope
 
 | Item | Source | Status | Tracked |
 |------|--------|--------|---------|
 | `BlockingQueued` — threading model not yet decided (already deferred in core-types spec) | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #48 |
-| Signal-to-signal connections — blocked on runtime design (already deferred) | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #49 |
-| Changes to `Signal::emit` itself (tracked in #38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 |
+| Signal-to-signal connections — blocked on runtime design (already deferred) | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #49 (closed) |
+| Changes to `Signal::emit` itself (tracked in #38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 (closed) |
 | Serialization of `signals_blocked` state (tracked in #39) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #39 |
 
 ## Open questions
