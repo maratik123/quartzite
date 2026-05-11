@@ -23,3 +23,23 @@ rewritten to `#N` on promotion or `untracked` on decline by `/triage`.
 
 | Item | Source | Section | Tracked |
 |------|--------|---------|---------|
+| Modal / parent-child window relationships (no `set_parent` / `is_modal` in this milestone). | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Multiple winit `EventLoop`s — single winit loop multiplexes all windows, matching how winit itself models multi-window apps. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Per-window `Application` instances. The process-singleton `Application` from `quartzite-runtime` remains a singleton; multi-window means many windows, not many `Application`s. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Non-winit / off-screen window backends. `RenderHarness` (offscreen) is unaffected and is not "a window". | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Cross-window focus orchestration policy beyond "the window that received the winit event owns dispatch". Cross-window tab traversal, click-to-focus across windows, and global focus tracking are deferred. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Window-level menu bars, dialogs, dock widgets — listed under `quartzite-widgets` v2 backlog (issue #46 carry-over). | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | out-of-scope | — |
+| Window state persistence (size / position restoration across runs) — needs a settings layer | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | deferred | — |
+| Multi-monitor placement APIs (`set_monitor`, fullscreen-on-display-N) — winit exposes the primitives but no widget-side consumer yet | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | deferred | — |
+| Per-window cursor / IME state plumbing — not requested in issue #53 | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | deferred | — |
+| Pluggable backend for headless / alternative windowing (smithay direct, sdl) — single-backend (winit) per #73 | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | deferred | — |
+| Per-window scale-factor / DPI policy — Winit exposes `scale_factor`; the widget layout system does not yet consume it. Filed against widgets backlog. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Window-level keyboard focus model across multiple windows on click-to-focus platforms — Outside the dispatch-routing scope of this milestone; needs a focus-state design that touches `quartzite-widgets`. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Whether closed-window `WindowId` values may be re-issued — Winit guarantees uniqueness within a process; design phase confirms and documents. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Whether `try_create_window` is sync or async — The current `WindowedApplication::run` is fully sync; design phase confirms (default: sync; winit `Window` creation is sync inside `ApplicationHandler::resumed`). | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Exact handle shape exposed to user callbacks for calling `try_create_window` mid-loop — The design chose `WindowRegistry` threaded through `WindowedAppHandler` callbacks via `&mut`. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Whether the existing `WindowedApplication::new()` constructor is retained as a shorthand for `builder().build()` or removed — Sugar question; design picks. Both options satisfy AC7. | ai-docs/plans/done/2026-05-11-multi-window-support.spec.md | open-question | — |
+| Whether `WidgetRoot` should be folded into a closure adaptor instead of a named trait. Design picks: named trait for ergonomics. | ai-docs/plans/done/2026-05-11-multi-window-support.design.md | open-question | — |
+| Whether `on_last_window_closed` is even useful in this milestone. Design picks: include it for AC4b test clarity. | ai-docs/plans/done/2026-05-11-multi-window-support.design.md | open-question | — |
+| Whether `try_create_window` should accept window-level configuration (title, initial size, decorated/undecorated). Spec is silent; future spec adds a `WindowAttributes` arg. | ai-docs/plans/done/2026-05-11-multi-window-support.design.md | open-question | — |
+| `WindowRegistry: !Send + !Sync` enforcement vs. ergonomics — blocks future cross-thread `try_create_window`; escape hatch is `EventLoopProxy<AppEvent>`. | ai-docs/plans/done/2026-05-11-multi-window-support.design.md | open-question | — |
