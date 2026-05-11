@@ -165,11 +165,19 @@ mod tests {
         assert!(!builder.quit_on_last_window_closed);
     }
 
+    // `build()` creates a winit `EventLoop`; winit enforces a main-thread check
+    // on all platforms. `cargo test` runs tests on worker threads, so the test
+    // must set `with_any_thread(true)` on Linux. macOS and Windows have no
+    // equivalent API — the build path is exercised there only when the test
+    // binary is run single-threaded (or via the integration test on Linux).
+    #[cfg(target_os = "linux")]
     #[test]
     fn build_result_is_ok_or_already_exists() {
         // Unit tests share a process, so the singleton may already be taken.
         // Assert only the two expected outcomes (same pattern as application.rs).
-        let result = WindowedApplicationBuilder::new().build();
+        let result = WindowedApplicationBuilder::new()
+            .with_any_thread(true)
+            .build();
         let is_ok = result.is_ok();
         let is_already_exists = matches!(
             result,

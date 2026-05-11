@@ -159,9 +159,12 @@ fn ac4b_opt_out_builder_run_returns_ok_after_proxy_exit() {
 /// AC7: `WindowedApplication::builder()` returns a builder carrying
 /// `quit_on_last_window_closed`; `.build()` produces a `WindowedApplication`.
 ///
-/// This is a compile-time + runtime-Ok check — the builder type must exist
-/// and `.build()` must succeed (or return `AlreadyExists` if the singleton is
-/// taken by a parallel test in this binary).
+/// Gated to Linux so that `with_any_thread(true)` can be passed — `cargo test`
+/// runs tests on worker threads; winit's `EventLoop::new()` panics unless the
+/// any-thread bypass is set on Linux (macOS and Windows have no equivalent API
+/// and require the main thread). Non-Linux platforms satisfy the compile-time
+/// portion of AC7 by successfully building this crate.
+#[cfg(target_os = "linux")]
 #[test]
 fn ac7_builder_exists_and_build_works() {
     use quartzite_renderer::{RendererError, WindowedApplication};
@@ -169,6 +172,7 @@ fn ac7_builder_exists_and_build_works() {
 
     let result = WindowedApplication::builder()
         .quit_on_last_window_closed(false)
+        .with_any_thread(true)
         .build();
 
     let ok = result.is_ok();
