@@ -2384,8 +2384,10 @@ name = "quartzite-renderer"
 version = "0.1.0"
 dependencies = [
  "image",
+ "indexmap",
  "peniko",
  "pollster",
+ "quartzite-events",
  "quartzite-geometry",
  "quartzite-paint-api",
  "quartzite-runtime",

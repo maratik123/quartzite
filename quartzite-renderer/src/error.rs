@@ -23,6 +23,21 @@ pub enum RendererError {
     /// A paint/rendering error.
     #[error(transparent)]
     Paint(#[from] quartzite_paint_api::PaintError),
+
+    /// [`WindowRegistry::try_create_window`] was called outside a winit callback
+    /// (the internal `&ActiveEventLoop` slot is null).
+    ///
+    /// [`WindowRegistry::try_create_window`]: crate::window_registry::WindowRegistry::try_create_window
+    #[error("try_create_window called outside an ApplicationHandler callback")]
+    OutsideCallback,
+
+    /// winit failed to create an OS window.
+    #[error("OS window creation failed: {0}")]
+    OsError(#[from] winit::error::OsError),
+
+    /// wgpu failed to create a rendering surface.
+    #[error("surface creation failed: {0}")]
+    Surface(#[from] wgpu::CreateSurfaceError),
 }
 
 #[cfg(test)]

@@ -21,12 +21,24 @@
 #![deny(missing_docs)]
 
 pub mod application;
+mod application_builder;
 mod error;
+pub mod event_convert;
 pub mod render_harness;
 pub mod vello_painter;
+pub mod window_id;
+pub mod window_registry;
+pub mod window_root;
+mod windowed_app_handler;
+mod wrapped_handler;
 
 pub use application::WindowedApplication;
+pub use application_builder::AppEvent;
+pub use application_builder::WindowedApplicationBuilder;
 pub use error::RendererError;
 pub use render_harness::RenderHarness;
 pub use vello_painter::VelloPainter;
-pub use winit::application::ApplicationHandler;
+pub use window_id::WindowId;
+pub use window_registry::WindowRegistry;
+pub use window_root::WidgetRoot;
+pub use windowed_app_handler::WindowedAppHandler;

@@ -1,80 +1,134 @@
 //! [`WindowedApplication`] — winit-backed singleton entry point.
 
 use quartzite_runtime::Application;
-use winit::application::ApplicationHandler;
-use winit::event_loop::EventLoop;
+use winit::event_loop::{EventLoop, EventLoopProxy};
 
 use crate::RendererError;
+use crate::application_builder::{AppEvent, WindowedApplicationBuilder};
+use crate::window_registry::WindowRegistry;
+use crate::windowed_app_handler::WindowedAppHandler;
+use crate::wrapped_handler::WrappedHandler;
 
-/// A windowed application that owns both a quartzite [`Application`] and a
-/// winit [`EventLoop`].
+/// A windowed application that owns a quartzite [`Application`] singleton and
+/// a winit [`EventLoop`].
+///
+/// Construct via [`WindowedApplication::builder`].
 ///
 /// # Examples
 ///
 /// ```no_run
-/// use quartzite_renderer::WindowedApplication;
+/// use quartzite_renderer::{WindowedApplication, WindowedAppHandler, WindowRegistry};
 ///
-/// let app = WindowedApplication::new().expect("failed to create application");
+/// struct MyApp;
+/// impl WindowedAppHandler for MyApp {
+///     fn on_start(&mut self, _registry: &mut WindowRegistry) {}
+/// }
+///
+/// WindowedApplication::builder()
+///     .build()
+///     .unwrap()
+///     .run(MyApp)
+///     .unwrap();
 /// ```
 pub struct WindowedApplication {
     _app: Application,
-    event_loop: EventLoop<()>,
+    event_loop: EventLoop<AppEvent>,
+    instance: wgpu::Instance,
+    quit_on_last_window_closed: bool,
 }
 
 impl WindowedApplication {
-    /// Creates a new windowed application.
+    /// Returns a builder for constructing a [`WindowedApplication`].
     ///
-    /// # Errors
+    /// # Examples
     ///
-    /// Returns [`RendererError::Application`] if a [`quartzite_runtime::Application`]
-    /// is already live in this process (singleton guard).
+    /// ```no_run
+    /// use quartzite_renderer::WindowedApplication;
     ///
-    /// Returns [`RendererError::EventLoop`] if the winit event loop cannot be
-    /// created (e.g. no display server available).
-    pub fn new() -> Result<Self, RendererError> {
-        let app = Application::new()?;
-        let event_loop = EventLoop::new()?;
-        Ok(Self {
+    /// let app = WindowedApplication::builder().build().unwrap();
+    /// ```
+    #[inline]
+    pub fn builder() -> WindowedApplicationBuilder {
+        WindowedApplicationBuilder::new()
+    }
+
+    /// Constructs from already-initialised parts. Used only by
+    /// [`WindowedApplicationBuilder::build`].
+    #[inline]
+    pub(crate) fn from_parts(
+        app: Application,
+        event_loop: EventLoop<AppEvent>,
+        instance: wgpu::Instance,
+        quit_on_last_window_closed: bool,
+    ) -> Self {
+        Self {
             _app: app,
             event_loop,
-        })
+            instance,
+            quit_on_last_window_closed,
+        }
+    }
+
+    /// Returns an [`EventLoopProxy`] that can send [`AppEvent`]s into the
+    /// running event loop from any thread.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::{WindowedApplication, AppEvent};
+    ///
+    /// let app = WindowedApplication::builder().build().unwrap();
+    /// let proxy = app.event_proxy();
+    /// // From another thread:
+    /// proxy.send_event(AppEvent::Exit).ok();
+    /// ```
+    #[inline]
+    pub fn event_proxy(&self) -> EventLoopProxy<AppEvent> {
+        self.event_loop.create_proxy()
     }
 
     /// Runs the winit event loop, handing control to `handler`.
     ///
+    /// Blocks until the event loop exits. The loop exits when:
+    ///
+    /// - All windows are closed **and** `quit_on_last_window_closed` is `true`
+    ///   (the default).
+    /// - [`AppEvent::Exit`] is sent via [`WindowedApplication::event_proxy`].
+    /// - The platform sends a quit request.
+    ///
     /// # Parameters
     ///
-    /// - `handler`: winit [`ApplicationHandler`] that receives window and lifecycle events.
+    /// - `handler`: the application lifecycle handler; receives `on_start` once
+    ///   and `on_last_window_closed` whenever the window registry becomes empty.
     ///
     /// # Errors
     ///
-    /// Returns [`RendererError`] if the winit event loop exits with an error.
+    /// Returns [`RendererError::EventLoop`] if the winit event loop exits with
+    /// an error.
     ///
     /// # Panics
     ///
     /// Panics on some platforms (notably macOS) if not called from the main
-    /// thread. Do not call from inside an async runtime — use a sync main
-    /// entry point instead.
-    pub fn run(self, mut handler: impl ApplicationHandler) -> Result<(), RendererError> {
+    /// thread.
+    pub fn run(self, handler: impl WindowedAppHandler) -> Result<(), RendererError> {
+        let registry = WindowRegistry::new(self.quit_on_last_window_closed, self.instance);
+        let mut wrapped = WrappedHandler::new(registry, handler);
         self.event_loop
-            .run_app(&mut handler)
+            .run_app(&mut wrapped)
             .map_err(RendererError::from)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use quartzite_runtime::{Application, ApplicationError};
+    use quartzite_runtime::ApplicationError;
 
     use crate::RendererError;
 
-    /// Verifies that `Application::new()` (the quartzite-runtime singleton) succeeds
-    /// on first call — without constructing a winit `EventLoop`, which requires a
-    /// display server and would fail in headless CI.
+    use super::*;
+
     #[test]
     fn quartzite_application_new_succeeds() {
-        // This test is in a unit-test binary; OnceLock may already be taken by
-        // a parallel test in the same binary, so only assert the two expected outcomes.
         let result = Application::new();
         assert!(
             result.is_ok() || matches!(result, Err(ApplicationError::AlreadyExists)),
@@ -82,7 +136,6 @@ mod tests {
         );
     }
 
-    /// Verifies that `RendererError::Application` wraps `ApplicationError`.
     #[test]
     fn renderer_error_wraps_application_error() {
         let e = RendererError::Application(ApplicationError::AlreadyExists);
