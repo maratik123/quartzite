@@ -17,4 +17,6 @@ The subagent will:
 5. Apply changes after user confirmation
 6. Run a targeted eval to verify the fix works. Reports PASS/FAIL.
 
+See also: `/triage` (`.claude/skills/triage/SKILL.md`) — same batched-approval and ≥3-unhandled threshold patterns; diverges in mutation scope (mutates `ai-docs/deferred/**` + `gh issue create/edit` rather than instruction files + `learnings.md`).
+
 Context from user (if any): $ARGUMENTS
