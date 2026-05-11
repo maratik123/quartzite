@@ -926,3 +926,15 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **How to apply:** when writing or reviewing doc comments, the intra-doc link form is `` [`Type`](crate::path::Type) `` — text in `[]`, target in `()`. Reject the reference form `` [`Type`][crate::path::Type] `` in review unless the target genuinely cannot be expressed inline.
 
 **Escalated?** no
+
+### 2026-05-11 — testing — a local FAILED result was not investigated before pushing; CI caught the same failure
+
+**What happened:** During `/task #53` (multi-window support), the first local `cargo test` run returned `FAILED. 27 passed; 1 failed`. Instead of identifying the specific failing test and fixing it, a second run was performed (`--nocapture`) which returned `ok. 28 passed; 0 failed`. The "green" second run was accepted as proof the failure was transient and the code was pushed. CI then failed on the same test (`ac7_builder_exists_and_build_works` on Ubuntu; `build_result_is_ok_or_already_exists` on macOS and Windows): both called `winit::EventLoop::new()` on `cargo test` worker threads, which winit forbids on all platforms unless `with_any_thread(true)` is passed (Linux-only API). The local second run appeared green because the user's machine had a display session AND the Wayland/X11 check may have been satisfied, but CI worker threads did not have that environment.
+
+**Rule:** When `cargo test` returns FAILED, always identify the specific failing test (`grep "FAILED"` on the output) and reproduce it in isolation (`cargo test test_name_substring -- --nocapture`) before deciding it was transient. A subsequent green run does not prove the failure was transient — different test-thread assignments or environment variables (DISPLAY, WAYLAND_DISPLAY) can flip the result. Only accept "transient" when the test is known flaky (e.g. timing-sensitive) and multiple reruns are consistently green.
+
+**Why:** Tests that construct `winit::EventLoop` (directly or via `WindowedApplicationBuilder::build()`) panic on worker threads on macOS and Windows, and on Linux without `with_any_thread(true)`. A local display session may suppress the Linux panic incidentally; CI worker threads do not have this luxury. The correct fix is `#[cfg(target_os = "linux")]` + `.with_any_thread(true)`, or to avoid calling `build()` in any test that runs on a worker thread.
+
+**How to apply:** Any test — unit or integration — that calls `WindowedApplicationBuilder::build()` or any API that internally creates a `winit::EventLoop` must either: (a) be gated `#[cfg(target_os = "linux")]` and pass `.with_any_thread(true)`, OR (b) avoid calling `build()` in the test body entirely (test only builder field state, not `build()` completion). Never push after accepting a second-run green that followed a first-run FAILED without identifying why the first run failed.
+
+**Escalated?** no
