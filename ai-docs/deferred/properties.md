@@ -19,14 +19,14 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 
 | Item | Source | Status | Tracked |
 |------|--------|--------|---------|
-| Serialization / deserialization (serde) support | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | — |
-| FFI / integer wire format | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | — |
-| Any changes to other metadata types (`SignalMeta`, `MethodMeta`, etc.) | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | — |
-| **`ConnectionTable` entries** — never serialized (they hold runtime `Fn`-trait closures with no portable representation). Documented as transient. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | — |
-| **Reconnecting signals after restore** — explicitly v2 per the round-1 answer; tracked separately when this lands. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | — |
-| **QML-style declarative load** — out of scope; this layer is serde-driven binary/textual round-trip only. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | — |
+| Serialization / deserialization (serde) support | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | untracked |
+| FFI / integer wire format | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | untracked |
+| Any changes to other metadata types (`SignalMeta`, `MethodMeta`, etc.) | [enumflags2-property-flags spec](../plans/done/2026-05-03-enumflags2-property-flags.spec.md) |  | untracked |
+| **`ConnectionTable` entries** — never serialized (they hold runtime `Fn`-trait closures with no portable representation). Documented as transient. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | untracked |
+| **Reconnecting signals after restore** — explicitly v2 per the round-1 answer; tracked separately when this lands. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | untracked |
+| **QML-style declarative load** — out of scope; this layer is serde-driven binary/textual round-trip only. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | untracked |
 | **Migration / upgrade tooling** — schema-version field exists; conversion between major versions is a future task once a v2 ships. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | — |
-| **Atomic write helpers** — `to_writer` / `from_reader` operate on `serde::Serializer` / `serde::Deserializer` (or `io::Write` / `io::Read` for the `bincode`-style backends); partial-write atomicity is the caller's responsibility. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | — |
+| **Atomic write helpers** — `to_writer` / `from_reader` operate on `serde::Serializer` / `serde::Deserializer` (or `io::Write` / `io::Read` for the `bincode`-style backends); partial-write atomicity is the caller's responsibility. | [object-property-serialization-layer spec](../plans/done/2026-05-10-object-property-serialization-layer.spec.md) |  | untracked |
 
 ## Open questions
 
