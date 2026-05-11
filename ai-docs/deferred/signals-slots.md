@@ -23,16 +23,16 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Changes to `Signal::emit` itself (tracked in #38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 (closed) |
 | Serialization of `signals_blocked` state (tracked in #39) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #39 |
 | `connect_<signal>_direct` or any other connection type wrappers | [connect-queued-codegen spec](../plans/done/2026-05-03-connect-queued-codegen.spec.md) |  | — |
-| Changes to runtime or core crates | [connect-queued-codegen spec](../plans/done/2026-05-03-connect-queued-codegen.spec.md) |  | — |
-| `ConnectionTable` changes — guard check is local to `Signal::AutoSlotInner::dispatch`. | [receiver-guard-auto spec](../plans/done/2026-05-03-receiver-guard-auto.spec.md) |  | — |
-| Wiring `Signal` directly to `ObjectBase` (coupling two independent types) | [signal-emit-checked spec](../plans/done/2026-05-03-signal-emit-checked.spec.md) |  | — |
-| Backward-compat alias for old `emit` name (project not yet on crates.io) | [signal-emit-checked spec](../plans/done/2026-05-03-signal-emit-checked.spec.md) |  | — |
-| Changing any other `Signal` methods (connect, disconnect, etc.) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | — |
-| Changing the generated per-signal `emit_<name>` wrappers' public signatures (those already hide the `blocked` parameter) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | — |
-| Any changes to `emit_checked` (separate method, independent concern) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | — |
+| Changes to runtime or core crates | [connect-queued-codegen spec](../plans/done/2026-05-03-connect-queued-codegen.spec.md) |  | untracked |
+| `ConnectionTable` changes — guard check is local to `Signal::AutoSlotInner::dispatch`. | [receiver-guard-auto spec](../plans/done/2026-05-03-receiver-guard-auto.spec.md) |  | untracked |
+| Wiring `Signal` directly to `ObjectBase` (coupling two independent types) | [signal-emit-checked spec](../plans/done/2026-05-03-signal-emit-checked.spec.md) |  | untracked |
+| Backward-compat alias for old `emit` name (project not yet on crates.io) | [signal-emit-checked spec](../plans/done/2026-05-03-signal-emit-checked.spec.md) |  | untracked |
+| Changing any other `Signal` methods (connect, disconnect, etc.) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | untracked |
+| Changing the generated per-signal `emit_<name>` wrappers' public signatures (those already hide the `blocked` parameter) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | untracked |
+| Any changes to `emit_checked` (separate method, independent concern) | [signal-emit-rename spec](../plans/done/2026-05-05-signal-emit-rename.spec.md) |  | untracked |
 | Alternate macro form for standalone `Signal` with no owning object (tests keep using `sig.emit(&args)` directly — unconditional is fine there) | [emit-macro spec](../plans/done/2026-05-06-emit-macro.spec.md) |  | — |
 | Proc-macro variant of `emit!` | [emit-macro spec](../plans/done/2026-05-06-emit-macro.spec.md) |  | — |
-| Making `Timer` use `emit!` (its `tick` is `Arc<Mutex<Signal>>`, not a bare field on an `AsObject`) | [emit-macro spec](../plans/done/2026-05-06-emit-macro.spec.md) |  | — |
+| Making `Timer` use `emit!` (its `tick` is `Arc<Mutex<Signal>>`, not a bare field on an `AsObject`) | [emit-macro spec](../plans/done/2026-05-06-emit-macro.spec.md) |  | untracked |
 | Serialization of signal-to-signal connections. | [signal-to-signal spec](../plans/done/2026-05-06-signal-to-signal.spec.md) |  | — |
 
 ## Open questions
