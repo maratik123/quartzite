@@ -364,13 +364,12 @@ The B+C collapse escape-hatch from rev 1 is **dropped** — both touch the same 
 
 ## Approval gate
 
-This plan exited revision-3 on 2026-05-10:
+This plan exited revision-3 on 2026-05-10 and completed on 2026-05-11:
 
 1. ✅ User approved the four-umbrella-issue shape (A1 / A2 / B / C).
 2. ✅ User approved the locked-in decisions.
 3. ✅ Umbrella issues filed: #202 (A1) · #203 (A2) · #204 (B) · #205 (C).
-
-`/task 202` can now pick up Issue A1 (after this plan-file PR merges).
+4. ✅ **Meta-plan complete: all four umbrella issues merged** (A1 #202, A2 #203, B #204, C #205). File moved to `done/` in the C PR's Step 12 commit.
 
 ## Cross-references
 
