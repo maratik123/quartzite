@@ -23,7 +23,7 @@ their own issue + spec when picked up.
 | Widget | Status | Notes |
 |---|---|---|
 | `Label` | ✅ first pass | text + alignment |
-| `ProgressBar` | 🟡 v2 | depends on numeric range model |
+| `ProgressBar` | 🟡 v2 | tracked: #222 — depends on numeric range model |
 | `TextBrowser` | 📭 future | rich-text + hyperlink navigation; needs rich-text engine |
 | `LCDNumber` | ❌ dropped | retro-style 7-segment display; no compelling use case |
 
@@ -32,9 +32,9 @@ their own issue + spec when picked up.
 | Widget | Status | Notes |
 |---|---|---|
 | `Button` (push) | ✅ first pass | text + checkable + signals |
-| `CheckBox` | 🟡 v2 | trivial extension of `Button` once checkable groups work |
-| `RadioButton` | 🟡 v2 | needs button group abstraction |
-| `ToolButton` | 🟡 v2 | depends on `ToolBar` shell |
+| `CheckBox` | 🟡 v2 | tracked: #223 — trivial extension of `Button` once checkable groups work |
+| `RadioButton` | 🟡 v2 | tracked: #224 — needs button group abstraction |
+| `ToolButton` | 🟡 v2 | tracked: #225 — depends on `ToolBar` shell |
 | `CommandLinkButton` | 📭 future | platform-specific styling; low priority |
 
 ## 3. Input
@@ -43,11 +43,11 @@ their own issue + spec when picked up.
 |---|---|---|
 | `LineEdit` | ✅ first pass | single-line text input |
 | `TextEdit` | ✅ first pass | multi-line; rich text deferred to text engine v2 |
-| `PlainTextEdit` | 🟡 v2 | optimised for large logs; specialisation of `TextEdit` |
-| `SpinBox` | 🟡 v2 | integer numeric input |
-| `DoubleSpinBox` | 🟡 v2 | float numeric input |
-| `ComboBox` | 🟡 v2 | dropdown selection |
-| `Slider` | 🟡 v2 | range value via drag |
+| `PlainTextEdit` | 🟡 v2 | tracked: #226 — optimised for large logs; specialisation of `TextEdit` |
+| `SpinBox` | 🟡 v2 | tracked: #227 — integer numeric input |
+| `DoubleSpinBox` | 🟡 v2 | tracked: #228 — float numeric input |
+| `ComboBox` | 🟡 v2 | tracked: #229 — dropdown selection |
+| `Slider` | 🟡 v2 | tracked: #230 — range value via drag |
 | `Dial` | ❌ dropped | speedometer-style; rare in modern UIs |
 | `DateEdit` / `TimeEdit` / `DateTimeEdit` | 📭 future | needs date/time model + calendar popup |
 | `KeySequenceEdit` | 📭 future | shortcut capture widget; low priority |
@@ -58,9 +58,9 @@ their own issue + spec when picked up.
 |---|---|---|
 | `Container` | ✅ first pass | generic layout container with no chrome |
 | `ScrollArea` | ✅ first pass | scrollable view |
-| `GroupBox` | 🟡 v2 | titled frame around a layout |
-| `TabWidget` | 🟡 v2 | tabbed pages |
-| `StackedWidget` | 🟡 v2 | one-of-many visible; programmatic control |
+| `GroupBox` | 🟡 v2 | tracked: #231 — titled frame around a layout |
+| `TabWidget` | 🟡 v2 | tracked: #232 — tabbed pages |
+| `StackedWidget` | 🟡 v2 | tracked: #233 — one-of-many visible; programmatic control |
 | `ToolBox` | 📭 future | accordion-style; low priority |
 | `Splitter` | 📭 future | drag-resizable child panes |
 | `Frame` | 📭 future | base for bordered widgets; may not need a separate type |
@@ -92,20 +92,20 @@ their own issue + spec when picked up.
 
 | Widget | Status | Notes |
 |---|---|---|
-| `MainWindow` | 🟡 v2 | top-level shell containing menubar/toolbar/statusbar/dock; gates 7-9 below |
-| `MenuBar` | 🟡 v2 | needs action system |
-| `Menu` | 🟡 v2 | dropdown; needs action system |
-| `ToolBar` | 🟡 v2 | needs action system + `ToolButton` |
-| `StatusBar` | 🟡 v2 | bottom status messages |
+| `MainWindow` | 🟡 v2 | tracked: #234 — top-level shell containing menubar/toolbar/statusbar/dock; gates 7-9 below |
+| `MenuBar` | 🟡 v2 | tracked: #235 — needs action system |
+| `Menu` | 🟡 v2 | tracked: #236 — dropdown; needs action system |
+| `ToolBar` | 🟡 v2 | tracked: #237 — needs action system + `ToolButton` |
+| `StatusBar` | 🟡 v2 | tracked: #238 — bottom status messages |
 | `DockWidget` | 📭 future | floatable panels; low priority |
 
 ## 7. Dialogs
 
 | Widget | Status | Notes |
 |---|---|---|
-| `MessageBox` | 🟡 v2 | needs modal event loop |
-| `FileDialog` | 🟡 v2 | platform-native preferred; needs OS layer |
-| `InputDialog` | 🟡 v2 | simple value prompt |
+| `MessageBox` | 🟡 v2 | tracked: #239 — needs modal event loop |
+| `FileDialog` | 🟡 v2 | tracked: #240 — platform-native preferred; needs OS layer |
+| `InputDialog` | 🟡 v2 | tracked: #241 — simple value prompt |
 | `ColorDialog` | 📭 future | low priority |
 | `FontDialog` | 📭 future | low priority |
 | `ProgressDialog` | 📭 future | depends on `ProgressBar` |
@@ -116,7 +116,7 @@ their own issue + spec when picked up.
 |---|---|---|
 | `BoxLayout` (H/V) | ✅ first pass | horizontal + vertical stacking |
 | `GridLayout` | ✅ first pass | rows × columns + cell spanning |
-| `FormLayout` | 🟡 v2 | label-input pairs; common form shape |
+| `FormLayout` | 🟡 v2 | tracked: #242 — label-input pairs; common form shape |
 
 ## Tracking
 
