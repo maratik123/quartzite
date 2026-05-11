@@ -11,12 +11,12 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Thread event loops (one loop per thread) \| defer until threading model decided | [runtime spec](../plans/done/2026-05-01-runtime.spec.md) | | #51 (closed) |
 | Stale `thread_id` invalidation \| needs object-mobility / thread-affinity-change API first | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #52 |
 | `AutoConnection` in no_std \| same gating as `Queued`; unblocked when std feature is defined | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | ✅ done | |
-| Unified user event payload subcrate — needs cross-crate design | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | — |
+| Unified user event payload subcrate — needs cross-crate design | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | #261 |
 | Enabling the `std` tracing feature conditionally via `quartzite-core`'s `std` feature flag — straightforward but adds Cargo feature plumbing; low value for now | [tracing-itertools spec](../plans/done/2026-05-05-tracing-itertools.spec.md) |  | untracked |
-| `futures-util` integration — blocked on async strategy decision | [tracing-itertools spec](../plans/done/2026-05-05-tracing-itertools.spec.md) |  | — |
-| Optional per-subtree `HashMap` index for O(1) scoped `find_by_name_in` — avoids DFS on large trees; requires subtree membership tracking | [object-tree-query spec](../plans/done/2026-05-06-object-tree-query.spec.md) |  | — |
-| Stale `thread_id` invalidation on object migration — needs object-mobility API | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | — |
-| Timer driver `start`/`stop` logging — needs investigation of future use patterns | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | — |
+| `futures-util` integration — blocked on async strategy decision | [tracing-itertools spec](../plans/done/2026-05-05-tracing-itertools.spec.md) |  | untracked |
+| Optional per-subtree `HashMap` index for O(1) scoped `find_by_name_in` — avoids DFS on large trees; requires subtree membership tracking | [object-tree-query spec](../plans/done/2026-05-06-object-tree-query.spec.md) |  | #262 |
+| Stale `thread_id` invalidation on object migration — needs object-mobility API | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | #263 |
+| Timer driver `start`/`stop` logging — needs investigation of future use patterns | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | #264 |
 
 ## Out of scope
 
@@ -25,7 +25,7 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Thread migration — if an object moves to another thread after a connection is established, the captured `thread_id` will be stale; this requires a separate object-mobility design | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #52 |
 | Mutable parent/children manipulation (reparenting). | [parent-children-accessors spec](../plans/done/2026-05-05-parent-children-accessors.spec.md) |  | untracked |
 | Timer-wheel implementation for `PoolDriver` (min-heap single thread is sufficient) | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | untracked |
-| Async timer support | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | — |
+| Async timer support | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | untracked |
 | Explicit `mpsc::Sender` in `start()` (superseded by `TimerDriver`) | [timer-object spec](../plans/done/2026-05-05-timer-object.spec.md) |  | untracked |
 | `futures-util` — no async call sites; async/await strategy is an open design question (deferred) | [tracing-itertools spec](../plans/done/2026-05-05-tracing-itertools.spec.md) |  | untracked |
 | `clap` / `clap_complete` — no CLI surface in the library | [tracing-itertools spec](../plans/done/2026-05-05-tracing-itertools.spec.md) |  | untracked |
@@ -36,8 +36,8 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | `destroy` does not emit `name_changed` — destruction is a separate concern | [object-tree-query spec](../plans/done/2026-05-06-object-tree-query.spec.md) |  | untracked |
 | `Auto` connection improvements beyond what per-thread loops already enable | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | untracked |
 | No-std path (event loops require `std`) | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | untracked |
-| Pluggable async executors | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | — |
-| Adding new tracing points beyond signal emit. | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | — |
+| Pluggable async executors | [per-thread-event-loops spec](../plans/done/2026-05-06-per-thread-event-loops.spec.md) |  | untracked |
+| Adding new tracing points beyond signal emit. | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | #265 |
 | Other signal.rs calls (`connect`, `disconnect`) — embedded in logic, not announcements; unchanged. | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | untracked |
 | Timer driver-level `start`/`stop` in `timer_drivers.rs` — deferred; significance needs future investigation. | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | untracked |
 | `info!`/`warn!`/`error!` calls (none exist currently). | [tracing-spans spec](../plans/done/2026-05-06-tracing-spans.spec.md) |  | untracked |

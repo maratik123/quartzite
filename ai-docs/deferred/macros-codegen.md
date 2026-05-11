@@ -8,10 +8,10 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 |------|--------|--------|---------|
 | `#[object_impl]` on multiple impl blocks for one type \| single impl block only for now | [macros spec](../plans/done/2026-05-01-macros.spec.md) | | #57 (closed) |
 | `proc_macro_crate` based path detection in `quartzite-macros` \| would let users depend on only `quartzite` or only `quartzite-core`; non-trivial, separate task | [examples-crate spec](../plans/done/2026-05-02-examples-crate.spec.md) | | #57 (closed) |
-| Generic struct support for `#[derive(Object)]` (not `#[derive(Extend)]`) — bound propagation rules unclear | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | — |
+| Generic struct support for `#[derive(Object)]` (not `#[derive(Extend)]`) — bound propagation rules unclear | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | untracked |
 | `#[object_impl]` on generic types — orthogonal to this task | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | untracked |
-| Manual `Debug` impl with field filtering — auto-derive is sufficient now; can be revisited if fields are added that should be hidden | [objectbase-debug-rename-factory spec](../plans/done/2026-05-03-objectbase-debug-rename-factory.spec.md) |  | — |
-| Additional `impl Into<T>` sites — discovered during implementation | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | — |
+| Manual `Debug` impl with field filtering — auto-derive is sufficient now; can be revisited if fields are added that should be hidden | [objectbase-debug-rename-factory spec](../plans/done/2026-05-03-objectbase-debug-rename-factory.spec.md) |  | #256 |
+| Additional `impl Into<T>` sites — discovered during implementation | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | #257 |
 
 ## Out of scope
 
@@ -40,10 +40,10 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Part 1 (hand-written trait declarations) — closed by PR #120. | [codegen-simple-marker spec](../plans/done/2026-05-07-codegen-simple-marker.spec.md) |  | untracked |
 | Adding any `_Simple._` marker form to codegen — the trait-declaration `/// _Simple._` tag (PR #120) is the canonical signal; generated impls inherit it by Rust's rustdoc inheritance rules. | [codegen-simple-marker spec](../plans/done/2026-05-07-codegen-simple-marker.spec.md) |  | untracked |
 | Other `impl Into<T>` / `impl AsRef<T>` / `impl ToString` sites beyond the four listed targets. If additional > 3-line-body sites are found during implementation, file a follow-up issue. | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | untracked |
-| Binary-size measurement (`cargo bloat`). Optional: if available locally, note before/after numbers in PR body. | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | — |
-| **Marker stripping for no-longer-simple fns.** Removing `#[inline]` / `_Simple._` from fns whose bodies became non-simple (separate concern; this PR is annotation-only). | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | — |
+| Binary-size measurement (`cargo bloat`). Optional: if available locally, note before/after numbers in PR body. | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | #258 |
+| **Marker stripping for no-longer-simple fns.** Removing `#[inline]` / `_Simple._` from fns whose bodies became non-simple (separate concern; this PR is annotation-only). | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | #259 |
 | **Refactoring** any fn body to make it simple. Annotate only what already qualifies. | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | untracked |
-| **Codegen-output marker mirroring** changes in `quartzite-codegen` beyond what naturally falls out of the sweep — i.e. if codegen *emits* fns that should now carry the marker, the codegen itself is updated; but no broader codegen restructuring. | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | — |
+| **Codegen-output marker mirroring** changes in `quartzite-codegen` beyond what naturally falls out of the sweep — i.e. if codegen *emits* fns that should now carry the marker, the codegen itself is updated; but no broader codegen restructuring. | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | #260 |
 | **API renames / signature changes.** Annotation-only PR. | [recursive-inline-annotations spec](../plans/done/2026-05-07-recursive-inline-annotations.spec.md) |  | untracked |
 
 ## Open questions
@@ -54,5 +54,5 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Should `#[derive(Object)]` require `#[derive(Extend)]` to be present, or are they independent? | [macros spec](../plans/done/2026-05-01-macros.spec.md) | ✅ done | |
 | How to handle generic structs with `#[derive(Extend)]`? | [macros spec](../plans/done/2026-05-01-macros.spec.md) | | #57 (closed) |
 | Should `MetaObject::new()` be extended with fn pointer params or replaced by struct literal construction in the macro? Decide in design phase. | [lookup-perf spec](../plans/done/2026-05-02-lookup-perf.spec.md) | ✅ done | |
-| What mechanism enables collecting `#[object_impl]` methods across multiple independent macro invocations? Proc-macro calls are stateless between invocations. Candidates: `thread_local!` accumulation within one compilation, aggregating terminal attribute (`#[object_meta]`), or `linkme`/`inventory`-style distributed slices. (Design phase decision.) | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | — |
-| `ObjectFactory::register` and `ObjectBase::named` have bodies shorter than the "~3 lines" threshold. Spec-mandated for this PR; if deemed noise, a follow-up can revert these two. | [generic-fn-split design](../plans/done/2026-05-07-generic-fn-split.design.md) |  | — |
+| What mechanism enables collecting `#[object_impl]` methods across multiple independent macro invocations? Proc-macro calls are stateless between invocations. Candidates: `thread_local!` accumulation within one compilation, aggregating terminal attribute (`#[object_meta]`), or `linkme`/`inventory`-style distributed slices. (Design phase decision.) | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | untracked |
+| `ObjectFactory::register` and `ObjectBase::named` have bodies shorter than the "~3 lines" threshold. Spec-mandated for this PR; if deemed noise, a follow-up can revert these two. | [generic-fn-split design](../plans/done/2026-05-07-generic-fn-split.design.md) |  | untracked |
