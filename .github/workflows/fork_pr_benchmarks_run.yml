@@ -16,6 +16,11 @@ jobs:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Run criterion benchmarks
         run: |
           set -o pipefail
