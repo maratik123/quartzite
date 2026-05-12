@@ -29,6 +29,16 @@ was not used at the time, and the preferred fix when this is eventually hardened
 | **Why not `Result`** | The harness API is consumed by `#[test]` fns and the snapshot helper; both surface a panic identically to a `Result::Err` returned to the test harness. Surfacing `Result<RgbaImage, RendererError>` would force every snapshot-test call site to `.expect("…")` for no observable difference. The constructor (`RenderHarness::new`) does return `Result` because adapter/device acquisition failures are environmental and call sites legitimately want to skip vs. fail. |
 | **Preferred fix** | Hoist the readback path into a `try_render_widget` returning `Result<RgbaImage, RendererError>` once snapshot tests need to discriminate "transient driver flake" from "real diff" (e.g. when CI flakes warrant retries). Until then, the panic is the right shape — tests fail loudly with the underlying error message. |
 
+### `quartzite-renderer` — `VelloPainter` transform / clip stack accessors
+
+| Field | Value |
+|---|---|
+| **Location** | `quartzite-renderer/src/vello_painter.rs` — `current_xform()`, `clip_rect()`, `translate()` |
+| **Trigger** | `xforms.last()` / `xforms.last_mut()` / `clips.last_mut()` returns `None` — would fire if the internal stacks were somehow empty. |
+| **Invariant** | Both stacks are initialised with one element (`vec![Affine::IDENTITY]` / `vec![0]`) in `VelloPainter::new`, and `restore()` guards with `if self.xforms.len() <= 1 { return; }`, ensuring the base frame is never popped. Normal usage through `save` / `restore` therefore cannot empty the stacks. |
+| **Why not `Result`** | `current_xform()` is a private helper called from every draw method; returning `Result` would infect all call sites with boilerplate for a condition that genuinely cannot occur with the current invariant. |
+| **Preferred fix** | Replace the `Vec`-based stacks with a `NonEmpty` or `SmallVec`-backed type that enforces the invariant at the type level, eliminating the `expect` entirely. |
+
 ---
 
 ## Notes

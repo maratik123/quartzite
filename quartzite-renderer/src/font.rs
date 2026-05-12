@@ -6,13 +6,12 @@ use parley::{FontContext, LayoutContext};
 
 /// Owns the parley font-loading and layout-scratch resources.
 ///
-/// One `FontCache` per pipeline entry point ([`RenderHarness`] or
-/// [`WrappedHandler`]). Text shaping is done in [`VelloPainter`] each frame by
-/// borrowing the cache mutably; the font-context data (loaded system fonts,
-/// family-name resolution) persists across frames.
+/// One `FontCache` per pipeline entry point ([`RenderHarness`] or the
+/// internal `WrappedHandler`). Text shaping is done in [`VelloPainter`] each
+/// frame by borrowing the cache mutably; the font-context data (loaded system
+/// fonts, family-name resolution) persists across frames.
 ///
 /// [`RenderHarness`]: crate::render_harness::RenderHarness
-/// [`WrappedHandler`]: crate::wrapped_handler::WrappedHandler
 /// [`VelloPainter`]: crate::vello_painter::VelloPainter
 pub struct FontCache {
     /// Owns the system-font collection and resolved family-name tables.
@@ -45,7 +44,6 @@ impl FontCache {
 }
 
 impl Default for FontCache {
-    /// _Simple._
     #[inline]
     fn default() -> Self {
         Self::new()

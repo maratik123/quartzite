@@ -54,6 +54,10 @@ impl<'a> VelloPainter<'a> {
     /// Chain [`with_scale`](Self::with_scale) and [`with_fonts`](Self::with_fonts)
     /// before use.
     ///
+    /// # Parameters
+    ///
+    /// - `scene`: the vello scene that draw calls will be appended to.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -78,6 +82,10 @@ impl<'a> VelloPainter<'a> {
     ///
     /// Defaults to `1.0`. Pass `2.0` for `HiDPI` / Retina rendering.
     ///
+    /// # Parameters
+    ///
+    /// - `scale`: device-pixel ratio; `1.0` for standard displays, `2.0` for `HiDPI`.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -96,6 +104,11 @@ impl<'a> VelloPainter<'a> {
 
     /// Attaches a [`FontCache`] to enable text rendering.
     ///
+    /// # Parameters
+    ///
+    /// - `fonts`: mutable reference to the frame's font context; borrowed for
+    ///   the lifetime of this painter.
+    ///
     /// # Examples
     ///
     /// ```no_run
@@ -113,15 +126,18 @@ impl<'a> VelloPainter<'a> {
         self
     }
 
+    #[inline]
     fn current_xform(&self) -> kurbo::Affine {
         *self.xforms.last().expect("xforms stack is never empty")
     }
 
+    #[inline]
     fn scale_pt(&self, p: Point) -> kurbo::Point {
         let s = self.scale as f64;
         kurbo::Point::new(p.x() as f64 * s, p.y() as f64 * s)
     }
 
+    #[inline]
     fn scale_rect(&self, r: Rect) -> kurbo::Rect {
         let s = self.scale as f64;
         kurbo::Rect::new(
@@ -132,6 +148,7 @@ impl<'a> VelloPainter<'a> {
         )
     }
 
+    #[inline]
     fn color_to_peniko(c: quartzite_paint_api::Color) -> peniko::Color {
         peniko::Color::new([c.r(), c.g(), c.b(), c.a()])
     }
@@ -143,6 +160,7 @@ impl<'a> VelloPainter<'a> {
         }
     }
 
+    #[inline]
     fn pen_color(pen: &Pen) -> peniko::Color {
         Self::color_to_peniko(pen.color())
     }
@@ -214,7 +232,11 @@ impl<'a> VelloPainter<'a> {
                 let baseline = glyph_run.baseline() as f64;
                 let offset = glyph_run.offset() as f64;
 
-                let run_xform = xform * kurbo::Affine::translate((px + offset, py + baseline));
+                // positioned_glyphs() already encodes both the centering offset and the
+                // per-run baseline into g.x / g.y. The run transform only supplies the
+                // text-block origin (px, py); adding offset/baseline a second time here
+                // would double-count them.
+                let run_xform = xform * kurbo::Affine::translate((px, py));
                 self.scene
                     .draw_glyphs(parley_font)
                     .font_size(run_size)

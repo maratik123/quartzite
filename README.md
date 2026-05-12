@@ -16,14 +16,13 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 - **Event loop:** `Application` singleton, per-thread `EventLoop`, queued dispatcher.
 - **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
 - **Painting API** (`quartzite-paint-api`) — 11-method `Painter` trait (rect/line/text/image/path/transform/state), `Color`, `Pen`, `Brush`, `Font`, `Image`, `Path` — `no_std`-compatible.
-- **Renderer scaffold** (`quartzite-renderer`) — `WindowedApplication` (multi-window, configurable last-window-quit policy, proxy-based `AppEvent::Exit`) + `WindowRegistry` (per-window event fan-out via `WindowedAppHandler`) + `VelloPainter` skeleton (vello + wgpu + winit) + `RenderHarness` offscreen test harness for snapshot testing.
+- **Renderer** (`quartzite-renderer`) — `WindowedApplication` (multi-window, configurable last-window-quit policy, proxy-based `AppEvent::Exit`) + `WindowRegistry` (per-window event fan-out via `WindowedAppHandler`) + `VelloPainter` (full 11-method `Painter` impl — rect/line/path/image/text via parley+skrifa; transform/clip stack; vello + wgpu + winit) + `RenderHarness` / `RenderHarnessBuilder` offscreen test harness for snapshot testing.
 - **Widgets** (`quartzite-widgets`) — `WidgetBase`, `WidgetExt`, layouts (`BoxLayout`, `GridLayout`), and built-in widgets (`Label`, `Button`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
 - **Snapshot / save-restore** (`serde` feature) — `capture_object` / `restore_object` / `capture_tree` / `restore_tree` with JSON and bincode support; `Value::Custom` round-trips via `typetag`.
 
 ## Forward scope
 
 - **Style system** (`quartzite-style`) — declarative styling on top of widgets.
-- **Full renderer** — complete `VelloPainter` wgpu/vello surface setup.
 
 ## Non-goals
 
@@ -44,7 +43,7 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
 | `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush, Font, Image, Path, 11-method Painter trait) |
 | `quartzite-paint` | ✅ implemented (re-export shell over paint-api + Alignment from geometry) |
-| `quartzite-renderer` | ✅ scaffold (WindowedApplication + multi-window WindowRegistry + WindowedAppHandler trait + AppEvent proxy exit; VelloPainter skeleton; RenderHarness offscreen test harness #192) |
+| `quartzite-renderer` | ✅ implemented (WindowedApplication + multi-window WindowRegistry + WindowedAppHandler + VelloPainter full 11-method impl with parley/skrifa text; RenderHarness/RenderHarnessBuilder snapshot harness) |
 | `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole) |
 | `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry) |
