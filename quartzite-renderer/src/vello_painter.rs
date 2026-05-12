@@ -1,116 +1,536 @@
 //! [`VelloPainter`] — vello + wgpu backed [`Painter`] implementation.
 
+use parley::{
+    Alignment as ParleyAlignment, AlignmentOptions, FontFamilyName, FontStyle as ParleyFontStyle,
+    FontWeight as ParleyFontWeight, Layout, PositionedLayoutItem, RangedBuilder, StyleProperty,
+};
 use quartzite_geometry::{Alignment, Point, Rect};
-use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
+use quartzite_paint_api::{Brush, BrushKind, Font, Image, Painter, Path, Pen, Segment};
+use vello::peniko::kurbo;
+use vello::peniko::{self, Blob, Fill, ImageAlphaType, ImageData, ImageFormat};
+use vello::{Glyph, Scene};
 
-/// A [`Painter`] implementation backed by vello + wgpu.
+use crate::font::FontCache;
+
+/// A [`Painter`] implementation backed by vello, borrowing a
+/// [`vello::Scene`] for a single frame.
 ///
-/// Construction is async (wgpu adapter/device request); use
-/// [`WindowedApplication::run`](crate::application::WindowedApplication::run)
-/// which wraps the setup in `pollster::block_on`.
+/// Construct via [`VelloPainter::new`], chain [`with_scale`](VelloPainter::with_scale)
+/// and [`with_fonts`](VelloPainter::with_fonts) as needed, then pass to a
+/// widget's `paint` method.
 ///
-/// In v1, rendering errors are non-recoverable. Methods panic or log on
-/// failure; [`quartzite_paint_api::PaintError`] is reserved for a future API
-/// version when [`Painter`] methods gain `Result` return types.
-pub struct VelloPainter {
-    // Will hold: vello::Renderer, vello::Scene, wgpu::Device, wgpu::Queue,
-    // wgpu::Surface. Left as unit struct for the skeleton to avoid pulling in
-    // wgpu async initialisation before the renderer integration is complete.
+/// In v1, rendering errors are non-recoverable. Methods skip drawing silently
+/// for unsupported brush kinds (e.g. gradient brushes — AC10); text methods
+/// panic on font-resolution failure (documented in `# Panics` per those
+/// methods).
+///
+/// # Examples
+///
+/// ```no_run
+/// use vello::Scene;
+/// use quartzite_renderer::{VelloPainter, font::FontCache};
+///
+/// let mut scene = Scene::new();
+/// let mut cache = FontCache::new();
+/// let mut painter = VelloPainter::new(&mut scene)
+///     .with_scale(1.0)
+///     .with_fonts(&mut cache);
+/// // pass to widget.paint(&mut painter)
+/// ```
+pub struct VelloPainter<'a> {
+    scene: &'a mut Scene,
+    fonts: Option<&'a mut FontCache>,
+    scale: f32,
+    /// Stack of accumulated transforms; initially `[Affine::IDENTITY]`.
+    xforms: Vec<kurbo::Affine>,
+    /// Per-save-frame count of `push_layer` calls; same length as `xforms`.
+    clips: Vec<u32>,
 }
 
-impl VelloPainter {
-    /// Creates a new painter.
+impl<'a> VelloPainter<'a> {
+    /// Creates a painter that borrows `scene` for one frame.
     ///
-    /// This is a skeleton; full wgpu/vello initialisation is deferred.
+    /// The default scale factor is `1.0` (logical pixels == physical pixels).
+    /// Chain [`with_scale`](Self::with_scale) and [`with_fonts`](Self::with_fonts)
+    /// before use.
+    ///
+    /// # Parameters
+    ///
+    /// - `scene`: the vello scene that draw calls will be appended to.
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```no_run
+    /// use vello::Scene;
     /// use quartzite_renderer::VelloPainter;
     ///
-    /// let painter = VelloPainter::new();
+    /// let mut scene = Scene::new();
+    /// let painter = VelloPainter::new(&mut scene);
+    /// ```
+    #[must_use]
+    pub fn new(scene: &'a mut Scene) -> Self {
+        Self {
+            scene,
+            fonts: None,
+            scale: 1.0,
+            xforms: vec![kurbo::Affine::IDENTITY],
+            clips: vec![0],
+        }
+    }
+
+    /// Sets the device-pixel ratio multiplier (logical → physical pixels).
+    ///
+    /// Defaults to `1.0`. Pass `2.0` for `HiDPI` / Retina rendering.
+    ///
+    /// # Parameters
+    ///
+    /// - `scale`: device-pixel ratio; `1.0` for standard displays, `2.0` for `HiDPI`.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use vello::Scene;
+    /// use quartzite_renderer::VelloPainter;
+    ///
+    /// let mut scene = Scene::new();
+    /// let painter = VelloPainter::new(&mut scene).with_scale(2.0);
     /// ```
     #[inline]
     #[must_use]
-    pub fn new() -> Self {
-        Self {}
+    pub fn with_scale(mut self, scale: f32) -> Self {
+        self.scale = scale;
+        self
+    }
+
+    /// Attaches a [`FontCache`] to enable text rendering.
+    ///
+    /// # Parameters
+    ///
+    /// - `fonts`: mutable reference to the frame's font context; borrowed for
+    ///   the lifetime of this painter.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use vello::Scene;
+    /// use quartzite_renderer::{VelloPainter, font::FontCache};
+    ///
+    /// let mut scene = Scene::new();
+    /// let mut cache = FontCache::new();
+    /// let painter = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub fn with_fonts(mut self, fonts: &'a mut FontCache) -> Self {
+        self.fonts = Some(fonts);
+        self
+    }
+
+    #[inline]
+    fn current_xform(&self) -> kurbo::Affine {
+        *self.xforms.last().expect("xforms stack is never empty")
+    }
+
+    #[inline]
+    fn scale_pt(&self, p: Point) -> kurbo::Point {
+        let s = self.scale as f64;
+        kurbo::Point::new(p.x() as f64 * s, p.y() as f64 * s)
+    }
+
+    #[inline]
+    fn scale_rect(&self, r: Rect) -> kurbo::Rect {
+        let s = self.scale as f64;
+        kurbo::Rect::new(
+            r.left() as f64 * s,
+            r.top() as f64 * s,
+            r.right() as f64 * s,
+            r.bottom() as f64 * s,
+        )
+    }
+
+    #[inline]
+    fn color_to_peniko(c: quartzite_paint_api::Color) -> peniko::Color {
+        peniko::Color::new([c.r(), c.g(), c.b(), c.a()])
+    }
+
+    fn brush_color(brush: &Brush) -> Option<peniko::Color> {
+        match brush.kind() {
+            BrushKind::Solid(c) => Some(Self::color_to_peniko(c)),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    fn pen_color(pen: &Pen) -> peniko::Color {
+        Self::color_to_peniko(pen.color())
+    }
+
+    fn to_bez_path(&self, path: &Path) -> kurbo::BezPath {
+        let mut bez = kurbo::BezPath::new();
+        let s = self.scale as f64;
+        for seg in path.segments() {
+            match seg {
+                Segment::MoveTo(p) => bez.move_to(self.scale_pt(*p)),
+                Segment::LineTo(p) => bez.line_to(self.scale_pt(*p)),
+                Segment::CubicTo(c1, c2, p) => {
+                    bez.curve_to(self.scale_pt(*c1), self.scale_pt(*c2), self.scale_pt(*p));
+                }
+                Segment::ArcTo {
+                    centre,
+                    radii,
+                    start_angle,
+                    sweep_angle,
+                } => {
+                    let arc = kurbo::Arc::new(
+                        (centre.x() as f64 * s, centre.y() as f64 * s),
+                        (radii.width() as f64 * s, radii.height() as f64 * s),
+                        *start_angle as f64,
+                        *sweep_angle as f64,
+                        0.0,
+                    );
+                    bez.extend(arc.append_iter(0.1));
+                }
+                Segment::Close => bez.close_path(),
+                _ => {}
+            }
+        }
+        bez
+    }
+
+    /// Pushes font size, family, weight, and italic style onto a parley builder.
+    fn push_font_style(builder: &mut RangedBuilder<'_, [u8; 4]>, font: &Font) {
+        builder.push_default(StyleProperty::FontSize(font.size_pt()));
+        builder.push_default(StyleProperty::from(FontFamilyName::named(font.family())));
+        builder.push_default(StyleProperty::FontWeight(ParleyFontWeight::new(
+            font.weight() as u16 as f32,
+        )));
+        if font.italic() {
+            builder.push_default(StyleProperty::FontStyle(ParleyFontStyle::Italic));
+        }
+    }
+
+    /// Iterates `layout` and emits glyph runs (plus underline / strikethrough) into `self.scene`.
+    fn emit_layout_glyphs(
+        &mut self,
+        layout: &Layout<[u8; 4]>,
+        px: f64,
+        py: f64,
+        fill_color: peniko::Color,
+        font: &Font,
+    ) {
+        let xform = self.current_xform();
+        let peniko_brush = peniko::Brush::Solid(fill_color);
+        for layout_line in layout.lines() {
+            for item in layout_line.items() {
+                let PositionedLayoutItem::GlyphRun(glyph_run) = item else {
+                    continue;
+                };
+                let run = glyph_run.run();
+                let parley_font = run.font();
+                let run_size = run.font_size();
+                let normalized = run.normalized_coords();
+                let baseline = glyph_run.baseline() as f64;
+                let offset = glyph_run.offset() as f64;
+
+                // positioned_glyphs() already encodes both the centering offset and the
+                // per-run baseline into g.x / g.y. The run transform only supplies the
+                // text-block origin (px, py); adding offset/baseline a second time here
+                // would double-count them.
+                let run_xform = xform * kurbo::Affine::translate((px, py));
+                self.scene
+                    .draw_glyphs(parley_font)
+                    .font_size(run_size)
+                    .transform(run_xform)
+                    .normalized_coords(normalized)
+                    .brush(&peniko_brush)
+                    .draw(
+                        Fill::NonZero,
+                        glyph_run.positioned_glyphs().map(|g| Glyph {
+                            id: g.id,
+                            x: g.x,
+                            y: g.y,
+                        }),
+                    );
+
+                if font.underline() {
+                    let m = run.metrics();
+                    let uy = py + baseline + m.underline_offset as f64;
+                    let x1 = px + offset + glyph_run.advance() as f64;
+                    let seg = kurbo::Line::new((px + offset, uy), (x1, uy));
+                    let stroke = kurbo::Stroke::new(m.underline_size as f64);
+                    self.scene.stroke(&stroke, xform, fill_color, None, &seg);
+                }
+                if font.strikethrough() {
+                    let m = run.metrics();
+                    let sy = py + baseline + m.strikethrough_offset as f64;
+                    let x1 = px + offset + glyph_run.advance() as f64;
+                    let seg = kurbo::Line::new((px + offset, sy), (x1, sy));
+                    let stroke = kurbo::Stroke::new(m.strikethrough_size as f64);
+                    self.scene.stroke(&stroke, xform, fill_color, None, &seg);
+                }
+            }
+        }
+    }
+
+    /// Returns `(transform_depth, total_active_clip_layers)` for stack tests.
+    ///
+    /// `transform_depth` is the current save-frame depth (1 at construction,
+    /// incremented by each `save()`, decremented by each `restore()`).
+    /// `total_active_clip_layers` is the sum of all `push_layer` calls not yet
+    /// matched by `pop_layer`.
+    #[cfg(test)]
+    pub(crate) fn debug_stack_state(&self) -> (usize, u32) {
+        (self.xforms.len(), self.clips.iter().sum())
     }
 }
 
-impl Default for VelloPainter {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
+impl<'a> Painter for VelloPainter<'a> {
+    fn draw_rect(&mut self, rect: Rect, pen: &Pen, brush: &Brush) {
+        let r = self.scale_rect(rect);
+        let xform = self.current_xform();
+        if let Some(fill_color) = Self::brush_color(brush) {
+            self.scene.fill(Fill::NonZero, xform, fill_color, None, &r);
+        }
+        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        self.scene
+            .stroke(&stroke, xform, Self::pen_color(pen), None, &r);
     }
-}
 
-impl Painter for VelloPainter {
-    #[inline]
-    fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
+    fn fill_rect(&mut self, rect: Rect, brush: &Brush) {
+        if let Some(color) = Self::brush_color(brush) {
+            let r = self.scale_rect(rect);
+            let xform = self.current_xform();
+            self.scene.fill(Fill::NonZero, xform, color, None, &r);
+        }
+    }
 
-    #[inline]
-    fn fill_rect(&mut self, _rect: Rect, _brush: &Brush) {}
+    fn draw_line(&mut self, from: Point, to: Point, pen: &Pen) {
+        let p0 = self.scale_pt(from);
+        let p1 = self.scale_pt(to);
+        let xform = self.current_xform();
+        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        let line = kurbo::Line::new(p0, p1);
+        self.scene
+            .stroke(&stroke, xform, Self::pen_color(pen), None, &line);
+    }
 
-    #[inline]
-    fn draw_line(&mut self, _from: Point, _to: Point, _pen: &Pen) {}
+    fn clip_rect(&mut self, rect: Rect) {
+        let r = self.scale_rect(rect);
+        let xform = self.current_xform();
+        self.scene.push_clip_layer(Fill::NonZero, xform, &r);
+        *self.clips.last_mut().expect("clips stack is never empty") += 1;
+    }
 
-    #[inline]
-    fn clip_rect(&mut self, _rect: Rect) {}
+    fn translate(&mut self, delta: Point) {
+        let s = self.scale as f64;
+        let t = kurbo::Affine::translate((delta.x() as f64 * s, delta.y() as f64 * s));
+        let xf = self.xforms.last_mut().expect("xforms stack is never empty");
+        *xf *= t;
+    }
 
-    #[inline]
-    fn translate(&mut self, _delta: Point) {}
+    fn save(&mut self) {
+        let current = self.current_xform();
+        self.xforms.push(current);
+        self.clips.push(0);
+    }
 
-    #[inline]
-    fn save(&mut self) {}
+    fn restore(&mut self) {
+        if self.xforms.len() <= 1 {
+            return;
+        }
+        if let Some(clip_count) = self.clips.pop() {
+            for _ in 0..clip_count {
+                self.scene.pop_layer();
+            }
+        }
+        self.xforms.pop();
+    }
 
-    #[inline]
-    fn restore(&mut self) {}
+    fn draw_text(&mut self, pos: Point, text: &str, font: &Font, brush: &Brush) {
+        if text.is_empty() {
+            return;
+        }
+        let Some(fill_color) = Self::brush_color(brush) else {
+            return;
+        };
+        let s = self.scale as f64;
+        let px = pos.x() as f64 * s;
+        let py = pos.y() as f64 * s;
 
-    #[inline]
-    fn draw_text(&mut self, _pos: Point, _text: &str, _font: &Font, _brush: &Brush) {}
+        let layout: Layout<[u8; 4]> = {
+            let Some(fonts) = self.fonts.as_mut() else {
+                return;
+            };
+            let FontCache { font_cx, layout_cx } = fonts;
+            let mut builder = layout_cx.ranged_builder(font_cx, text, self.scale, false);
+            Self::push_font_style(&mut builder, font);
+            let mut layout = builder.build(text);
+            layout.break_all_lines(None);
+            layout.align(ParleyAlignment::Left, AlignmentOptions::default());
+            layout
+        };
 
-    #[inline]
+        self.emit_layout_glyphs(&layout, px, py, fill_color, font);
+    }
+
     fn draw_text_in(
         &mut self,
-        _rect: Rect,
-        _text: &str,
-        _font: &Font,
-        _brush: &Brush,
-        _alignment: Alignment,
+        rect: Rect,
+        text: &str,
+        font: &Font,
+        brush: &Brush,
+        alignment: Alignment,
     ) {
+        if text.is_empty() {
+            return;
+        }
+        let Some(fill_color) = Self::brush_color(brush) else {
+            return;
+        };
+        let s = self.scale as f64;
+        let px = rect.left() as f64 * s;
+        let py = rect.top() as f64 * s;
+        let max_advance = rect.size().width() as f32 * self.scale;
+
+        let layout: Layout<[u8; 4]> = {
+            let Some(fonts) = self.fonts.as_mut() else {
+                return;
+            };
+            let FontCache { font_cx, layout_cx } = fonts;
+            let mut builder = layout_cx.ranged_builder(font_cx, text, self.scale, false);
+            Self::push_font_style(&mut builder, font);
+            let mut layout = builder.build(text);
+            let wrap = if max_advance > 0.0 {
+                Some(max_advance)
+            } else {
+                None
+            };
+            layout.break_all_lines(wrap);
+            let parley_align = match alignment {
+                Alignment::Left => ParleyAlignment::Left,
+                Alignment::Center => ParleyAlignment::Center,
+                Alignment::Right => ParleyAlignment::Right,
+                Alignment::Justify => ParleyAlignment::Justify,
+            };
+            layout.align(parley_align, AlignmentOptions::default());
+            layout
+        };
+
+        self.emit_layout_glyphs(&layout, px, py, fill_color, font);
     }
 
-    #[inline]
-    fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
+    fn draw_image(&mut self, rect: Rect, image: &Image) {
+        if image.width() == 0 || image.height() == 0 {
+            return;
+        }
+        let blob: Blob<u8> = Blob::from(image.pixels().to_vec());
+        let img_data = ImageData {
+            data: blob,
+            format: ImageFormat::Rgba8,
+            alpha_type: ImageAlphaType::Alpha,
+            width: image.width(),
+            height: image.height(),
+        };
+        let s = self.scale as f64;
+        let sw = rect.size().width() as f64 * s / image.width() as f64;
+        let sh = rect.size().height() as f64 * s / image.height() as f64;
+        let tx = rect.left() as f64 * s;
+        let ty = rect.top() as f64 * s;
+        let local = kurbo::Affine::new([sw, 0.0, 0.0, sh, tx, ty]);
+        let img_xform = self.current_xform() * local;
+        self.scene.draw_image(&img_data, img_xform);
+    }
 
-    #[inline]
-    fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
+    fn draw_path(&mut self, path: &Path, pen: &Pen, brush: &Brush) {
+        let bez = self.to_bez_path(path);
+        let xform = self.current_xform();
+        if let Some(fill_color) = Self::brush_color(brush) {
+            self.scene
+                .fill(Fill::NonZero, xform, fill_color, None, &bez);
+        }
+        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        self.scene
+            .stroke(&stroke, xform, Self::pen_color(pen), None, &bez);
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use quartzite_geometry::Size;
-    use quartzite_paint_api::{BrushKind, Color};
+    use quartzite_geometry::{Point, Rect, Size};
+    use quartzite_paint_api::{Brush, BrushKind, Color, Font, Image, Painter, Path, Pen};
+    use vello::Scene;
 
-    #[test]
-    fn vello_painter_new_does_not_panic() {
-        let _painter = VelloPainter::new();
+    use crate::font::FontCache;
+
+    use super::*;
+
+    fn make_scene_and_cache() -> (Scene, FontCache) {
+        (Scene::new(), FontCache::new())
     }
 
     #[test]
-    fn vello_painter_default_equals_new() {
-        // Both construct without panic; unit-struct equality is trivially true.
-        let _a = VelloPainter::new();
-        let _b = VelloPainter::default();
+    fn painter_starts_with_identity_transform_and_no_clips() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        assert_eq!(p.debug_stack_state(), (1, 0));
+    }
+
+    #[test]
+    fn save_then_restore_round_trip() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        assert_eq!(p.debug_stack_state(), (1, 0));
+        p.save();
+        assert_eq!(p.debug_stack_state(), (2, 0));
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (1, 0));
+    }
+
+    #[test]
+    fn translate_modifies_top_only() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        p.save();
+        p.translate(Point::new(10, 0));
+        assert_eq!(p.debug_stack_state(), (2, 0));
+        p.save();
+        p.translate(Point::new(5, 5));
+        assert_eq!(p.debug_stack_state(), (3, 0));
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (2, 0));
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (1, 0));
+    }
+
+    #[test]
+    fn clip_rect_increments_active_clip_count() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let rect = Rect::new(Point::new(0, 0), Size::new(10, 10));
+        p.save();
+        p.clip_rect(rect);
+        assert_eq!(p.debug_stack_state(), (2, 1));
+        p.clip_rect(rect);
+        assert_eq!(p.debug_stack_state(), (2, 2));
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (1, 0));
+    }
+
+    #[test]
+    fn restore_at_base_frame_is_no_op() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (1, 0));
+        p.restore();
+        assert_eq!(p.debug_stack_state(), (1, 0));
     }
 
     #[test]
     fn all_painter_methods_are_invocable() {
-        // The skeleton stubs are no-ops; this test just exercises every
-        // `Painter` method to confirm dispatch through `&mut dyn Painter`
-        // compiles and runs without panicking.
-        let mut p: Box<dyn Painter> = Box::new(VelloPainter::new());
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p: Box<dyn Painter> =
+            Box::new(VelloPainter::new(&mut scene).with_fonts(&mut cache));
         let pen = Pen::new(Color::BLACK, 1.0);
         let brush = Brush::solid(Color::WHITE);
         assert_eq!(brush.kind(), BrushKind::Solid(Color::WHITE));

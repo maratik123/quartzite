@@ -68,6 +68,12 @@ jobs:
         with:
           shared-key: ${{ runner.os }}-stable
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Build
         run: cargo build --workspace
 
@@ -99,6 +105,12 @@ jobs:
         with:
           shared-key: ${{ runner.os }}-stable
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Test
         run: cargo test --workspace
 
@@ -128,6 +140,12 @@ jobs:
         with:
           shared-key: ${{ runner.os }}-stable
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Clippy
         run: cargo clippy --workspace -- -D warnings
 
@@ -171,7 +189,8 @@ jobs:
             mesa-vulkan-drivers \
             vulkan-tools \
             xvfb \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            libfontconfig1-dev
       - name: Vulkan diagnostics
         if: runner.os == 'Linux'
         run: vulkaninfo --summary || true
@@ -360,6 +379,11 @@ jobs:
         with:
           shared-key: ${{ runner.os }}-stable
           save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Docs
         run: cargo doc --no-deps --workspace --all-features
         env:

@@ -37,7 +37,8 @@ jobs:
             mesa-vulkan-drivers \
             vulkan-tools \
             xvfb \
-            libxkbcommon-x11-0
+            libxkbcommon-x11-0 \
+            libfontconfig1-dev
       - name: Vulkan diagnostics
         run: vulkaninfo --summary || true
       - name: Cache dependencies
