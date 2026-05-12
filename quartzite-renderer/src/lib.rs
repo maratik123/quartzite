@@ -24,6 +24,7 @@ pub mod application;
 mod application_builder;
 mod error;
 pub mod event_convert;
+pub mod font;
 pub mod render_harness;
 pub mod vello_painter;
 pub mod window_id;

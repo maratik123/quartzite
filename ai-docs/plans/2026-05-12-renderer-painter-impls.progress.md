@@ -11,10 +11,10 @@
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | `RenderHarnessBuilder` replaces `RenderHarness::new`; `scale_factor` field; update snapshot callers | ⬜ |
-| 2 | `font.rs` (`FontCache`); add `skrifa` + `parley` deps; wire into `RenderHarness` + `WrappedHandler` | ⬜ |
-| 3 | Rewrite `VelloPainter` (lifetime borrow, non-text methods, both call sites updated) | ⬜ |
-| 4 | Implement `draw_text` / `draw_text_in` via parley + skrifa + vello | ⬜ |
+| 1 | `RenderHarnessBuilder` replaces `RenderHarness::new`; `scale_factor` field; update snapshot callers | ✅ |
+| 2 | `font.rs` (`FontCache`); add `skrifa` + `parley` deps; wire into `RenderHarness` + `WrappedHandler` | ✅ |
+| 3 | Rewrite `VelloPainter` (lifetime borrow, non-text methods, both call sites updated) | ✅ |
+| 4 | Implement `draw_text` / `draw_text_in` via parley + skrifa + vello | ✅ |
 | 5 | Unit tests: stack/clip probe, builder, `all_painter_methods_are_invocable` refresh | ⬜ |
 | 6 | Snapshot tests (AC1–AC12); regen goldens | ⬜ |
 | 7 | Final hygiene: doc-gate, `# Examples`, `lib.rs` re-exports, `cargo doc` clean | ⬜ |

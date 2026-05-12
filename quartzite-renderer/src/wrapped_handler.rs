@@ -13,9 +13,11 @@ use crate::event_convert::{
     key_event_from_winit, modifiers_from_winit, mouse_button_from_winit, mouse_event_from_winit,
     size_from_physical,
 };
+use crate::font::FontCache;
 use crate::vello_painter::VelloPainter;
 use crate::window_registry::WindowRegistry;
 use crate::windowed_app_handler::WindowedAppHandler;
+use vello::Scene;
 
 /// RAII guard that resets a `Cell<*const ActiveEventLoop>` to null on drop.
 ///
@@ -46,6 +48,7 @@ impl Drop for ActiveLoopGuard {
 pub(crate) struct WrappedHandler<H: WindowedAppHandler> {
     pub(crate) registry: WindowRegistry,
     pub(crate) user_handler: H,
+    pub(crate) fonts: FontCache,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
     pressed_buttons: quartzite_events::MouseButtons,
     modifiers: winit::event::Modifiers,
@@ -57,6 +60,7 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
         Self {
             registry,
             user_handler,
+            fonts: FontCache::new(),
             cursor_position: winit::dpi::PhysicalPosition::new(0.0, 0.0),
             pressed_buttons: quartzite_events::MouseButtons::empty(),
             modifiers: winit::event::Modifiers::default(),
@@ -145,8 +149,20 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(entry) = self.registry.windows.get(&window_id) {
-                    let mut painter = VelloPainter::new();
-                    entry.root.paint(&mut painter);
+                    let scale = entry
+                        .window
+                        .as_ref()
+                        .map(|w| w.scale_factor() as f32)
+                        .unwrap_or(1.0);
+                    let mut scene = Scene::new();
+                    {
+                        let mut painter = VelloPainter::new(&mut scene)
+                            .with_scale(scale)
+                            .with_fonts(&mut self.fonts);
+                        entry.root.paint(&mut painter);
+                    }
+                    // TODO: submit scene via wgpu surface (windowed pipeline — follow-up)
+                    let _ = scene;
                 }
                 false
             }

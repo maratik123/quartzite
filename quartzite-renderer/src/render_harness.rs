@@ -23,6 +23,7 @@ use vello::{
 use wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
 
 use crate::error::RendererError;
+use crate::font::FontCache;
 use crate::vello_painter::VelloPainter;
 
 /// Offscreen render-target format. RGBA8 unorm matches the format vello
@@ -192,6 +193,7 @@ impl RenderHarnessBuilder {
             scale_factor,
             renderer,
             scene: Scene::new(),
+            fonts: FontCache::new(),
         })
     }
 }
@@ -227,6 +229,7 @@ pub struct RenderHarness {
     pub(crate) scale_factor: f32,
     pub(crate) renderer: VelloRenderer,
     pub(crate) scene: Scene,
+    pub(crate) fonts: FontCache,
 }
 
 impl core::fmt::Debug for RenderHarness {
@@ -340,8 +343,12 @@ impl RenderHarness {
         F: FnOnce(&mut dyn Painter),
     {
         self.scene.reset();
-        let mut painter = VelloPainter::new();
-        paint(&mut painter);
+        {
+            let mut painter = VelloPainter::new(&mut self.scene)
+                .with_scale(self.scale_factor)
+                .with_fonts(&mut self.fonts);
+            paint(&mut painter);
+        } // painter drops here, releasing borrows on scene and fonts
 
         self.renderer
             .render_to_texture(
