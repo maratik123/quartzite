@@ -938,3 +938,13 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **How to apply:** Any test — unit or integration — that calls `WindowedApplicationBuilder::build()` or any API that internally creates a `winit::EventLoop` must either: (a) be gated `#[cfg(target_os = "linux")]` and pass `.with_any_thread(true)`, OR (b) avoid calling `build()` in the test body entirely (test only builder field state, not `build()` completion). Never push after accepting a second-run green that followed a first-run FAILED without identifying why the first run failed.
 
 **Escalated?** no
+
+### 2026-05-13 — process — design-review notes not resolved in the design document before implementation started
+
+**What happened:** Design review Round 2 issued a GO verdict but included two notes: (1) use `b.kind()` method (not `b.kind` field — it's private); (2) use `quartzite_widgets::Alignment` (not `quartzite_geometry::Alignment`) to avoid adding a non-dev dep. Both notes were applied correctly during implementation, but they were never written back into the design document before coding started. The user asked why the two notes were not fixed before implementation began.
+
+**Rule:** Any note, even minor/note-severity, emitted by a design-review GO verdict must be incorporated into the design document before writing the first line of implementation code. "Applied during coding" is not the same as "resolved in the design" — the design document is the authoritative implementation contract. If the design doc says one thing and the code does another (even correctly), the design is stale and future reviewers see a contradiction.
+
+**How to apply:** After receiving a design-review GO verdict, scan the verdict text for notes or minor issues. For each one: (a) update the relevant section of the design document (API table, helper list, risk table, etc.); (b) verify the design doc now matches the intended code. Only then proceed to implementation. This takes < 5 minutes and prevents spec/design divergence from the first commit.
+
+**Escalated?** no

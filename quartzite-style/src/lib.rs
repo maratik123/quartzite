@@ -39,9 +39,11 @@
 //! assert!(StyleRegistry::try_style().is_some());
 //! ```
 
+mod default_style;
 mod registry;
 mod style;
 
+pub use default_style::DefaultStyle;
 pub use quartzite_style_types::{ColorRole, Palette};
 pub use registry::StyleRegistry;
 pub use style::Style;
