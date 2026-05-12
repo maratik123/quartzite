@@ -12,7 +12,7 @@
 mod support;
 
 use quartzite_core::ObjectId;
-use quartzite_renderer::RenderHarness;
+use quartzite_renderer::RenderHarnessBuilder;
 use quartzite_widgets::{BoxLayout, Button, Direction, GridLayout, Label, LineEdit};
 
 use support::{snapshot_assert, snapshot_widget};
@@ -24,12 +24,12 @@ const CANVAS: u32 = 64;
 /// Constructs a 64x64 harness or skips the test when no GPU adapter is
 /// available locally. Returning `Option` lets the test exit cleanly when
 /// `SKIP_RENDER_SNAPSHOT=1` is set or the box has no driver.
-fn harness_or_skip(name: &str) -> Option<RenderHarness> {
+fn harness_or_skip(name: &str) -> Option<quartzite_renderer::RenderHarness> {
     if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some_and(|v| !v.is_empty()) {
         eprintln!("{name}: SKIP_RENDER_SNAPSHOT set; skipping");
         return None;
     }
-    match RenderHarness::new(CANVAS, CANVAS) {
+    match RenderHarnessBuilder::new(CANVAS, CANVAS).build() {
         Ok(h) => Some(h),
         Err(e) => {
             eprintln!("{name}: no GPU adapter available ({e}); skipping");

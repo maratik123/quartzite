@@ -37,6 +37,7 @@ pub use application_builder::AppEvent;
 pub use application_builder::WindowedApplicationBuilder;
 pub use error::RendererError;
 pub use render_harness::RenderHarness;
+pub use render_harness::RenderHarnessBuilder;
 pub use vello_painter::VelloPainter;
 pub use window_id::WindowId;
 pub use window_registry::WindowRegistry;

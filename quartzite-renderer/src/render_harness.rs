@@ -29,59 +29,92 @@ use crate::vello_painter::VelloPainter;
 /// produces and is the simplest format to read back into an `RgbaImage`.
 pub(crate) const TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 
-/// Background color of the offscreen target. v1 widgets are no-op, so this
-/// is what every snapshot captures.
+/// Background color of the offscreen target.
 pub(crate) const BASE_COLOR: peniko::Color = peniko::Color::BLACK;
 
-/// Offscreen GPU render harness for headless rendering tests.
+/// Builder for [`RenderHarness`].
 ///
-/// [`RenderHarness::new`] requests a wgpu adapter and device, allocates an
-/// offscreen RGBA8 texture, and constructs a `vello` renderer. Subsequent
-/// `render_widget` calls drive the widget's `paint` method against a
-/// [`VelloPainter`], render the resulting scene into the texture, and read
-/// the pixels back into an [`image::RgbaImage`].
-///
-/// Construction is synchronous at the test boundary — wgpu's async adapter
-/// and device requests are wrapped in [`pollster::block_on`] internally.
+/// Construct via [`RenderHarnessBuilder::new`], configure with the setter
+/// methods, then call [`build`](RenderHarnessBuilder::build) to allocate the
+/// GPU resources.
 ///
 /// # Examples
 ///
 /// ```no_run
-/// use quartzite_renderer::RenderHarness;
+/// use quartzite_renderer::RenderHarnessBuilder;
 ///
-/// // 64x64 RGBA8 offscreen target.
-/// let _harness = RenderHarness::new(64, 64).expect("GPU available");
+/// let harness = RenderHarnessBuilder::new(64, 64)
+///     .scale_factor(1.0)
+///     .build()
+///     .expect("GPU available");
 /// ```
-pub struct RenderHarness {
-    pub(crate) device: wgpu::Device,
-    pub(crate) queue: wgpu::Queue,
-    pub(crate) texture: wgpu::Texture,
-    pub(crate) texture_view: wgpu::TextureView,
-    pub(crate) width: u32,
-    pub(crate) height: u32,
-    pub(crate) renderer: VelloRenderer,
-    pub(crate) scene: Scene,
+pub struct RenderHarnessBuilder {
+    width: u32,
+    height: u32,
+    scale_factor: f32,
 }
 
-impl core::fmt::Debug for RenderHarness {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("RenderHarness")
-            .field("width", &self.width)
-            .field("height", &self.height)
-            .finish_non_exhaustive()
-    }
-}
-
-impl RenderHarness {
-    /// Constructs a harness with an offscreen `width x height` RGBA8 render target.
+impl RenderHarnessBuilder {
+    /// Creates a new builder for a `width × height` offscreen target.
     ///
-    /// Initialisation is synchronous at the test boundary: wgpu's async
-    /// adapter and device requests are wrapped in [`pollster::block_on`].
+    /// The default scale factor is `1.0` (logical pixels == physical pixels).
+    /// Call [`scale_factor`](RenderHarnessBuilder::scale_factor) before
+    /// [`build`](RenderHarnessBuilder::build) to override it.
     ///
     /// # Parameters
     ///
-    /// - `width`: render-target width in pixels; must be `> 0`.
-    /// - `height`: render-target height in pixels; must be `> 0`.
+    /// - `width`: render-target width in pixels; must be `> 0` (enforced in
+    ///   [`build`](RenderHarnessBuilder::build)).
+    /// - `height`: render-target height in pixels; must be `> 0` (enforced in
+    ///   [`build`](RenderHarnessBuilder::build)).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::RenderHarnessBuilder;
+    ///
+    /// let builder = RenderHarnessBuilder::new(128, 128);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn new(width: u32, height: u32) -> Self {
+        Self {
+            width,
+            height,
+            scale_factor: 1.0,
+        }
+    }
+
+    /// Sets the device-pixel ratio used to convert logical to physical pixels.
+    ///
+    /// Defaults to `1.0`. Pass `2.0` for `HiDPI` / Retina testing (see AC11 /
+    /// AC12 in the renderer-painter-impls spec).
+    ///
+    /// # Parameters
+    ///
+    /// - `scale`: the DPR multiplier; typically `1.0` or `2.0` for tests.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::RenderHarnessBuilder;
+    ///
+    /// let harness = RenderHarnessBuilder::new(40, 40)
+    ///     .scale_factor(2.0)
+    ///     .build()
+    ///     .expect("GPU available");
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn scale_factor(mut self, scale: f32) -> Self {
+        self.scale_factor = scale;
+        self
+    }
+
+    /// Allocates GPU resources and returns a [`RenderHarness`].
+    ///
+    /// Initialisation is synchronous at the test boundary: wgpu's async
+    /// adapter and device requests are wrapped in [`pollster::block_on`].
     ///
     /// # Errors
     ///
@@ -95,11 +128,17 @@ impl RenderHarness {
     /// # Examples
     ///
     /// ```no_run
-    /// use quartzite_renderer::RenderHarness;
+    /// use quartzite_renderer::RenderHarnessBuilder;
     ///
-    /// let harness = RenderHarness::new(128, 128).expect("GPU available");
+    /// let harness = RenderHarnessBuilder::new(64, 64).build().expect("GPU available");
     /// ```
-    pub fn new(width: u32, height: u32) -> Result<Self, RendererError> {
+    pub fn build(self) -> Result<RenderHarness, RendererError> {
+        let Self {
+            width,
+            height,
+            scale_factor,
+        } = self;
+
         if width == 0 || height == 0 {
             return Err(RendererError::Paint(PaintError::Other(
                 "zero-extent render target",
@@ -143,26 +182,72 @@ impl RenderHarness {
         )
         .map_err(|_| RendererError::Paint(PaintError::Other("vello renderer init failed")))?;
 
-        Ok(Self {
+        Ok(RenderHarness {
             device,
             queue,
             texture,
             texture_view,
             width,
             height,
+            scale_factor,
             renderer,
             scene: Scene::new(),
         })
     }
+}
 
+/// Offscreen GPU render harness for headless rendering tests.
+///
+/// Constructed via [`RenderHarnessBuilder`]: request a wgpu adapter and device,
+/// allocate an offscreen RGBA8 texture, and initialise a `vello` renderer.
+/// Subsequent [`render_widget`](RenderHarness::render_widget) calls drive the
+/// widget's `paint` method against a [`VelloPainter`], render the resulting
+/// scene into the texture, and read the pixels back into an
+/// [`image::RgbaImage`].
+///
+/// Construction is synchronous at the test boundary — wgpu's async adapter
+/// and device requests are wrapped in [`pollster::block_on`] inside
+/// [`RenderHarnessBuilder::build`].
+///
+/// # Examples
+///
+/// ```no_run
+/// use quartzite_renderer::RenderHarnessBuilder;
+///
+/// // 64x64 RGBA8 offscreen target.
+/// let _harness = RenderHarnessBuilder::new(64, 64).build().expect("GPU available");
+/// ```
+pub struct RenderHarness {
+    pub(crate) device: wgpu::Device,
+    pub(crate) queue: wgpu::Queue,
+    pub(crate) texture: wgpu::Texture,
+    pub(crate) texture_view: wgpu::TextureView,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
+    pub(crate) scale_factor: f32,
+    pub(crate) renderer: VelloRenderer,
+    pub(crate) scene: Scene,
+}
+
+impl core::fmt::Debug for RenderHarness {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("RenderHarness")
+            .field("width", &self.width)
+            .field("height", &self.height)
+            .field("scale_factor", &self.scale_factor)
+            .finish_non_exhaustive()
+    }
+}
+
+impl RenderHarness {
     /// Returns the offscreen render target's width in pixels.
     ///
     /// # Examples
     ///
     /// ```no_run
-    /// use quartzite_renderer::RenderHarness;
+    /// use quartzite_renderer::RenderHarnessBuilder;
     ///
-    /// let h = RenderHarness::new(64, 32).unwrap();
+    /// let h = RenderHarnessBuilder::new(64, 32).build().unwrap();
     /// assert_eq!(h.width(), 64);
     /// ```
     #[inline]
@@ -176,15 +261,34 @@ impl RenderHarness {
     /// # Examples
     ///
     /// ```no_run
-    /// use quartzite_renderer::RenderHarness;
+    /// use quartzite_renderer::RenderHarnessBuilder;
     ///
-    /// let h = RenderHarness::new(64, 32).unwrap();
+    /// let h = RenderHarnessBuilder::new(64, 32).build().unwrap();
     /// assert_eq!(h.height(), 32);
     /// ```
     #[inline]
     #[must_use]
     pub const fn height(&self) -> u32 {
         self.height
+    }
+
+    /// Returns the active device-pixel ratio.
+    ///
+    /// `1.0` by default (logical == physical pixels). Override via
+    /// [`RenderHarnessBuilder::scale_factor`].
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::RenderHarnessBuilder;
+    ///
+    /// let h = RenderHarnessBuilder::new(40, 40).scale_factor(2.0).build().unwrap();
+    /// assert_eq!(h.scale_factor(), 2.0);
+    /// ```
+    #[inline]
+    #[must_use]
+    pub const fn scale_factor(&self) -> f32 {
+        self.scale_factor
     }
 
     /// Drives `paint` against an internal [`VelloPainter`], renders the
@@ -224,9 +328,9 @@ impl RenderHarness {
     /// # Examples
     ///
     /// ```no_run
-    /// use quartzite_renderer::RenderHarness;
+    /// use quartzite_renderer::RenderHarnessBuilder;
     ///
-    /// let mut h = RenderHarness::new(64, 64).unwrap();
+    /// let mut h = RenderHarnessBuilder::new(64, 64).build().unwrap();
     /// let img = h.render_widget(|_painter| { /* drive paint here */ });
     /// assert_eq!(img.width(), 64);
     /// assert_eq!(img.height(), 64);
@@ -333,8 +437,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_zero_width_returns_err() {
-        let err = RenderHarness::new(0, 64).unwrap_err();
+    fn builder_zero_width_returns_err_from_build() {
+        let err = RenderHarnessBuilder::new(0, 64).build().unwrap_err();
         assert!(
             matches!(
                 err,
@@ -345,8 +449,8 @@ mod tests {
     }
 
     #[test]
-    fn new_zero_height_returns_err() {
-        let err = RenderHarness::new(64, 0).unwrap_err();
+    fn builder_zero_height_returns_err_from_build() {
+        let err = RenderHarnessBuilder::new(64, 0).build().unwrap_err();
         assert!(
             matches!(
                 err,
@@ -357,12 +461,32 @@ mod tests {
     }
 
     #[test]
-    fn new_zero_both_returns_err() {
-        let err = RenderHarness::new(0, 0).unwrap_err();
+    fn builder_zero_both_returns_err_from_build() {
+        let err = RenderHarnessBuilder::new(0, 0).build().unwrap_err();
         assert!(matches!(
             err,
             RendererError::Paint(PaintError::Other("zero-extent render target"))
         ));
+    }
+
+    #[test]
+    fn builder_default_scale_factor_is_1_0() {
+        // Validates builder default without GPU — zero-extent error fires first.
+        let harness = RenderHarnessBuilder::new(0, 64).build().unwrap_err();
+        // Confirm it's the zero-extent path, not a scale-factor problem.
+        assert!(matches!(
+            harness,
+            RendererError::Paint(PaintError::Other("zero-extent render target"))
+        ));
+        // Check the in-memory scale_factor field before GPU init via the builder.
+        let builder = RenderHarnessBuilder::new(64, 64);
+        assert_eq!(builder.scale_factor, 1.0);
+    }
+
+    #[test]
+    fn builder_explicit_scale_factor_round_trips() {
+        let builder = RenderHarnessBuilder::new(64, 64).scale_factor(2.0);
+        assert_eq!(builder.scale_factor, 2.0);
     }
 
     /// Smoke test: a 64x64 harness rendered against a no-op paint closure
@@ -379,7 +503,7 @@ mod tests {
             );
             return;
         }
-        let mut harness = match RenderHarness::new(64, 64) {
+        let mut harness = match RenderHarnessBuilder::new(64, 64).build() {
             Ok(h) => h,
             Err(e) => {
                 eprintln!(
