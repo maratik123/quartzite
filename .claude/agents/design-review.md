@@ -55,7 +55,7 @@ Every suspicion — **investigate via Read/grep**, don't guess and don't give be
 ```
 
 Verdict is one of three values:
-- **GO** — actively checked, no blockers found. Notes are allowed.
+- **GO** — actively checked, no blockers found. Notes / minors / recommendations are allowed, **but they are not free**: every such item MUST be written back into the design document (the relevant API table, helper list, risk table, decomposition section) by the orchestrator BEFORE Step 8 implementation begins. The design doc is the implementation contract; "applied in code later" is not the same as "resolved in the design", and a stale design doc misleads every future reviewer. Surface this expectation explicitly in the verdict — when emitting GO with notes, append a final line under `## Recommendations`: `**Round-trip required:** before Step 8, update the design doc to incorporate each note/recommendation above.` Empty notes / recommendations → no round-trip line needed.
 - **ITERATE** — blockers exist, specific sections need rework
 - **STOP** — fundamental problem with the approach, needs rethinking. Iterations won't help.
 
