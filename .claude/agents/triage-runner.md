@@ -6,7 +6,7 @@ model: opus
 
 # Triage Runner Agent
 
-You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls** — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
+You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls + writes to the run's progress file at `ai-docs/triage/triage-YYYY-MM-DD.progress.md`** (and `mkdir -p ai-docs/triage` on first run) — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
 
 The skill body (`.claude/skills/triage/SKILL.md`) is the user-facing description; this file is the operational spec — read it end-to-end before starting.
 
@@ -18,7 +18,8 @@ Read on session start:
 2. `ai-docs/deferred/widget-backlog.md`.
 3. `ai-docs/deferred/_inbox.md`.
 4. `ai-docs/deferred-items.md` (for end-of-run row-count update).
-5. Linked `Source` specs in `ai-docs/plans/done/` — read on demand for title/body drafting.
+5. `ai-docs/triage/triage-YYYY-MM-DD.progress.md` — if it exists for the current branch / date, the run resumes from its `## Next action` (see Phase 1.5 below). Mutation scope is extended to include this path AND its parent directory `ai-docs/triage/` (created on first run via `mkdir -p`); both are gitignored.
+6. Linked `Source` specs in `ai-docs/plans/done/` — read on demand for title/body drafting.
 
 Take content snapshots of every row you might mutate; the concurrent-edit guard (below) compares against these snapshots immediately before each write.
 
@@ -29,6 +30,31 @@ Take content snapshots of every row you might mutate; the concurrent-edit guard 
 Run `git branch --show-current`. If the output is `master`, halt with the message *"`/triage` mutates `ai-docs/deferred/**` and must run on a feature branch. Switch via `git checkout -b chore/triage-YYYY-MM-DD` or similar, then re-invoke."* Per AGENTS.md AXIOM 1.
 
 Else proceed.
+
+Also at Phase 1: probe `ai-docs/triage/triage-YYYY-MM-DD.progress.md` (or any `triage-*.progress.md` in `ai-docs/triage/` matching the current branch). If a progress file is present, **read it end-to-end** and skip the phases its `## Next action` records as already complete — resume from the recorded phase using its persisted dedupe map, bridge classifications, and candidate partitions instead of re-doing those passes. Do not silently overwrite a user-edited partition; treat the file as authoritative for everything it covers and only fill in the next phase.
+
+### Phase 1.5: Create / refresh progress file
+
+If Phase 1 did **not** find an existing progress file:
+
+```bash
+mkdir -p ai-docs/triage
+```
+
+Then create `ai-docs/triage/triage-YYYY-MM-DD.progress.md` using the canonical schema from `ai-docs/templates/progress-format.md`. Required header fields:
+
+- `**Branch:**` — output of `git branch --show-current`.
+- `**base_commit:**` — output of `git rev-parse HEAD`.
+- `**Last build:**` — N/A for `/triage` (no build step); record `N/A (triage skill — no build)`.
+
+Required body sections (populated as phases run, **not** upfront):
+
+- `## Phase 4 dedupe map summary` — `{number → {state, title}}` counts after Phase 4 lands.
+- `## Phase 4.5 bridge classifications` — type-1 / type-2 / type-3 lists plus per-conflict user resolutions as they're recorded.
+- `## Phase 6 / Phase 7 partitions` — approve / decline / skip (Phase 6) and sort / promote / drop / keep (Phase 7), including any user-edited tweaks (canonical example: "move row L179 from decline to promote").
+- `## Next action` — the phase the next subagent invocation should resume from. Always updated after every phase completes.
+
+The file is gitignored via `.gitignore` (`/ai-docs/triage/**/*.progress.md`); never staged in any commit emitted by this agent.
 
 ### Phase 2: Threshold gate
 
@@ -68,6 +94,8 @@ pagination. No mutations performed in this run.
 ```
 
 Otherwise build a local **`{number → {state, title}}`** map keyed by issue number — used by both the existing dedupe path AND Phase 4.5's bridge sweep. Derive a `{title → #N}` view from the same map for the title-match dedupe step below; the two views share storage and are built in one pass over the response.
+
+**Persist** the map's summary (total issue count, open count, closed count) into `ai-docs/triage/triage-YYYY-MM-DD.progress.md` under `## Phase 4 dedupe map summary`, then update `## Next action` to `Phase 4.5`. The full map need not be serialised — Phase 4.5 / Phase 7.5's re-checks rebuild the map from a fresh `gh issue list` call if the subagent restarts. The summary is for resume diagnostics + user spot-check.
 
 For each cell-iteration candidate, exact-title-match dedupe against the `{title → #N}` view. If the proposed title already matches an existing issue:
 
@@ -139,6 +167,8 @@ Action? (m)update md / (i)update issue / (k)keep both
 
 **Phase 4.5 is read-only on `ai-docs/deferred/**` until the user resolves conflicts.** Mutations happen one conflict at a time at user-decision time, with the concurrent-edit guard checked immediately before each write. No batched mutation pass — this matches Phase 7's drain shape.
 
+**Persist** the full type-1 / type-2 / type-3 lists into `## Phase 4.5 bridge classifications` of the progress file as they're produced; append each per-conflict user resolution (`update md` / `update issue` / `keep both` + the user's free-text reason for `keep both`) under the same section as the user works through prompts. Update `## Next action` to `Phase 5` once every conflict is resolved (or recorded as `keep both`).
+
 ### Phase 5: Draft titles and bodies
 
 For each cell-iteration candidate (NOT `_inbox.md` rows — those are drained in Phase 7):
@@ -184,6 +214,8 @@ User responds per row: approve / decline / skip-this-run.
 
 The Phase 6 user action is "approve" / "decline" — that single action IS the user's decision; no separate write-confirmation per row.
 
+**Persist** the Phase 6 partition into `## Phase 6 / Phase 7 partitions` of the progress file: list of approves (per-row `file + cell + drafted title`), list of declines (per-row `file + cell + Item`), list of skips (per-row `file + cell + Item`). Record user-edited tweaks verbatim ("user moved row L179 from decline to promote"). Update `## Next action` to `Phase 7` once the Phase 6 table is fully resolved.
+
 ### Phase 7: Drain `_inbox.md`
 
 Per-entry user prompt for every `_inbox.md` row tagged in Phase 3. For each row, present:
@@ -203,6 +235,8 @@ Actions:
 - **promote** → follow-up prompt: pick destination thematic file (numbered menu). **Append the row to the same approval queue collected in Phase 6** (Phase 6 deferred its creates exactly so this union is possible). The actual create + cell-4-write happens in Phase 7.5. On approval, the row will migrate to the chosen thematic file with `#N` in cell 4 + be removed from `_inbox.md`. On decline, migrate with `untracked` + remove.
 - **drop** → physically remove the row from `_inbox.md`. No migration. Reserved for legitimately-bad rows.
 - **keep** → leave the row in `_inbox.md` unchanged.
+
+**Persist** the Phase 7 partition under the same `## Phase 6 / Phase 7 partitions` section of the progress file (append a Phase 7 subsection): per-row action (sort / promote / drop / keep) + chosen thematic destination when applicable. Update `## Next action` to `Phase 7.5` once every `_inbox.md` row has been actioned.
 
 ### Phase 7.5: Combined `gh issue create` pass
 
@@ -250,9 +284,17 @@ Emit the run-output summary per the skill body's *Run-output summary* section. S
 
 Phase 8 is read-only across `ai-docs/deferred/*.md` after the count rewrite — no further row mutations.
 
+**Progress-file cleanup (final action of the run).** After the run summary emits successfully, delete `ai-docs/triage/triage-YYYY-MM-DD.progress.md`:
+
+```bash
+rm -f ai-docs/triage/triage-YYYY-MM-DD.progress.md
+```
+
+This mirrors the `/pr-merged` `scripts/cleanup-progress.sh` mechanic for `/task` / `/pr-commented` files — the progress file exists only for the duration of the multi-turn run, and a stale file on the next run would resume from out-of-date state. If the run aborted before Phase 8 (watchdog, branch-check failure, concurrent-edit unrecoverable abort), leave the file in place — that is exactly the resume-target case Phase 1 reads.
+
 ## Anti-patterns
 
-- **Do NOT** write to any file outside `ai-docs/deferred/**` (this explicitly excludes `ai-docs/learnings.md`, `AGENTS.md`, `.claude/**`, source files, `Cargo.toml`).
+- **Do NOT** write to any file outside `ai-docs/deferred/**` or `ai-docs/triage/triage-YYYY-MM-DD.progress.md` (this explicitly excludes `ai-docs/learnings.md`, `AGENTS.md`, `.claude/**`, source files, `Cargo.toml`). The progress file is the sole exception — gitignored, local-only, deleted at Phase 8.
 - **Do NOT** run multiple `gh issue list` calls per session — exactly one bulk call per run.
 - **Do NOT** silently overwrite a row when the content snapshot mismatches — abort with the unified diff.
 - **Do NOT** auto-approve declined rows; the decline marker is implicit-by-decline (the user's decline IS the action that triggers the write), but the user MUST make that decline call explicitly.

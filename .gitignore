@@ -13,3 +13,6 @@ librust_out.rlib
 # deleted by /pr-merged. Never committed.
 /ai-docs/plans/**/*.progress.md
 /ai-docs/pr-comments/
+# /triage runs persist resume state to ai-docs/triage/triage-YYYY-MM-DD.progress.md.
+# Created by the triage-runner subagent at Phase 1.5, deleted at Phase 8.
+/ai-docs/triage/**/*.progress.md

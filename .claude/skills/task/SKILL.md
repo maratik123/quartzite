@@ -48,6 +48,42 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 
 ---
 
+## ⚡ Third: bare-issue activation of a matching deferred spec
+
+> **AXIOM — When `$ARGUMENTS` is a bare gh issue number, search deferred specs for `**Tracked in:** #N` BEFORE launching the interview.**
+> The keyword trigger above ("activate", "start", "proceed") does NOT fire on a bare integer, so `/task 47` would otherwise enter the interview machinery and create a spurious `*.state.md` file even when `ai-docs/plans/deferred/2026-05-01-paint-style.spec.md` already carries `**Tracked in:** #47`. Catch this case here.
+>
+> | If `$ARGUMENTS` resolves to... | Action |
+> |---|---|
+> | A bare issue number (`/task 47` or `/task #47`) AND a deferred spec exists with `**Tracked in:** #N` matching that number | Run this phase's activation sequence below — do NOT launch the interview, do NOT create a state file. |
+> | A bare issue number AND no matching deferred spec | Fall through to the Steps 1–5 interview phase (the issue's body becomes the interview seed). |
+> | Free text / keyword-triggered activation / empty args | Skip this phase; the active-task probe above (if applicable) or Steps 1–5 cover those entry modes. |
+
+Activation sequence (bare-issue → matching deferred spec):
+
+1. Parse `$ARGUMENTS` — strip leading `#`, confirm it's a positive integer `N`.
+2. Load issue body: `gh issue view <N> --json title,body,state,labels` (also used to surface the issue's `blocked` label per the separate AGENTS.md learning, when that rule fires).
+3. Grep deferred specs for the tracking reference:
+   ```bash
+   grep -l "^\*\*Tracked in:\*\* #<N>\b" ai-docs/plans/deferred/*.spec.md
+   ```
+   If grep returns **zero matches**: fall through to Steps 1–5 (interview-driven flow). The issue body loaded in step 2 is available as context for the interview.
+   If grep returns **one match**: continue with step 4.
+   If grep returns **multiple matches** (unexpected — `**Tracked in:**` should be 1:1 with an issue): surface the list to the user and ask which spec to activate before proceeding.
+4. Move the matched spec (and its `*.design.md` / `*.progress.md` siblings if present) from `ai-docs/plans/deferred/` to `ai-docs/plans/`:
+   ```bash
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.spec.md ai-docs/plans/
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.design.md ai-docs/plans/     # if exists
+   mv ai-docs/plans/deferred/YYYY-MM-DD-name.progress.md ai-docs/plans/   # if exists
+   ```
+5. Update `ai-docs/plans/INDEX.md`: move the plan row from **Deferred plans** to **Active plans**; status `🟢 ready` (or `🟡 spec-only` if no design exists yet).
+6. Surface the spec's existing `## Acceptance Criteria` table to the user verbatim and ask: *"Confirm these ACs, or revise before continuing?"* — wait for the user's response before proceeding. Any revisions must be applied to the spec file before Step 6 launches.
+7. **Do NOT run the interview.** **Do NOT create an `*.state.md` interview state file.** **Do NOT re-resolve the tracking issue** — the spec's existing `**Tracked in:** #<N>` is authoritative.
+8. If a `.progress.md` was moved (rare — a prior `/task` run on this spec was interrupted): treat the activated task as a resume and jump to the RESUME path's `## Next action`.
+9. Otherwise jump directly to **Step 6** (design phase) — the spec exists, ACs are confirmed, the interview phase is satisfied.
+
+---
+
 ### Steps 1–5: Spec creation (delegated to `/interview`)
 
 `/task` does not duplicate the interview workflow. Scope extraction, key-decision confirmation, tracking-issue resolution, spec writing, and the cross-link comment are owned by `/interview` (`.claude/skills/interview/SKILL.md`). Treat these five steps as a single delegated phase.
