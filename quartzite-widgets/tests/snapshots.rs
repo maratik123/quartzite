@@ -18,7 +18,7 @@ use quartzite_paint_api::{Brush, Color, Font, Image, Path, Pen};
 use quartzite_renderer::RenderHarnessBuilder;
 use quartzite_widgets::{BoxLayout, Button, Direction, GridLayout, Label, LineEdit};
 
-use support::{snapshot_assert, snapshot_widget};
+use support::{harness_or_skip, snapshot_assert, snapshot_widget};
 
 /// Canvas size shared by the standard snapshot tests. 64 keeps committed
 /// PNGs small.
@@ -29,12 +29,15 @@ const BG: [u8; 4] = [0, 0, 0, 255];
 
 /// Constructs a harness from `builder` or skips the test when no GPU adapter
 /// is available locally or `SKIP_RENDER_SNAPSHOT=1` is set.
+///
+/// For the standard 64×64 canvas use [`support::harness_or_skip`] instead.
+/// This variant is kept for HiDPI tests that need a custom [`RenderHarnessBuilder`].
 fn harness_or_skip_with(
     name: &str,
     builder: RenderHarnessBuilder,
 ) -> Option<quartzite_renderer::RenderHarness> {
-    if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some_and(|v| !v.is_empty()) {
-        eprintln!("{name}: SKIP_RENDER_SNAPSHOT set; skipping");
+    if std::env::var_os(support::SKIP_ENV).is_some_and(|v| !v.is_empty()) {
+        eprintln!("{name}: {} set; skipping", support::SKIP_ENV);
         return None;
     }
     match builder.build() {
@@ -44,13 +47,6 @@ fn harness_or_skip_with(
             None
         }
     }
-}
-
-/// Constructs a 64×64 harness or skips the test when no GPU adapter is
-/// available locally. Returning `Option` lets the test exit cleanly when
-/// `SKIP_RENDER_SNAPSHOT=1` is set or the box has no driver.
-fn harness_or_skip(name: &str) -> Option<quartzite_renderer::RenderHarness> {
-    harness_or_skip_with(name, RenderHarnessBuilder::new(CANVAS, CANVAS))
 }
 
 /// Count pixels that differ from the harness background colour (black).

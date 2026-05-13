@@ -172,6 +172,8 @@ Crate-level plans:
 9. `quartzite-renderer` — `WindowedApplication` + `VelloPainter` (vello+wgpu+winit) ✅ (graphics-stack #73; new `Painter` methods land as no-op stubs in paint-style #47; real implementations + text rendering via parley/skrifa in renderer-painter-impls #289/#277)
 10. `quartzite-widgets` — WidgetBase, WidgetExt, BoxLayout, GridLayout, Label, Button, LineEdit, TextEdit, ScrollArea, Container ✅ (#46; refactored in paint-style #47 to drop local `Alignment`/`Font`/`Palette` and re-export from upstream)
 11. `quartzite-style-types` + `quartzite-style` — leaf (`Palette`, `ColorRole`) + downstream (`Style` trait, `StyleRegistry`) ✅ (paint-style #47). Two-crate split exists to break the `style ↔ widgets` Cargo cycle; widgets depends on the leaf only, enforced by a `cargo tree -p quartzite-widgets` integration test.
+12. `DefaultStyle` concrete implementation ✅ (#290, default-style-content). Flat fill/1-px-outline rendering for Button/Label/TextEdit/ScrollArea with palette-driven colours; checked/disabled/read-only state variants.
+13. `DefaultStyle` GPU snapshot tests ✅ (#297, default-style-snapshot-tests). Seven pixel-level goldens in `quartzite-style/tests/snapshots/shared/` via `RenderHarness`; `quartzite-style/tests/support/mod.rs` mirrors the `quartzite-widgets` helper contract (snapshot-helper sync group). `harness_or_skip` lifted into both `tests/support/mod.rs` modules.
 
 ### Maintenance plans (cross-cutting)
 

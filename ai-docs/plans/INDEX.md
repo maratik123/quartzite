@@ -6,6 +6,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [default-style-snapshot-tests](done/2026-05-13-default-style-snapshot-tests.spec.md) | `quartzite-style` | ✅ implemented (7 GPU snapshot tests — AC1–AC13; `quartzite-style/tests/snapshots.rs` + `tests/support/mod.rs` mirroring widgets helper contract; 7 golden PNGs in `shared/`; `harness_or_skip` lifted into both support modules; snapshot-helper sync group added to AGENTS.md; `scripts/update-snapshots.sh` `--crate` flag added) | — |
 | [default-style-content](done/2026-05-13-default-style-content.spec.md) | `quartzite-style` | ✅ implemented (10 new tests — AC1 `Send+Sync` trait-object; AC2–AC5 per-widget RecordingPainter assertions; AC6 unknown-widget no-op; AC7 checked-vs-idle button colour; AC8 disabled half-alpha; AC10 `StyleRegistry` round-trip; `DefaultStyle` zero-sized struct + `draw_widget` downcast router + `draw_button`/`draw_label`/`draw_text_edit`/`draw_scroll_area` private methods; `brush`/`disabled`/`maybe_disabled` helpers) | — |
 | [renderer-painter-impls](done/2026-05-12-renderer-painter-impls.spec.md) | `quartzite-renderer` `quartzite-widgets` | ✅ implemented (17 new tests — 3 `VelloPainter` unit tests, 2 `FontCache` tests, 2 `RenderHarnessBuilder` tests, 10 GPU snapshot tests AC1–AC12; `VelloPainter` full 11-method `Painter` impl with parley+skrifa text; `FontCache` struct; `RenderHarnessBuilder` with `scale_factor`; `draw_text`/`draw_text_in` via parley layout + skrifa glyph metrics + vello glyph rendering; bug fix: `emit_layout_glyphs` no longer double-counts centering offset from `positioned_glyphs()`) | — |
 | [multi-window-support](done/2026-05-11-multi-window-support.spec.md) | `quartzite-renderer` | ✅ implemented (19 new tests — 7 `WrappedHandler` dispatch unit tests, 4 `event_convert` unit tests, 2 `WindowRegistry` unit tests, 1 `WindowId` unit test, 5 integration tests; `WindowedAppHandler` trait + `WindowedApplicationBuilder` + `WindowRegistry` + multi-window event fan-out wired into `WrappedHandler`; `try_create_window` / `windows()` API; `quit_on_last_window_closed` builder flag; `CloseRequested` teardown + last-window-quit policy; per-window `WidgetRoot` dispatch) | — |
@@ -102,6 +103,7 @@ core-types ✅
 │   ├── widgets (#46)              ✅ implemented (refactored in #47 to re-export Alignment / Font / Palette from upstream)
 │   └── paint-style (#47)          ✅ implemented (full Painter trait + paint-side Font/Image/Path; quartzite-style-types leaf + quartzite-style downstream)
 │       └── default-style-content (#290) ✅ implemented (DefaultStyle concrete impl: Button/Label/TextEdit/ScrollArea draw_widget routing)
+│           └── default-style-snapshot-tests (#297) ✅ implemented (7 GPU snapshot goldens via RenderHarness; snapshot-helper sync group)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
@@ -116,6 +118,7 @@ Maintenance plans (cross-cutting, all ✅): see [`../context.md` § Maintenance 
 2. **`signals_blocked` persistence (#39)** — now unblocked by the serialization layer (#107 ✅); small targeted change to carry `signals_blocked` through `ObjectSnapshot` / restore.
 2. **Multi-window support (#53)** — ✅ implemented. `WindowedAppHandler` + `WindowRegistry` + `try_create_window` + per-window `WidgetRoot` dispatch landed.
 2. **Concrete `Style` implementation in `quartzite-style`** — ✅ implemented (#290). `DefaultStyle` ships a downcast-routing `draw_widget` covering Button/Label/TextEdit/ScrollArea with palette-driven flat rendering.
+2. **`DefaultStyle` GPU snapshot tests** — ✅ implemented (#297). 7 pixel-level goldens in `quartzite-style/tests/snapshots/shared/`; snapshot-helper sync group established between `quartzite-widgets/tests/support/mod.rs` and `quartzite-style/tests/support/mod.rs`.
 3. **Bootstrap Windows/macOS snapshot goldens (#192 follow-up)** — `gpu-snapshot-tests-ci` shipped Linux/vulkan goldens only; Win/Mac matrix lanes are `continue-on-error: true` until contributors with those platforms run `scripts/update-snapshots.sh` and commit the per-backend PNGs. Drop `continue-on-error` once both lanes are green.
 3. **Gradient brush support (#281)** — `BrushKind::LinearGradient` / `RadialGradient` variants and renderer support; `VelloPainter` already has the `_ => None` early-return placeholder for gradient brushes.
 4. **Expand** `quartzite` facade prelude as new crates are implemented
