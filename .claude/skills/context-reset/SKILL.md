@@ -23,7 +23,7 @@ When triggered (N=3, M>=5 OR compaction detected):
 
 ## `.progress.md` format (canonical)
 
-The full format spec lives in a dedicated reference file: **[progress-format.md](progress-format.md)** (template, required vs optional fields, lifecycle: created by `/task` or `/code-review`, extended by self-review and `/pr-commented`, gitignored, deleted by `/pr-merged`). Used by `/task`, `/code-review`, `/pr-commented`, and the `review-findings` / `self-review` agents.
+The full format spec lives in the shared-templates directory: **[`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md)** (template, required vs optional fields, lifecycle: created by `/task` or `/code-review`, extended by self-review and `/pr-commented`, gitignored, deleted by `/pr-merged`). Used by `/task`, `/code-review`, `/pr-commented`, and the `review-findings` / `self-review` agents.
 
 ## Rules
 

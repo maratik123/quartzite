@@ -103,7 +103,7 @@ Flag each of the following:
 
 ## Progress file format
 
-Use the canonical `.progress.md` format spec at [`.claude/skills/context-reset/progress-format.md`](../skills/context-reset/progress-format.md). Required header fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. Omit the `**Issue:**` / `**Spec:**` fields — this is review-driven, not spec-driven.
+Use the canonical `.progress.md` format spec at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md). Required header fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. Omit the `**Issue:**` / `**Spec:**` fields — this is review-driven, not spec-driven.
 
 Code-review-specific shape:
 

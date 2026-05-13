@@ -245,6 +245,8 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
 | `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
+| `ai-docs/templates/` | Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files). |
+| `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`. |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
