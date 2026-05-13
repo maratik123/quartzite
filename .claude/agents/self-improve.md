@@ -77,9 +77,15 @@ Number all proposals. Let user choose.
 
 1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / skill / agent / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation.
 
-2. **Commit B — backfill `Escalated?`.** For each `ai-docs/learnings.md` entry whose pattern was just escalated in Commit A, edit ONLY the `**Escalated?**` line — replace the prior value (typically `no`) with the comma-separated list of targets actually modified. Do not touch any other line of the entry. Do not append new entries. Commit message: `chore(learnings): backfill Escalated? for entries <date1>, <date2>, ...`.
+2. **Commit B — backfill `Escalated?` and (when applicable) `Superseded by:`.** Two kinds of field updates may happen here, on EXISTING entries only (NEVER append new entries):
 
-   This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` field, agent-driven only). All other lines of the entry remain immutable.
+   a. **`Escalated?` backfill.** For each entry whose pattern was just escalated in Commit A, edit ONLY the `**Escalated?**` line — replace the prior value (typically `no`) with the comma-separated list of targets actually modified.
+
+   b. **`Superseded by:` backfill (when Commit A reverses, refines, generalizes, subsumes, or withdraws a prior entry's rule).** Identify the PRIOR entry whose `Rule:` text Commit A invalidates. Add or update its `**Superseded by:**` line. Format: `[ref] — [one-line reason]` where `[ref]` is a `YYYY-MM-DD` date (later entry; disambiguate with quoted slug when multiple entries share the date), `PR #N`, or both comma-separated. If the prior entry has no `**Superseded by:**` line yet, INSERT one on its own line immediately after the entry's `**Escalated?**` line. Write to the PRIOR entry's `Superseded by:`, never to the new entry.
+
+   Do not touch any other line of any entry. Commit message: `chore(learnings): backfill Escalated? / Superseded by: for entries <date1>, <date2>, ...` (drop the `Superseded by:` half when no supersession applies).
+
+   This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only). All other lines of the entry remain immutable.
 
    **Boundary rule 2 note:** Splitting into Commit A then Commit B keeps the PR diff legible (escalation substance separate from bookkeeping). The exception in Boundary rule 2 authorises both commits in the same `/improve` turn; it does NOT authorise appending NEW learning entries in the same turn.
 
