@@ -1009,7 +1009,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **How to apply — IF this gets escalated to AGENTS.md** (via `/improve` or explicit user ask, NOT in this turn): add a second exception sub-block to Boundary Rule 2's blockquote, parallel to the existing `/improve` / `/ai-audit` exception. Suggested wording: *"Exception — in-flow learning capture during `/task` Steps 8–12. A NEW learning entry MAY be appended to `ai-docs/learnings.md` in the same conversation turn as an instruction-file edit when (a) the learning documents an insight gained during the task being implemented, AND (b) the entry is marked `Escalated? no` (escalation requires a separate `/improve` invocation per Boundary Rule 2's main body). The carve-out applies to `/task` workflow turns only — bare instruction-file edits outside a `/task` flow remain bound by the main rule."* Propagate the change through the Corrections-Log sync group per AGENTS.md's Propagation Rule (i.e., `.claude/agents/self-improve.md` and `.claude/agents/learnings-escalation-audit.md` checklists must mirror the carve-out so they don't flag in-flow entries as violations).
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
 
 ### 2026-05-13 — tooling — every project instruction file Claude loads on each invocation MUST stay below 40,000 chars
 
@@ -1024,4 +1024,4 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 1. **Project-side gate.** Land `scripts/check-agents-md-size.sh` (already named in PR #324's spec § *Deferred*, queued as a tooling chore) — generalise it to `scripts/check-instruction-file-sizes.sh` covering `AGENTS.md`, `CLAUDE.md`, `.claude/skills/**/SKILL.md`, `.claude/agents/**.md`, `ai-docs/{code-style,doc-convention,context,agent-writing-style}.md`. Fail at 40,000 chars; warn at 35,000. Wire into pre-commit (or at least into the CI sync-gate workflow).
 2. **AGENTS.md axiom.** Add an AXIOM block to AGENTS.md's `## Permissions` or `## Build & Test` section: *"Every project instruction file Claude loads per invocation MUST stay below 40,000 chars; cross-reference `ai-docs/<topic>.md` extraction pages once a file approaches 35,000 chars. The 40k cap is harness-enforced; the 35k speed bump is the project-side mitigation."* Until the gate lands, the rule lives here in `learnings.md` as a `/improve` candidate, and a brief manual `wc -c .claude/skills/**/SKILL.md .claude/agents/**.md AGENTS.md CLAUDE.md ai-docs/{code-style,doc-convention,context,agent-writing-style}.md` should be run by any `/task` whose work touches any instruction file (the file-size check is cheap; the surprise warning is not).
 
-**Escalated?** no
+**Escalated?** AGENTS.md
