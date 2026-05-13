@@ -252,6 +252,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 | `.claude/agents/spec-writer.md` | Spec-writer subagent (`model: opus`) — drafts the task spec one interview round per invocation; invoked by the `/interview` orchestrator |
 | `.claude/skills/triage/SKILL.md` + `.claude/agents/triage-runner.md` | `/triage` skill — batched promotion of `Tracked` = `—` rows in `ai-docs/deferred/*.md` (+ `🟡 v2` rows in `widget-backlog.md`) to gh issues; drains `_inbox.md` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`. |
+| `.claude/skills/pr-commented/SKILL.md` | `/pr-commented` skill — one round of reviewer-comment response on an open PR. Reads unresolved threads, auto-classifies (`fix` / `objection` / `clarify` / `already-fixed` / `defer` / `ignore-bot`), bundles fixes into one commit per invocation, runs `self-review`, pushes, replies + resolves per category. Re-invocable per round. Downstream of `/task` Step 12; does NOT replace `/task`. Never edits `ai-docs/learnings.md` (PR comments are external content). |
 
 ## Corrections Log
 

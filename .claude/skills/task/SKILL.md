@@ -277,6 +277,8 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
 
+**Reviewer comments arrive after Step 12** — run `/pr-commented` to address them. Do **not** re-enter `/task` for routine reviewer feedback; `/pr-commented` handles one comment round per invocation (read threads → classify → fix in one commit → self-review → push → reply/resolve) and is re-invocable for each subsequent round. Architectural-rework requests in comments are the one exception: `/pr-commented` bails on them, at which point a fresh `/task` design-review cycle is the correct response.
+
 #### Inbox propagation — parser rules and per-row mapping
 
 The Step 12 sub-step 4 "inbox propagation" parser walks one or more spec/design files, locates each of the three target headings (`## Out of scope` / `## Deferred` / `## Open questions`, exact h2 match anchored on `^## <Heading>$`), classifies the body shape using the six ordered rules below, and emits one row to `ai-docs/deferred/_inbox.md` per parsed item. The rules are ordered — the first match wins; rule ordering matters (pipe-bullet and bold-bullet shapes take precedence over plain bullets). For mixed-shape bodies (rare; a single section containing two shapes), classify per line using the same ordering — every line goes through the same six rules.
