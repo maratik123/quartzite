@@ -34,23 +34,6 @@ pub struct Palette {
 }
 
 impl Palette {
-    /// Saturated sky-blue used by [`Palette::default`] for
-    /// [`ColorRole::Highlight`].
-    ///
-    /// Exposed as a named constant so the default-palette value is referenceable
-    /// from styles and tests that want to assert against it without re-deriving
-    /// the literal.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_paint_api::Color;
-    /// use quartzite_style_types::Palette;
-    ///
-    /// assert_ne!(Palette::DEFAULT_HIGHLIGHT, Color::WHITE);
-    /// ```
-    pub const DEFAULT_HIGHLIGHT: Color = Color::new(0.0, 0.5, 1.0, 1.0);
-
     /// Returns the colour assigned to `role`.
     ///
     /// # Parameters
@@ -111,9 +94,9 @@ impl Default for Palette {
     /// [`Color::BLACK`] except [`ColorRole::BrightText`] and
     /// [`ColorRole::HighlightedText`], which use [`Color::WHITE`] so they
     /// remain legible against highlighted backgrounds. [`ColorRole::Highlight`]
-    /// is seeded to [`Palette::DEFAULT_HIGHLIGHT`] so checked / selected
-    /// widgets render visibly under the default palette. Concrete `Style`
-    /// implementations override these via [`Palette::with_role`].
+    /// is seeded to [`Color::SKY_BLUE`] so checked / selected widgets render
+    /// visibly under the default palette. Concrete `Style` implementations
+    /// override these via [`Palette::with_role`].
     ///
     /// # Examples
     ///
@@ -132,7 +115,7 @@ impl Default for Palette {
         colors[ColorRole::ButtonText as usize] = Color::BLACK;
         colors[ColorRole::Text as usize] = Color::BLACK;
         colors[ColorRole::HighlightedText as usize] = Color::WHITE;
-        colors[ColorRole::Highlight as usize] = Self::DEFAULT_HIGHLIGHT;
+        colors[ColorRole::Highlight as usize] = Color::SKY_BLUE;
         colors[ColorRole::Link as usize] = Color::BLUE;
         colors[ColorRole::LinkVisited as usize] = Color::BLUE;
         colors[ColorRole::BrightText as usize] = Color::WHITE;

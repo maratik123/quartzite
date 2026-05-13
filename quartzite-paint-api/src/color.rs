@@ -58,6 +58,9 @@ impl Color {
     /// Opaque blue (`#0000ffff`).
     pub const BLUE: Self = Self::new(0.0, 0.0, 1.0, 1.0);
 
+    /// Opaque sky-blue (`#0080ffff`).
+    pub const SKY_BLUE: Self = Self::new(0.0, 0.5, 1.0, 1.0);
+
     /// Fully transparent black (`#00000000`).
     pub const TRANSPARENT: Self = Self::new(0.0, 0.0, 0.0, 0.0);
 
