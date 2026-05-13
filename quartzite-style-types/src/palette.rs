@@ -91,9 +91,12 @@ impl Default for Palette {
     /// `default != Color::TRANSPARENT` invariant for every role rather than
     /// to produce a polished theme. Backgrounds resolve to [`Color::WHITE`]
     /// and foregrounds (text, link colours, bright text) resolve to
-    /// [`Color::BLACK`] except [`ColorRole::BrightText`], which uses
-    /// [`Color::WHITE`] so it remains legible against highlighted
-    /// backgrounds. Concrete `Style` implementations override these via
+    /// [`Color::BLACK`] except [`ColorRole::BrightText`] and
+    /// [`ColorRole::HighlightedText`], which use [`Color::WHITE`] so they
+    /// remain legible against highlighted backgrounds. [`ColorRole::Highlight`]
+    /// is seeded to a saturated blue (`r=0.0, g=0.5, b=1.0, a=1.0`) so
+    /// checked / selected widgets render visibly under the default palette.
+    /// Concrete `Style` implementations override these via
     /// [`Palette::with_role`].
     ///
     /// # Examples
@@ -113,6 +116,7 @@ impl Default for Palette {
         colors[ColorRole::ButtonText as usize] = Color::BLACK;
         colors[ColorRole::Text as usize] = Color::BLACK;
         colors[ColorRole::HighlightedText as usize] = Color::WHITE;
+        colors[ColorRole::Highlight as usize] = Color::new(0.0, 0.5, 1.0, 1.0);
         colors[ColorRole::Link as usize] = Color::BLUE;
         colors[ColorRole::LinkVisited as usize] = Color::BLUE;
         colors[ColorRole::BrightText as usize] = Color::WHITE;
@@ -134,6 +138,17 @@ mod tests {
                 "role {role:?} is transparent"
             );
         }
+    }
+
+    #[test]
+    fn default_highlight_differs_from_highlighted_text() {
+        let palette = Palette::default();
+        assert_ne!(
+            palette.color(ColorRole::Highlight),
+            palette.color(ColorRole::HighlightedText),
+            "Highlight must be visually distinct from HighlightedText so that \
+             white HighlightedText remains legible against the Highlight background"
+        );
     }
 
     #[test]
