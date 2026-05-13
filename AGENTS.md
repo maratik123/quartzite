@@ -207,6 +207,9 @@ Per source:
 > | `.claude/skills/next/SKILL.md` | `.claude/skills/triage/SKILL.md` AND `.claude/agents/triage-runner.md` (Triage group) |
 > | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
 > | `AGENTS.md` "Corrections Log" section (Boundary rules 1 / 2, entry format, `Escalated?` semantics) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Corrections-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
+> | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, and task SKILL Step 8's verification of that round-trip all co-evolve) |
+> | `.claude/agents/design.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design-review.md` (Task/Design group) |
+> | `.claude/agents/design-review.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` (Task/Design group) |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
@@ -216,6 +219,7 @@ When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/ag
 - **Triage group:** `.claude/skills/triage/SKILL.md` (skill body) ↔ `.claude/agents/triage-runner.md` (subagent — `model: opus`) ↔ `.claude/skills/next/SKILL.md` (the *Candidates needing `/triage`* section text references `/triage`).
 - **Interview group:** `.claude/skills/interview/SKILL.md` (orchestrator) ↔ `.claude/agents/spec-writer.md` (subagent — `model: opus`) ↔ `AGENTS.md` (Rule-5 substring-blacklist source-of-truth — every new pre-resolved-rule addition to AGENTS.md must spawn a corresponding blacklist entry in `spec-writer.md`).
 - **Corrections-Log group:** `AGENTS.md` § Corrections Log (Boundary rules 1 / 2, entry format, `Escalated?` semantics) ↔ `.claude/agents/self-improve.md` (writes during `/improve`) ↔ `.claude/agents/learnings-escalation-audit.md` (writes during `/ai-audit` Phase 1).
+- **Task/Design group:** `.claude/skills/task/SKILL.md` Steps 6–8 (design phase + Step-8 pre-implementation gate) ↔ `.claude/agents/design.md` (design artefact format) ↔ `.claude/agents/design-review.md` (verdict format + GO-with-notes round-trip contract). The three co-evolve: design-review's verdict format drives task SKILL Step 8's round-trip check; design's artefact format drives design-review's checklist.
 
 > The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 
@@ -268,12 +272,17 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 >
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
 >
-> **Exception — `Escalated?` field, agent-driven only.** The `Escalated?` line of an existing entry MAY be updated, **and only**:
+> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** The `Escalated?` line AND the optional `Superseded by:` line of an existing entry MAY be updated (or — for `Superseded by:` only — added when absent), **and only**:
 >
-> - by the `self-improve` agent (invoked via `/improve`), after the named instruction-file change has landed, to replace the prior value with the comma-separated list of targets actually modified; OR
-> - by the `learnings-escalation-audit` agent (invoked via `/ai-audit` Phase 1), to fix drift between the field and the named target (target file no longer contains the rule, OR `Escalated? no` despite the rule existing in a target file). The audit MAY also fix obvious typos within the `Escalated?` value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets).
+> - by the `self-improve` agent (invoked via `/improve`), after the named instruction-file change has landed:
+>   - update `Escalated?` to replace the prior value with the comma-separated list of targets actually modified; AND/OR
+>   - add or update `Superseded by:` on a *prior* entry when the Commit A change reverses, refines, generalizes, subsumes, or withdraws that entry's rule. Write to the prior entry's `Superseded by:`, not the new entry. Reference format: `[ref] — [one-line reason]`, where `[ref]` is `YYYY-MM-DD` (date of a later entry; disambiguate by quoted slug when multiple entries share that date), `PR #N`, or both comma-separated.
+> - by the `learnings-escalation-audit` agent (invoked via `/ai-audit` Phase 1):
+>   - fix drift in `Escalated?` (target file no longer contains the rule, OR `Escalated? no` despite the rule existing in a target file);
+>   - fix drift in `Superseded by:` (date reference doesn't match any later entry; `PR #N` reference is not a real merged PR);
+>   - fix obvious typos within either value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets, mistyped date in `Superseded by:`).
 >
-> All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
+> All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
 
 ### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
 
@@ -294,7 +303,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 >
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
 >
-> **Exception — `/improve` and `/ai-audit` workflows.** During a `/improve` run, the `self-improve` agent MAY update the `Escalated?` field of the specific entries it just escalated **after** the instruction-file edit has been staged (separate commit on the same feature branch). During `/ai-audit` Phase 1, the `learnings-escalation-audit` agent MAY both fix `Escalated?` and edit the named target file to align them. These exceptions apply to **existing-entry `Escalated?` updates only** — NEW learning entries STILL cannot be appended in the same turn as instruction-file edits (Rule 2's main protection — "I wrote a learning, therefore I'm authorised to escalate it" — stays intact).
+> **Exception — `/improve` and `/ai-audit` workflows.** During a `/improve` run, the `self-improve` agent MAY (a) update the `Escalated?` field of the specific entries it just escalated, AND/OR (b) add or update the `Superseded by:` field of any prior entry whose rule the Commit A change reversed, refined, generalized, subsumed, or withdrew — both done **after** the instruction-file edit has been staged (separate commit on the same feature branch). During `/ai-audit` Phase 1, the `learnings-escalation-audit` agent MAY fix drift in either `Escalated?` or `Superseded by:` and edit the named target file to align them. These exceptions apply to **existing-entry `Escalated?` and `Superseded by:` updates only** — NEW learning entries STILL cannot be appended in the same turn as instruction-file edits (Rule 2's main protection — "I wrote a learning, therefore I'm authorised to escalate it" — stays intact).
 
 ### Entry format
 
@@ -303,10 +312,12 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
 **Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style (comma-separate multiple)
+**Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
 
 > `Escalated?` records **project-level** persistence only — instruction files visible to every contributor (`AGENTS.md`, skills, agents, hooks, project `settings.json`, `ai-docs/doc-convention.md`, `ai-docs/code-style.md`). **User-local persistence does NOT count and is NOT a value of this field** — that includes the auto-memory store (`~/.claude/.../MEMORY.md`) and `settings.local.json`, both of which are private to one developer and don't help future readers. If a correction was saved only to user-local memory, mark `Escalated? no`; the entry remains a candidate for project-level escalation by `/improve`.
 > `doc-convention` = the rule landed in `ai-docs/doc-convention.md`. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference rather than in AGENTS.md or a skill.
 > `code-style` = the rule landed in `ai-docs/code-style.md`. Use only for code-style rules that genuinely belong in the workspace code-style reference rather than in AGENTS.md or a skill.
+> `Superseded by:` records that the rule recorded above was later reversed, refined, generalized, subsumed, or withdrawn. The field is **optional** and absent from most entries. `[ref]` is one of: a `YYYY-MM-DD` date matching a later learnings entry (when multiple entries share that date, disambiguate by appending a quoted slug from the other entry's description — e.g., `2026-05-08 ("mutually exclusive markers")`); a `PR #N` reference to a merged PR that reversed the rule directly in instruction files; or both, comma-separated. The `[one-line reason]` is freeform — a short note explaining the nature of the supersession (reversed / refined / generalized / subsumed / withdrawn). Maintained by `self-improve` (via `/improve`) and `learnings-escalation-audit` (via `/ai-audit` Phase 1) under the same Boundary rule 1 Exception that authorises `Escalated?` updates.
 ```
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`

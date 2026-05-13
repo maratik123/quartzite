@@ -470,6 +470,7 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Rule:** On self-review APPROVE, delete `.progress.md` as the *first action* before starting Step 12. The task skill is explicit: "On APPROVE: delete `.progress.md` → proceed to Step 12." The file is transient handoff state; it must not outlive the task.
 
 **Escalated?** skill:task
+**Superseded by:** PR #300 — rule reversed; the `/task` progress file is now gitignored, persists in the working tree across `/pr-commented` rounds, and is deleted by `/pr-merged` after the PR merges.
 
 ### 2026-05-03 — process — do not ask about backward compatibility; AGENTS.md already prohibits compat shims
 
@@ -830,6 +831,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 **Rule (superseded):** Default method bodies in a `trait` definition that qualify as simple need both `/// _Simple._` and `#[inline]`. — **This was wrong.** See next entry: the two are mutually exclusive; drop `_Simple._` when `#[inline]` is present.
 
 **Escalated?** code-style, agent:self-review, agent:review-findings
+**Superseded by:** 2026-05-08 ("`_Simple._` and `#[inline]` are mutually exclusive") — corrected: the two markers are mutually exclusive; drop `_Simple._` when `#[inline]` is present. (The inline `(superseded by next entry)` note in this entry's title refers to the same correction; the formal field is the machine-readable record.)
 
 ### 2026-05-08 — code-style — use named constants instead of magic numbers
 
@@ -905,7 +907,7 @@ If the action's setup script doesn't export the env vars your design assumed it 
 
 All three must be kept in sync whenever a new optional feature adds public API with intra-doc links.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, doc-convention, skill:task, agent:self-review, agent:review-findings
 
 ### 2026-05-09 — process — /task with a bare issue number should activate a matching deferred spec instead of starting a fresh interview
 
@@ -947,4 +949,4 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** After receiving a design-review GO verdict, scan the verdict text for notes or minor issues. For each one: (a) update the relevant section of the design document (API table, helper list, risk table, etc.); (b) verify the design doc now matches the intended code. Only then proceed to implementation. This takes < 5 minutes and prevents spec/design divergence from the first commit.
 
-**Escalated?** AGENTS.md, agent:design-review, agent:self-review, skill:task
+**Escalated?** agent:design-review, agent:self-review, skill:task

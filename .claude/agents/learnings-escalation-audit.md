@@ -1,6 +1,6 @@
 ---
 name: learnings-escalation-audit
-description: "Verifies that every entry in ai-docs/learnings.md has an accurate `Escalated?` field — the named target (AGENTS.md / skill / agent / hook / settings) actually contains the rule. Fixes drift in-place (edits only the `Escalated?` line of affected entries; never touches date, category, description, what-happened, or rule text). Authorised by AGENTS.md § Corrections Log Boundary rule 1 Exception. Invoked by /ai-audit Phase 1. Does not write project code."
+description: "Verifies that every entry in ai-docs/learnings.md has accurate `Escalated?` and `Superseded by:` fields — `Escalated?` targets contain the rule; `Superseded by:` references resolve to a real later entry or merged PR. Fixes drift in-place (edits only the `Escalated?` and `Superseded by:` lines of affected entries; never touches date, category, description, what-happened, or rule text). Authorised by AGENTS.md § Corrections Log Boundary rule 1 Exception. Invoked by /ai-audit Phase 1. Does not write project code."
 model: opus
 ---
 
@@ -71,11 +71,19 @@ Record each entry's status:
 - ❌ **Broken** — claimed target file/skill/agent does not exist at all (renamed/deleted).
 - ❓ **Ambiguous** — keyword too generic to verify mechanically; needs human read of the rule.
 
+For each entry that has a `**Superseded by:**` line, ALSO verify the reference resolves:
+
+- **`YYYY-MM-DD` ref** — at least one OTHER entry in `ai-docs/learnings.md` shares that date AND (when a disambiguation slug is present) contains the slug text in its description. If no match → ⚠️ Mismatch on `Superseded by:`.
+- **`PR #N` ref** — `gh pr view <N> --json state --jq '.state'` returns `MERGED`. If not merged or not found → ⚠️ Mismatch on `Superseded by:`.
+- **Both date and PR comma-separated** — both must resolve.
+
+Entries WITHOUT a `Superseded by:` line are not flagged here — absence is the default; only presence-with-broken-ref is drift.
+
 ### Step 3: Categorise + propose fixes
 
 For each non-OK entry, propose ONE of:
 
-1. **Update `Escalated?` field only.** The rule landed somewhere else (e.g., the entry says `AGENTS.md` but the rule is now in `skill:code-review`). Fix the field to reflect reality. **Also fix obvious typos within the `Escalated?` value** — e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets. Treat typo correction as drift, not as a rewrite.
+1. **Update `Escalated?` or `Superseded by:` field only.** The rule landed somewhere else (e.g., the entry says `AGENTS.md` but the rule is now in `skill:code-review`). Fix the field to reflect reality. **Also fix obvious typos within the `Escalated?` or `Superseded by:` values** — e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets, mistyped date in `Superseded by:` (verifiable against later entries), `PR #N` where N is off-by-one and the correct PR is unambiguously the intended one. Treat typo correction as drift, not as a rewrite. **Never add a `Superseded by:` line that wasn't already there** — adding the field is `/improve`'s job (it has the context to decide a supersession occurred); the audit only fixes drift in existing fields.
 2. **Re-add the missing rule.** The rule was lost during a refactor. Add it back to the named target.
 3. **Surface to user.** The entry is ambiguous, the fix would be substantive (rewriting a rule, changing a hook), or it might be a `/improve` job rather than an audit fix.
 
@@ -85,7 +93,7 @@ Always surface category 3.
 
 ### Step 4: Apply approved field corrections
 
-For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` field, agent-driven only); typo fixes within the `Escalated?` value are in scope of the same exception.
+For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` or `**Superseded by:**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. Do **not** add a `**Superseded by:**` line where none was present — that is `/improve`'s job. This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only); typo fixes within either value are in scope of the same exception.
 
 ### Step 5: Cross-checks
 
