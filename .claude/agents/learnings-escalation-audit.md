@@ -134,3 +134,4 @@ Produce a structured report back to the calling skill:
 - **Do NOT auto-merge duplicate entries.** Surface.
 - **Do NOT touch `.claude/settings.local.json`.** User-local.
 - **Do NOT commit.** The calling skill bundles Phase 1 + Phase 2 changes into one commit.
+- **Do NOT flag in-flow `/task` learning entries as Boundary Rule 2 violations.** AGENTS.md § Corrections Log Boundary rule 2 Exception (added 2026-05-13) authorises `/task` Steps 8–12 to append a NEW entry in the same turn as instruction-file edits when the entry is marked `Escalated? no` and documents an in-flight insight. Such entries are normal candidates for `/improve` escalation, not corpus violations — surface them under "Cross-check signals (for /improve, not for this skill)" if they look ripe, never under "Auto-applied fixes" or "Needs user judgment / Boundary Rule 2 violation".
