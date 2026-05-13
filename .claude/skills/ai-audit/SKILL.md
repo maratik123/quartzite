@@ -3,7 +3,7 @@ name: ai-audit
 description: "Two-phase instruction audit. Phase 1 (subagent) verifies every learnings.md `Escalated?` claim points to a rule that actually exists AND that every `Superseded by:` reference resolves to a real later entry or merged PR; fixes drift in either field. Phase 2 (main session) reads all instruction files (AGENTS.md, ai-docs/*, .claude/skills/**, .claude/agents/**, hooks in settings.json) against official Claude Code docs and proposes fixes for inconsistencies, dead references, format violations, and refactor candidates."
 disable-model-invocation: true
 argument-hint: "[scope: 'phase1' | 'phase2' | omit for both]"
-allowed-tools: Bash(rg *) Bash(grep *) Bash(find *) Bash(realpath *) Bash(jq *) Bash(git branch *) Bash(git status *) Bash(git checkout *) Bash(git rev-parse *) Bash(git diff *) Bash(git add *) Bash(git commit *)
+allowed-tools: Bash(rg *) Bash(grep *) Bash(find *) Bash(realpath *) Bash(jq *) Bash(awk *) Bash(shellcheck *) Bash(wc *) Bash(basename *) Bash(git branch *) Bash(git status *) Bash(git checkout *) Bash(git rev-parse *) Bash(git diff *) Bash(git add *) Bash(git commit *)
 ---
 
 # AI Audit
@@ -141,6 +141,31 @@ Per the official docs:
 - Tools used in skills' `allowed-tools` should be present (or coverable by) the `permissions.allow` list in `settings.json` — otherwise the user gets a prompt every time.
 - Conversely: any allow-listed pattern that no skill actually uses is dead and should be reviewed.
 
+#### K. Skill-directory layout (SKILL.md + supporting files + scripts/)
+
+Per the [Claude Code skill-directory pattern](https://code.claude.com/docs/en/skills#add-supporting-files), a skill directory may contain SKILL.md plus supporting files (reference docs loaded on demand, scripts the skill executes, examples Claude can read). Audit checks:
+
+1. **Oversized SKILL.md (reference material embedded in workflow).** Identify any `SKILL.md` > 200 lines. For each, scan for *reference content* sections (format specs, parser rules, lookup tables, long checklists, embedded templates) — material that is referenced once or twice in the workflow but loaded into context on every invocation. Propose extraction to a supporting file. Severity `minor`.
+
+2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 skill or agent**, propose moving it from the owning skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another skill's body. Severity `minor`.
+
+3. **Inline-script extraction candidates.** Identify `SKILL.md` sections containing **self-contained `bash` blocks** — a complete, executable recipe with at most one or two `<placeholder>` substitutions, NOT orchestration guidance that Claude reconstructs dynamically per call. For each, propose extraction to `.claude/skills/<skill>/scripts/<descriptive-name>.sh`, invoked via the canonical `${CLAUDE_SKILL_DIR}/scripts/<name>.sh <args>` pattern. After extraction, narrow the skill's `allowed-tools` from per-command patterns to a single `Bash(.claude/skills/<skill>/scripts/<name>.sh *)` entry. Severity `minor`.
+
+   **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the agent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the agent to call a helper for guidance it can express inline. Skip those.
+
+#### L. Corrections-Log field coherence
+
+When AGENTS.md § Corrections Log's *Entry format* block lists a field maintained by `/improve` and `/ai-audit` (currently `Escalated?` and `Superseded by:`), verify each field is covered in **all four** mandatory locations:
+
+| Location | Required content |
+|---|---|
+| AGENTS.md *Boundary rule 1 Exception* | Explicit authorization to edit the field in-place |
+| AGENTS.md *Boundary rule 2 Exception* | Explicit authorization for the field's edits to coexist with instruction-file edits in the same `/improve` / `/ai-audit` turn |
+| `.claude/agents/self-improve.md` Step 5 (Commit B backfill) | Workflow describing when and how `/improve` writes the field |
+| `.claude/agents/learnings-escalation-audit.md` Steps 2/3/4 | Verification recipe + Category-1 drift fixes (including typo fixes within the field's value) |
+
+A field added to the entry format without parallel coverage in all four targets → `major` finding (rules diverge across the surface; one of the two gates fails silently). The historical proof point: F1 in this PR — Boundary rule 2 Exception text lagged behind Boundary rule 1 Exception after the `Superseded by:` field landed, leaving Boundary rule 2 under-describing the contract.
+
 ### Step 2.4: Categorise findings
 
 Group by severity:
@@ -168,6 +193,28 @@ After edits:
 1. Re-run any `find`/`grep` checks from Step 2.3 that detected violations — confirm zero remaining.
 2. If hooks were edited, eyeball the `.claude/settings.json` JSON validity: `jq . .claude/settings.json`.
 3. If agent or skill files were edited, confirm their frontmatter still parses by reading the file back.
+4. **Cross-reference re-verification (anchor-aware).** For every relative link the audit touched in any `.claude/agents/*.md` or `.claude/skills/**/SKILL.md`, confirm the target file exists AND the anchor (if present) matches a heading slug. Use this anchor-aware check rather than naive `realpath -m` (which mistakes `#anchor` for part of the path):
+
+   ```bash
+   for f in <changed-files>; do
+     grep -oE '\(\.\./[./]*[^)#]+(#[^)]*)?\)' "$f" | sort -u | while read ref; do
+       path_with_anchor=$(echo "$ref" | tr -d '()')
+       path=${path_with_anchor%%#*}
+       anchor=${path_with_anchor#*#}; [ "$anchor" = "$path_with_anchor" ] && anchor=""
+       src_dir=$(dirname "$f")
+       abs=$(realpath -m "$src_dir/$path")
+       [ -e "$abs" ] || { echo "FILE MISSING: $f -> $path"; continue; }
+       [ -z "$anchor" ] && continue
+       # heading-slug match: lowercase, strip non-alnum-non-hyphen, spaces->hyphens
+       awk '/^#{1,6}\s/{line=$0; gsub(/^#+\s+/,"",line); line=tolower(line); gsub(/[^a-z0-9 -]/,"",line); gsub(/ /,"-",line); gsub(/-+/,"-",line); sub(/^-+/,"",line); sub(/-+$/,"",line); print line}' "$abs" | grep -Fx "$anchor" >/dev/null || echo "ANCHOR MISSING: $f -> $path#$anchor"
+     done
+   done
+   ```
+
+5. **Script verification (when checklist K extracted any `scripts/*.sh`).** For every script the audit added or modified:
+   - **`shellcheck`** the script if `shellcheck` is on `$PATH`; flag warnings/errors as `minor` post-extraction findings.
+   - Confirm executable bit (`-rwx------` or broader). If `chmod +x` was forgotten, the script will fail at invocation time with `Permission denied`.
+   - **Smoke-test the documented no-op path** when feasible: most extracted scripts have a documented exit-0 case (missing input, no-op match). Invoke against that input and verify expected exit code + status message (e.g., `cleanup-progress.sh nonexistent-branch-xyz` should print `pr-merged: no merged PR found for nonexistent-branch-xyz` and exit 0).
 
 ---
 
@@ -201,7 +248,8 @@ Per AGENTS.md, **never** `git add -A` / `git add .`.
 | Phase 1 done | subagent reported every `needs user judgment` item? |
 | Phase 2 fetch | all three docs successfully fetched? if a fetch failed, surface and ask whether to proceed without it |
 | Phase 2 apply | `major` / `blocker` user-approved? |
-| Commit | `jq .` passes on settings.json? frontmatter still valid on edited skills/agents? |
+| Script extraction (K) | `shellcheck` clean, `+x` bit set, no-op smoke-test passes? |
+| Commit | `jq .` passes on settings.json? frontmatter still valid on edited skills/agents? cross-references re-verified anchor-aware? |
 
 ## Anti-patterns
 
