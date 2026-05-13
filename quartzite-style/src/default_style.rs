@@ -461,11 +461,10 @@ mod tests {
 
     #[test]
     fn checked_button_uses_highlight_colour() {
-        // Palette::default() seeds all background roles with Color::WHITE, making
-        // Button and Highlight indistinguishable. Construct an explicit palette
-        // with a distinct Highlight colour so the assertion is meaningful.
-        let palette =
-            Palette::default().with_role(ColorRole::Highlight, Color::new(0.0, 0.5, 1.0, 1.0));
+        // Construct an explicit palette pinning Highlight to Color::SKY_BLUE so the
+        // assertion is meaningful regardless of any future change to Palette::default's
+        // seeded Highlight value (today Palette::default already uses Color::SKY_BLUE).
+        let palette = Palette::default().with_role(ColorRole::Highlight, Color::SKY_BLUE);
 
         let idle_btn = Button::new("x".into());
         let mut checked_btn = Button::new("x".into());
