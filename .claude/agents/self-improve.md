@@ -89,6 +89,8 @@ Number all proposals. Let user choose.
 
    **Boundary rule 2 note:** Splitting into Commit A then Commit B keeps the PR diff legible (escalation substance separate from bookkeeping). The exception in Boundary rule 2 authorises both commits in the same `/improve` turn; it does NOT authorise appending NEW learning entries in the same turn.
 
+   **In-flow `/task` carve-out:** A separate Boundary Rule 2 exception (added 2026-05-13) allows the `/task` workflow Steps 8–12 to append NEW `learnings.md` entries in the same turn as instruction-file edits, provided the entries are marked `Escalated? no` and document an in-flight insight (not a pre-emptive escalation). This carve-out is `/task`-only; the `/improve` agent does **not** itself append NEW learning entries — it only edits `Escalated?` / `Superseded by:` on existing entries. When auditing the corpus during a `/improve` run, treat in-flow `/task`-authored entries (those marked `Escalated? no` whose accompanying merged PR was a `/task` workflow) as normal candidates for escalation, not as Rule-2 violations.
+
 ### Step 6: Eval (REQUIRED after Step 5)
 
 After applying changes — answer:

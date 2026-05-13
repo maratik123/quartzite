@@ -45,6 +45,17 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 >
 > What `actionlint` catches that `cargo` cannot: runner-version mismatches, deprecated action versions, expression-syntax errors, shell-quoting issues.
 
+> **AXIOM — Every project instruction file Claude loads per invocation MUST stay below 40,000 chars.**
+> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/SKILL.md`, every `.claude/agents/**.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
+>
+> | If `wc -c <file>` reports... | Action |
+> |---|---|
+> | ≥ 40,000 chars | **STOP**. Plan extraction / dedup before the next commit — same model PR #324 used for AGENTS.md (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
+> | 35,000–39,999 chars | Proactive extraction pass; do not let the next `/task` push it over 40k. |
+> | < 35,000 chars | OK. |
+>
+> Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/SKILL.md .claude/agents/**.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`. Until `scripts/check-instruction-file-sizes.sh` lands as a pre-commit / CI gate, any `/task` whose work touches an instruction file should run this command before commit.
+
 Search: `rg <pattern> --type rust [-l | -C 3]`
 
 ## API Stability
@@ -269,6 +280,8 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
 >
 > **Exception — `/improve` and `/ai-audit` workflows.** The `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) MAY update `Escalated?` / `Superseded by:` on existing entries alongside instruction-file edits — see [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception). The exception applies to **existing-entry `Escalated?` / `Superseded by:` updates ONLY** — NEW learning entries STILL **cannot** be appended in the same turn as instruction-file edits (Rule 2's main protection stays intact).
+>
+> **Exception — in-flow learning capture during `/task` Steps 8–12.** A NEW learning entry MAY be appended to `ai-docs/learnings.md` in the same conversation turn as an instruction-file edit when **all** of these hold: (a) the running skill is `/task` (Steps 8–12 — Implementation through Finalise), (b) the entry documents an insight gained **during** the task being implemented (not a pre-emptive escalation of a rule the task already enforces), AND (c) the entry is marked `Escalated? no` (any project-level escalation requires a separate `/improve` invocation per Rule 2's main body). Bare instruction-file edits outside a `/task` flow remain bound by the main rule. See [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception) for the full body.
 
 ### Entry format
 
