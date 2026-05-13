@@ -208,11 +208,11 @@ Agent(subagent_type="general-purpose", prompt="
 ")
 ```
 
-**On APPROVE — first action, before anything else:** `rm ai-docs/plans/YYYY-MM-DD-name.progress.md`. Confirm the file is gone (`ls`) before starting Step 12. The progress file is transient handoff state and must not survive the task.
+**On APPROVE:** proceed to Step 12. The progress file is gitignored and **stays in the working tree** — it persists for `/pr-commented` to extend across any subsequent reviewer-comment rounds, and is deleted by `/pr-merged` after the PR merges. Do NOT `rm` it here.
 
 **On REJECT:** proceed to Step 11. After Step 11, loop back here.
 
-**After round 3 with REJECT:** surface all remaining `⬜ Open` findings to the user and ask how to proceed. Do not delete `.progress.md` until resolved.
+**After round 3 with REJECT:** surface all remaining `⬜ Open` findings to the user and ask how to proceed.
 
 ### Step 11: Review fixes
 
@@ -235,7 +235,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 
 ### Step 12: Finalise docs, commit, and create PR
 
-1. **First, confirm `.progress.md` is already deleted** (Step 10 APPROVE handler). If it still exists — stop, delete it, then continue.
+1. **Confirm `.progress.md` is NOT staged.** It is gitignored by `.gitignore` (`/ai-docs/plans/**/*.progress.md`), so `git status` should not list it. If it appears as a tracked-modified entry, `git rm --cached` it once and re-stage; if it appears as staged-untracked, unstage. The file MUST remain in the working tree (it persists for `/pr-commented`; `/pr-merged` deletes it post-merge) but MUST NOT enter the commit.
 2. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
 3. **Finalise INDEX.md and move plan files:**
    - Change the plan row status to `✅ implemented (N tests)`
@@ -317,7 +317,7 @@ Step 12 continues normally; `_inbox.md` is unchanged for that section.
 
 **Dedupe rule (file-level).** Before running the parser, build the set `H` = every `Source`-cell relative path appearing in any `^|` row of the 8 thematic files (`ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.md`). Normalisation: strip trailing `/`, strip `#...` anchor fragments, strip leading `./`, strip leading/trailing whitespace; preserve case. For each candidate row, if its `Source` path is in `H`, skip the **entire file** (all of its sections) — file-level dedupe avoids re-harvesting any portion of a file whose other sections were already drained into thematic files by the manual extraction passes. `widget-backlog.md` is NOT in `H` (its rows are tracked via the `Notes` cell, not via thematic-file membership).
 
-**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · deleting `.progress.md` before self-review APPROVE · pushing from master branch · silently deviating from design without triggering Design Amendment
+**FORBIDDEN:** declaring done with uncovered ACs · skipping design review · writing code before confirmed spec · `rm`ing `.progress.md` from within `/task` (it's gitignored and lives until `/pr-merged`) · staging `.progress.md` into a commit · pushing from master branch · silently deviating from design without triggering Design Amendment
 
 ## Gate checklist
 
@@ -330,7 +330,7 @@ Step 12 continues normally; `_inbox.md` is unchanged for that section.
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace --all-features` clean (note: `--all-features`, not bare and not a hand-picked subset — every feature-gated public module/re-export must be enabled so intra-doc links resolve)? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
-| Step 10 | Self-review APPROVE before deleting progress file? |
+| Step 10 | Self-review APPROVE? (Progress file persists in working tree — gitignored — until `/pr-merged`. Do NOT `rm` it here.) |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
 | Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `_inbox.md` parsed and appended (or warning logged for unrecognised shape) and staged? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |

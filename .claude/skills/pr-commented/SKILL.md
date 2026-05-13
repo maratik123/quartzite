@@ -68,10 +68,19 @@ Resolved threads stay in the snapshot for context (prior-round decisions inform 
 
 ### Step 1 — Open / extend progress file
 
-Look up the `/task` progress file:
+The `/task` progress file is gitignored and persists from `/task` Step 10 APPROVE through `/pr-merged`. Locate it via the PR-linkage path — the same derivation `/pr-merged` uses:
 
-- Find `ai-docs/plans/YYYY-MM-DD-name.progress.md` whose body references this PR number (grep for `PR #<N>` or check the spec linkage). If found → **reuse it**: append a new section.
-- Else, create `ai-docs/pr-comments/pr-<N>.progress.md` (the skill creates the `ai-docs/pr-comments/` directory if missing).
+```bash
+PR_NUM=<N>   # from preconditions
+SPEC_PATH=$(grep -l "Tracked in:.*#${PR_NUM}\b" ai-docs/plans/done/*.spec.md ai-docs/plans/*.spec.md 2>/dev/null | head -n1)
+if [ -n "$SPEC_PATH" ]; then
+  SPEC_BASE=$(basename "$SPEC_PATH" .spec.md)
+  PROGRESS="ai-docs/plans/${SPEC_BASE}.progress.md"
+fi
+```
+
+- **Default path** — the `/task` progress file was found: append a new `## Comment cycle round M` section to that file. This is the expected case for any PR produced by `/task`.
+- **Fallback (rare)** — no `/task` progress file matches the PR number. Fires when the PR was opened outside `/task`, or when `/pr-merged` already ran on a previous attempt. Create `ai-docs/pr-comments/pr-<N>.progress.md` (the skill creates the `ai-docs/pr-comments/` directory if missing); both paths are gitignored, so neither file enters git.
 
 Append section:
 
@@ -247,6 +256,7 @@ Each invocation:
 - **Never stack fix-up commits inside one round** — if self-review REJECTs, amend the single commit; loop cap 3.
 - **Never resolve an `objection` or `clarify` thread** — they stay open for the reviewer.
 - **Never run this skill on `master`** — preconditions block it.
+- **Never stage progress file changes.** Both `ai-docs/plans/*.progress.md` and `ai-docs/pr-comments/pr-<N>.progress.md` are gitignored. They are local-only agent artefacts. If `git status` ever lists one as modified/untracked-but-staged, unstage immediately.
 
 ## Gate checklist
 

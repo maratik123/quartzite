@@ -244,7 +244,8 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
-| `ai-docs/plans/*.progress.md` | Active task progress / handoff state |
+| `ai-docs/plans/*.progress.md` | Active task progress / handoff state — **local-only (gitignored)**. Created by `/task`, extended by `/pr-commented` across reviewer-comment rounds, deleted by `/pr-merged` after the PR merges. Never committed. |
+| `ai-docs/pr-comments/pr-<N>.progress.md` | Fallback progress file when `/pr-commented` runs on a PR not produced by `/task` (rare). **Local-only (gitignored)**. Deleted by `/pr-merged`. |
 | `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
 | `ai-docs/plans/deferred/` | Blocked or future plans |
 | `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only). |
