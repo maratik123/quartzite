@@ -1066,3 +1066,27 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Why this is one entry, not two:** the completeness-claim drift and the master-only blind spot are independently observable patterns, but their *failure mode* in this incident was inseparable — the missing install step in the commit (drift) + the absent PR trigger on the affected workflow (blind spot) were the precise conjunction that allowed 14 consecutive master pushes to fail without any pre-merge signal. Recording them separately would lose the conjunction; recording the conjunction once captures both.
 
 **Escalated?** no
+
+### 2026-05-13 — process — `/bugfix` Step 6 (Verify) lacks the `self-review` second-opinion pass that `/task` Step 10 has — nits reach the human reviewer that an automated review would catch pre-push
+
+**What happened:** Ran `/bugfix` end-to-end on the `button_checked.png` invisibility regression (`Palette::default` left `ColorRole::Highlight` at `Color::WHITE`, making `DefaultStyle.draw_button` render checked buttons as all-white tiles). Step 6 (Verify) consists of: run the new failing test → run full suite → `cargo clippy --workspace -- -D warnings` → `cargo fmt -- --check` → delete the trace artifact. All five gates passed. Pushed to PR #333, body authored, opened. Within minutes the user (reviewer) posted a single line-anchored comment on the new `palette.rs:119` literal: *"magic numbers?"*. That nit was visible in the diff — a `Color::new(0.0, 0.5, 1.0, 1.0)` literal at the use-site with no companion named constant. `/pr-commented` then took 1 round (1 commit, 1 reply, 1 resolve) to address it. The follow-up `/pr-commented` invocation **did** spawn `self-review` as Step 5 (per its workflow), and `self-review` APPROVE'd on first attempt — confirming the agent would have flagged the same nit pre-push had `/bugfix` invoked it.
+
+**Rule:** `/bugfix` Step 6 must spawn the existing `self-review` agent over the post-fix diff, with the same loop-with-cap-3 semantics that `/task` Step 10 (Self-Review) uses, **before** trace-artifact deletion and before any commit / push action is reported as complete. REJECT verdict loops back to Step 5 (Fix); after 3 REJECTs, surface verdict + stop without push — same anti-pattern handling as `/task`.
+
+**Why:** A `/bugfix` PR has the same code-quality bar as a `/task` PR — both produce code that lands in master after merge. The gap-by-design is silently asymmetric: `/task` calls out the second-opinion pass explicitly (Step 10 invokes `self-review`), `/pr-commented` calls it out explicitly (Step 5 invokes `self-review`), but `/bugfix` Step 6 has only build-system gates (clippy / fmt / test). Those gates catch what the compiler and lints know about; they do not catch "this literal should be a named const", "this rustdoc paragraph contradicts the fix", "this fix touches a sibling concern that should be a separate PR" — exactly the class of nits human reviewers raise. Pushing those nits to the reviewer creates avoidable `/pr-commented` rounds (this session: one extra commit + push + reply + resolve cycle on PR #333 for a one-line extract-constant change). Catching them with `self-review` pre-push eliminates the round entirely.
+
+**How to apply — two complementary paths, neither requires a same-turn escalation:**
+
+1. **Reader-side default (no edits required).** Before reporting a `/bugfix` Step 6 as complete and proceeding to commit / push, spawn `self-review` over `git diff <base>..HEAD` (where `<base>` is the branch's merge-base against `origin/master` if pre-commit, or `HEAD~N` after staging-but-not-pushing N commits). Pass: (a) the trace artifact's "Actual / Expected / Root Cause" sections as the spec-equivalent, (b) the verbatim user-confirmed Root Cause as the diff's intended target, (c) an explicit out-of-scope reminder that `self-review` is checking fitness-against-the-bug, not fitness-against-some-broader-task. Treat REJECT as a Step 5 loop-back, cap 3. APPROVE before push.
+2. **Writer-side (future `/improve` candidate).** Add a new Step 6.5 (or extend Step 6) to `.claude/skills/bugfix/SKILL.md` codifying the above. Trivial diff. Propagation: `/bugfix` is not currently in any Propagation Rule sync-group, so no sibling files require lockstep updates — but `/improve` should still grep `.claude/agents/ .claude/skills/ AGENTS.md` for any cross-reference to `/bugfix`'s step structure before assuming standalone scope.
+
+**Cases this rule extends to:**
+
+- **Standalone `/bugfix`** (the trigger case above) — direct application.
+- **`/bugfix` invoked from `/task` Steps 8–12** (per `.claude/skills/task/SKILL.md:194`) — parent `/task` already runs `self-review` at Step 10 over the broader task diff, but a per-bugfix `self-review` during the in-flow detour catches nits earlier and prevents them from being conflated with task-scope feedback in the parent's Step 10 verdict. The two passes are complementary, not redundant: bugfix's pass is scoped to the bug's diff window; task's Step 10 pass is scoped to the entire task.
+
+**Cases this rule does NOT extend:**
+
+- **`/pr-commented`, `/triage`, `/interview`, `/improve`, `/ai-audit`** — each already has its own self-review protocol (`/pr-commented` Step 5; the others have agent-driven review built into their workflow). The gap is `/bugfix`-specific.
+
+**Escalated?** no
