@@ -892,7 +892,7 @@ If the action's setup script doesn't export the env vars your design assumed it 
 - Cite the source-line evidence in the design's "Implementation steps" section, not just the README's claim.
 - During the self-review phase, the reviewer checks: "did the design verify the action's behaviour against source, or only against README narrative?"
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-10 — documentation — enable all feature-gated optional features when running cargo doc, and in package.metadata.docs.rs, to get full doc coverage
 
@@ -947,4 +947,4 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** After receiving a design-review GO verdict, scan the verdict text for notes or minor issues. For each one: (a) update the relevant section of the design document (API table, helper list, risk table, etc.); (b) verify the design doc now matches the intended code. Only then proceed to implementation. This takes < 5 minutes and prevents spec/design divergence from the first commit.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:design-review, agent:self-review, skill:task

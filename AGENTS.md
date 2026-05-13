@@ -206,6 +206,7 @@ Per source:
 > | `.claude/agents/triage-runner.md` | `.claude/skills/triage/SKILL.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
 > | `.claude/skills/next/SKILL.md` | `.claude/skills/triage/SKILL.md` AND `.claude/agents/triage-runner.md` (Triage group) |
 > | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
+> | `AGENTS.md` "Corrections Log" section (Boundary rules 1 / 2, entry format, `Escalated?` semantics) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Corrections-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
@@ -214,6 +215,7 @@ When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/ag
 - **Review group:** `.claude/skills/code-review/SKILL.md` (workflow) ↔ `.claude/agents/review-findings.md` (findings producer) ↔ `.claude/agents/self-review.md` (fix validator)
 - **Triage group:** `.claude/skills/triage/SKILL.md` (skill body) ↔ `.claude/agents/triage-runner.md` (subagent — `model: opus`) ↔ `.claude/skills/next/SKILL.md` (the *Candidates needing `/triage`* section text references `/triage`).
 - **Interview group:** `.claude/skills/interview/SKILL.md` (orchestrator) ↔ `.claude/agents/spec-writer.md` (subagent — `model: opus`) ↔ `AGENTS.md` (Rule-5 substring-blacklist source-of-truth — every new pre-resolved-rule addition to AGENTS.md must spawn a corresponding blacklist entry in `spec-writer.md`).
+- **Corrections-Log group:** `AGENTS.md` § Corrections Log (Boundary rules 1 / 2, entry format, `Escalated?` semantics) ↔ `.claude/agents/self-improve.md` (writes during `/improve`) ↔ `.claude/agents/learnings-escalation-audit.md` (writes during `/ai-audit` Phase 1).
 
 > The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 
@@ -263,6 +265,13 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 > - you are tempted to "tidy up" or "consolidate" the file
 >
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
+>
+> **Exception — `Escalated?` field, agent-driven only.** The `Escalated?` line of an existing entry MAY be updated, **and only**:
+>
+> - by the `self-improve` agent (invoked via `/improve`), after the named instruction-file change has landed, to replace the prior value with the comma-separated list of targets actually modified; OR
+> - by the `learnings-escalation-audit` agent (invoked via `/ai-audit` Phase 1), to fix drift between the field and the named target (target file no longer contains the rule, OR `Escalated? no` despite the rule existing in a target file). The audit MAY also fix obvious typos within the `Escalated?` value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets).
+>
+> All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
 
 ### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
 
@@ -282,6 +291,8 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 > 2. The user explicitly asks ("escalate this", "update AGENTS.md", "add to skill X").
 >
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
+>
+> **Exception — `/improve` and `/ai-audit` workflows.** During a `/improve` run, the `self-improve` agent MAY update the `Escalated?` field of the specific entries it just escalated **after** the instruction-file edit has been staged (separate commit on the same feature branch). During `/ai-audit` Phase 1, the `learnings-escalation-audit` agent MAY both fix `Escalated?` and edit the named target file to align them. These exceptions apply to **existing-entry `Escalated?` updates only** — NEW learning entries STILL cannot be appended in the same turn as instruction-file edits (Rule 2's main protection — "I wrote a learning, therefore I'm authorised to escalate it" — stays intact).
 
 ### Entry format
 

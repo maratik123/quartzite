@@ -1,6 +1,6 @@
 ---
 name: learnings-escalation-audit
-description: "Verifies that every entry in ai-docs/learnings.md has an accurate `Escalated?` field — the named target (AGENTS.md / skill / agent / hook / settings) actually contains the rule. Fixes drift in-place. Invoked by /ai-audit Phase 1. Does not write project code."
+description: "Verifies that every entry in ai-docs/learnings.md has an accurate `Escalated?` field — the named target (AGENTS.md / skill / agent / hook / settings) actually contains the rule. Fixes drift in-place (edits only the `Escalated?` line of affected entries; never touches date, category, description, what-happened, or rule text). Authorised by AGENTS.md § Corrections Log Boundary rule 1 Exception. Invoked by /ai-audit Phase 1. Does not write project code."
 model: opus
 ---
 
@@ -75,7 +75,7 @@ Record each entry's status:
 
 For each non-OK entry, propose ONE of:
 
-1. **Update `Escalated?` field only.** The rule landed somewhere else (e.g., the entry says `AGENTS.md` but the rule is now in `skill:code-review`). Fix the field to reflect reality.
+1. **Update `Escalated?` field only.** The rule landed somewhere else (e.g., the entry says `AGENTS.md` but the rule is now in `skill:code-review`). Fix the field to reflect reality. **Also fix obvious typos within the `Escalated?` value** — e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets. Treat typo correction as drift, not as a rewrite.
 2. **Re-add the missing rule.** The rule was lost during a refactor. Add it back to the named target.
 3. **Surface to user.** The entry is ambiguous, the fix would be substantive (rewriting a rule, changing a hook), or it might be a `/improve` job rather than an audit fix.
 
@@ -85,7 +85,7 @@ Always surface category 3.
 
 ### Step 4: Apply approved field corrections
 
-For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields.
+For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` field, agent-driven only); typo fixes within the `Escalated?` value are in scope of the same exception.
 
 ### Step 5: Cross-checks
 
