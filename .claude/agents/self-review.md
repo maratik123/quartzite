@@ -41,6 +41,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 - Implementation architecture matches the design?
 - All files from the decomposition are present and changed?
 - No architectural decisions made on-the-fly without being reflected in the design?
+- **GO-with-notes round-trip closure.** Locate the most recent design-review verdict in the conversation context / progress file. For every `note` / `minor` row in its `## Issues` table and every bullet in its `## Recommendations` section, verify the corresponding section of the design doc (`ai-docs/plans/YYYY-MM-DD-name.design.md`) was updated to incorporate the note BEFORE the implementation diff started. If the design doc still says one thing and the implementation does another (even correctly), the design is stale — REJECT (`major`) with the specific note that was applied in code but not written back. See `ai-docs/learnings.md` 2026-05-13 entry on design-review notes closure.
 
 ### 3. Test coverage
 - Every non-trivial function / branch has a test?

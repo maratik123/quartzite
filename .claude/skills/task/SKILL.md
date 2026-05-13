@@ -133,7 +133,7 @@ finding (Step 11) requires a design change rather than a code fix:
 
 ### Step 8: Implementation
 
-> First action: verify both spec and design (with GO verdict) exist. Missing = previous steps incomplete.
+> First action: verify both spec and design (with GO verdict) exist AND that **every note / minor / recommendation from the latest design-review GO verdict has been written back into the design document**. "Applied in code later" is NOT the same as "resolved in the design"; the design doc is the implementation contract. Scan the most recent `## Self-Review (Round N)` / `## Verdict: GO` block emitted by `.claude/agents/design-review.md` — for each `## Issues` row of `Severity: note` / `minor` and each `## Recommendations` bullet, confirm the corresponding API table / helper list / risk table / decomposition section of `ai-docs/plans/YYYY-MM-DD-name.design.md` was updated to match. If any note is unresolved → stop, edit the design doc to incorporate it (and re-run design-review if the change is non-trivial per the Design Amendment rule), and only then begin coding. Missing spec, missing design, missing GO verdict, OR unresolved GO-notes = previous steps incomplete.
 
 - **Create a feature branch immediately** — before writing any code or making any commits:
   ```bash
@@ -323,7 +323,7 @@ Step 12 continues normally; `_inbox.md` is unchanged for that section.
 |---|---|
 | Steps 1–5 | Spec saved at `ai-docs/plans/YYYY-MM-DD-name.spec.md`? `**Tracked in:** #N` present (or `none` with reason)? Cross-link comment posted on the tracking issue (unless tracking skipped)? ACs confirmed by user and verifiable? See `/interview` gate checklist for the full per-step list. |
 | Step 6 | Spec exists? ACs confirmed? Not a "spec-only / defer" run? |
-| Step 8 | Design doc with GO? Test Design section present? |
+| Step 8 | Design doc with GO? Test Design section present? **Every note / minor / recommendation from the GO verdict written back into the design doc?** |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
 | Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace --all-features` clean (note: `--all-features`, not bare and not a hand-picked subset — every feature-gated public module/re-export must be enabled so intra-doc links resolve)? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
