@@ -227,6 +227,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
 | `ai-docs/workflow.md` | Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment resolution GraphQL recipe). Read on demand. |
 | `ai-docs/corrections-log.md` | Extracted carve-outs from `AGENTS.md` § *Corrections Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand. |
+| `ai-docs/key-decisions.md` | Extracted Key Design Decisions detail bodies from `ai-docs/context.md` § Key Design Decisions (implementation-detail rows). Read on demand. |
 | `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
 | `ai-docs/templates/` | Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files). |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`. |
