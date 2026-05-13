@@ -71,9 +71,17 @@ git checkout -b chore/YYYY-MM-DD-improve-<short-name>
 
 `git checkout -b` carries the (still-uncommitted) working tree over. Discovering you're on master *after* editing forces a reactive recovery — switching at commit time technically respects AGENTS.md "no commits on master" but breaks the spirit (working tree should never accumulate on master). Switch first, edit second.
 
-Number all proposals. Let user choose. Apply the selected:
-- Update `AGENTS.md` / skill / agent files via Edit
-- Update `Escalated?` field in `ai-docs/learnings.md` for processed entries
+Number all proposals. Let user choose.
+
+**Apply in two commits on the same feature branch:**
+
+1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / skill / agent / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation.
+
+2. **Commit B — backfill `Escalated?`.** For each `ai-docs/learnings.md` entry whose pattern was just escalated in Commit A, edit ONLY the `**Escalated?**` line — replace the prior value (typically `no`) with the comma-separated list of targets actually modified. Do not touch any other line of the entry. Do not append new entries. Commit message: `chore(learnings): backfill Escalated? for entries <date1>, <date2>, ...`.
+
+   This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` field, agent-driven only). All other lines of the entry remain immutable.
+
+   **Boundary rule 2 note:** Splitting into Commit A then Commit B keeps the PR diff legible (escalation substance separate from bookkeeping). The exception in Boundary rule 2 authorises both commits in the same `/improve` turn; it does NOT authorise appending NEW learning entries in the same turn.
 
 ### Step 6: Eval (REQUIRED after Step 5)
 
