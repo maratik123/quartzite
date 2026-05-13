@@ -962,3 +962,24 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **How to apply:** when amending `.claude/skills/triage/SKILL.md` and `.claude/agents/triage-runner.md`, add (a) progress-file creation as Phase 1.5 (after the branch check, before Phase 2 dedupe), (b) progress-file resume read at Phase 1 if the file already exists for the current branch, (c) progress-file deletion after the final run summary emits, and (d) Propagation-Rule sync into the Triage group (skill ↔ agent ↔ `/next` skill). Mirror the cleanup-on-merge mechanic from `/pr-merged`'s `scripts/cleanup-progress.sh`.
 
 **Escalated?** no
+
+### 2026-05-13 — process — `/task` on a `blocked`-labelled gh issue must reconcile blockers before proceeding
+
+**What happened:** Proactive rule added by the user (no specific incident this session). Today `/task <N>` and `/task` activating a deferred spec linked to issue `#N` both ignore the issue's labels entirely — the skill proceeds directly into spec activation or the interview machinery regardless of whether the issue carries a `blocked` label. The user wants the skill to inspect the issue's blockers when `blocked` is present and either auto-clean the label (if all blockers are closed) or pause for direction (if any blocker is still open).
+
+**Rule:** When `/task` resolves to a gh issue (either via a bare-number `/task <N>` arg, or via activating a deferred spec whose `**Tracked in:** #N` field points to a real issue) **and** that issue carries the `blocked` label:
+
+1. Enumerate the blockers — typically referenced in the issue body as `Blocked by #M` / `Depends on #M`, or as a `Blocked by` comment. If the issue body has no `#M`-form references and only free-text blockers ("blocked on the auth rewrite"), treat each unresolvable mention as an open blocker for the purpose of step 4.
+2. Query each `#M` blocker's state via `gh issue view <M> --json state`.
+3. If **every** blocker resolves to CLOSED, run `gh issue edit <N> --remove-label blocked` and continue with the normal `/task` flow. The label removal is part of the deliverable — a stale `blocked` label is friction for every later `/next` / `/triage` run that filters actionable work.
+4. If **at least one** blocker is OPEN, or if the blocker list contains any unresolvable free-text reference, pause and ask the user one of three things:
+   - which blockers to wait on (do not start work);
+   - which blockers to disregard for this issue (e.g. blocker is closed-as-not-planned, or unrelated despite the cross-ref) — if the answer leaves zero remaining open blockers, then proceed with step 3 (remove the label);
+   - or whether to start work anyway accepting the risk (in which case do **not** remove the label — the issue is still semantically blocked, and the user is overriding the gate explicitly).
+   In no case proceed silently.
+
+**Why:** The `blocked` label is the project's signal that an issue is not yet actionable. Starting `/task` on a blocked issue defeats the gate and risks producing a spec/design that hits the blocker's unresolved dependency mid-implementation, which is the costliest place to discover it. Conversely, leaving a stale `blocked` label on a now-unblocked issue silently degrades every triage / next-task selection pass — auto-removal keeps the label corpus honest.
+
+**How to apply:** add a Phase 0.5 step to `.claude/skills/task/SKILL.md` (between the branch check and the issue-body fetch) running the four-step reconciliation above. The check fires only when the resolved input is a gh issue (bare-number `/task <N>` or deferred-spec activation with a populated `**Tracked in:** #N`); free-text `/task` invocations with no issue reference skip the check entirely. Propagate the change through the Task/Design sync group per AGENTS.md's Propagation Rule, and add the matching pre-resolved-rule entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent does not surface the `blocked`-label question.
+
+**Escalated?** no
