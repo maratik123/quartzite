@@ -210,6 +210,8 @@ Per source:
 > | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, and task SKILL Step 8's verification of that round-trip all co-evolve) |
 > | `.claude/agents/design.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design-review.md` (Task/Design group) |
 > | `.claude/agents/design-review.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` (Task/Design group) |
+> | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
+> | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
@@ -220,6 +222,7 @@ When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/ag
 - **Interview group:** `.claude/skills/interview/SKILL.md` (orchestrator) ↔ `.claude/agents/spec-writer.md` (subagent — `model: opus`) ↔ `AGENTS.md` (Rule-5 substring-blacklist source-of-truth — every new pre-resolved-rule addition to AGENTS.md must spawn a corresponding blacklist entry in `spec-writer.md`).
 - **Corrections-Log group:** `AGENTS.md` § Corrections Log (Boundary rules 1 / 2, entry format, `Escalated?` semantics) ↔ `.claude/agents/self-improve.md` (writes during `/improve`) ↔ `.claude/agents/learnings-escalation-audit.md` (writes during `/ai-audit` Phase 1).
 - **Task/Design group:** `.claude/skills/task/SKILL.md` Steps 6–8 (design phase + Step-8 pre-implementation gate) ↔ `.claude/agents/design.md` (design artefact format) ↔ `.claude/agents/design-review.md` (verdict format + GO-with-notes round-trip contract). The three co-evolve: design-review's verdict format drives task SKILL Step 8's round-trip check; design's artefact format drives design-review's checklist.
+- **Snapshot-helper group:** `quartzite-widgets/tests/support/mod.rs` ↔ `quartzite-style/tests/support/mod.rs` — same public surface (`FLIP_TOLERANCE`, `SKIP_ENV`, `REGEN_ENV`, `BACKEND_ENV`, `DEFAULT_BACKEND_DIR`, `SHARED_DIR_NAME`, `harness_or_skip`, `snapshot_assert_at`, `snapshot_assert`, `default_snapshot_root`, `backend_dir_name`); only `default_snapshot_root()` differs (crate-local `CARGO_MANIFEST_DIR`) and the widgets copy additionally exports `snapshot_widget`. A change to shared logic (FLIP tolerance, env var names, lookup algorithm) MUST be mirrored in the same PR.
 
 > The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 

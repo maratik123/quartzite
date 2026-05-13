@@ -2,15 +2,23 @@
 # update-snapshots.sh — regenerate committed GPU snapshot goldens.
 #
 # Usage:
-#   scripts/update-snapshots.sh                       # detect backend from `uname` / WGPU_BACKEND
-#   scripts/update-snapshots.sh --backend vulkan      # force vulkan
-#   scripts/update-snapshots.sh --backend dx12        # force dx12 (Windows / WARP)
-#   scripts/update-snapshots.sh --backend metal       # force metal (macOS)
+#   scripts/update-snapshots.sh                          # all crates, detect backend
+#   scripts/update-snapshots.sh --backend vulkan         # force vulkan (all crates)
+#   scripts/update-snapshots.sh --crate widgets          # widgets only
+#   scripts/update-snapshots.sh --crate style            # quartzite-style only
+#   scripts/update-snapshots.sh --crate all              # both crates (default)
+#   scripts/update-snapshots.sh --crate style --backend metal
 #
-# Sets `QUARTZITE_REGENERATE_SNAPSHOTS=1` and runs the widget snapshot
-# integration test. The snapshot helper (`tests/support/mod.rs`) writes
-# the rendered images into `quartzite-widgets/tests/snapshots/<backend>/`
-# instead of comparing.
+# Sets `QUARTZITE_REGENERATE_SNAPSHOTS=1` and runs the snapshot integration
+# test(s). The snapshot helper (`tests/support/mod.rs`) writes the rendered
+# images into `<crate>/tests/snapshots/<backend>/` instead of comparing.
+#
+# Bootstrapping `shared/` goldens is a manual step: after regen, move the
+# per-backend PNGs to `shared/`:
+#   mv quartzite-widgets/tests/snapshots/<backend>/*.png \
+#      quartzite-widgets/tests/snapshots/shared/
+#   mv quartzite-style/tests/snapshots/<backend>/*.png \
+#      quartzite-style/tests/snapshots/shared/
 #
 # Does NOT run the `xvfb_smoke` integration test: that test asserts only on
 # clean startup + clean exit (no pixels), so there is nothing to regenerate.
@@ -32,6 +40,7 @@ usage() {
 }
 
 backend=""
+crate="all"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -47,6 +56,18 @@ while [ $# -gt 0 ]; do
         backend="${1#--backend=}"
         shift
         ;;
+    --crate)
+        if [ $# -lt 2 ]; then
+            echo "error: --crate requires a value (all|widgets|style)" >&2
+            exit 2
+        fi
+        crate="$2"
+        shift 2
+        ;;
+    --crate=*)
+        crate="${1#--crate=}"
+        shift
+        ;;
     -h | --help)
         usage 0
         ;;
@@ -56,6 +77,14 @@ while [ $# -gt 0 ]; do
         ;;
     esac
 done
+
+case "$crate" in
+all | widgets | style) ;;
+*)
+    echo "error: --crate must be one of all|widgets|style (got: $crate)" >&2
+    exit 2
+    ;;
+esac
 
 # Auto-detect backend when --backend was not supplied. Honours
 # pre-existing `WGPU_BACKEND` first (caller already chose) and falls
@@ -85,12 +114,27 @@ esac
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 
-echo "regenerating snapshots: backend=$backend"
-WGPU_BACKEND="$backend" \
-    QUARTZITE_REGENERATE_SNAPSHOTS=1 \
-    cargo test -p quartzite-widgets --test snapshots
+echo "regenerating snapshots: crate=$crate backend=$backend"
 
-target_dir="quartzite-widgets/tests/snapshots/$backend"
+if [ "$crate" = "all" ] || [ "$crate" = "widgets" ]; then
+    WGPU_BACKEND="$backend" \
+        QUARTZITE_REGENERATE_SNAPSHOTS=1 \
+        cargo test -p quartzite-widgets --test snapshots
+fi
+
+if [ "$crate" = "all" ] || [ "$crate" = "style" ]; then
+    WGPU_BACKEND="$backend" \
+        QUARTZITE_REGENERATE_SNAPSHOTS=1 \
+        cargo test -p quartzite-style --test snapshots
+fi
+
 echo
-echo "done. regenerated goldens in: $target_dir"
+echo "done. regenerated goldens in:"
+if [ "$crate" = "all" ] || [ "$crate" = "widgets" ]; then
+    echo "  quartzite-widgets/tests/snapshots/$backend"
+fi
+if [ "$crate" = "all" ] || [ "$crate" = "style" ]; then
+    echo "  quartzite-style/tests/snapshots/$backend"
+fi
 echo "review the diff and commit the *.png files together with the change that caused them."
+echo "to bootstrap shared/ goldens: mv <backend>/*.png shared/"

@@ -1,19 +1,16 @@
-//! Test-side support for GPU snapshot tests.
+//! Test-side support for GPU snapshot tests in `quartzite-style`.
 //!
 //! **Sync group:** kept in lock-step with
-//! `quartzite-style/tests/support/mod.rs` (snapshot-helper group).
+//! `quartzite-widgets/tests/support/mod.rs` (snapshot-helper group).
 //! A change to one MUST be mirrored to the other in the same PR.
 //!
-//! Provides [`snapshot_assert`] and [`harness_or_skip`] used by the widget
-//! snapshot suite (`tests/snapshots.rs`) and by the helper-internal unit
-//! tests (`tests/support_internals.rs`).
-//!
-//! The helper is intentionally **test-only** — `mod`-included from sibling
-//! integration-test files via `mod support;`. It is not exported from the
-//! `quartzite_widgets` library surface, which keeps test-only API out of
-//! the crate's public API. Spec AC2's literal path
-//! `quartzite_widgets::test_support::snapshot_assert` has an "e.g."
-//! softener that the design takes advantage of.
+//! Provides [`snapshot_assert`] and [`harness_or_skip`] used by the style
+//! snapshot suite (`tests/snapshots.rs`). The only difference from the
+//! widgets-side copy is [`default_snapshot_root`], which resolves to
+//! `quartzite-style/tests/snapshots` instead of
+//! `quartzite-widgets/tests/snapshots`. The `snapshot_widget` helper is
+//! **not** included here — style tests drive [`DefaultStyle::draw_widget`]
+//! directly from the test closure rather than going through `WidgetExt::paint`.
 //!
 //! Workflow:
 //! - `SKIP_RENDER_SNAPSHOT=1` in env → early return with an `eprintln!`
@@ -29,22 +26,20 @@
 //! Goldens live under `tests/snapshots/`:
 //! - `tests/snapshots/<backend>/<name>.png` — per-backend override. Used
 //!   when the backend produces pixels that drift from the cross-backend
-//!   default (typical once real rasterization lands).
+//!   default.
 //! - `tests/snapshots/shared/<name>.png` — cross-backend default. Used
-//!   when no per-backend override exists. Today's all-clear-colour
-//!   goldens live here because the renderer is no-op and every backend
-//!   produces byte-identical output.
+//!   when no per-backend override exists.
 //!
 //! Lookup order is "backend override → shared default → fail".
 //! Regeneration always writes to the per-backend dir matching the
-//! `WGPU_BACKEND` env (so `update-snapshots.sh --backend vulkan` always
-//! writes to `tests/snapshots/vulkan/`). Bootstrapping a fresh `shared/`
-//! default is a manual step: regen on one backend, then `mv <backend>/* shared/`.
+//! `WGPU_BACKEND` env (so `update-snapshots.sh --crate style` always
+//! writes to `tests/snapshots/vulkan/` etc.). Bootstrapping a fresh
+//! `shared/` default is a manual step: regen on one backend, then
+//! `mv <backend>/* shared/`.
 //!
 //! The backend directory name is derived from the `WGPU_BACKEND` env var
-//! (`vulkan` / `dx12` / `metal`) and falls back to `auto` when unset
-//! (per spec AC2). The `shared/` fallback fires regardless of the resolved
-//! backend dir.
+//! (`vulkan` / `dx12` / `metal`) and falls back to `auto` when unset.
+//! The `shared/` fallback fires regardless of the resolved backend dir.
 
 #![allow(dead_code)] // not every sibling test calls every helper
 
@@ -53,7 +48,6 @@ use std::path::{Path, PathBuf};
 use image::{Rgb, RgbImage, RgbaImage};
 use nv_flip::{DEFAULT_PIXELS_PER_DEGREE, FlipImageRgb8, FlipPool, flip, magma_lut};
 use quartzite_renderer::{RenderHarness, RenderHarnessBuilder};
-use quartzite_widgets::WidgetExt;
 
 /// Workspace-wide perceptual-diff tolerance. The mean FLIP score across
 /// the image must be at or below this value for a snapshot to pass.
@@ -64,7 +58,7 @@ use quartzite_widgets::WidgetExt;
 pub const FLIP_TOLERANCE: f32 = 0.05;
 
 /// Env var that, when set to any non-empty value, causes snapshot tests
-/// (and the `xvfb-run` smoke test) to skip with a clear notice and pass.
+/// to skip with a clear notice and pass.
 pub const SKIP_ENV: &str = "SKIP_RENDER_SNAPSHOT";
 
 /// Env var that, when set to any non-empty value, causes [`snapshot_assert`]
@@ -105,7 +99,7 @@ pub fn harness_or_skip(name: &str) -> Option<RenderHarness> {
 /// artifact PNGs and panics on mismatch.
 ///
 /// `root` is the directory containing the per-backend subdirs (typically
-/// `quartzite-widgets/tests/snapshots`). The widget snapshot suite calls
+/// `quartzite-style/tests/snapshots`). The style snapshot suite calls
 /// [`snapshot_assert`] (which uses the workspace default root); the
 /// internals tests call this directly with a `tempfile::TempDir` root.
 ///
@@ -151,7 +145,7 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
              tried backend override: {}\n\
              tried shared fallback:  {}\n\
              actual saved to:        {}\n\
-             regenerate via: scripts/update-snapshots.sh --backend {backend_dir}",
+             regenerate via: scripts/update-snapshots.sh --crate style --backend {backend_dir}",
             backend_path.display(),
             shared_path.display(),
             actual_path.display(),
@@ -177,7 +171,7 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
             "snapshot_assert({name}): dimension mismatch — golden {:?}, actual {:?}\n\
              golden:  {}\n\
              actual:  {}\n\
-             regenerate via: scripts/update-snapshots.sh --backend {backend_dir}",
+             regenerate via: scripts/update-snapshots.sh --crate style --backend {backend_dir}",
             golden.dimensions(),
             image.dimensions(),
             golden_path.display(),
@@ -196,7 +190,7 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
              golden:  {}\n\
              actual:  {}\n\
              diff:    {}\n\
-             regenerate via: scripts/update-snapshots.sh --backend {backend_dir}",
+             regenerate via: scripts/update-snapshots.sh --crate style --backend {backend_dir}",
             report.mean,
             golden_path.display(),
             actual_path.display(),
@@ -206,29 +200,9 @@ pub fn snapshot_assert_at(root: &Path, name: &str, image: &RgbaImage) {
 }
 
 /// Convenience wrapper over [`snapshot_assert_at`] that resolves the
-/// snapshot root to `quartzite-widgets/tests/snapshots`.
+/// snapshot root to `quartzite-style/tests/snapshots`.
 pub fn snapshot_assert(name: &str, image: &RgbaImage) {
     snapshot_assert_at(&default_snapshot_root(), name, image);
-}
-
-/// Renders `widget` into `harness` and asserts against the committed
-/// golden for `name`.
-///
-/// The closure form of [`RenderHarness::render_widget`] is wrapped here
-/// so the widget snapshot tests don't repeat the `|p| widget.paint(p)`
-/// idiom on every line.
-///
-/// **Skip-env layering** (v1 call path, see `tests/snapshots.rs`):
-/// each `#[test]` fn calls a `harness_or_skip` helper that checks
-/// `SKIP_RENDER_SNAPSHOT=1` *before* constructing a [`RenderHarness`] —
-/// so when the env is set, this fn is never reached. As a defence-in-depth
-/// check, the inner [`snapshot_assert`] also early-returns on the same
-/// env, which protects callers that skip the outer guard (e.g. tests
-/// that opt to construct a harness for unrelated reasons and only later
-/// decide to snapshot).
-pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn WidgetExt) {
-    let image = harness.render_widget(|p| widget.paint(p));
-    snapshot_assert(name, &image);
 }
 
 /// Resolves the on-disk root for committed goldens — `<crate>/tests/snapshots`.

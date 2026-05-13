@@ -2694,12 +2694,16 @@ dependencies = [
 name = "quartzite-style"
 version = "0.1.0"
 dependencies = [
+ "image",
+ "nv-flip",
  "quartzite-geometry",
  "quartzite-paint",
  "quartzite-paint-api",
+ "quartzite-renderer",
  "quartzite-style-types",
  "quartzite-widgets",
  "serial_test",
+ "tempfile",
 ]
 
 [[package]]
