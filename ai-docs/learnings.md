@@ -983,3 +983,18 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **How to apply:** add a Phase 0.5 step to `.claude/skills/task/SKILL.md` (between the branch check and the issue-body fetch) running the four-step reconciliation above. The check fires only when the resolved input is a gh issue (bare-number `/task <N>` or deferred-spec activation with a populated `**Tracked in:** #N`); free-text `/task` invocations with no issue reference skip the check entirely. Propagate the change through the Task/Design sync group per AGENTS.md's Propagation Rule, and add the matching pre-resolved-rule entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent does not surface the `blocked`-label question.
 
 **Escalated?** no
+
+### 2026-05-13 — process — stale `.progress.md` after a merge mis-routes the next `/task` into the RESUME path
+
+**What happened:** `/task` was invoked with a fresh argument (the AGENTS.md size warning). `/task`'s first action probes `ai-docs/plans/*.progress.md` and, if any match exists, jumps to the RESUME path (skip Steps 1–7). The probe matched `2026-05-13-default-style-snapshot-tests.progress.md`, but PR #322 for that task had already merged at commit `80c5550` and the spec / design were already in `ai-docs/plans/done/`. Only the gitignored `.progress.md` remained because `/pr-merged` was never run after the GitHub UI merge. Following RESUME would have pointed at a completed task instead of starting the new one; recovery required asking the user before deleting the file.
+
+**Rule:** Whenever a PR merges, the corresponding `.progress.md` must be deleted before the next `/task` invocation — `/pr-merged` is the canonical mechanism, but a GitHub-UI merge (or any merge that bypasses local tooling) leaves the file in place silently. `/task`'s RESUME probe is unconditional and trusts the file's presence, so a stale file is silent breakage.
+
+**How to apply:** two complementary mitigations, neither in place today:
+
+1. **Detect & prompt at `/task` Step 0** — before the RESUME jump, inspect the matched `.progress.md`'s `**base_commit:**` (and / or its `**Issue:**` PR number if present) against `git log --oneline origin/master` to detect whether the task's commits already landed on master. If they did, surface to the user *"progress file looks stale (PR #N merged at <sha>); delete it and continue with new task?"* instead of silently RESUMING.
+2. **Hook on merge detection** — `scripts/cleanup-progress.sh` is referenced by the 2026-05-13 `/triage`-progress learning but does not yet exist. When that script lands, wire it (or an equivalent post-fetch / post-merge git hook) so any branch fetched into `origin/master` triggers a sweep of `ai-docs/plans/*.progress.md` whose `**base_commit:**` is now an ancestor of `origin/master` — delete on confirmation.
+
+The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs. a confused `/task` RESUME-into-stale-state every time a PR is merged via the GitHub web UI.
+
+**Escalated?** no

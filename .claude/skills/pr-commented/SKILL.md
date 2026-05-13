@@ -180,7 +180,7 @@ If **APPROVE** → Step 6.
 
 1. `git push` to the PR branch.
 2. **AXIOM 2 (PR body sync):** `gh pr view <N> --json title,body`. Read the body. If the AC checklist, scope, or cited counts now contradict the diff, `gh pr edit` to sync. Routine round commits within already-described scope do not need an edit, but the **read** is non-negotiable.
-3. For each thread, in category order, apply the Step-2 push-time action. Mechanics — verbatim per AGENTS.md "PR review comment resolution":
+3. For each thread, in category order, apply the Step-2 push-time action. Mechanics — verbatim per [`ai-docs/workflow.md` → PR review comment resolution](../../../ai-docs/workflow.md#pr-review-comment-resolution):
    - **Reply:**
      ```bash
      gh api repos/<O>/<R>/pulls/<N>/comments/<comment-id>/replies -f body='<reply text>'
