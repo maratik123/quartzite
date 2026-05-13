@@ -915,7 +915,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Rule:** The `/task` deferred-activation keyword check ("activate", "start", "proceed") fires only on those literal words in the arg. When the arg is a bare issue number, load the issue body first, then check whether any deferred spec already has `**Tracked in:** #N` matching that issue. If found, treat it as "already have a spec" — move it to `ai-docs/plans/`, update `INDEX.md`, confirm ACs with the user, and skip to Step 6. Do not run the interview and do not create a state file.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-10 — documentation — prefer inline form `[`Foo`](path)` over reference form `[`Foo`][path]` for intra-doc links
 
@@ -961,7 +961,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** when amending `.claude/skills/triage/SKILL.md` and `.claude/agents/triage-runner.md`, add (a) progress-file creation as Phase 1.5 (after the branch check, before Phase 2 dedupe), (b) progress-file resume read at Phase 1 if the file already exists for the current branch, (c) progress-file deletion after the final run summary emits, and (d) Propagation-Rule sync into the Triage group (skill ↔ agent ↔ `/next` skill). Mirror the cleanup-on-merge mechanic from `/pr-merged`'s `scripts/cleanup-progress.sh`.
 
-**Escalated?** no
+**Escalated?** skill:triage, agent:triage-runner, AGENTS.md
 
 ### 2026-05-13 — process — `/task` on a `blocked`-labelled gh issue must reconcile blockers before proceeding
 

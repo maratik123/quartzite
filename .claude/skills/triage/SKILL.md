@@ -8,6 +8,23 @@ allowed-tools: Bash(gh issue create *) Bash(gh issue edit *) Bash(gh issue close
 
 Launch the `triage-runner` subagent. The subagent reads `.claude/agents/triage-runner.md` for full instructions.
 
+## Progress file
+
+A multi-turn `/triage` run persists state to `ai-docs/triage/triage-YYYY-MM-DD.progress.md` (local-only / gitignored under `/ai-docs/triage/**/*.progress.md`). The file mirrors the canonical schema at `ai-docs/templates/progress-format.md` and stores:
+
+- Phase 4 dedupe map summary (`{number → {state, title}}` counts).
+- Phase 4.5 bridge classifications (type-1 / type-2 / type-3 lists + per-conflict user resolutions as they land).
+- Phase 6 / Phase 7 candidate partitions (approve / decline / sort / promote / drop / keep — including any user-edited tweaks to the proposed split).
+- `## Next action` — the phase the next subagent invocation should resume from.
+
+Lifecycle (mirrors `/task` and `/pr-commented` progress files):
+
+- **Created** by `triage-runner` at Phase 1.5 (after the branch check, before threshold gate). If the file already exists on the current branch when the subagent starts, it is read at Phase 1 and the run resumes from `## Next action` instead of restarting from scratch.
+- **Extended** by the subagent as each phase produces durable state (dedupe map, classifications, partitions, per-conflict resolutions).
+- **Deleted** by `triage-runner` after Phase 8's run summary emits successfully — same shape as `/pr-merged`'s `scripts/cleanup-progress.sh` mechanic for `/task` / `/pr-commented` files.
+
+Subagent context isolation makes classification state unrecoverable across invocations unless persisted; the progress file is what makes a `/triage` run resumable across compaction or fresh-subagent spawn.
+
 ## Trigger and threshold
 
 Default threshold is **≥ 3 unhandled rows** across the 10 row sources. Tunable via `/triage [N]` — passing `N` overrides the default. Below the threshold the subagent exits with a brief status report; no approval prompt opens.
