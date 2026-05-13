@@ -114,14 +114,6 @@ When adding or editing dependencies in `Cargo.toml`:
 - No `~` prefix — Cargo's default `^` semantics are sufficient.
 - After changing version constraints, run `cargo update` to pull latest compatible versions, then `cargo build` to verify.
 
-**Query the registry before pinning.** Whenever you write a *specific* version string for a dependency or GitHub Action — in `Cargo.toml`, a workflow file, an issue body, a spec, a design doc, a learning, or any `ai-docs/**` page — query the live source first. Training-data version knowledge is months stale by default and treating it as authoritative has, in this repo, twice put the wrong major into a spec the user then had to correct (`criterion 0.5` vs. live `0.8`; `actions/deploy-pages@v4` vs. live `@v5`). The cost is asymmetric: 30 seconds at authoring time vs. a corrective PR + reviewer time vs. a reverted regression worst-case.
-
-Per source:
-
-- **Cargo crates:** `curl -sS "https://crates.io/api/v1/crates/<name>" | jq -r '.crate.max_stable_version'` — then apply the `0.x` / `x` pinning rule above to the *observed* version, not a remembered one.
-- **GitHub Actions:** `gh api /repos/<owner>/<repo>/releases --jq '.[0].tag_name'` for the current major; also fetch `action.yml` to confirm the Node runtime is current — `gh api /repos/<owner>/<repo>/contents/action.yml --jq '.content' | base64 -d | grep -E 'using:|node'`. (Skipping the runtime check is how stale Node-20 majors slipped in repeatedly.)
-- **Long-lived references** (a doc that won't be revisited for months): annotate `(verified current YYYY-MM-DD)` next to the version so the next reader can spot drift before a `/task` session pins the stale value.
-
 ## Workflow
 
 > **AXIOM 1 — NEVER edit on local `master` when work is intended for a PR.**
@@ -136,8 +128,6 @@ Per source:
 > The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch **before** any `Edit`/`Write`. Before any `git push`, confirm again — if it is `master`, stop and apply recovery.
 
 - Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
-- **Never edit on local `master` when work is intended for a PR.** Create a feature branch (`git checkout -b feat/...`) *before* making any file edit — not just before commit. Accumulating uncommitted edits on `master` is the failure mode this rule guards: it leaves the working tree dirty on the wrong branch and forces a reactive switch later. The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch before any `Edit`/`Write`. Before any `git push`, confirm `git branch --show-current` is not `master` — if it is, stop and apply the recovery procedure below.
-  - Recovery (commits on local master, not yet pushed): stash any uncommitted changes first (`git stash`), then `git checkout -b feat/...` → `git checkout master && git reset --soft origin/master && git restore --staged .` → push feature branch and open PR from it. Pop the stash on the feature branch if needed.
 - Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
 - Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
 - **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
@@ -153,20 +143,7 @@ Per source:
   - Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
 - `.gitignore` (not `.arcignore`).
 - After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
-- **PR review comment resolution:** After pushing fixes, resolve only the comments that were addressed by a code change. Comments where you posted an objection (explaining why no change was made) must **not** be resolved — leave them for the reviewer to accept or push back on. **Mechanics (GitHub stores review threads, not just comments — REST `/pulls/{N}/comments` does not expose `isResolved`; use GraphQL):**
-  1. Reply to each comment via `gh api repos/<OWNER>/<REPO>/pulls/<N>/comments/<comment-id>/replies -f body='...'`.
-  2. Query unresolved thread IDs:
-     ```bash
-     gh api graphql -f query='{ repository(owner:"<OWNER>", name:"<REPO>") { pullRequest(number:<N>) { reviewThreads(first:50) { nodes { id isResolved path comments(first:1) { nodes { databaseId body } } } } } } }'
-     ```
-     Filter to `isResolved == false` and match each thread to the comment it was opened on (via `comments.nodes[0].databaseId` or `path`). Never guess thread IDs — `NOT_FOUND` means the ID is wrong, not that resolution is unavailable.
-  3. Resolve each fixed thread:
-     ```bash
-     gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<id>"}) { thread { isResolved } } }'
-     ```
-     Verify `isResolved: true` in the response.
-  4. Skip threads where you posted an objection — those stay open for the reviewer.
-- **PR body sync after every push.** When the current branch has an open PR, every `git push` is followed by `gh pr view <N> --json title,body` *unconditionally* — read the body first, then decide whether to edit. Sync via `gh pr edit` if the body now contradicts the diff (renames, scope drift, AC checkbox flips, cited counts that drifted, dropped/added items). Routine commits within already-described scope do not need an edit, but the **read** is non-negotiable. Reasoning your way out of the read is the failure mode this rule prevents. **Exception:** the read is not required when `gh pr create` immediately followed the push (the body is what you just authored — nothing to discover). The rule starts firing on the *next* push to the branch. The **upstream tracking issue's** title and body are the user's original problem statement — do not rewrite them; communicate scope changes via `gh issue comment` instead.
+- **PR review comment resolution:** After pushing fixes, resolve only the comments addressed by a code change; comments where you posted an objection stay open for the reviewer. GitHub stores review threads (not just comments), and REST `/pulls/{N}/comments` does not expose `isResolved` — use the GraphQL `reviewThreads` query then `resolveReviewThread` mutation. See [`ai-docs/workflow.md` → PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution) for the full recipe.
 
 > **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
 > The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.
@@ -214,16 +191,6 @@ Per source:
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
-When editing any instruction file (`AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `.claude/settings.json`), propagate the change to every related file in the same operation — before reporting done.
-
-**Sync groups (canonical):**
-- **Review group:** `.claude/skills/code-review/SKILL.md` (workflow) ↔ `.claude/agents/review-findings.md` (findings producer) ↔ `.claude/agents/self-review.md` (fix validator)
-- **Triage group:** `.claude/skills/triage/SKILL.md` (skill body) ↔ `.claude/agents/triage-runner.md` (subagent — `model: opus`) ↔ `.claude/skills/next/SKILL.md` (the *Candidates needing `/triage`* section text references `/triage`).
-- **Interview group:** `.claude/skills/interview/SKILL.md` (orchestrator) ↔ `.claude/agents/spec-writer.md` (subagent — `model: opus`) ↔ `AGENTS.md` (Rule-5 substring-blacklist source-of-truth — every new pre-resolved-rule addition to AGENTS.md must spawn a corresponding blacklist entry in `spec-writer.md`).
-- **Corrections-Log group:** `AGENTS.md` § Corrections Log (Boundary rules 1 / 2, entry format, `Escalated?` semantics) ↔ `.claude/agents/self-improve.md` (writes during `/improve`) ↔ `.claude/agents/learnings-escalation-audit.md` (writes during `/ai-audit` Phase 1).
-- **Task/Design group:** `.claude/skills/task/SKILL.md` Steps 6–8 (design phase + Step-8 pre-implementation gate) ↔ `.claude/agents/design.md` (design artefact format) ↔ `.claude/agents/design-review.md` (verdict format + GO-with-notes round-trip contract). The three co-evolve: design-review's verdict format drives task SKILL Step 8's round-trip check; design's artefact format drives design-review's checklist.
-- **Snapshot-helper group:** `quartzite-widgets/tests/support/mod.rs` ↔ `quartzite-style/tests/support/mod.rs` — same public surface (`FLIP_TOLERANCE`, `SKIP_ENV`, `REGEN_ENV`, `BACKEND_ENV`, `DEFAULT_BACKEND_DIR`, `SHARED_DIR_NAME`, `harness_or_skip`, `snapshot_assert_at`, `snapshot_assert`, `default_snapshot_root`, `backend_dir_name`); only `default_snapshot_root()` differs (crate-local `CARGO_MANIFEST_DIR`) and the widgets copy additionally exports `snapshot_widget`. A change to shared logic (FLIP tolerance, env var names, lookup algorithm) MUST be mirrored in the same PR.
-
 > The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 
 **Procedure:**
@@ -247,6 +214,8 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 |------|---------|
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
+| `ai-docs/workflow.md` | Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment resolution GraphQL recipe). Read on demand. |
+| `ai-docs/corrections-log.md` | Extracted carve-outs from `AGENTS.md` § *Corrections Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand. |
 | `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
 | `ai-docs/templates/` | Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files). |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`. |
@@ -278,17 +247,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 >
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
 >
-> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** The `Escalated?` line AND the optional `Superseded by:` line of an existing entry MAY be updated (or — for `Superseded by:` only — added when absent), **and only**:
->
-> - by the `self-improve` agent (invoked via `/improve`), after the named instruction-file change has landed:
->   - update `Escalated?` to replace the prior value with the comma-separated list of targets actually modified; AND/OR
->   - add or update `Superseded by:` on a *prior* entry when the Commit A change reverses, refines, generalizes, subsumes, or withdraws that entry's rule. Write to the prior entry's `Superseded by:`, not the new entry. Reference format: `[ref] — [one-line reason]`, where `[ref]` is `YYYY-MM-DD` (date of a later entry; disambiguate by quoted slug when multiple entries share that date), `PR #N`, or both comma-separated.
-> - by the `learnings-escalation-audit` agent (invoked via `/ai-audit` Phase 1):
->   - fix drift in `Escalated?` (target file no longer contains the rule, OR `Escalated? no` despite the rule existing in a target file);
->   - fix drift in `Superseded by:` (date reference doesn't match any later entry; `PR #N` reference is not a real merged PR);
->   - fix obvious typos within either value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets, mistyped date in `Superseded by:`).
->
-> All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
+> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** These two lines of an existing entry MAY be updated in-place by the `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) — see [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-agent contract. All other lines of an entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are **NOT** authorised by this exception — invoke `/ai-audit` or explicitly request the change.
 
 ### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
 
@@ -309,7 +268,7 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 >
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
 >
-> **Exception — `/improve` and `/ai-audit` workflows.** During a `/improve` run, the `self-improve` agent MAY (a) update the `Escalated?` field of the specific entries it just escalated, AND/OR (b) add or update the `Superseded by:` field of any prior entry whose rule the Commit A change reversed, refined, generalized, subsumed, or withdrew — both done **after** the instruction-file edit has been staged (separate commit on the same feature branch). During `/ai-audit` Phase 1, the `learnings-escalation-audit` agent MAY fix drift in either `Escalated?` or `Superseded by:` and edit the named target file to align them. These exceptions apply to **existing-entry `Escalated?` and `Superseded by:` updates only** — NEW learning entries STILL cannot be appended in the same turn as instruction-file edits (Rule 2's main protection — "I wrote a learning, therefore I'm authorised to escalate it" — stays intact).
+> **Exception — `/improve` and `/ai-audit` workflows.** The `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) MAY update `Escalated?` / `Superseded by:` on existing entries alongside instruction-file edits — see [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception). The exception applies to **existing-entry `Escalated?` / `Superseded by:` updates ONLY** — NEW learning entries STILL **cannot** be appended in the same turn as instruction-file edits (Rule 2's main protection stays intact).
 
 ### Entry format
 
@@ -319,12 +278,9 @@ On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`
 **Rule:** [what to do instead, or what to keep doing]
 **Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style (comma-separate multiple)
 **Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
-
-> `Escalated?` records **project-level** persistence only — instruction files visible to every contributor (`AGENTS.md`, skills, agents, hooks, project `settings.json`, `ai-docs/doc-convention.md`, `ai-docs/code-style.md`). **User-local persistence does NOT count and is NOT a value of this field** — that includes the auto-memory store (`~/.claude/.../MEMORY.md`) and `settings.local.json`, both of which are private to one developer and don't help future readers. If a correction was saved only to user-local memory, mark `Escalated? no`; the entry remains a candidate for project-level escalation by `/improve`.
-> `doc-convention` = the rule landed in `ai-docs/doc-convention.md`. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference rather than in AGENTS.md or a skill.
-> `code-style` = the rule landed in `ai-docs/code-style.md`. Use only for code-style rules that genuinely belong in the workspace code-style reference rather than in AGENTS.md or a skill.
-> `Superseded by:` records that the rule recorded above was later reversed, refined, generalized, subsumed, or withdrawn. The field is **optional** and absent from most entries. `[ref]` is one of: a `YYYY-MM-DD` date matching a later learnings entry (when multiple entries share that date, disambiguate by appending a quoted slug from the other entry's description — e.g., `2026-05-08 ("mutually exclusive markers")`); a `PR #N` reference to a merged PR that reversed the rule directly in instruction files; or both, comma-separated. The `[one-line reason]` is freeform — a short note explaining the nature of the supersession (reversed / refined / generalized / subsumed / withdrawn). Maintained by `self-improve` (via `/improve`) and `learnings-escalation-audit` (via `/ai-audit` Phase 1) under the same Boundary rule 1 Exception that authorises `Escalated?` updates.
 ```
+
+See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/corrections-log.md#entry-format--field-glossary) for the semantics of each field (`Escalated?` values, `doc-convention` vs `code-style`, `Superseded by:` reference format).
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
