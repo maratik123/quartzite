@@ -33,6 +33,12 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
+          sudo apt-get install -y libfontconfig1-dev
       - name: Build docs
         run: cargo doc --no-deps --workspace --all-features
         env:
