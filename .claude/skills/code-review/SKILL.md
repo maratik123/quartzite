@@ -8,6 +8,34 @@ allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(ca
 
 Whole-codebase review workflow. Steps execute **strictly in sequence**.
 
+> **⚡ Compaction recovery check — read FIRST on every invocation.**
+> If you are re-entering this skill after auto-compaction (a
+> summary/compaction block appears at the top of context, or workflow
+> context feels thin), STOP before any tool call and:
+>
+> 1. **Locate the durable-state file via this skill's active-state probe**
+>    — run the preamble glob (`ls ai-docs/plans/*.progress.md 2>/dev/null`) and apply the validation it
+>    documents (stale-merge, branch-match, or PR-linkage as the preamble
+>    prescribes). The probe both finds the path AND decides whether to
+>    RESUME, delete, park, or treat the situation as fresh.
+> 2. Once the probe identifies the correct durable-state file
+>    (the matched `ai-docs/plans/YYYY-MM-DD-code-review.progress.md`), read it **top-to-bottom in one
+>    pass** — every line, including older sections and the `## Decisions
+>    log` section. Do not skim. The recorded `current_step` is a
+>    cross-check, never an instruction to skip the read.
+> 3. **Then re-enter this skill from the top of its body** — let the
+>    preamble's probe / validation / RESUME sequence route control. Do
+>    NOT jump to a numbered Step directly; the preamble owns the routing.
+>    The probe will land you at the right next action without re-doing
+>    completed work.
+>
+> If the probe finds no matching durable-state file (or returns a
+> validated "no active task" result), this is a fresh invocation —
+> proceed normally.
+>
+> See `.claude/skills/context-reset/SKILL.md` § **Compaction recovery
+> (re-entry)** for the canonical handoff rationale.
+
 ## ⚡ First: check for active review
 
 ```bash
@@ -33,7 +61,7 @@ git rev-parse HEAD
 
 ### Step 2: Spawn review agent
 
-Create the progress file path: `ai-docs/plans/YYYY-MM-DD-code-review.progress.md` (use today's date).
+Create the progress file path: `ai-docs/plans/YYYY-MM-DD-code-review.progress.md` (use today's date). The progress file MUST include the canonical schema header fields per [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md): `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, and a `## Decisions log` h2 section. Initialise `**current_step:** Phase 1 — review-findings` before spawning the agent.
 
 ```
 Agent(subagent_type="general-purpose", prompt="
@@ -45,6 +73,8 @@ Agent(subagent_type="general-purpose", prompt="
 ```
 
 After the agent completes: read the progress file and report finding count and severity breakdown to the user.
+
+**Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 1 — review-findings complete`; append a `## Decisions log` bullet recording the finding count + severity breakdown (one line, prefixed `Phase 1:`).
 
 ### Step 3: Fix loop
 
@@ -62,6 +92,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 4. `cargo fmt`
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` — clean (`--all-features` so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI)
 6. Update `## Files touched` and mark subtask `[x]` in progress file
+7. **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 2 — fix loop (after N fixes)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any `⚠️ Objected` finding rationale beyond the inline reason (one line, prefixed `Phase 2:`; omit if no decisions).
 
 **Context handoff rule:** if the finding count is ≥ 10 and more than half remain open, spawn a sub-agent per subtask rather than working inline — pass the progress file path so it can resume.
 
@@ -74,6 +105,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` — clean (`--all-features` so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them; matches CI)
 6. **Doc convention conformance.** For every changed `pub` item, verify it conforms to [`ai-docs/doc-convention.md`](../../../ai-docs/doc-convention.md) (summary tense, `# Parameters` on fns with ≥1 non-receiver arg, strict section order, `# Errors` / `# Panics` / `# Safety` where applicable). Methods inside `impl Trait for Type {}` blocks are exempt; the trait *definition* is not. Mechanical heading scan on changed files: `rg '^\s*///\s*#\s*(Parameters|Returns|Type parameters|Lifetimes|Errors|Panics|Safety|Examples|See also)\b' <file>`.
 7. Update progress file: `**Last build:** PASS`
+8. **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 3 — final verify (PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any doc-convention finding fixed in this pass (one line, prefixed `Phase 3:`; omit if none).
 
 ### Step 5: Self-review loop (max 3 rounds)
 
@@ -88,12 +120,14 @@ Agent(subagent_type="general-purpose", prompt="
 ```
 
 **On APPROVE:**
-1. `cargo fmt` (final pass)
-2. Commit all changes (see commit rules below)
-3. Delete `ai-docs/plans/YYYY-MM-DD-code-review.progress.md`
-4. Done.
+1. **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 4 — self-review APPROVE (Round N)`; append a `## Decisions log` bullet recording the round count and any objections accepted (one line, prefixed `Phase 4:`).
+2. `cargo fmt` (final pass)
+3. Commit all changes (see commit rules below)
+4. Delete `ai-docs/plans/YYYY-MM-DD-code-review.progress.md`
+5. Done.
 
 **On REJECT:**
+- Rewrite `**current_step:**` to `Phase 4 — self-review REJECT (Round N), addressing findings` before re-entering the fix loop.
 - Fix each `⬜ Open` finding from the self-review section (same fix/object rules as Step 3)
 - Return to Step 5 (loop)
 
