@@ -14,11 +14,43 @@ The task may originate from either:
 - a **GitHub issue number** (e.g. `/task 42` or `/task #42`) — `/interview` reads the issue body during Steps 1–5
 - a **user description** (e.g. `/task add foo to bar`) or empty (`/interview` interviews the user)
 
+> **⚡ Compaction recovery check — read FIRST on every invocation.**
+> If you are re-entering this skill after auto-compaction (a
+> summary/compaction block appears at the top of context, or workflow
+> context feels thin), STOP before any tool call and:
+>
+> 1. **Locate the durable-state file via this skill's active-state probe**
+>    — run the preamble glob (`ls ai-docs/plans/*.progress.md 2>/dev/null`) and apply the validation it
+>    documents (stale-merge, branch-match, or PR-linkage as the preamble
+>    prescribes). The probe both finds the path AND decides whether to
+>    RESUME, delete, park, or treat the situation as fresh.
+> 2. Once the probe identifies the correct durable-state file
+>    (the matched `ai-docs/plans/<spec-base>.progress.md`), read it **top-to-bottom in one
+>    pass** — every line, including older sections and the `## Decisions
+>    log` section. Do not skim. The recorded `current_step` is a
+>    cross-check, never an instruction to skip the read.
+> 3. **Then re-enter this skill from the top of its body** — let the
+>    preamble's probe / validation / RESUME sequence route control. Do
+>    NOT jump to a numbered Step directly; the preamble owns the routing.
+>    The probe will land you at the right next action without re-doing
+>    completed work.
+>
+> If the probe finds no matching durable-state file (or returns a
+> validated "no active task" result), this is a fresh invocation —
+> proceed normally.
+>
+> See `.claude/skills/context-reset/SKILL.md` § **Compaction recovery
+> (re-entry)** for the canonical handoff rationale.
+
 ## ⚡ First: check for active task
 
 ```bash
 ls ai-docs/plans/*.progress.md 2>/dev/null
 ```
+
+> **Re-entry-after-compaction case (lost-arguments path).** If `$ARGUMENTS` is empty (lost to
+> compaction) AND the glob above finds a matching file with `**entry_args:**` recorded, treat the recorded
+> `entry_args` as the canonical entry reference. The `⚡ Second` and `⚡ Third` preambles must NOT fire on the **lost-arguments path** — they require a positive match against the live `$ARGUMENTS`, which by definition is unavailable on re-entry. Only `⚡ First` (active-task probe) is allowed to route a lost-arguments re-entry. If the probe finds no matching progress file, the re-entry is "fresh"; surface this to the user (do NOT proceed to Steps 1–5 silently, because the user's original task is unknown).
 
 **If found → validate the match BEFORE jumping to RESUME.** The probe is a flat glob — it matches any `.progress.md` regardless of git branch or merge state. Two failure modes have already burned cycles in this repo:
 
@@ -47,6 +79,8 @@ ls ai-docs/plans/*.progress.md 2>/dev/null
 
 ## ⚡ Second: check for deferred plan activation
 
+> **Guard sentence.** This preamble fires only when `$ARGUMENTS` is **non-empty**. On a lost-arguments re-entry (empty `$ARGUMENTS` after compaction), do NOT enter this preamble — fall through to `⚡ First`'s active-task probe instead. See `⚡ First`'s lost-arguments clause.
+
 If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a matching plan exists in `ai-docs/plans/deferred/`:
 
 1. Identify the matching `*.spec.md` (and `*.design.md` if present) in `ai-docs/plans/deferred/`.
@@ -65,6 +99,8 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 ---
 
 ## ⚡ Third: bare-issue activation of a matching deferred spec
+
+> **Guard sentence.** This preamble fires only when `$ARGUMENTS` is **non-empty** (a bare integer). On a lost-arguments re-entry (empty `$ARGUMENTS` after compaction), do NOT enter this preamble — fall through to `⚡ First`'s active-task probe instead. See `⚡ First`'s lost-arguments clause.
 
 > **AXIOM — When `$ARGUMENTS` is a bare gh issue number, search deferred specs for `**Tracked in:** #N` BEFORE launching the interview.**
 > The keyword trigger above ("activate", "start", "proceed") does NOT fire on a bare integer, so `/task 47` would otherwise enter the interview machinery and create a spurious `*.state.md` file even when `ai-docs/plans/deferred/2026-05-01-paint-style.spec.md` already carries `**Tracked in:** #47`. Catch this case here.
@@ -194,17 +230,21 @@ finding (Step 11) requires a design change rather than a code fix:
   Use the same date-name as the spec file. Record the branch name in the progress file.
 - **Before every `git commit` in this step:** run `git branch --show-current` and confirm it is NOT `master`. If it is — stop immediately, do not commit, apply the recovery procedure in AGENTS.md.
 - **Before every `git commit` in this step:** check `git status` for `ai-docs/learnings.md`. If modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
-- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start using the canonical format spec at [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md) — required fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. For `/task` flows also include `**Issue:**` and `**Spec:**`.
-- **Record base commit and branch** in the progress file header immediately:
+- Create `ai-docs/plans/YYYY-MM-DD-name.progress.md` at start using the canonical format spec at [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md) — required fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, `**entry_args:**`, plus a `## Decisions log` h2 section. Optional: `**parent_skill:**` (when `/task` itself was invoked from another skill — rare). For `/task` flows also include `**Issue:**` and `**Spec:**`.
+- **Record base commit, branch, and `entry_args`** in the progress file header immediately:
   ```
   **Branch:** feat/YYYY-MM-DD-name
   **base_commit:** <output of `git rev-parse HEAD`>
+  **current_step:** Step 8 — Implementation start
+  **last_passed_gate:** cargo build | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>
+  **entry_args:** <original $ARGUMENTS at /task entry — bare issue ref (`#348`/`348`), `activate paint-style`, free text (`add foo to bar`), or `(none)` for empty entry>
   ```
+  The `**entry_args:**` field is recorded ONCE at Step 8 creation and **read-only thereafter** — Steps 9–12 do NOT touch it. On a lost-arguments re-entry (empty `$ARGUMENTS` after compaction), this recorded value is the canonical entry reference per `⚡ First`'s lost-arguments clause.
 - After each subtask:
   1. `cargo build` — must compile
   2. `cargo test test_name` — if subtask adds tests
   3. `cargo fmt`; `cargo clippy --workspace -- -D warnings`
-  4. Update `.progress.md`
+  4. Update `.progress.md` — **at this subtask boundary, rewrite `**current_step:**` to `Step 8 — subtask N of M complete`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any non-trivial choice made during this subtask (one line, prefixed `Step 8 subtask N:`; omit if none).**
   5. **N=3 of M≥5 handoff gate (binding, not optional).** If this just-completed subtask is the **3rd** of a planned total **M≥5**, STOP further coding in this conversation turn. The next action MUST be a `/context-reset` handoff spawned via `Agent`. Skipping this gate has caused compaction mid-task to silently drop the `/task` step contract — Step 10 (self-review) was omitted on PR #339 because the compaction summary did not reproduce the strict sequence faithfully. Re-state the gate to yourself before deciding: *"I completed subtask N of M. N == 3? M >= 5? If both yes → handoff. No exceptions for 'almost done' or 'one more quick subtask'."* See `.claude/skills/context-reset/SKILL.md` for the handoff protocol.
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
@@ -234,6 +274,8 @@ finding (Step 11) requires a design change rather than a code fix:
 
 10. On ALL PASS → proceed to Step 9.5
 
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9 — Verify (ALL PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording panic-index additions, if any (one line, prefixed `Step 9:`; omit if none).
+
 ### Step 9.5: Update documentation
 
 Update content files only — **do not move spec/design to `done/` yet** (that happens at Step 12):
@@ -244,6 +286,8 @@ Update content files only — **do not move spec/design to `done/` yet** (that h
    - Add new architectural decisions to the Key Decisions table
 
 2. **`README.md`** — update the status table if a new crate was implemented
+
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9.5 — docs updated`; append a `## Decisions log` bullet recording any open questions resolved in `context.md` (one line, prefixed `Step 9.5:`; omit if none).
 
 Then proceed to Step 10.
 
@@ -261,9 +305,9 @@ Agent(subagent_type="general-purpose", prompt="
 ")
 ```
 
-**On APPROVE:** proceed to Step 12. The progress file is gitignored and **stays in the working tree** — it persists for `/pr-commented` to extend across any subsequent reviewer-comment rounds, and is deleted by `/pr-merged` after the PR merges. Do NOT `rm` it here.
+**On APPROVE:** proceed to Step 12. The progress file is gitignored and **stays in the working tree** — it persists for `/pr-commented` to extend across any subsequent reviewer-comment rounds, and is deleted by `/pr-merged` after the PR merges. Do NOT `rm` it here. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 10 — self-review APPROVE (Round N)`; append a `## Decisions log` bullet recording the round count (one line, prefixed `Step 10:`).
 
-**On REJECT:** proceed to Step 11. After Step 11, loop back here.
+**On REJECT:** proceed to Step 11. After Step 11, loop back here. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 10 — self-review REJECT (Round N), addressing findings`; append a `## Decisions log` bullet recording the finding count + severity breakdown (one line, prefixed `Step 10:`).
 
 **After round 3 with REJECT:** surface all remaining `⬜ Open` findings to the user and ask how to proceed.
 
@@ -284,7 +328,8 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
 4. Update `.progress.md`
 5. **PR body sync (unconditional).** Run `gh pr view <N> --json title,body` and re-read the body. Decide *after* reading whether `gh pr edit` is needed: edit if the body contradicts the new commits (renames, scope drift, AC status flips, cited counts that drifted), skip if it's still accurate. Never skip the read. Applies to every push during this step — not just review-fix commits that change public API. See AGENTS.md *Workflow*.
 6. **Resolve fixed review threads (unconditional).** For every PR review comment addressed by a `✅ Fixed` finding in this round, follow the GraphQL recipe in [`ai-docs/workflow.md` → PR review comment resolution](../../../ai-docs/workflow.md#pr-review-comment-resolution) verbatim — reply via REST, query unresolved thread IDs via `reviewThreads`, then `resolveReviewThread` each fixed thread and verify `isResolved: true`. Threads behind `⚠️ Objected` findings stay open. Skipping this sub-step has caused the same correction twice (`ai-docs/learnings.md` entries #33 and #44) — the recipe is already documented; this sub-step exists so it is actually consulted.
-7. Return to Step 10.
+7. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 11 — review fixes complete (Round N)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any `⚠️ Objected` rationale or Design-Amendment trigger (one line, prefixed `Step 11:`; omit if none).
+8. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
 
@@ -327,6 +372,7 @@ After all findings are resolved (`✅ Fixed` or `⚠️ Objected`):
       - Spec was written with `Tracked in: none` → omit this section
     - **Test plan** (checklist: one line per AC, plus clippy/build)
 11. Post the PR URL to the user.
+12. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 12 — PR opened (PR #<N>)`; append a `## Decisions log` bullet recording the PR number and the spec/design `done/` move (one line, prefixed `Step 12:`).
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
 
