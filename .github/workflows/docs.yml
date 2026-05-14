@@ -23,16 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - name: Cache dependencies
-        uses: actions/cache@v5
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
+          # Bare shared-key (no Cargo.lock hash): the bundled cache appends
+          # the parsed-lockfile hash to cacheKey internally, leaving the
+          # restoreKey lockfile-agnostic — reproduces today's restore-keys
+          # partial-prefix semantics. See design § Q3.
+          cache-shared-key: ${{ runner.os }}-cargo
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |

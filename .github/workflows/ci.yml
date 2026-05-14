@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
       - name: Format
@@ -60,14 +60,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-shared-key: ${{ runner.os }}-stable
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-stable
-          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -97,14 +95,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-shared-key: ${{ runner.os }}-stable
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-stable
-          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -130,16 +126,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
+          cache-shared-key: ${{ runner.os }}-stable
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-stable
-          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -176,7 +169,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          # cache-shared-key is distinct from the `*-stable` key used by
+          # build/test/clippy/docs to avoid cache thrash with the existing
+          # test job.
+          cache-shared-key: ${{ runner.os }}-stable-gpu
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux GPU stack
         if: runner.os == 'Linux'
         run: |
@@ -196,13 +195,6 @@ jobs:
         run: vulkaninfo --summary || true
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          # Distinct from the `*-stable` key used by build/test/clippy/docs
-          # to avoid cache thrash with the existing test job.
-          shared-key: ${{ runner.os }}-stable-gpu
-          save-if: ${{ github.ref == 'refs/heads/master' }}
       # Windows DX12 stack: vello requires modern D3D12 runtime features
       # that `windows-latest` does not ship by default. Mirror the install
       # dance gfx-rs/wgpu uses on its own CI — drop the D3D12 Agility SDK,
@@ -371,14 +363,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-shared-key: ${{ runner.os }}-stable
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-stable
-          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -421,16 +411,13 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}
+          cache-save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
-
-      - name: Rust cache
-        uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}
-          save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Build
         run: cargo build ${{ matrix.features }}

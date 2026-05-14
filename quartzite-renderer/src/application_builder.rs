@@ -148,6 +148,11 @@ impl WindowedApplicationBuilder {
 
 #[cfg(test)]
 mod tests {
+    // `ApplicationError` and `RendererError` are only referenced by the
+    // `#[cfg(target_os = "linux")]`-gated `build_result_is_ok_or_already_exists`
+    // test below, so they appear unused on non-Linux targets.
+    #![cfg_attr(not(target_os = "linux"), allow(unused_imports))]
+
     use quartzite_runtime::ApplicationError;
 
     use super::*;
