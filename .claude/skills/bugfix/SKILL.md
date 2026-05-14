@@ -38,8 +38,8 @@ Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 ## Step 1: Reproduce and Trace
 
 > **Re-entry-after-compaction case.** If a trace file exists at
-> `ai-docs/bugfix/trace-*.md`, read it top-to-bottom (per the Variant-B
-> callout's instruction). Then:
+> `ai-docs/bugfix/trace-*.md`, read it top-to-bottom (per the
+> compaction-recovery callout above). Then:
 >
 > | Trace state | Action |
 > |---|---|

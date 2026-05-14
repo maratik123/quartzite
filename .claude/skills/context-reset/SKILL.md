@@ -43,7 +43,7 @@ When triggered (N=3, M>=5 OR compaction detected):
 
 ## Compaction recovery (re-entry)
 
-Canonical rationale for the compaction-recovery callout that every code-side orchestrator SKILL.md (`/task`, `/code-review`, `/pr-commented`, `/bugfix`, `/interview`, `/context-reset`) places at the top of its body. Every Variant-A and Variant-B callout cross-links to this section by the exact anchor `# Compaction recovery (re-entry)`; this is the singular destination.
+Canonical rationale for the compaction-recovery callout that every code-side orchestrator SKILL.md (`/task`, `/code-review`, `/pr-commented`, `/bugfix`, `/interview`, `/context-reset`) places at the top of its body. Every Variant-A and Variant-B callout cross-links to this section by the exact h2 heading `## Compaction recovery (re-entry)`; this is the singular destination.
 
 ### Why a callout at all
 
