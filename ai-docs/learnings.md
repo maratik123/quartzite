@@ -1098,3 +1098,19 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
 
 **Escalated?** no
+
+### 2026-05-14 — process — `/task`'s active-task probe is not branch-aware; parallel PRs need progress-file parking
+
+**What happened:** PR #339 was in flight (with `ai-docs/plans/2026-05-14-paint-brush-gradient-variants.progress.md` live in the working tree) when Issue #340 (macOS CI rustup-init mis-route) became urgent and required its own `/task` cycle on a separate branch. The `/task` skill's active-task probe (`ls ai-docs/plans/*.progress.md`) is a flat glob — it matches any progress file regardless of git branch, so naively running `/task #340` from master would silently enter the RESUME path against #339's progress file and break both flows. The `**Branch:**` field inside each progress file is recorded but not consulted by the probe.
+
+**Rule:** When a `/task`-tracked PR is open and unmerged AND a second `/task` must start before the first one merges, park the in-flight progress file before switching branches: `mv ai-docs/plans/<spec-base>.progress.md ai-docs/plans/<spec-base>.progress.md.parked`. The `.parked` suffix takes it out of the `*.progress.md` glob, allowing the second `/task` to start cleanly. Restore with the reverse `mv` after `/pr-merged` cleans up the second PR's progress file. `/pr-merged` itself is PR-scoped (derives the target spec path from the merged branch's PR number → tracking issue → spec) and will NOT touch a parked file or another PR's progress file — verified in `.claude/skills/pr-merged/scripts/cleanup-progress.sh`. `/pr-commented` is similarly PR-scoped (greps `**Tracked in:** #<PR_NUM>`). The parking workaround is only required for `/task`'s start-of-flow active-task probe.
+
+**Escalated?** no
+
+### 2026-05-14 — tooling — `spec-writer` agent uses `cat > … <<EOF` heredocs to write the spec instead of Claude Code's Write/Edit tools — needs inspection
+
+**What happened:** Observed during `/task #340` interview phase. The `spec-writer` subagent (`.claude/agents/spec-writer.md`) writes the spec file via Bash `cat > 'ai-docs/plans/…spec.md' <<'EOF' … EOF` rather than the harness-native `Write` / `Edit` tools. Confirmed by the agent's front-matter `tools: Read, Grep, Glob, Bash` — it has no `Write` or `Edit` access, so heredoc is its only file-writing mechanism. This is a shell-based write path with no harness-level diff tracking, weaker rollback ergonomics, and exposure to bash quoting / `EOF` collisions in spec body content.
+
+**Rule:** Pending inspection. Open question: was the omission of `Write` / `Edit` from the spec-writer's tool list intentional (e.g. to constrain the agent to one specific atomic write site), or a historical oversight? The same question applies to other agents whose definitions deliberately limit tool access. Inspect `.claude/agents/spec-writer.md` and the rationale in any commit message that introduced the current `tools:` line; if no rationale is documented, add `Write` (and possibly `Edit`) to the tool list so spec mutations go through the harness-native diff path. Do not make this change without first establishing intent — the constraint may exist for a reason (e.g. preventing the agent from editing other files mid-round).
+
+**Escalated?** no
