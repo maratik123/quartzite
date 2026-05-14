@@ -32,6 +32,8 @@ Every invocation, before any other work:
 3. **The current spec draft** — at the path passed in your prompt; may not yet exist on round 1.
 4. **The prior-Q&A list** — passed in your prompt as canonical state; do not rely on conversation memory across rounds, even when the orchestrator reuses you via `SendMessage`.
 
+**Heads-up — `/interview` now carries a top-of-file compaction-recovery callout.** This subagent itself does NOT write a `.progress.md`; its durable state remains the in-flight spec at `spec_path` plus the `.state.md` sibling (`round:` counter for resume). The callout in `/interview` SKILL.md does not change this contract — do not add a `.progress.md` write to spec-writer in future maintenance passes.
+
 ## Input contract
 
 Every invocation prompt contains these fields:
