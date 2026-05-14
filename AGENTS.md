@@ -228,13 +228,13 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
-| `ai-docs/plans/*.progress.md` | Active task progress / handoff state — **local-only (gitignored)**. Created by `/task`, extended by `/pr-commented` across reviewer-comment rounds, deleted by `/pr-merged` after the PR merges. Never committed. |
+| `ai-docs/plans/*.progress.md` | Active task progress / handoff state — **local-only (gitignored)**. Carries the extended compaction-recovery schema (`current_step`, `last_passed_gate`, optional `parent_skill`, optional `entry_args`) plus a `## Decisions log` section per the canonical template at `ai-docs/templates/progress-format.md`. Writers: `/task` (creates at Step 8 and writes at each Step 8–12 boundary), `/code-review` (creates at Phase 1 and writes at each phase boundary), `/pr-commented` (extends with per-round sections), `/bugfix` (extends its own trace file with the same fields inline — see row below). Deleted by `/pr-merged` after the PR merges. Never committed. |
 | `ai-docs/pr-comments/pr-<N>.progress.md` | Fallback progress file when `/pr-commented` runs on a PR not produced by `/task` (rare). **Local-only (gitignored)**. Deleted by `/pr-merged`. |
 | `ai-docs/triage/triage-YYYY-MM-DD.progress.md` | `/triage` resume state for multi-turn runs (dedupe map summary, bridge classifications, Phase 6 / 7 partitions, `## Next action`). **Local-only (gitignored)**. Created by `triage-runner` at Phase 1.5; extended through Phases 4–7; deleted at Phase 8 after the run summary emits. |
 | `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
 | `ai-docs/plans/deferred/` | Blocked or future plans |
 | `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only). |
-| `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution |
+| `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution. Carries the same compaction-recovery fields inline (`**current_step:**`, `**last_passed_gate:**`, `**parent_skill:**`, `**entry_args:**`) plus a `## Decisions log` section — the trace file IS the `/bugfix` durable-state surface, no parallel `.progress.md`. |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 | `.claude/agents/spec-writer.md` | Spec-writer subagent (`model: opus`) — drafts the task spec one interview round per invocation; invoked by the `/interview` orchestrator |
 | `.claude/skills/triage/SKILL.md` + `.claude/agents/triage-runner.md` | `/triage` skill — batched promotion of `Tracked` = `—` rows in `ai-docs/deferred/*.md` (+ `🟡 v2` rows in `widget-backlog.md`) to gh issues; drains `_inbox.md` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`. |
