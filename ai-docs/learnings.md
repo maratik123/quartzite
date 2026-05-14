@@ -908,6 +908,7 @@ If the action's setup script doesn't export the env vars your design assumed it 
 All three must be kept in sync whenever a new optional feature adds public API with intra-doc links.
 
 **Escalated?** AGENTS.md, doc-convention, skill:task, agent:self-review, agent:review-findings
+**Superseded by:** 2026-05-14 ("all-features = true for doc quality gates") — refined: the blanket `--features serde` / `--all-features` synchronisation rule has a mutually-exclusive carve-out for crates with `std`/`libm`-style conditional feature pairs (use `no-default-features = true` + an explicit representative `features = [...]` instead).
 
 ### 2026-05-09 — process — /task with a bare issue number should activate a matching deferred spec instead of starting a fresh interview
 
@@ -927,7 +928,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** when writing or reviewing doc comments, the intra-doc link form is `` [`Type`](crate::path::Type) `` — text in `[]`, target in `()`. Reject the reference form `` [`Type`][crate::path::Type] `` in review unless the target genuinely cannot be expressed inline.
 
-**Escalated?** no
+**Escalated?** doc-convention
 
 ### 2026-05-11 — testing — a local FAILED result was not investigated before pushing; CI caught the same failure
 
@@ -939,7 +940,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** Any test — unit or integration — that calls `WindowedApplicationBuilder::build()` or any API that internally creates a `winit::EventLoop` must either: (a) be gated `#[cfg(target_os = "linux")]` and pass `.with_any_thread(true)`, OR (b) avoid calling `build()` in the test body entirely (test only builder field state, not `build()` completion). Never push after accepting a second-run green that followed a first-run FAILED without identifying why the first run failed.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-13 — process — design-review notes not resolved in the design document before implementation started
 
@@ -997,7 +998,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs. a confused `/task` RESUME-into-stale-state every time a PR is merged via the GitHub web UI.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-13 — process — Boundary Rule 2 needs a carve-out for in-flow learning entries discovered during the same `/task` workflow
 
@@ -1044,7 +1045,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 - **Standalone `/bugfix`** (not invoked from `/task`) — no parent `/task` exists, so no carve-out inherits. Main Boundary Rule 2 applies. `/bugfix`'s own structural shape (no commit ritual, no normal instruction-file edits) means the staging conflict typically doesn't fire in the first place.
 - **`/improve`, `/ai-audit`, `/code-review`, `/pr-commented`, `/triage`, `/interview`** — each has its own protocol for the rare `learnings.md` ←→ instruction-file pairing (typically: `/improve` and `/ai-audit` use the existing same-named exception; the rest don't pair). Sub-skill nesting from these is not in scope for the in-flow `/task` carve-out.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
 
 ### 2026-05-13 — process — workflows triggered only on `push: master` invert the PR safety net; completeness-claim drift in the introducing commit slips through the merge boundary
 
@@ -1065,7 +1066,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Why this is one entry, not two:** the completeness-claim drift and the master-only blind spot are independently observable patterns, but their *failure mode* in this incident was inseparable — the missing install step in the commit (drift) + the absent PR trigger on the affected workflow (blind spot) were the precise conjunction that allowed 14 consecutive master pushes to fail without any pre-merge signal. Recording them separately would lose the conjunction; recording the conjunction once captures both.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-13 — process — `/bugfix` Step 6 (Verify) lacks the `self-review` second-opinion pass that `/task` Step 10 has — nits reach the human reviewer that an automated review would catch pre-push
 
@@ -1089,7 +1090,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 - **`/pr-commented`, `/triage`, `/interview`, `/improve`, `/ai-audit`** — each already has its own self-review protocol (`/pr-commented` Step 5; the others have agent-driven review built into their workflow). The gap is `/bugfix`-specific.
 
-**Escalated?** no
+**Escalated?** skill:bugfix
 
 ### 2026-05-14 — process — ROADMAP.md must be regenerated before pushing to a PR
 
@@ -1097,7 +1098,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
 
-**Escalated?** no
+**Escalated?** hook, settings
 
 ### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
 
@@ -1105,7 +1106,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** After Step 9.5, always spawn the self-review agent (Step 10) before proceeding to Step 12. The verdict (APPROVE / REJECT) gates whether Step 12 is entered. Do not skip this step even when all gate commands pass — the self-review agent checks design conformance, edge cases, and nits that automated gates cannot catch.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-14 — process — too many subtasks taken without /context-reset leads to compaction before all tasks finish
 
@@ -1113,7 +1114,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** When `/task` decomposes into ≥ 3 non-trivial subtasks, call `/context-reset` after every N=3 subtasks (per `.claude/skills/task/SKILL.md` Step 8: "If N=3 of M≥5 → handoff via Agent (see `/context-reset`)"). This keeps the active context window small, prevents mid-task compaction, and ensures the full skill contract (including Step 10's self-review gate) remains live in context at each handoff point.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-14 — documentation — do not rely on `all-features = true` for doc quality gates or docs generation
 
@@ -1121,7 +1122,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** Do not use `all-features = true` in `[package.metadata.docs.rs]` or in local `cargo doc` quality gates for any crate that has mutually-exclusive or conditional features. Instead, specify `no-default-features = true` and an explicit `features = [...]` list that selects the combination giving the richest, most representative public-API documentation — typically the `std` path plus all purely additive features (e.g. `serde`, `derive`, `style`), explicitly excluding no-std-only alternatives. Whenever a new feature is added to a crate, audit its `[package.metadata.docs.rs]` block and the local `cargo doc` gate command to ensure the feature selection remains representative. Apply this principle to all workspace crates.
 
-**Escalated?** no
+**Escalated?** doc-convention, agent:self-review, agent:review-findings
 
 ### 2026-05-14 — process — `/task`'s active-task probe is not branch-aware; parallel PRs need progress-file parking
 
@@ -1129,7 +1130,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** When a `/task`-tracked PR is open and unmerged AND a second `/task` must start before the first one merges, park the in-flight progress file before switching branches: `mv ai-docs/plans/<spec-base>.progress.md ai-docs/plans/<spec-base>.progress.md.parked`. The `.parked` suffix takes it out of the `*.progress.md` glob, allowing the second `/task` to start cleanly. Restore with the reverse `mv` after `/pr-merged` cleans up the second PR's progress file. `/pr-merged` itself is PR-scoped (derives the target spec path from the merged branch's PR number → tracking issue → spec) and will NOT touch a parked file or another PR's progress file — verified in `.claude/skills/pr-merged/scripts/cleanup-progress.sh`. `/pr-commented` is similarly PR-scoped (greps `**Tracked in:** #<PR_NUM>`). The parking workaround is only required for `/task`'s start-of-flow active-task probe.
 
-**Escalated?** no
+**Escalated?** skill:task
 
 ### 2026-05-14 — tooling — `spec-writer` agent uses `cat > … <<EOF` heredocs to write the spec instead of Claude Code's Write/Edit tools — needs inspection
 
