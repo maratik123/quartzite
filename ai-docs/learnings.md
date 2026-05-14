@@ -1114,3 +1114,11 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Rule:** When `/task` decomposes into ≥ 3 non-trivial subtasks, call `/context-reset` after every N=3 subtasks (per `.claude/skills/task/SKILL.md` Step 8: "If N=3 of M≥5 → handoff via Agent (see `/context-reset`)"). This keeps the active context window small, prevents mid-task compaction, and ensures the full skill contract (including Step 10's self-review gate) remains live in context at each handoff point.
 
 **Escalated?** no
+
+### 2026-05-14 — documentation — do not rely on `all-features = true` for doc quality gates or docs generation
+
+**What happened:** PR #339 introduced `std` and `libm` as mutually-conditional features in `quartzite-paint-api`. The `[package.metadata.docs.rs]` section for that crate and the root `quartzite` crate retained `all-features = true`, which activates both `std` and `libm` simultaneously. While this compiles, it is not representative of any real usage and conflates two alternative float-backend paths. The reviewer flagged this and requested explicit feature lists instead.
+
+**Rule:** Do not use `all-features = true` in `[package.metadata.docs.rs]` or in local `cargo doc` quality gates for any crate that has mutually-exclusive or conditional features. Instead, specify `no-default-features = true` and an explicit `features = [...]` list that selects the combination giving the richest, most representative public-API documentation — typically the `std` path plus all purely additive features (e.g. `serde`, `derive`, `style`), explicitly excluding no-std-only alternatives. Whenever a new feature is added to a crate, audit its `[package.metadata.docs.rs]` block and the local `cargo doc` gate command to ensure the feature selection remains representative. Apply this principle to all workspace crates.
+
+**Escalated?** no
