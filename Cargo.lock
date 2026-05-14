@@ -528,6 +528,9 @@ name = "color"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ec7c5eb7a16992b1904d76c517d170ab353b0e0b3d5a0c81a8a0cd1037893cf"
+dependencies = [
+ "libm",
+]
 
 [[package]]
 name = "color_quant"
@@ -1599,6 +1602,7 @@ checksum = "7564e90fe3c0d5771e1f0bc95322b21baaeaa0d9213fa6a0b61c99f8b17b3bfb"
 dependencies = [
  "arrayvec",
  "euclid",
+ "libm",
  "smallvec",
 ]
 
@@ -2659,6 +2663,7 @@ dependencies = [
 name = "quartzite-paint"
 version = "0.1.0"
 dependencies = [
+ "peniko",
  "quartzite-geometry",
  "quartzite-paint-api",
  "rstest",
@@ -2668,6 +2673,7 @@ dependencies = [
 name = "quartzite-paint-api"
 version = "0.1.0"
 dependencies = [
+ "peniko",
  "quartzite-geometry",
  "rstest",
  "thiserror 2.0.18",
@@ -2720,6 +2726,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "peniko",
  "quartzite-geometry",
  "quartzite-paint",
  "quartzite-paint-api",
@@ -2758,6 +2765,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "peniko",
  "pretty_assertions",
  "quartzite-core",
  "quartzite-events",

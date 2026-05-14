@@ -402,7 +402,7 @@ jobs:
     strategy:
       matrix:
         features:
-          - "--no-default-features"
+          - "--no-default-features --features libm"
           - "--no-default-features --features std"
           - "--no-default-features --features derive"
           - "--all-features"

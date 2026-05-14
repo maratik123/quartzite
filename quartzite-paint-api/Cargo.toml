@@ -8,14 +8,24 @@ license.workspace = true
 repository.workspace = true
 description = "Shared paint types and Painter trait for quartzite (no_std)"
 
+[features]
+default = ["libm"]
+## Enable standard-library support. When enabled, `peniko` uses its `std` backend instead of `libm`.
+std = ["peniko/std"]
+## Enable `libm`-based float support for `no_std + alloc` environments.
+## Default when `std` is disabled. Provides float math via the `libm` crate.
+libm = ["peniko/libm"]
+
 [dependencies]
 quartzite-geometry = { path = "../quartzite-geometry", default-features = false }
 thiserror = { version = "2", default-features = false }
+peniko = { version = "0.6", default-features = false }
 
 [dev-dependencies]
 rstest = "0.26"
 
 [package.metadata.docs.rs]
-all-features = true
+no-default-features = true
+features = ["std"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]

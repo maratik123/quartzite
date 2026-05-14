@@ -1099,6 +1099,30 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** no
 
+### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
+
+**What happened:** During `/task #281`, after Step 9 (Verify) and Step 9.5 (Update docs) all passed, the implementation jumped directly to Step 12 (commit + PR) without running the self-review agent loop at Step 10. The PR (#339) was created without a self-review pass.
+
+**Rule:** After Step 9.5, always spawn the self-review agent (Step 10) before proceeding to Step 12. The verdict (APPROVE / REJECT) gates whether Step 12 is entered. Do not skip this step even when all gate commands pass — the self-review agent checks design conformance, edge cases, and nits that automated gates cannot catch.
+
+**Escalated?** no
+
+### 2026-05-14 — process — too many subtasks taken without /context-reset leads to compaction before all tasks finish
+
+**What happened:** During `/task #281`, six subtasks were planned and all executed in a single long conversation without calling `/context-reset` between subtasks. The conversation exceeded the context window and was compacted mid-task. Compaction discarded useful in-context state (notably the strict step sequence of the `/task` skill), which caused Step 10 (self-review loop) to be silently skipped — the compacted summary did not reproduce the skill's step contract faithfully enough to trigger it.
+
+**Rule:** When `/task` decomposes into ≥ 3 non-trivial subtasks, call `/context-reset` after every N=3 subtasks (per `.claude/skills/task/SKILL.md` Step 8: "If N=3 of M≥5 → handoff via Agent (see `/context-reset`)"). This keeps the active context window small, prevents mid-task compaction, and ensures the full skill contract (including Step 10's self-review gate) remains live in context at each handoff point.
+
+**Escalated?** no
+
+### 2026-05-14 — documentation — do not rely on `all-features = true` for doc quality gates or docs generation
+
+**What happened:** PR #339 introduced `std` and `libm` as mutually-conditional features in `quartzite-paint-api`. The `[package.metadata.docs.rs]` section for that crate and the root `quartzite` crate retained `all-features = true`, which activates both `std` and `libm` simultaneously. While this compiles, it is not representative of any real usage and conflates two alternative float-backend paths. The reviewer flagged this and requested explicit feature lists instead.
+
+**Rule:** Do not use `all-features = true` in `[package.metadata.docs.rs]` or in local `cargo doc` quality gates for any crate that has mutually-exclusive or conditional features. Instead, specify `no-default-features = true` and an explicit `features = [...]` list that selects the combination giving the richest, most representative public-API documentation — typically the `std` path plus all purely additive features (e.g. `serde`, `derive`, `style`), explicitly excluding no-std-only alternatives. Whenever a new feature is added to a crate, audit its `[package.metadata.docs.rs]` block and the local `cargo doc` gate command to ensure the feature selection remains representative. Apply this principle to all workspace crates.
+
+**Escalated?** no
+
 ### 2026-05-14 — process — `/task`'s active-task probe is not branch-aware; parallel PRs need progress-file parking
 
 **What happened:** PR #339 was in flight (with `ai-docs/plans/2026-05-14-paint-brush-gradient-variants.progress.md` live in the working tree) when Issue #340 (macOS CI rustup-init mis-route) became urgent and required its own `/task` cycle on a separate branch. The `/task` skill's active-task probe (`ls ai-docs/plans/*.progress.md`) is a flat glob — it matches any progress file regardless of git branch, so naively running `/task #340` from master would silently enter the RESUME path against #339's progress file and break both flows. The `**Branch:**` field inside each progress file is recorded but not consulted by the probe.

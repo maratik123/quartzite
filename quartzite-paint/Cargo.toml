@@ -11,6 +11,7 @@ description = "Backend-agnostic paint utilities for quartzite"
 [dependencies]
 quartzite-paint-api = { path = "../quartzite-paint-api" }
 quartzite-geometry  = { path = "../quartzite-geometry", default-features = false }
+peniko = "0.6"
 
 [dev-dependencies]
 rstest = "0.26"

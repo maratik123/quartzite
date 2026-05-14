@@ -162,7 +162,7 @@ fn maybe_disabled(color: Color, enabled: bool) -> Color {
 #[cfg(test)]
 mod tests {
     use quartzite_geometry::{Point, Rect};
-    use quartzite_paint_api::{Brush, BrushKind, Color, Font, Image, Painter, Path, Pen};
+    use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
     use quartzite_style_types::{ColorRole, Palette};
     use quartzite_widgets::{
         Alignment, AsWidget, Button, Label, ScrollArea, TextEdit, WidgetBase, WidgetExt,
@@ -218,13 +218,13 @@ mod tests {
             self.events.push(PaintEvent::DrawRect {
                 rect,
                 pen: *pen,
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn fill_rect(&mut self, rect: Rect, brush: &Brush) {
             self.events.push(PaintEvent::FillRect {
                 rect,
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn draw_line(&mut self, from: Point, to: Point, pen: &Pen) {
@@ -251,7 +251,7 @@ mod tests {
                 pos,
                 text: text.to_owned(),
                 font: font.clone(),
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn draw_text_in(
@@ -266,7 +266,7 @@ mod tests {
                 rect,
                 text: text.to_owned(),
                 font: font.clone(),
-                brush: *brush,
+                brush: brush.clone(),
                 alignment,
             });
         }
@@ -296,11 +296,56 @@ mod tests {
             .expect("expected at least one DrawTextIn event")
     }
 
+    /// Returns a representative `Color` for assertions — not a perceptual average.
+    ///
+    /// - `Solid(c)` → `c`
+    /// - `LinearGradient { start_color, .. }` / `RadialGradient { start_color, .. }` → `start_color`
+    /// - `Custom(g)` → first stop of `g` converted to sRGB, or `TRANSPARENT` if no stops
     fn brush_color(b: &Brush) -> Color {
+        use quartzite_paint_api::BrushKind;
         match b.kind() {
-            BrushKind::Solid(c) => c,
-            _ => unreachable!("expected solid brush"),
+            BrushKind::Solid(c) => *c,
+            BrushKind::LinearGradient { start_color, .. } => *start_color,
+            BrushKind::RadialGradient { start_color, .. } => *start_color,
+            BrushKind::Custom(gradient) => {
+                gradient.stops.first().map_or(Color::TRANSPARENT, |stop| {
+                    let alpha = stop.color.to_alpha_color::<peniko::color::Srgb>();
+                    let [r, g, b, a] = alpha.components;
+                    Color::new(r, g, b, a)
+                })
+            }
+            _ => Color::TRANSPARENT,
         }
+    }
+
+    // ── brush_color helper ───────────────────────────────────────────────────
+
+    #[test]
+    fn brush_color_linear_gradient_returns_start_color() {
+        let brush =
+            Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
+        assert_eq!(brush_color(&brush), Color::RED);
+    }
+
+    #[test]
+    fn brush_color_radial_gradient_returns_start_color() {
+        let brush = Brush::radial_gradient(Point::new(5, 5), 3.0, Color::WHITE, Color::BLACK);
+        assert_eq!(brush_color(&brush), Color::WHITE);
+    }
+
+    #[test]
+    fn brush_color_custom_first_stop_returns_its_color() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64))
+            .with_stops([peniko::Color::new([1.0f32, 0.0, 0.0, 1.0])]);
+        let brush = Brush::custom_gradient(gradient);
+        assert_eq!(brush_color(&brush), Color::new(1.0, 0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn brush_color_custom_empty_stops_returns_transparent() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64));
+        let brush = Brush::custom_gradient(gradient);
+        assert_eq!(brush_color(&brush), Color::TRANSPARENT);
     }
 
     // ── AC1: Send + Sync ─────────────────────────────────────────────────────

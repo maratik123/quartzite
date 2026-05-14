@@ -38,10 +38,13 @@ description = "A GUI and object framework for Rust"
 default = ["std", "derive"]
 ## Enable standard-library support (threading, queued dispatch, `is_on_current_thread`).
 ## Disable to build in `no_std + alloc` environments (core only; runtime requires std).
-std = ["quartzite-core/std", "quartzite-geometry/std"]
+std = ["quartzite-core/std", "quartzite-geometry/std", "quartzite-paint-api/std"]
 ## Enable proc-macro derive support (`Extend`, `Object`, `object_impl`, `MetaEnum`).
 ## Disable to reduce compile time in macro-free or `no_std` builds.
 derive = ["dep:quartzite-macros"]
+## Enable `libm`-based float support for `no_std + alloc` environments.
+## Required when `std` is disabled. Enables float math in `quartzite-paint-api`.
+libm = ["quartzite-paint-api/libm"]
 ## Enable the built-in widget system (`quartzite-widgets` crate).
 widgets = ["dep:quartzite-widgets"]
 ## Enable snapshot serialization/deserialization (`serde` + `typetag` in `quartzite-core`).
@@ -118,6 +121,7 @@ harness = false
 required-features = ["derive"]
 
 [package.metadata.docs.rs]
-all-features = true
+no-default-features = true
+features = ["std", "derive", "widgets", "serde", "style", "verbose-tracing"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]

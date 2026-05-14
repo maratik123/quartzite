@@ -153,9 +153,62 @@ impl<'a> VelloPainter<'a> {
         peniko::Color::new([c.r(), c.g(), c.b(), c.a()])
     }
 
+    #[inline]
+    fn color_to_dynamic(c: quartzite_paint_api::Color) -> peniko::color::DynamicColor {
+        peniko::color::DynamicColor::from_alpha_color(Self::color_to_peniko(c))
+    }
+
+    fn brush_to_peniko(&self, brush: &Brush) -> Option<peniko::Brush> {
+        match brush.kind() {
+            BrushKind::Solid(c) => Some(peniko::Brush::Solid(Self::color_to_peniko(*c))),
+            BrushKind::LinearGradient {
+                start,
+                end,
+                start_color,
+                end_color,
+            } => {
+                let stop0 = peniko::ColorStop {
+                    offset: 0.0,
+                    color: Self::color_to_dynamic(*start_color),
+                };
+                let stop1 = peniko::ColorStop {
+                    offset: 1.0,
+                    color: Self::color_to_dynamic(*end_color),
+                };
+                Some(peniko::Brush::Gradient(
+                    peniko::Gradient::new_linear(self.scale_pt(*start), self.scale_pt(*end))
+                        .with_stops([stop0, stop1]),
+                ))
+            }
+            BrushKind::RadialGradient {
+                centre,
+                radius,
+                start_color,
+                end_color,
+            } => {
+                let stop0 = peniko::ColorStop {
+                    offset: 0.0,
+                    color: Self::color_to_dynamic(*start_color),
+                };
+                let stop1 = peniko::ColorStop {
+                    offset: 1.0,
+                    color: Self::color_to_dynamic(*end_color),
+                };
+                let scaled_centre = self.scale_pt(*centre);
+                let scaled_radius = radius * self.scale;
+                Some(peniko::Brush::Gradient(
+                    peniko::Gradient::new_radial(scaled_centre, scaled_radius)
+                        .with_stops([stop0, stop1]),
+                ))
+            }
+            BrushKind::Custom(gradient) => Some(peniko::Brush::Gradient(gradient.clone())),
+            _ => None,
+        }
+    }
+
     fn brush_color(brush: &Brush) -> Option<peniko::Color> {
         match brush.kind() {
-            BrushKind::Solid(c) => Some(Self::color_to_peniko(c)),
+            BrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
             _ => None,
         }
     }
@@ -288,8 +341,8 @@ impl<'a> Painter for VelloPainter<'a> {
     fn draw_rect(&mut self, rect: Rect, pen: &Pen, brush: &Brush) {
         let r = self.scale_rect(rect);
         let xform = self.current_xform();
-        if let Some(fill_color) = Self::brush_color(brush) {
-            self.scene.fill(Fill::NonZero, xform, fill_color, None, &r);
+        if let Some(fill_brush) = self.brush_to_peniko(brush) {
+            self.scene.fill(Fill::NonZero, xform, &fill_brush, None, &r);
         }
         let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
         self.scene
@@ -297,10 +350,10 @@ impl<'a> Painter for VelloPainter<'a> {
     }
 
     fn fill_rect(&mut self, rect: Rect, brush: &Brush) {
-        if let Some(color) = Self::brush_color(brush) {
+        if let Some(fill_brush) = self.brush_to_peniko(brush) {
             let r = self.scale_rect(rect);
             let xform = self.current_xform();
-            self.scene.fill(Fill::NonZero, xform, color, None, &r);
+            self.scene.fill(Fill::NonZero, xform, &fill_brush, None, &r);
         }
     }
 
@@ -444,9 +497,9 @@ impl<'a> Painter for VelloPainter<'a> {
     fn draw_path(&mut self, path: &Path, pen: &Pen, brush: &Brush) {
         let bez = self.to_bez_path(path);
         let xform = self.current_xform();
-        if let Some(fill_color) = Self::brush_color(brush) {
+        if let Some(fill_brush) = self.brush_to_peniko(brush) {
             self.scene
-                .fill(Fill::NonZero, xform, fill_color, None, &bez);
+                .fill(Fill::NonZero, xform, &fill_brush, None, &bez);
         }
         let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
         self.scene
@@ -533,7 +586,7 @@ mod tests {
             Box::new(VelloPainter::new(&mut scene).with_fonts(&mut cache));
         let pen = Pen::new(Color::BLACK, 1.0);
         let brush = Brush::solid(Color::WHITE);
-        assert_eq!(brush.kind(), BrushKind::Solid(Color::WHITE));
+        assert_eq!(brush.kind(), &BrushKind::Solid(Color::WHITE));
         let rect = Rect::new(Point::new(0, 0), Size::new(10, 10));
         let origin = Point::new(0, 0);
         let font = Font::new("Arial", 12.0);
@@ -551,5 +604,31 @@ mod tests {
         p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
+
+        // gradient brushes must not panic
+        let linear = Brush::linear_gradient(origin, Point::new(10, 0), Color::RED, Color::BLUE);
+        let radial = Brush::radial_gradient(origin, 5.0, Color::WHITE, Color::BLACK);
+        let custom = Brush::custom_gradient(
+            peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64)).with_stops([
+                peniko::ColorStop {
+                    offset: 0.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        1.0f32, 0.0, 0.0, 1.0,
+                    ])),
+                },
+                peniko::ColorStop {
+                    offset: 1.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        0.0f32, 0.0, 1.0, 1.0,
+                    ])),
+                },
+            ]),
+        );
+        p.fill_rect(rect, &linear);
+        p.fill_rect(rect, &radial);
+        p.fill_rect(rect, &custom);
+        p.draw_rect(rect, &pen, &linear);
+        p.draw_path(&path, &pen, &radial);
+        p.draw_path(&path, &pen, &custom);
     }
 }
