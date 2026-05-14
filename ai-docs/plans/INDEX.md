@@ -42,6 +42,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [thiserror-migration](done/2026-05-05-thiserror-migration.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [tracing-itertools](done/2026-05-05-tracing-itertools.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [log-facade](done/2026-05-05-log-facade.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
+| [paint-brush-gradient-variants](done/2026-05-14-paint-brush-gradient-variants.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-renderer` `quartzite-style` `quartzite-widgets` | ✅ implemented (4 new GPU snapshot tests; `BrushKind::LinearGradient`, `RadialGradient`, `Custom(peniko::Gradient)` variants; `Brush::linear_gradient` / `radial_gradient` / `custom_gradient` constructors; `Brush`/`BrushKind` lose `Copy`; `VelloPainter::brush_to_peniko` handles all live variants; peniko gradient re-exports in `quartzite-paint`; `quartzite-style::default_style::brush_color` covers gradient variants) | — |
 | [paint-style](done/2026-05-09-paint-style.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-geometry` `quartzite-widgets` `quartzite-style-types` (new) `quartzite-style` (new) | ✅ implemented (38 new tests; full Painter trait + paint-side Font/Image/Path; new `quartzite-style-types` leaf + `quartzite-style` downstream crates with `Box::leak`-backed `StyleRegistry`; `Alignment` moved to `quartzite-geometry`; `style ↔ widgets` cycle broken by leaf-crate split, enforced by `cargo tree` integration test) | — |
 
 ## Completed plans
@@ -108,6 +109,7 @@ core-types ✅
 │   └── paint-style (#47)          ✅ implemented (full Painter trait + paint-side Font/Image/Path; quartzite-style-types leaf + quartzite-style downstream)
 │       └── default-style-content (#290) ✅ implemented (DefaultStyle concrete impl: Button/Label/TextEdit/ScrollArea draw_widget routing)
 │           └── default-style-snapshot-tests (#297) ✅ implemented (7 GPU snapshot goldens via RenderHarness; snapshot-helper sync group)
+│               └── paint-brush-gradient-variants (#281) ✅ implemented (LinearGradient/RadialGradient/Custom BrushKind variants; brush_to_peniko; 4 GPU snapshot tests)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
@@ -124,7 +126,7 @@ Maintenance plans (cross-cutting, all ✅): see [`../context.md` § Maintenance 
 2. **Concrete `Style` implementation in `quartzite-style`** — ✅ implemented (#290). `DefaultStyle` ships a downcast-routing `draw_widget` covering Button/Label/TextEdit/ScrollArea with palette-driven flat rendering.
 2. **`DefaultStyle` GPU snapshot tests** — ✅ implemented (#297). 7 pixel-level goldens in `quartzite-style/tests/snapshots/shared/`; snapshot-helper sync group established between `quartzite-widgets/tests/support/mod.rs` and `quartzite-style/tests/support/mod.rs`.
 3. **Bootstrap Windows/macOS snapshot goldens (#192 follow-up)** — `gpu-snapshot-tests-ci` shipped Linux/vulkan goldens only; Win/Mac matrix lanes are `continue-on-error: true` until contributors with those platforms run `scripts/update-snapshots.sh` and commit the per-backend PNGs. Drop `continue-on-error` once both lanes are green.
-3. **Gradient brush support (#281)** — `BrushKind::LinearGradient` / `RadialGradient` variants and renderer support; `VelloPainter` already has the `_ => None` early-return placeholder for gradient brushes.
+3. **Gradient brush support (#281)** — ✅ implemented. `BrushKind::LinearGradient` / `RadialGradient` / `Custom(peniko::Gradient)` + `VelloPainter::brush_to_peniko` + 4 GPU snapshot tests.
 4. **Expand** `quartzite` facade prelude as new crates are implemented
 4. Any future PR adding public items must satisfy the workspace doc convention at [`ai-docs/doc-convention.md`](../doc-convention.md): `#![deny(missing_docs)]` + `# Examples` + `# Parameters` (when ≥1 non-receiver arg) + `# Errors`/`# Panics`/`# Safety` when applicable; section ordering enforced by reviewer checklist; clippy `missing_errors_doc`/`missing_panics_doc`/`missing_safety_doc`/`doc_markdown` enabled across all crates
 5. Match-based lookups are in place for properties/signals/methods/enums; enum lookup (`#[object_impl]` generates noop) could be wired up to `#[meta_enum]`-annotated enums when widgets land

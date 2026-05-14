@@ -10,9 +10,14 @@
 //! This crate re-exports the shared paint vocabulary from [`quartzite_paint_api`]
 //! ([`Brush`], [`BrushKind`], [`Color`], [`Font`], [`FontWeight`], [`Image`],
 //! [`ImageError`], [`PaintError`], [`Painter`], [`Path`], [`Pen`], [`Segment`])
-//! plus [`Alignment`] from [`quartzite_geometry`]. It has no dependency on any
-//! GPU backend (winit, wgpu, vello).
+//! plus [`Alignment`] from [`quartzite_geometry`].
+//!
+//! It also re-exports the peniko gradient types needed to construct
+//! [`BrushKind::Custom`] brushes ([`Gradient`], [`GradientKind`],
+//! [`ColorStop`], [`Extend`]) so that callers do not need a direct
+//! `peniko` dependency.
 
+pub use peniko::{ColorStop, Extend, Gradient, GradientKind};
 pub use quartzite_geometry::Alignment;
 pub use quartzite_paint_api::{
     Brush, BrushKind, Color, Font, FontWeight, Image, ImageError, PaintError, Painter, Path, Pen,

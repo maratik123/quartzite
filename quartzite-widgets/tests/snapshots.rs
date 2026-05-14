@@ -8,7 +8,8 @@
 //! v1 goldens for the layout/widget tests encode the wgpu clear-colour
 //! baseline — widget `WidgetExt::paint` overrides are still no-ops.
 //! `VelloPainter` draw methods are now real and exercised via the
-//! painter-method tests in this file (AC1–AC9, AC11–AC12).
+//! painter-method tests in this file (AC1–AC9, AC11–AC12; issue #281
+//! gradient AC7–AC10).
 
 mod support;
 
@@ -369,11 +370,6 @@ fn draw_text_in_center() {
     );
 }
 
-// AC10 — `BrushKind::LinearGradient` / `RadialGradient` are not yet
-// implemented (tracked: https://github.com/maratik123/quartzite/issues/281).
-// The no-panic early-return is tested by `all_painter_methods_are_invocable`
-// once the variants exist; nothing to add here until #281 lands.
-
 /// AC11 — `scale_factor(2.0)` maps a 10×10 logical rect to ~20×20 physical
 /// pixels: pixel (18, 18) must be filled; pixel (22, 22) must still be
 /// background.
@@ -423,5 +419,103 @@ fn dpr_1_0_default_extent() {
         image.get_pixel(12, 12).0,
         [0, 0, 0, 255],
         "dpr 1.0: pixel (12,12) should be outside the 10×10 physical fill"
+    );
+}
+
+// ── gradient brush tests (issue #281: AC7–AC10) ────────────────────────────
+
+/// Gradient-AC7 (issue #281) — `fill_rect` with a `LinearGradient` brush
+/// produces a red-dominant left pixel and a blue-dominant right pixel.
+#[test]
+fn fill_rect_linear_gradient() {
+    let Some(mut harness) = harness_or_skip_with(
+        "fill_rect_linear_gradient",
+        RenderHarnessBuilder::new(20, 1),
+    ) else {
+        return;
+    };
+    let brush =
+        Brush::linear_gradient(Point::new(0, 0), Point::new(20, 0), Color::RED, Color::BLUE);
+    let rect = Rect::new(Point::new(0, 0), Size::new(20, 1));
+    let image = harness.render_widget(|p| p.fill_rect(rect, &brush));
+    let left = image.get_pixel(0, 0);
+    let right = image.get_pixel(19, 0);
+    assert!(
+        left.0[0] > 200,
+        "left pixel should be red-dominant, got {left:?}"
+    );
+    assert!(
+        right.0[2] > 200,
+        "right pixel should be blue-dominant, got {right:?}"
+    );
+}
+
+/// Gradient-AC8 (issue #281) — `fill_rect` with a `RadialGradient` brush
+/// produces a near-white centre and a darker edge.
+#[test]
+fn fill_rect_radial_gradient() {
+    let Some(mut harness) = harness_or_skip_with(
+        "fill_rect_radial_gradient",
+        RenderHarnessBuilder::new(21, 21),
+    ) else {
+        return;
+    };
+    let brush = Brush::radial_gradient(Point::new(10, 10), 9.0, Color::WHITE, Color::BLACK);
+    let rect = Rect::new(Point::new(0, 0), Size::new(21, 21));
+    let image = harness.render_widget(|p| p.fill_rect(rect, &brush));
+    let centre = image.get_pixel(10, 10);
+    let edge = image.get_pixel(0, 10);
+    assert!(
+        centre.0[0] > 200 && centre.0[1] > 200 && centre.0[2] > 200,
+        "centre pixel should be near-white, got {centre:?}"
+    );
+    assert!(
+        edge.0[0] < 100 || edge.0[1] < 100 || edge.0[2] < 100,
+        "edge pixel should be dark (at least one channel < 100), got {edge:?}"
+    );
+}
+
+/// Gradient-AC9 (issue #281) — `fill_rect` with a 3-stop `Custom` gradient
+/// (RED → GREEN → BLUE) produces a green-dominant middle pixel.
+#[test]
+fn fill_rect_custom_gradient() {
+    let Some(mut harness) = harness_or_skip_with(
+        "fill_rect_custom_gradient",
+        RenderHarnessBuilder::new(21, 1),
+    ) else {
+        return;
+    };
+    let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (21.0f64, 0.0f64)).with_stops([
+        (0.0f32, peniko::Color::new([1.0, 0.0, 0.0, 1.0])),
+        (0.5f32, peniko::Color::new([0.0, 1.0, 0.0, 1.0])),
+        (1.0f32, peniko::Color::new([0.0, 0.0, 1.0, 1.0])),
+    ]);
+    let brush = Brush::custom_gradient(gradient);
+    let rect = Rect::new(Point::new(0, 0), Size::new(21, 1));
+    let image = harness.render_widget(|p| p.fill_rect(rect, &brush));
+    let mid = image.get_pixel(10, 0);
+    let [r, g, b, _] = mid.0;
+    assert!(
+        g as u16 > r as u16 + 51 && g as u16 > b as u16 + 51,
+        "middle pixel should be green-dominant (G > R+51, G > B+51), got {mid:?}"
+    );
+}
+
+/// Gradient-AC10 (issue #281) — `draw_rect` with a gradient fill and a
+/// white solid pen renders a near-white stroke border.
+#[test]
+fn draw_rect_gradient_fill_solid_stroke() {
+    let Some(mut harness) = harness_or_skip("draw_rect_gradient_fill_solid_stroke") else {
+        return;
+    };
+    let brush =
+        Brush::linear_gradient(Point::new(0, 0), Point::new(64, 0), Color::RED, Color::BLUE);
+    let pen = Pen::new(Color::WHITE, 3.0);
+    let rect = Rect::new(Point::new(8, 8), Size::new(48, 48));
+    let image = harness.render_widget(|p| p.draw_rect(rect, &pen, &brush));
+    let border = image.get_pixel(8, 32);
+    assert!(
+        border.0[0] > 200 && border.0[1] > 200 && border.0[2] > 200,
+        "left border pixel should be near-white (white pen), got {border:?}"
     );
 }

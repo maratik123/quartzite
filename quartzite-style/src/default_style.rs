@@ -162,7 +162,7 @@ fn maybe_disabled(color: Color, enabled: bool) -> Color {
 #[cfg(test)]
 mod tests {
     use quartzite_geometry::{Point, Rect};
-    use quartzite_paint_api::{Brush, BrushKind, Color, Font, Image, Painter, Path, Pen};
+    use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
     use quartzite_style_types::{ColorRole, Palette};
     use quartzite_widgets::{
         Alignment, AsWidget, Button, Label, ScrollArea, TextEdit, WidgetBase, WidgetExt,
@@ -218,13 +218,13 @@ mod tests {
             self.events.push(PaintEvent::DrawRect {
                 rect,
                 pen: *pen,
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn fill_rect(&mut self, rect: Rect, brush: &Brush) {
             self.events.push(PaintEvent::FillRect {
                 rect,
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn draw_line(&mut self, from: Point, to: Point, pen: &Pen) {
@@ -251,7 +251,7 @@ mod tests {
                 pos,
                 text: text.to_owned(),
                 font: font.clone(),
-                brush: *brush,
+                brush: brush.clone(),
             });
         }
         fn draw_text_in(
@@ -266,7 +266,7 @@ mod tests {
                 rect,
                 text: text.to_owned(),
                 font: font.clone(),
-                brush: *brush,
+                brush: brush.clone(),
                 alignment,
             });
         }
@@ -296,10 +296,18 @@ mod tests {
             .expect("expected at least one DrawTextIn event")
     }
 
+    /// Returns a representative `Color` for assertions — not a perceptual average.
+    ///
+    /// - `Solid(c)` → `c`
+    /// - `LinearGradient { start_color, .. }` / `RadialGradient { start_color, .. }` → `start_color`
+    /// - `Custom(_)` → `Color::TRANSPARENT` (default_style tests never create custom-gradient brushes)
     fn brush_color(b: &Brush) -> Color {
+        use quartzite_paint_api::BrushKind;
         match b.kind() {
-            BrushKind::Solid(c) => c,
-            _ => unreachable!("expected solid brush"),
+            BrushKind::Solid(c) => *c,
+            BrushKind::LinearGradient { start_color, .. } => *start_color,
+            BrushKind::RadialGradient { start_color, .. } => *start_color,
+            _ => Color::TRANSPARENT,
         }
     }
 
