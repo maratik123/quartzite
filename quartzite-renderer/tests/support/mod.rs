@@ -5,6 +5,12 @@
 //! as its own test binary with no test functions, which is wasteful and
 //! confusing — the subdirectory form avoids that).
 
+// Items in this module are only used by `#[cfg(target_os = "linux")]`-gated
+// tests in the sibling integration-test files (`multi_window.rs`,
+// `xvfb_smoke.rs`). Suppress dead_code / unused_imports on non-Linux rather
+// than gating every item individually.
+#![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports))]
+
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 
