@@ -20,7 +20,23 @@ The task may originate from either:
 ls ai-docs/plans/*.progress.md 2>/dev/null
 ```
 
-**If found → RESUME (skip steps 1–7):**
+**If found → validate the match BEFORE jumping to RESUME.** The probe is a flat glob — it matches any `.progress.md` regardless of git branch or merge state. Two failure modes have already burned cycles in this repo:
+
+1. **Stale-merge.** The matched progress file's task already merged via a GitHub-UI merge that bypassed `/pr-merged` (gitignored `.progress.md` survived). RESUME-ing into this points at a completed task instead of starting the new one. _See `ai-docs/learnings.md` 2026-05-13 stale-`.progress.md` entry._
+2. **Wrong-branch parallel PR.** The matched progress file belongs to an unrelated in-flight PR on a different feature branch. RESUME-ing here cross-contaminates the two flows. _See `ai-docs/learnings.md` 2026-05-14 branch-aware-probe entry._
+
+**Validation sequence (run before the RESUME jump):**
+
+1. Read `**Branch:**` and `**base_commit:**` from the matched `.progress.md`.
+2. **Stale-merge check.** `git merge-base --is-ancestor <base_commit> origin/master` — if exit code is `0`, the task's base commit is now an ancestor of `origin/master`, meaning the work merged. Stale candidate.
+3. **Branch-match check.** Compare the progress file's `**Branch:**` against `git branch --show-current`. If they differ, the user is on a different branch from the progress file's owner. Wrong-branch candidate.
+4. If **either** check signals a mismatch, surface the situation to the user with three options and wait for direction — do NOT jump to RESUME:
+   - **delete** — `rm ai-docs/plans/<base>.progress.md`, then proceed with the new task (Steps 1–7 or whichever applies).
+   - **park** — `mv ai-docs/plans/<base>.progress.md ai-docs/plans/<base>.progress.md.parked`; the `.parked` suffix takes it out of the glob, allowing the new `/task` to start cleanly. Restore via the reverse `mv` later.
+   - **RESUME anyway** — user explicitly chooses to ignore the mismatch (rare; typically only when reviving an interrupted task whose branch happens to be re-checked-out).
+5. If both checks pass (base_commit NOT in origin/master AND branch matches), proceed to the RESUME flow below.
+
+**RESUME flow (skip Steps 1–7) — only after validation passes:**
 1. Read the `.progress.md` file
 2. Read spec — only `## Acceptance Criteria`
 3. Read only files from `## Files touched`
@@ -189,10 +205,11 @@ finding (Step 11) requires a design change rather than a code fix:
   2. `cargo test test_name` — if subtask adds tests
   3. `cargo fmt`; `cargo clippy --workspace -- -D warnings`
   4. Update `.progress.md`
-  5. If N=3 of M≥5 → handoff via Agent (see `/context-reset`)
+  5. **N=3 of M≥5 handoff gate (binding, not optional).** If this just-completed subtask is the **3rd** of a planned total **M≥5**, STOP further coding in this conversation turn. The next action MUST be a `/context-reset` handoff spawned via `Agent`. Skipping this gate has caused compaction mid-task to silently drop the `/task` step contract — Step 10 (self-review) was omitted on PR #339 because the compaction summary did not reproduce the strict sequence faithfully. Re-state the gate to yourself before deciding: *"I completed subtask N of M. N == 3? M >= 5? If both yes → handoff. No exceptions for 'almost done' or 'one more quick subtask'."* See `.claude/skills/context-reset/SKILL.md` for the handoff protocol.
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
 - Implementation reveals design must change → trigger **Design Amendment** above, then resume here.
+- **Local FAIL investigation before push (AGENTS.md workflow corollary).** When `cargo test` returns `FAILED`, identify the specific failing test (`grep "FAILED"` on the output) and reproduce it in isolation (`cargo test test_name_substring -- --nocapture`) before deciding the failure was transient. A subsequent green run is NOT proof of transience — different test-thread assignments or environment vars (DISPLAY, WAYLAND_DISPLAY) can flip the result. Only accept "transient" when the test is known flaky AND multiple reruns are consistently green. _See `ai-docs/learnings.md` 2026-05-11 entry for the winit-`EventLoop::new()`-on-worker-thread case._
 
 ### Step 9: Verify
 
