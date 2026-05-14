@@ -1090,3 +1090,11 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 - **`/pr-commented`, `/triage`, `/interview`, `/improve`, `/ai-audit`** — each already has its own self-review protocol (`/pr-commented` Step 5; the others have agent-driven review built into their workflow). The gap is `/bugfix`-specific.
 
 **Escalated?** no
+
+### 2026-05-14 — process — ROADMAP.md must be regenerated before pushing to a PR
+
+**What happened:** PR #337 CI failed on the "ROADMAP sync" check. The script `scripts/gen-roadmap.sh` generates `ROADMAP.md` from `ai-docs/plans/INDEX.md`; the new `quartzite-style-dispatch` row was added to INDEX.md but `ROADMAP.md` was not regenerated before `git push`. Required a second fix commit.
+
+**Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
+
+**Escalated?** no
