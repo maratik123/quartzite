@@ -5,6 +5,8 @@ disable-model-invocation: true
 allowed-tools: Bash(git checkout master) Bash(git pull) Bash(git pull *) Bash(git branch -d *) Bash(git branch --show-current) Bash(git status) Bash(git status --porcelain) Bash(.claude/skills/pr-merged/scripts/cleanup-progress.sh *)
 ---
 
+> Near-stateless: no `.progress.md` discipline applies; re-entry consists of re-invoking the skill.
+
 Current branch: !`git branch --show-current`
 
 Working tree:
