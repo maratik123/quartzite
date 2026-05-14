@@ -25,6 +25,7 @@ peniko = { version = "0.6", default-features = false }
 rstest = "0.26"
 
 [package.metadata.docs.rs]
-all-features = true
+no-default-features = true
+features = ["std"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]

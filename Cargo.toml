@@ -121,6 +121,7 @@ harness = false
 required-features = ["derive"]
 
 [package.metadata.docs.rs]
-all-features = true
+no-default-features = true
+features = ["std", "derive", "widgets", "serde", "style", "verbose-tracing"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]
