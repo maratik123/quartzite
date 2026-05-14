@@ -13,6 +13,17 @@ librust_out.rlib
 # deleted by /pr-merged. Never committed.
 /ai-docs/plans/**/*.progress.md
 /ai-docs/pr-comments/
+# Parked progress files: the parallel-PR workaround documented in
+# ai-docs/learnings.md. When a /task-tracked PR is in-flight and a second
+# /task must start, the in-flight progress file is renamed to
+# *.progress.md.parked so /task's active-task probe (`ls
+# ai-docs/plans/*.progress.md`) does not match it. Restored to its bare
+# name when the second PR merges.
+/ai-docs/plans/**/*.progress.md.parked
 # /triage runs persist resume state to ai-docs/triage/triage-YYYY-MM-DD.progress.md.
 # Created by the triage-runner subagent at Phase 1.5, deleted at Phase 8.
 /ai-docs/triage/**/*.progress.md
+
+# Claude Code runtime scheduler state (lock file for ScheduleWakeup).
+# Local-only; never committed.
+/.claude/*.lock
