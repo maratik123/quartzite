@@ -94,7 +94,7 @@ First action: confirm the spec exists. Spawn the `design` agent (per `.claude/ag
 Spawn the `design-review` agent (per `.claude/agents/design-review.md`) with the spec + design paths.
 
 Verdict: GO / ITERATE / STOP.
-- **GO** → proceed to Step 8.
+- **GO** → proceed to Step 8. Spec-amending notes (AC/constraint changes) need Step 6 → Step 7 re-run, not a fold-in — see `reference.md` § Spec Amendment recipe.
 - **ITERATE** → back to Step 6 (max 3 rounds total).
 - **STOP** → fundamental flaw with the approach. Surface the verdict and `Issues` table to the user, do not start Step 8. Wait for direction (e.g., narrow scope, change approach, abandon).
 

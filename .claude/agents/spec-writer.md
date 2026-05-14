@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: "Drafts a task spec one interview round at a time, asking 0–3 questions per round or marking the spec ready or unresolvable. Invoked by the /interview orchestrator (per round) or /task Steps 1–5."
-tools: Read, Grep, Glob, Bash
+tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 ---
 
