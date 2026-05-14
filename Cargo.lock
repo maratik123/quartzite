@@ -2726,6 +2726,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "peniko",
  "quartzite-geometry",
  "quartzite-paint",
  "quartzite-paint-api",

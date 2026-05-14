@@ -266,12 +266,14 @@ mod tests {
             matches!(
                 brush.kind(),
                 BrushKind::LinearGradient {
+                    start: s,
+                    end: e,
                     start_color,
                     end_color,
-                    ..
-                } if *start_color == Color::RED && *end_color == Color::BLUE
+                } if *s == start && *e == end
+                    && *start_color == Color::RED && *end_color == Color::BLUE
             ),
-            "expected LinearGradient with RED/BLUE"
+            "expected LinearGradient with start={start:?} end={end:?} RED/BLUE"
         );
     }
 
@@ -283,15 +285,16 @@ mod tests {
             matches!(
                 brush.kind(),
                 BrushKind::RadialGradient {
+                    centre: c,
                     radius,
                     start_color,
                     end_color,
-                    ..
-                } if (*radius - 3.0).abs() < f32::EPSILON
+                } if *c == centre
+                    && (*radius - 3.0).abs() < f32::EPSILON
                     && *start_color == Color::WHITE
                     && *end_color == Color::BLACK
             ),
-            "expected RadialGradient with radius 3.0, WHITE/BLACK"
+            "expected RadialGradient with centre={centre:?} radius 3.0, WHITE/BLACK"
         );
     }
 

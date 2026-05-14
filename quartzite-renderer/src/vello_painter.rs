@@ -608,9 +608,27 @@ mod tests {
         // gradient brushes must not panic
         let linear = Brush::linear_gradient(origin, Point::new(10, 0), Color::RED, Color::BLUE);
         let radial = Brush::radial_gradient(origin, 5.0, Color::WHITE, Color::BLACK);
+        let custom = Brush::custom_gradient(
+            peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64)).with_stops([
+                peniko::ColorStop {
+                    offset: 0.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        1.0f32, 0.0, 0.0, 1.0,
+                    ])),
+                },
+                peniko::ColorStop {
+                    offset: 1.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        0.0f32, 0.0, 1.0, 1.0,
+                    ])),
+                },
+            ]),
+        );
         p.fill_rect(rect, &linear);
         p.fill_rect(rect, &radial);
+        p.fill_rect(rect, &custom);
         p.draw_rect(rect, &pen, &linear);
         p.draw_path(&path, &pen, &radial);
+        p.draw_path(&path, &pen, &custom);
     }
 }

@@ -300,13 +300,20 @@ mod tests {
     ///
     /// - `Solid(c)` → `c`
     /// - `LinearGradient { start_color, .. }` / `RadialGradient { start_color, .. }` → `start_color`
-    /// - `Custom(_)` → `Color::TRANSPARENT` (default_style tests never create custom-gradient brushes)
+    /// - `Custom(g)` → first stop of `g` converted to sRGB, or `TRANSPARENT` if no stops
     fn brush_color(b: &Brush) -> Color {
         use quartzite_paint_api::BrushKind;
         match b.kind() {
             BrushKind::Solid(c) => *c,
             BrushKind::LinearGradient { start_color, .. } => *start_color,
             BrushKind::RadialGradient { start_color, .. } => *start_color,
+            BrushKind::Custom(gradient) => {
+                gradient.stops.first().map_or(Color::TRANSPARENT, |stop| {
+                    let alpha = stop.color.to_alpha_color::<peniko::color::Srgb>();
+                    let [r, g, b, a] = alpha.components;
+                    Color::new(r, g, b, a)
+                })
+            }
             _ => Color::TRANSPARENT,
         }
     }
