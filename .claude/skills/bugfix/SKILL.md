@@ -11,9 +11,42 @@ Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 
 > ⛔ **Do NOT open Edit, do NOT write code until Step 2 (Root Cause) is complete.**
 
+> **⚡ Compaction recovery check — read FIRST on every invocation.**
+> If you are re-entering this skill after auto-compaction (a
+> summary/compaction block appears at the top of context, or workflow
+> context feels thin), STOP before any tool call and:
+>
+> 1. **Locate the durable-state file** — list `ls ai-docs/bugfix/trace-*.md 2>/dev/null`. If
+>    exactly one in-flight artefact exists, that's the durable state. If
+>    none exists, this is a fresh invocation. (Multiple matches: surface
+>    to the user before continuing.)
+> 2. Read it **top-to-bottom in one pass** — every line, including older
+>    sections. Do not skim. The recorded `current_step` is a
+>    cross-check, never an instruction to skip the read.
+> 3. **Then re-enter this skill from the top of its body.** The body's
+>    re-entry logic uses `current_step` (after the full read) to skip
+>    user-confirmed checkpoints that need not be redone — if the trace's `Confirmed by user: ✅ YES` line is present, do NOT re-run Step 1's reproduce-and-trace user-confirmation; resume from the step recorded in `current_step` (Step 2 Root Cause onward).
+>
+> If `ls ai-docs/bugfix/trace-*.md 2>/dev/null` returns no matches, this is a fresh invocation —
+> proceed normally.
+>
+> See `.claude/skills/context-reset/SKILL.md` § **Compaction recovery
+> (re-entry)** for the canonical handoff rationale.
+
 ---
 
 ## Step 1: Reproduce and Trace
+
+> **Re-entry-after-compaction case.** If a trace file exists at
+> `ai-docs/bugfix/trace-*.md`, read it top-to-bottom (per the Variant-B
+> callout's instruction). Then:
+>
+> | Trace state | Action |
+> |---|---|
+> | `Confirmed by user: ⏳ PENDING` (or missing) | Re-execute Step 1 normally — the trace was created but the user never confirmed. Re-show it and ask confirmation. |
+> | `Confirmed by user: ✅ YES` AND `**current_step:**` ≥ Step 2 | **Skip Step 1**. Resume from the step recorded in `**current_step:**`. Do NOT re-trace, do NOT re-ask the user. |
+> | `Confirmed by user: ✅ YES` but `**current_step:**` missing or blank | Treat as Step 1 just finished; resume at Step 2. |
+> | Multiple matching trace files | Surface to user; do NOT auto-pick. |
 
 **Goal:** understand the exact sequence of events — what happens now, step by step.
 
@@ -46,6 +79,11 @@ Adapt the diagram to the actual components involved. Label the divergence point 
 Date: YYYY-MM-DD
 Reporter: <quote from user message>
 
+**current_step:** Step 1: Reproduce and Trace
+**last_passed_gate:** (none yet)
+**parent_skill:** /task    <!-- only when /bugfix is invoked from /task Step 8; omit otherwise -->
+**entry_args:** <copy of $ARGUMENTS at trace creation; omit if empty>
+
 ## Actual behaviour
 <ASCII sequence diagram showing what DID happen, with divergence point labelled>
 
@@ -53,11 +91,18 @@ Reporter: <quote from user message>
 <ASCII sequence diagram showing what SHOULD happen>
 
 ## Confirmed by user: ⏳ PENDING
+
+## Decisions log
+
+- Step 1: <one-line description of a non-trivial decision made during this step>
 ```
+
+The four new header lines and the `## Decisions log` h2 match the canonical schema at [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md). The trace file is the `/bugfix`-flavoured progress file — no parallel `.progress.md` is created.
 
 2. Show the trace to the user and ask: **"Did I understand the behaviour correctly?"**
 3. After the user confirms — update the artifact: `Confirmed by user: ✅ YES`
-4. **Do NOT proceed to Step 2 until the user confirms the trace.**
+4. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 1: Reproduce and Trace — confirmed`; append a `## Decisions log` bullet recording the trace's divergence point (one line, prefixed `Step 1:`).
+5. **Do NOT proceed to Step 2 until the user confirms the trace.**
 
 > **Artifact is required.** Step 2 starts with `Read ai-docs/bugfix/trace-*.md`.
 
@@ -81,6 +126,7 @@ Based on the confirmed trace — find the single point of failure.
    Confirmed by user: ⏳ PENDING
    ```
 5. Show root cause to user. After confirmation → `✅ YES`.
+6. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 2: Root Cause — confirmed`; append a `## Decisions log` bullet recording the root-cause location (one line, prefixed `Step 2:`).
 
 ---
 
@@ -104,6 +150,8 @@ Based on the confirmed trace — find the single point of failure.
 - OR assertion is too weak → rewrite the assertion
 - ⛔ Do NOT proceed to fix while test is still green
 
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 3: Failing Test — red`; rewrite `**last_passed_gate:**` to `cargo test <test_name> (RED as expected) | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording the test name and the invariant it locks (one line, prefixed `Step 3:`).
+
 ---
 
 ## Step 4: Plan + Regression Check
@@ -118,6 +166,8 @@ Before Edit — make a plan:
 - Change touches >1 file
 - You're changing the same file for the second time in a row (loop signal)
 
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 4: Plan + Regression Check`; append a `## Decisions log` bullet recording the planned change scope (one line, prefixed `Step 4:`).
+
 ---
 
 ## Step 5: Fix
@@ -128,6 +178,8 @@ Now open Edit.
 
 **One-attempt rule:** if a new bug appeared in the same place after the fix — STOP. Draw a full system diagram, show it to the user.
 
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 5: Fix`; append a `## Decisions log` bullet recording the file(s) and lines touched (one line, prefixed `Step 5:`).
+
 ---
 
 ## Step 6: Verify
@@ -136,6 +188,7 @@ Now open Edit.
 2. Run the full suite: `cargo test` — confirm nothing else broke
 3. Run `cargo clippy --workspace -- -D warnings` for changed files
 4. Run `cargo fmt`
+5. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 6: Verify — green`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any non-trivial regressions caught and resolved (one line, prefixed `Step 6:`; omit the bullet if no decision was needed).
 
 > ⛔ **Do NOT delete the trace artifact yet — Step 6.5 still needs it as the spec-equivalent input for the self-review agent.**
 
@@ -173,8 +226,8 @@ Now open Edit.
    ")
    ```
 
-3. **On APPROVE:** proceed to Step 7 (artifact deletion + final cleanup).
-4. **On REJECT:** loop back to Step 5 (Fix) — address each `⬜ Open` finding (severity ladder applies — `major`/`blocker` may require user confirmation before objecting per the same rules `/task` Step 11 enforces). After fixes, return here for Round N+1.
+3. **On APPROVE:** proceed to Step 7 (artifact deletion + final cleanup). **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 6.5: Self-review — APPROVE (Round N)`; append a `## Decisions log` bullet recording the round count and any objections accepted (one line, prefixed `Step 6.5:`).
+4. **On REJECT:** loop back to Step 5 (Fix) — address each `⬜ Open` finding (severity ladder applies — `major`/`blocker` may require user confirmation before objecting per the same rules `/task` Step 11 enforces). After fixes, return here for Round N+1. Rewrite `**current_step:**` to `Step 6.5: Self-review — REJECT (Round N), addressing findings` before re-entering Step 5.
 5. **After Round 3 with REJECT:** STOP. Do not commit / push. Surface remaining `⬜ Open` findings to the user and wait for direction (escalate to a wider design-amendment cycle, accept the findings as out-of-scope nits, or abandon the fix).
 
 ---
