@@ -11,6 +11,7 @@ members = [
     "quartzite-renderer",
     "quartzite-style-types",
     "quartzite-style",
+    "quartzite-style-dispatch",
     "quartzite-widgets",
 ]
 resolver = "2"

@@ -169,7 +169,6 @@ mod tests {
     };
     use serial_test::serial;
 
-    use crate::registry::clear_for_test;
     use crate::{DefaultStyle, Style, StyleRegistry};
 
     // ── Recording painter fixture ────────────────────────────────────────────
@@ -572,7 +571,7 @@ mod tests {
     #[test]
     #[serial]
     fn registry_round_trip_dispatches_default_style() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(DefaultStyle));
 
         let style = StyleRegistry::try_style().expect("style was just installed");

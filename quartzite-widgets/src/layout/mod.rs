@@ -16,6 +16,9 @@ use crate::widget_base::WidgetBase;
 /// Implemented by the renderer's `ObjectTree` wrapper during layout passes
 /// (plan #47). For unit tests, a `HashMap<ObjectId, WidgetBase>`-backed stub
 /// is used instead.
+///
+/// For the read-only, paint-time counterpart see
+/// `quartzite_style_dispatch::WidgetResolver`.
 pub trait WidgetResolver {
     /// Returns a mutable reference to the [`WidgetBase`] identified by `id`, or `None`
     /// if the id is not present in this resolver.
