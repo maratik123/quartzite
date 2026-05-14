@@ -24,7 +24,7 @@ nv-flip            = "0.1"
 image              = "0.25"
 tempfile           = "3"
 quartzite-renderer = { path = "../quartzite-renderer" }
-peniko             = { version = "0.6", default-features = false, features = ["libm"] }
+peniko             = "0.6"
 
 [package.metadata.docs.rs]
 all-features = true
