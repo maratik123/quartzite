@@ -11,6 +11,28 @@ Orchestrator for the spec-drafting interview. Drives the round loop, surfaces th
 > Run standalone when you want a spec without committing to implementation (defer it to `ai-docs/plans/deferred/` afterward).
 > For the full task workflow use `/task` — it delegates Steps 1–5 to this skill, then continues with design → implementation → PR.
 
+> **⚡ Compaction recovery check — read FIRST on every invocation.**
+> If you are re-entering this skill after auto-compaction (a
+> summary/compaction block appears at the top of context, or workflow
+> context feels thin), STOP before any tool call and:
+>
+> 1. **Locate the durable-state file** — list `ls ai-docs/plans/*.spec.md.state.md 2>/dev/null` (then read both the matched `.state.md` AND its sibling `<spec_path>`). If
+>    exactly one in-flight artefact exists, that's the durable state. If
+>    none exists, this is a fresh invocation. (Multiple matches: surface
+>    to the user before continuing.)
+> 2. Read it **top-to-bottom in one pass** — every line, including older
+>    sections. Do not skim. The recorded `round` (from the `.state.md` YAML block) is a
+>    cross-check, never an instruction to skip the read.
+> 3. **Then re-enter this skill from the top of its body.** The body's
+>    re-entry logic uses `round` (after the full read) to skip
+>    user-confirmed checkpoints that need not be redone — resume from the round recorded in `.state.md`'s `round:` field; do NOT restart at round 1, and do NOT re-create the state file.
+>
+> If `ls ai-docs/plans/*.spec.md.state.md 2>/dev/null` returns no matches, this is a fresh invocation —
+> proceed normally.
+>
+> See `.claude/skills/context-reset/SKILL.md` § **Compaction recovery
+> (re-entry)** for the canonical handoff rationale.
+
 ## Architecture
 
 Two pieces:
