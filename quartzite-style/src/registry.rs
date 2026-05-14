@@ -117,14 +117,28 @@ impl StyleRegistry {
     }
 }
 
-/// Resets the registry to `None` for the next test.
-///
-/// Used only by `#[cfg(test)]` consumers — the leaked box from a previous
-/// `set_style` is **not** reclaimed (cannot be — leaks are forever).
-#[cfg(test)]
-pub(crate) fn clear_for_test() {
-    let mut guard = slot().lock().unwrap_or_else(|e| e.into_inner());
-    *guard = None;
+impl StyleRegistry {
+    /// Resets the active style to `None`.
+    ///
+    /// The leaked box from a previous [`set_style`][Self::set_style] call is
+    /// **not** reclaimed. Intended for use in integration tests and test-helper
+    /// crates that are outside `quartzite-style`; available only when the
+    /// `test-support` feature is enabled.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::StyleRegistry;
+    ///
+    /// StyleRegistry::clear_for_test();
+    /// assert!(StyleRegistry::try_style().is_none());
+    /// ```
+    #[cfg(any(test, feature = "test-support"))]
+    #[inline]
+    pub fn clear_for_test() {
+        let mut guard = slot().lock().unwrap_or_else(|e| e.into_inner());
+        *guard = None;
+    }
 }
 
 /// Forces the registry mutex into the poisoned state for the next lock.
@@ -226,14 +240,14 @@ mod tests {
     #[test]
     #[serial]
     fn try_style_returns_none_before_set() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         assert!(StyleRegistry::try_style().is_none());
     }
 
     #[test]
     #[serial]
     fn try_style_returns_some_after_set() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(StyleA));
         assert!(StyleRegistry::try_style().is_some());
     }
@@ -241,7 +255,7 @@ mod tests {
     #[test]
     #[serial]
     fn set_style_replaces_previous() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(StyleA));
         let first = StyleRegistry::try_style().expect("first set");
         StyleRegistry::set_style(Box::new(StyleB));
@@ -258,7 +272,7 @@ mod tests {
     #[test]
     #[serial]
     fn try_style_recovers_from_poisoned_mutex() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(StyleA));
 
         // Force the next lock() to observe a PoisonError.
@@ -273,7 +287,7 @@ mod tests {
     #[test]
     #[serial]
     fn registered_style_dispatches_draw_widget() {
-        clear_for_test();
+        StyleRegistry::clear_for_test();
         let before_a = A_CALLS.load(Ordering::SeqCst);
         let before_b = B_CALLS.load(Ordering::SeqCst);
 

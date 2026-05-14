@@ -22,6 +22,12 @@ tempfile           = "3"
 quartzite-geometry = { path = "../quartzite-geometry" }
 quartzite-renderer = { path = "../quartzite-renderer" }
 
+[features]
+## Exposes `StyleRegistry::clear_for_test()` as a `pub` function for use in
+## integration tests and test-helper crates that live outside `quartzite-style`.
+## Enable only in `[dev-dependencies]`, never in production builds.
+test-support = []
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

@@ -47,6 +47,7 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole) |
 | `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests) |
+| `quartzite-style-dispatch` | ✅ implemented (#312, widget-tree paint dispatcher: `dispatch_paint` + `WidgetResolver`) |
 
 ## Usage
 
