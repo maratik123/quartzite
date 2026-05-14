@@ -67,20 +67,41 @@ impl DefaultStyle {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
         let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
 
-        let (fill_role, text_role) = if w.checked {
-            (ColorRole::Highlight, ColorRole::HighlightedText)
+        // Precedence for fill/text axis: pressed > checked > hovered > idle.
+        // `disabled` is an alpha modifier applied after role selection (not a role-selector).
+        let fill_color = if pressed || w.checked {
+            maybe_disabled(palette.color(ColorRole::Highlight), enabled)
+        } else if hovered {
+            let blended = palette
+                .color(ColorRole::Button)
+                .blend(palette.color(ColorRole::Highlight), 0.25);
+            maybe_disabled(blended, enabled)
         } else {
-            (ColorRole::Button, ColorRole::ButtonText)
+            maybe_disabled(palette.color(ColorRole::Button), enabled)
         };
 
-        let fill_color = maybe_disabled(palette.color(fill_role), enabled);
+        let text_role = if pressed || w.checked {
+            ColorRole::HighlightedText
+        } else {
+            ColorRole::ButtonText
+        };
         let text_color = maybe_disabled(palette.color(text_role), enabled);
+
+        // `focused` is an additive outline modifier — always 2 px Highlight, never alpha-halved.
+        let (outline_color, outline_width) = if focused {
+            (palette.color(ColorRole::Highlight), 2.0)
+        } else {
+            (text_color, 1.0)
+        };
 
         painter.fill_rect(geom, &Brush::solid(fill_color));
         painter.draw_rect(
             geom,
-            &Pen::new(text_color, 1.0),
+            &Pen::new(outline_color, outline_width),
             &Brush::solid(Color::TRANSPARENT),
         );
         painter.draw_text_in(
@@ -294,6 +315,13 @@ mod tests {
             .iter()
             .find(|e| matches!(e, PaintEvent::DrawTextIn { .. }))
             .expect("expected at least one DrawTextIn event")
+    }
+
+    fn first_draw_rect(events: &[PaintEvent]) -> &PaintEvent {
+        events
+            .iter()
+            .find(|e| matches!(e, PaintEvent::DrawRect { .. }))
+            .expect("expected at least one DrawRect event")
     }
 
     /// Returns a representative `Color` for assertions — not a perceptual average.
@@ -609,6 +637,308 @@ mod tests {
             enabled_text.a() * 0.5,
             "disabled text alpha must be half of enabled"
         );
+    }
+
+    // ── New visual states (AC3 spec, AC4 spec, AC5 spec, AC6 spec) ───────────
+
+    fn pinned_palette() -> Palette {
+        Palette::default()
+            .with_role(ColorRole::Button, Color::WHITE)
+            .with_role(ColorRole::Highlight, Color::SKY_BLUE)
+            .with_role(ColorRole::ButtonText, Color::BLACK)
+            .with_role(ColorRole::HighlightedText, Color::WHITE)
+    }
+
+    #[test]
+    fn hovered_button_uses_blended_fill() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_hovered(true);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let expected_blend = palette
+            .color(ColorRole::Button)
+            .blend(palette.color(ColorRole::Highlight), 0.25);
+        let idle_fill = palette.color(ColorRole::Button);
+
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("first_fill did not return FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color, expected_blend,
+            "hovered fill must be 25% blend toward Highlight"
+        );
+        assert_ne!(
+            fill_color, idle_fill,
+            "hovered fill must differ from idle baseline"
+        );
+
+        let text_color = brush_color(
+            if let PaintEvent::DrawTextIn { brush, .. } = first_draw_text_in(&painter.events) {
+                brush
+            } else {
+                panic!("expected DrawTextIn")
+            },
+        );
+        assert_eq!(
+            text_color,
+            palette.color(ColorRole::ButtonText),
+            "hovered button text role must remain ButtonText"
+        );
+    }
+
+    #[test]
+    fn pressed_button_uses_highlight_roles() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_pressed(true);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("first_fill did not return FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color,
+            palette.color(ColorRole::Highlight),
+            "pressed fill must be Highlight"
+        );
+        assert_ne!(
+            fill_color,
+            palette.color(ColorRole::Button),
+            "pressed fill must differ from idle baseline"
+        );
+
+        let text_color = brush_color(
+            if let PaintEvent::DrawTextIn { brush, .. } = first_draw_text_in(&painter.events) {
+                brush
+            } else {
+                panic!("expected DrawTextIn")
+            },
+        );
+        assert_eq!(
+            text_color,
+            palette.color(ColorRole::HighlightedText),
+            "pressed text must be HighlightedText"
+        );
+    }
+
+    #[test]
+    fn focused_button_uses_2px_highlight_outline() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_focused(true);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let (pen_color, pen_width) =
+            if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+                (pen.color(), pen.width())
+            } else {
+                panic!("expected DrawRect")
+            };
+        assert_eq!(
+            pen_color,
+            palette.color(ColorRole::Highlight),
+            "focused outline color must be Highlight"
+        );
+        assert_eq!(pen_width, 2.0, "focused outline must be 2 px wide");
+
+        // Idle baseline has width 1.0 — verify it changes.
+        let mut idle_painter = RecordingPainter::default();
+        let idle_btn = Button::new("x".into());
+        DefaultStyle.draw_widget(&idle_btn, &mut idle_painter, &palette);
+        let idle_width =
+            if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&idle_painter.events) {
+                pen.width()
+            } else {
+                panic!("expected DrawRect")
+            };
+        assert_ne!(
+            pen_width, idle_width,
+            "focused outline width must differ from idle baseline"
+        );
+    }
+
+    #[test]
+    fn precedence_disabled_pressed_focused() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_pressed(true);
+        btn.set_focused(true);
+        btn.set_enabled(false);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        // Fill: pressed selects Highlight, then disabled halves its alpha.
+        let expected_highlight = palette.color(ColorRole::Highlight);
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("expected FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color.r(),
+            expected_highlight.r(),
+            "disabled+pressed fill r must match Highlight r"
+        );
+        assert_eq!(
+            fill_color.g(),
+            expected_highlight.g(),
+            "disabled+pressed fill g must match Highlight g"
+        );
+        assert_eq!(
+            fill_color.b(),
+            expected_highlight.b(),
+            "disabled+pressed fill b must match Highlight b"
+        );
+        assert_eq!(
+            fill_color.a(),
+            expected_highlight.a() * 0.5,
+            "disabled fill alpha must be half of Highlight's alpha"
+        );
+
+        // Focused outline survives disabled: 2 px, full-alpha Highlight.
+        let (pen_color, pen_width) =
+            if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+                (pen.color(), pen.width())
+            } else {
+                panic!("expected DrawRect")
+            };
+        assert_eq!(
+            pen_color, expected_highlight,
+            "focus outline color must be full-alpha Highlight even when disabled"
+        );
+        assert_eq!(
+            pen_width, 2.0,
+            "focus outline must still be 2 px wide when disabled"
+        );
+    }
+
+    #[test]
+    fn precedence_checked_hovered_keeps_checked_fill() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.checked = true;
+        btn.set_hovered(true);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("expected FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color,
+            palette.color(ColorRole::Highlight),
+            "checked wins over hover: fill must be Highlight"
+        );
+    }
+
+    #[test]
+    fn precedence_pressed_checked_both_map_to_highlight() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_pressed(true);
+        btn.checked = true;
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("expected FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color,
+            palette.color(ColorRole::Highlight),
+            "pressed+checked both map to Highlight role"
+        );
+    }
+
+    #[test]
+    fn precedence_focused_hovered_blend_plus_outline() {
+        let palette = pinned_palette();
+        let mut btn = Button::new("x".into());
+        btn.set_focused(true);
+        btn.set_hovered(true);
+        let mut painter = RecordingPainter::default();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        let expected_blend = palette
+            .color(ColorRole::Button)
+            .blend(palette.color(ColorRole::Highlight), 0.25);
+        let fill_color = brush_color(
+            if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+                brush
+            } else {
+                panic!("expected FillRect")
+            },
+        );
+        assert_eq!(
+            fill_color, expected_blend,
+            "focused+hovered fill must be 25% blend"
+        );
+
+        let (pen_color, pen_width) =
+            if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+                (pen.color(), pen.width())
+            } else {
+                panic!("expected DrawRect")
+            };
+        assert_eq!(
+            pen_color,
+            palette.color(ColorRole::Highlight),
+            "focused outline color must be Highlight"
+        );
+        assert_eq!(pen_width, 2.0, "focused outline must be 2 px wide");
+    }
+
+    #[test]
+    fn idle_button_three_events_unchanged() {
+        let btn = Button::new("OK".into());
+        let mut painter = RecordingPainter::default();
+        let palette = pinned_palette();
+        DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+        assert_eq!(
+            painter.events.len(),
+            3,
+            "idle button still produces exactly 3 events"
+        );
+        assert_eq!(
+            brush_color(
+                if let PaintEvent::FillRect { brush, .. } = &painter.events[0] {
+                    brush
+                } else {
+                    panic!()
+                }
+            ),
+            palette.color(ColorRole::Button),
+            "idle fill is Button role"
+        );
+        let outline_width = if let PaintEvent::DrawRect { pen, .. } = &painter.events[1] {
+            pen.width()
+        } else {
+            panic!()
+        };
+        assert_eq!(outline_width, 1.0, "idle outline is 1 px");
     }
 
     // ── AC10: StyleRegistry round-trip ────────────────────────────────────────

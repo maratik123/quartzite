@@ -58,6 +58,20 @@ pub struct WidgetBase {
     pub min_size: Size,
     /// Maximum size hint returned by [`crate::WidgetExt::maximum_size`].
     pub max_size: Size,
+    /// `true` while the mouse cursor is over the widget's [`Self::geometry`].
+    ///
+    /// Updated by the input-plumbing pass via [`crate::WidgetExt::set_hovered`].
+    pub hovered: bool,
+    /// `true` while a mouse button is held with press-initiated state on this widget.
+    ///
+    /// Set to `true` by the [`crate::WidgetExt::on_mouse_press`] default and cleared
+    /// by [`crate::WidgetExt::on_mouse_release`].
+    pub pressed: bool,
+    /// `true` while this widget owns keyboard focus.
+    ///
+    /// Set to `true` by the [`crate::WidgetExt::on_focus_in`] default and cleared
+    /// by [`crate::WidgetExt::on_focus_out`].
+    pub focused: bool,
 }
 
 impl WidgetBase {
@@ -92,6 +106,9 @@ impl WidgetBase {
             pending_update: false,
             min_size: Size::default(),
             max_size: Size::default(),
+            hovered: false,
+            pressed: false,
+            focused: false,
         }
     }
 }
@@ -128,6 +145,9 @@ mod tests {
         assert!(w.layout.is_none());
         assert!(w.event_filters.is_empty());
         assert!(!w.pending_update);
+        assert!(!w.hovered);
+        assert!(!w.pressed);
+        assert!(!w.focused);
     }
 
     #[test]

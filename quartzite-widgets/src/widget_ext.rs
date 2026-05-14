@@ -235,6 +235,119 @@ pub trait WidgetExt: AsWidget {
         self.widget_base_mut().enabled = enabled;
     }
 
+    // ── hovered / pressed / focused ───────────────────────────────────────────
+
+    /// Returns `true` while the mouse cursor is over the widget's bounding rectangle.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// assert!(!w.is_hovered());
+    /// w.set_hovered(true);
+    /// assert!(w.is_hovered());
+    /// ```
+    #[inline]
+    fn is_hovered(&self) -> bool {
+        self.widget_base().hovered
+    }
+
+    /// Sets the hovered state flag.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: `true` when the cursor is over the widget, `false` when it leaves.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// w.set_hovered(true);
+    /// assert!(w.is_hovered());
+    /// ```
+    #[inline]
+    fn set_hovered(&mut self, value: bool) {
+        self.widget_base_mut().hovered = value;
+    }
+
+    /// Returns `true` while a mouse button is held with press-initiated state on this widget.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// assert!(!w.is_pressed());
+    /// w.set_pressed(true);
+    /// assert!(w.is_pressed());
+    /// ```
+    #[inline]
+    fn is_pressed(&self) -> bool {
+        self.widget_base().pressed
+    }
+
+    /// Sets the pressed state flag.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: `true` when a press is initiated, `false` on release.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// w.set_pressed(true);
+    /// assert!(w.is_pressed());
+    /// ```
+    #[inline]
+    fn set_pressed(&mut self, value: bool) {
+        self.widget_base_mut().pressed = value;
+    }
+
+    /// Returns `true` while this widget owns keyboard focus.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// assert!(!w.is_focused());
+    /// w.set_focused(true);
+    /// assert!(w.is_focused());
+    /// ```
+    #[inline]
+    fn is_focused(&self) -> bool {
+        self.widget_base().focused
+    }
+
+    /// Sets the focused state flag.
+    ///
+    /// # Parameters
+    ///
+    /// - `value`: `true` when focus is gained, `false` when lost.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// w.set_focused(true);
+    /// assert!(w.is_focused());
+    /// ```
+    #[inline]
+    fn set_focused(&mut self, value: bool) {
+        self.widget_base_mut().focused = value;
+    }
+
     // ── repaint ───────────────────────────────────────────────────────────────
 
     /// Marks the widget as needing a repaint on the next render pass.
@@ -336,19 +449,56 @@ pub trait WidgetExt: AsWidget {
 
     /// Called when a mouse button is pressed over the widget.
     ///
+    /// Default impl sets `WidgetBase::pressed = true`. Override to add widget-specific
+    /// behaviour; call `self.set_pressed(true)` from the override body to keep the
+    /// default flag-mutation.
+    ///
     /// # Parameters
     ///
     /// - `event`: the mouse press event.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// assert!(!w.is_pressed());
+    /// // The default impl sets pressed=true; the input-plumbing pass calls this.
+    /// // Directly verify the accessor:
+    /// w.set_pressed(true);
+    /// assert!(w.is_pressed());
+    /// ```
     #[inline]
-    fn on_mouse_press(&mut self, _event: &MouseEvent) {}
+    fn on_mouse_press(&mut self, _event: &MouseEvent) {
+        self.set_pressed(true);
+    }
 
     /// Called when a mouse button is released over the widget.
+    ///
+    /// Default impl sets `WidgetBase::pressed = false`. Override to add widget-specific
+    /// behaviour; call `self.set_pressed(false)` from the override body to keep the
+    /// default flag-mutation.
     ///
     /// # Parameters
     ///
     /// - `event`: the mouse release event.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// w.set_pressed(true);
+    /// assert!(w.is_pressed());
+    /// w.set_pressed(false);
+    /// assert!(!w.is_pressed());
+    /// ```
     #[inline]
-    fn on_mouse_release(&mut self, _event: &MouseEvent) {}
+    fn on_mouse_release(&mut self, _event: &MouseEvent) {
+        self.set_pressed(false);
+    }
 
     /// Called when a key is pressed while the widget has focus.
     ///
@@ -367,12 +517,47 @@ pub trait WidgetExt: AsWidget {
     fn on_key_release(&mut self, _event: &KeyEvent) {}
 
     /// Called when the widget gains keyboard focus.
+    ///
+    /// Default impl sets `WidgetBase::focused = true`. Override to add widget-specific
+    /// behaviour; call `self.set_focused(true)` from the override body to keep the
+    /// default flag-mutation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// assert!(!w.is_focused());
+    /// w.set_focused(true);
+    /// assert!(w.is_focused());
+    /// ```
     #[inline]
-    fn on_focus_in(&mut self) {}
+    fn on_focus_in(&mut self) {
+        self.set_focused(true);
+    }
 
     /// Called when the widget loses keyboard focus.
+    ///
+    /// Default impl sets `WidgetBase::focused = false`. Override to add widget-specific
+    /// behaviour; call `self.set_focused(false)` from the override body to keep the
+    /// default flag-mutation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt};
+    ///
+    /// let mut w = WidgetBase::new();
+    /// w.set_focused(true);
+    /// assert!(w.is_focused());
+    /// w.set_focused(false);
+    /// assert!(!w.is_focused());
+    /// ```
     #[inline]
-    fn on_focus_out(&mut self) {}
+    fn on_focus_out(&mut self) {
+        self.set_focused(false);
+    }
 }
 
 /// Blanket implementation — every `AsWidget` automatically gets `WidgetExt`.
@@ -382,6 +567,7 @@ impl<T: AsWidget> WidgetExt for T {}
 mod tests {
     use super::*;
     use crate::WidgetBase;
+    use quartzite_events::{MouseButtons, MouseEventKind};
     use quartzite_geometry::{Point, Size};
 
     #[test]
@@ -457,5 +643,95 @@ mod tests {
         let mut w = WidgetBase::new();
         w.set_enabled(false);
         assert!(!w.is_enabled());
+    }
+
+    // ── AC2: hovered / pressed / focused accessors ────────────────────────────
+
+    #[test]
+    fn is_hovered_default_false() {
+        let w = WidgetBase::new();
+        assert!(!w.is_hovered());
+    }
+
+    #[test]
+    fn set_hovered_flips() {
+        let mut w = WidgetBase::new();
+        w.set_hovered(true);
+        assert!(w.is_hovered());
+        w.set_hovered(false);
+        assert!(!w.is_hovered());
+    }
+
+    #[test]
+    fn is_pressed_default_false() {
+        let w = WidgetBase::new();
+        assert!(!w.is_pressed());
+    }
+
+    #[test]
+    fn set_pressed_flips() {
+        let mut w = WidgetBase::new();
+        w.set_pressed(true);
+        assert!(w.is_pressed());
+        w.set_pressed(false);
+        assert!(!w.is_pressed());
+    }
+
+    #[test]
+    fn is_focused_default_false() {
+        let w = WidgetBase::new();
+        assert!(!w.is_focused());
+    }
+
+    #[test]
+    fn set_focused_flips() {
+        let mut w = WidgetBase::new();
+        w.set_focused(true);
+        assert!(w.is_focused());
+        w.set_focused(false);
+        assert!(!w.is_focused());
+    }
+
+    // ── AC7: event-handler default bodies ─────────────────────────────────────
+
+    fn fake_mouse_event(kind: MouseEventKind) -> MouseEvent {
+        MouseEvent::new(
+            Point::default(),
+            Point::default(),
+            MouseButtons::empty(),
+            MouseButtons::empty(),
+            Default::default(),
+            kind,
+        )
+    }
+
+    #[test]
+    fn on_mouse_press_default_sets_pressed() {
+        let mut w = WidgetBase::new();
+        w.on_mouse_press(&fake_mouse_event(MouseEventKind::Press));
+        assert!(w.widget_base().pressed);
+    }
+
+    #[test]
+    fn on_mouse_release_default_clears_pressed() {
+        let mut w = WidgetBase::new();
+        w.set_pressed(true);
+        w.on_mouse_release(&fake_mouse_event(MouseEventKind::Release));
+        assert!(!w.widget_base().pressed);
+    }
+
+    #[test]
+    fn on_focus_in_default_sets_focused() {
+        let mut w = WidgetBase::new();
+        w.on_focus_in();
+        assert!(w.widget_base().focused);
+    }
+
+    #[test]
+    fn on_focus_out_default_clears_focused() {
+        let mut w = WidgetBase::new();
+        w.set_focused(true);
+        w.on_focus_out();
+        assert!(!w.widget_base().focused);
     }
 }

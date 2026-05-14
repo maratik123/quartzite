@@ -22,8 +22,9 @@ core-types ✅
 │   ├── widgets (#46)              ✅ implemented (refactored in #47 to re-export Alignment / Font / Palette from upstream)
 │   └── paint-style (#47)          ✅ implemented (full Painter trait + paint-side Font/Image/Path; quartzite-style-types leaf + quartzite-style downstream)
 │       └── default-style-content (#290) ✅ implemented (DefaultStyle concrete impl: Button/Label/TextEdit/ScrollArea draw_widget routing)
-│           └── default-style-snapshot-tests (#297) ✅ implemented (7 GPU snapshot goldens via RenderHarness; snapshot-helper sync group)
-│               └── paint-brush-gradient-variants (#281) ✅ implemented (LinearGradient/RadialGradient/Custom BrushKind variants; brush_to_peniko; 4 GPU snapshot tests)
+│           ├── default-style-snapshot-tests (#297) ✅ implemented (7 GPU snapshot goldens via RenderHarness; snapshot-helper sync group)
+│           │   └── paint-brush-gradient-variants (#281) ✅ implemented (LinearGradient/RadialGradient/Custom BrushKind variants; brush_to_peniko; 4 GPU snapshot tests)
+│           └── button-hover-pressed-focused-states (#316) ✅ implemented (hover/pressed/focused visual states; Color::blend; 3 new snapshot goldens)
 └── github-workflow ✅
     └── multi-platform-ci ✅        (Windows/macOS runners — build/test/clippy on all 3 OSes)
 ```
@@ -71,6 +72,7 @@ core-types ✅
 | [tracing-itertools](ai-docs/plans/done/2026-05-05-tracing-itertools.spec.md) | `quartzite-core` `quartzite-runtime` | ✅ implemented (0 new tests) | — |
 | [log-facade](ai-docs/plans/done/2026-05-05-log-facade.spec.md) | `quartzite-core` `quartzite-runtime` `quartzite` | ✅ implemented (0 new tests) | — |
 | [paint-brush-gradient-variants](ai-docs/plans/done/2026-05-14-paint-brush-gradient-variants.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-renderer` `quartzite-style` `quartzite-widgets` | ✅ implemented (4 new GPU snapshot tests; `BrushKind::LinearGradient`, `RadialGradient`, `Custom(peniko::Gradient)` variants; `Brush::linear_gradient` / `radial_gradient` / `custom_gradient` constructors; `Brush`/`BrushKind` lose `Copy`; `VelloPainter::brush_to_peniko` handles all live variants; peniko gradient re-exports in `quartzite-paint`; `quartzite-style::default_style::brush_color` covers gradient variants) | — |
+| [button-hover-pressed-focused-states](ai-docs/plans/done/2026-05-15-button-hover-pressed-focused-states.spec.md) | `quartzite-paint-api` `quartzite-widgets` `quartzite-style` | ✅ implemented (26 new tests — 5 `Color::blend` unit+doctest; 3 `WidgetBase` default assertions; 6 accessor tests; 4 event-handler default tests; 7 recording-painter tests (AC3–AC6, AC11); 3 snapshot goldens in `shared/`; `Color::blend` `const fn #[inline]`; three `pub bool` fields on `WidgetBase`; six `WidgetExt` accessors; four updated event-handler defaults; `DefaultStyle::draw_button` with hover/pressed/focused rendering) | — |
 | [paint-style](ai-docs/plans/done/2026-05-09-paint-style.spec.md) | `quartzite-paint-api` `quartzite-paint` `quartzite-geometry` `quartzite-widgets` `quartzite-style-types` (new) `quartzite-style` (new) | ✅ implemented (38 new tests; full Painter trait + paint-side Font/Image/Path; new `quartzite-style-types` leaf + `quartzite-style` downstream crates with `Box::leak`-backed `StyleRegistry`; `Alignment` moved to `quartzite-geometry`; `style ↔ widgets` cycle broken by leaf-crate split, enforced by `cargo tree` integration test) | — |
 
 ## Completed plans
