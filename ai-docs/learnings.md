@@ -1138,7 +1138,8 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** Pending inspection. Open question: was the omission of `Write` / `Edit` from the spec-writer's tool list intentional (e.g. to constrain the agent to one specific atomic write site), or a historical oversight? The same question applies to other agents whose definitions deliberately limit tool access. Inspect `.claude/agents/spec-writer.md` and the rationale in any commit message that introduced the current `tools:` line; if no rationale is documented, add `Write` (and possibly `Edit`) to the tool list so spec mutations go through the harness-native diff path. Do not make this change without first establishing intent — the constraint may exist for a reason (e.g. preventing the agent from editing other files mid-round).
 
-**Escalated?** no
+**Escalated?** agent:spec-writer, agent:self-review, agent:review-findings
+**Superseded by:** 2026-05-15 "spec-writer tools regression" — root-cause inspection confirmed copy-paste regression (not intentional constraint); `Write` / `Edit` restored to frontmatter; AC-verification-grep re-run gate added to self-review / review-findings to catch the failure mode.
 
 ### 2026-05-15 — process — spec amendment during GO-with-notes resolution requires a full return to the design → design-review loop, not just a design-doc annotation
 
@@ -1146,7 +1147,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** When the spec is amended during `/task` Step 7's GO-with-notes resolution — even for "mechanical wording fixes" — return to Step 6 (design agent) and Step 7 (design-review); do not proceed straight to Step 8. The design doc is the implementation contract built **against the spec**; if the spec changes, the contract must be re-established and re-verified. Step 8's first-action gate ("every note / minor / recommendation from the latest design-review GO verdict has been written back into the design document") authorises folding notes into the design in-place **only when the spec is unchanged**; spec-affecting notes require a full design → design-review loop on the new spec. The GO-with-notes round-trip and the spec-change round-trip are two distinct workflows; conflating them ships a design built against the old spec without it ever being verified against the new one. **Why:** A spec amendment can introduce contradictions, unresolved decomposition items, or new ACs that only a fresh design-review pass against the amended spec catches — annotating the design from the previous round preserves design assumptions that may now be stale. **How to apply:** at Step 7 GO resolution, classify each note as either (a) design-internal (fold into design; no loop) or (b) spec-amending (re-enter Step 6 → Step 7 after the spec edit lands). If the user chooses an amend-spec path (Path A in an `AskUserQuestion`), the classification is automatically (b); spawn `design` then `design-review` with explicit "spec was amended — verify decomposition and ACs still hold" context. The 3-design-round-cap from Step 7 still applies to the merged total of original + post-amendment iterations.
 
-**Escalated?** no
+**Escalated?** skill:task, agent:design-review
 
 ### 2026-05-15 — tooling — `spec-writer` agent's `tools:` frontmatter shipped without `Write` / `Edit` — root cause is a copy-paste regression from `design-review`, NOT an intentional constraint
 
@@ -1164,4 +1165,4 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** Restore `Write` and `Edit` to `.claude/agents/spec-writer.md` frontmatter. The corrected line should read `tools: Read, Write, Edit, Grep, Glob, Bash` — preserving the post-spec `Grep` / `Glob` additions (the agent uses `Grep` for AGENTS.md Rule-5 preflight per its own *Read before drafting* section) and restoring the spec-required `Write` / `Edit`. **Why:** the originating spec / design / AC1-verification-grep all require Write+Edit; the shipped shape is a deviation from the user-approved contract, not a deliberate decision. **How to apply:** A separate PR's edit to the frontmatter line (one-line change) is sufficient. **Process learning underlying this learning:** AC-verification greps that are documented in the design as automated checks MUST be re-run against the shipped artefact before declaring the AC mechanically passed — running them once at draft time + relying on memory thereafter is the failure mode that let this through PR #295's self-review without detection. **Supersedes:** the 2026-05-14 entry "`spec-writer` agent uses `cat > … <<EOF` heredocs to write the spec instead of Claude Code's Write/Edit tools — needs inspection" (`Pending inspection` resolved here).
 
-**Escalated?** no
+**Escalated?** agent:spec-writer, agent:self-review, agent:review-findings
