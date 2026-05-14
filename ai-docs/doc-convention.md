@@ -344,11 +344,35 @@ they exist so an agent reproduces the CI doc gate before pushing. They use
 the same `--all-features` flag.
 
 The `--all-features` convention assumes features are additive (no two
-features mutually exclusive). If a feature is ever introduced that
-genuinely conflicts with another (e.g., picking one of two backends), this
-section needs revisiting — at that point the workflow flag set must be
-narrowed to a coherent superset, and that superset becomes the new
-sync target.
+features mutually exclusive). When a crate carries **mutually-exclusive**
+or **conditionally-paired** features (e.g. `std` vs `libm` float backends,
+backend A vs backend B), `all-features = true` and `--all-features` are
+**forbidden** for that crate — they activate both alternatives
+simultaneously, which compiles only by accident and documents a
+combination no real downstream consumer would ever pick. Use this carve-out
+in place of the default rule:
+
+- **`[package.metadata.docs.rs]`** — set `no-default-features = true` and
+  list an explicit `features = [...]` selecting the combination that yields
+  the richest, most representative public-API documentation. Typically
+  this is the `std` (or main) path plus every purely-additive feature
+  (`serde`, `derive`, `style`, …), explicitly excluding the no-std-only
+  alternative. Re-audit this block whenever a new feature lands in the
+  crate.
+- **CI / Pages workflows** — keep `--all-features` only if it still
+  compiles cleanly. If two mutually-exclusive features now force a choice,
+  narrow the flag set to a coherent superset that matches the
+  `[package.metadata.docs.rs]` selection. Drift between workflow flags and
+  docs.rs metadata is the failure mode (PR #339 reviewer flagged
+  `quartzite-paint-api` and root `quartzite` for `all-features = true`
+  activating both `std` and `libm`).
+- **Self-review / `code-review`** — when the diff introduces a mutually-
+  exclusive feature pair, the `all-features = true` REJECT does NOT
+  fire for the affected crate; the reviewer instead verifies the explicit
+  `features = [...]` list is present and representative.
+
+The default `--all-features` / `all-features = true` rule still applies to
+every crate whose features remain additive.
 
 Reviewer check: when the diff touches `#[cfg(feature)]`-gated public
 modules / re-exports, or modifies any `[features]` table, confirm the
@@ -367,6 +391,15 @@ those for a hand-picked subset is a regression.
   navigation target: `` [`Type`] ``, `` [`Type::method`] ``,
   `` [`crate_name::Type`] ``. Rustdoc resolves them at build time, and
   `#![deny(rustdoc::broken_intra_doc_links)]` catches stale links.
+- **Use the inline form `` [`Foo`](path::Foo) `` (text + `(target)`) for
+  intra-doc links — NOT the reference form `` [`Foo`][path::Foo] ``.** Both
+  render to identical HTML, but the workspace convention is inline so
+  readers and reviewers see one consistent form. Inline also matches the
+  `std` / `tokio` / `serde` ecosystem default, reducing cognitive load for
+  newcomers. Reference form is permitted only when the target genuinely
+  contains characters that break the inline form (rare for Rust paths).
+  When touching a file with reference-form links, convert them in the
+  same edit.
 - Use the full generic name in prose (`Option<T>`, not `Option`) where the
   generic parameter is meaningful.
 - Cross-crate links use the workspace crate name:

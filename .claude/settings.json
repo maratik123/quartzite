@@ -40,6 +40,12 @@
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; if [[ \"$f\" == *.rs && \"$f\" != *\"/tests/\"* && \"$f\" != *\"/examples/\"* ]] && [ -f \"$f\" ]; then hits=$(awk '/^\\s*#\\[cfg\\(test\\)\\]/{flag=1; next} flag && /^\\s*mod\\s+[a-zA-Z_]+\\s*\\{/{intest=1; depth=1; flag=0; next} intest{depth+=gsub(/\\{/,\"{\")-gsub(/\\}/,\"}\"); if(depth<=0){intest=0}; next} /\\.unwrap\\(\\)|\\.expect\\(|panic!\\(/ && !/^\\s*\\/\\//{print FILENAME\":\"NR\": \"$0}' \"$f\"); if [ -n \"$hits\" ]; then printf '\\n[panic-gate] panicking calls in production code (outside #[cfg(test)]):\\n%s\\n[panic-gate] verify each is genuinely unrecoverable — see AGENTS.md library safety idioms; substitution table in .claude/agents/self-review.md \\u00a74.\\n' \"$hits\" >&2; fi; fi; } || true",
             "timeout": 10,
             "statusMessage": "Checking for panicking calls..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; case \"$f\" in */ai-docs/plans/INDEX.md|ai-docs/plans/INDEX.md) printf '\\n[roadmap-sync] ai-docs/plans/INDEX.md was edited — run `./scripts/gen-roadmap.sh` and stage the regenerated ROADMAP.md in the SAME commit. CI fails the \"ROADMAP sync\" check otherwise (see ai-docs/learnings.md 2026-05-14 ROADMAP entry).\\n' >&2 ;; esac; } || true",
+            "timeout": 5,
+            "statusMessage": "Checking ROADMAP regeneration..."
           }
         ]
       },

@@ -76,6 +76,7 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Adding a `Cargo.toml`-only fast-path. `Cargo.toml` changes can affect feature flags, dependency resolution, and workspace topology — safer to run the full matrix. | [ci-skip-rust-matrix spec](../plans/done/2026-05-09-ci-skip-rust-matrix.spec.md) |  | untracked |
 | Changing branch-protection settings on `origin`. The existing required contexts (`Format`, `Build`, `Test`, `Clippy`, `Docs`, `Feature matrix`) are preserved by aggregator naming. | [ci-skip-rust-matrix spec](../plans/done/2026-05-09-ci-skip-rust-matrix.spec.md) |  | untracked |
 | A `[force-ci]` / `workflow_dispatch` escape hatch for forcing the full matrix on a doc-only PR (see § Open questions). | [ci-skip-rust-matrix spec](../plans/done/2026-05-09-ci-skip-rust-matrix.spec.md) |  | untracked |
+| Audit `spec-writer` agent: heredoc `cat > … <<EOF` writes vs. harness-native `Write` / `Edit` tools — inspect whether the omission of `Write`/`Edit` from `.claude/agents/spec-writer.md`'s `tools:` line was intentional or oversight; same question for any other agent whose tool list deliberately omits Write/Edit. | [ai-docs/learnings.md 2026-05-14 entry](../learnings.md) |  | #345 |
 
 ## Open questions
 
