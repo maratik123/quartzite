@@ -123,7 +123,7 @@ The plan also lifts the AC10 carve-out comment in `quartzite-widgets/tests/snaps
 | AC11 | The `_ => None` catch-all arm in `VelloPainter::brush_color` (or its successor `brush_to_peniko`) no longer triggers for any live `BrushKind` variant (`Solid`, `LinearGradient`, `RadialGradient`, `Custom`). The arm may remain because of `#[non_exhaustive]`, but is dead for in-tree variants. |
 | AC12 | The AC10 carve-out comment in `quartzite-widgets/tests/snapshots.rs` (`// AC10 — BrushKind::LinearGradient / RadialGradient are not yet implemented…`) is removed. |
 | AC13 | `quartzite-style::default_style::brush_color` returns `start_color` for `LinearGradient` / `RadialGradient`, the first stop's colour for `Custom` (or `Color::TRANSPARENT` if `Custom`'s stops are empty), and `c` for `Solid(c)`. Documented in the helper's doc comment. |
-| AC14 | `cargo build -p quartzite-paint-api --no-default-features` succeeds (the crate stays `no_std + alloc`; `peniko` is depended-on with `default-features = false`). |
+| AC14 | `cargo build -p quartzite-paint-api --no-default-features --features libm` succeeds (the crate stays `no_std + alloc`; `peniko` is depended-on with `default-features = false`; `libm` is the explicit float-math provider when `std` is absent). |
 | AC15 | `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` is clean. |
 | AC16 | `cargo clippy --workspace -- -D warnings` is clean. |
 | AC17 | `cargo test --workspace` is green. |
