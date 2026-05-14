@@ -103,7 +103,7 @@ Flag each of the following:
 
 ## Progress file format
 
-Use the canonical `.progress.md` format spec at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md). Required header fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`. Omit the `**Issue:**` / `**Spec:**` fields — this is review-driven, not spec-driven.
+Use the canonical `.progress.md` format spec at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md). Required header fields: `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, plus a `## Decisions log` section. Omit the `**Issue:**` / `**Spec:**` fields — this is review-driven, not spec-driven. `**parent_skill:**` and `**entry_args:**` are conditional re-entry fields (see canonical template); omit unless this review was spawned from a nested context.
 
 Code-review-specific shape:
 
@@ -117,6 +117,14 @@ _Updated: YYYY-MM-DD_
 **base_commit:** [git rev-parse HEAD output]
 **Last build:** not run
 
+<!-- Compaction-recovery / re-entry fields (required): -->
+**current_step:** Phase 1 — review-findings complete
+**last_passed_gate:** [command | ISO-8601 timestamp | commit SHA, or `(none yet)` before any gate passes]
+
+<!-- Optional re-entry fields: -->
+**parent_skill:** [/task | /code-review | /pr-commented]    <!-- omit unless this progress file is owned by a nested skill -->
+**entry_args:** [original $ARGUMENTS]    <!-- optional for /code-review; required for /task -->
+
 ## Next action
 
 **Do this immediately:** begin the fix loop — work through findings top-to-bottom.
@@ -128,6 +136,10 @@ _Updated: YYYY-MM-DD_
 - [ ] 3. Fix nits
 - [ ] 4. Verify: cargo build + test + clippy
 - [ ] 5. Self-review
+
+## Decisions log
+
+- **Phase 1 — review-findings**: [one-line note per non-trivial decision]
 
 ## Key discoveries (don't re-investigate)
 
@@ -143,6 +155,8 @@ _Updated: YYYY-MM-DD_
 
 (populated during fix loop)
 ```
+
+The five new fields (`current_step`, `last_passed_gate`, `parent_skill`, `entry_args`) plus the `## Decisions log` section exist for compaction-recovery routing in the calling skill. This agent writes the initial values at file creation; subsequent updates are owned by the calling skill (`/code-review`) at each phase boundary. **What you do / do not check** on these fields: verify they are PRESENT in the file you create; do NOT review their content for correctness — the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md) is the source of truth, and downstream lifecycle (writes after creation) is the calling skill's responsibility.
 
 ## Rules
 

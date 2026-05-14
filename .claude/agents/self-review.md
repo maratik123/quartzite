@@ -22,7 +22,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 ## Instructions
 
 1. Read `AGENTS.md` — current project rules
-2. Read the progress file (path passed in prompt) — find `base_commit` and current round
+2. Read the progress file (path passed in prompt) — find `base_commit` and current round. The progress-file format may include the extended re-entry fields (`**current_step:**`, `**last_passed_gate:**`, `**parent_skill:**`, `**entry_args:**`) and a `## Decisions log` section per the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md). These fields exist for compaction-recovery routing in the calling skill — **verify they are PRESENT** when the calling skill requires them (every code-side orchestrator other than `/interview` / `/verify` / `/pr-merged`), but **do NOT review their content** for correctness; their lifecycle is the calling skill's responsibility and the canonical template is the source of truth.
 3. Get the diff: `git diff <base_commit>..HEAD`
 4. Read spec — only `## Acceptance Criteria`
 5. Read design doc — architecture and decomposition
