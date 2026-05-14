@@ -27,6 +27,10 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 
 ## Checklist
 
+### 0. Design conformance (when designs exist in `done/`)
+
+- **AC-verification-grep re-run (mandatory).** Re-run every AC-verification grep / shell check documented in any `ai-docs/plans/done/*.design.md` against the shipped artefact (the files currently on the branch). The design's "AC<N> verified by: <command>" lines are NOT optional — each command MUST be executed during this review against the live tree, and the result quoted in the findings (PASS / FAIL). "Confirmed during drafting" is NOT sufficient; that was the failure mode in PR #295 (spec-writer tools-line regression — see `ai-docs/learnings.md` 2026-05-15 tooling entry on spec-writer `tools:` frontmatter). Any AC-verification grep that fails against the shipped artefact → `major` finding with the failing command and its actual output.
+
 ### 1. Safety and correctness
 - `unsafe` blocks: each justified with a comment explaining the invariant?
 - **Panic-index sync.** For every public fn / method with a `# Panics` doc section, **and** every production `.unwrap()` / `.expect(…)` / `panic!` outside `#[cfg(test)]`, verify there is a corresponding entry in `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Production panic site missing from the index → `major`. The `# Panics` doc-section signal is the primary trigger; the grep below is the secondary catch-net.

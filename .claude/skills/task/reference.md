@@ -96,6 +96,39 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 
 > Silently implementing a deviation without triggering Design Amendment — FORBIDDEN.
 
+## Spec Amendment recipe (re-entrant — triggered from Step 7 GO-with-notes resolution)
+
+If a Step 7 design-review GO verdict surfaces a `note` / `minor` / recommendation whose resolution requires a change to the **spec** (wording, AC, or technical-constraints edit) — not just an in-place design fold-in:
+
+1. **Classify each note** at Step 7 close: **design-internal** (fold into the design doc in-place; no loop — current behaviour) vs **spec-amending** (the note implies a spec wording / AC / constraint change). Mixed batches are allowed; spec-amending notes trigger this recipe, design-internal notes proceed normally.
+2. **Stop before Step 8.** Do not begin implementation against the pre-amendment spec, and do not fold spec-amending notes into the design alone — FORBIDDEN. The design doc is the implementation contract built **against the spec**; if the spec changes, the contract must be re-established and re-verified.
+3. **Surface to user via `AskUserQuestion`** — describe the candidate spec amendment (which AC / which line / proposed new wording) and wait for explicit approval. Two paths are common: **Path A** — amend the spec to match the design's discovered shape; **Path B** — annotate the design with a "Spec amendment / supersession" subsection (still requires the re-loop below if the design's shape effectively changes the spec). Path A is the default.
+4. **On user approval — amend the spec.** Edit `ai-docs/plans/YYYY-MM-DD-name.spec.md` with the agreed changes (AC table, Technical constraints, Out-of-scope, whichever sections are touched).
+5. **Re-enter Step 6 (design agent)** with explicit context: "spec was amended at Step 7 GO-with-notes resolution — re-verify decomposition and ACs against the new spec":
+   ```
+   Agent(subagent_type="general-purpose", prompt="
+     Read .claude/agents/design.md and follow it.
+     Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
+     Existing design: ai-docs/plans/YYYY-MM-DD-name.design.md
+     Context: spec was amended during Step 7 GO-with-notes resolution.
+     Re-verify decomposition and ACs against the new spec. Update the design doc to reconcile any drift.
+   ")
+   ```
+6. **Re-enter Step 7 (design-review)** against the new (spec, design) pair — same as the original Step 7 (counts against the 3-design-round-cap, which applies to the merged total of pre- and post-amendment iterations):
+   ```
+   Agent(subagent_type="general-purpose", prompt="
+     Read .claude/agents/design-review.md and follow it.
+     Design: ai-docs/plans/YYYY-MM-DD-name.design.md
+     Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
+     Context: spec was amended during a previous Step 7 GO-with-notes resolution — verify the design now matches the amended spec.
+   ")
+   ```
+7. **On the new GO** → proceed to **Step 8**. Step 8's first-action GO-notes verification ("every note / minor / recommendation from the latest design-review GO has been written back into the design document") now references the **new** GO verdict; pre-amendment notes are no longer authoritative.
+8. **On ITERATE** → fix the design (or re-amend the spec if a contradiction surfaces) and re-run design-review (counts against the 3-round cap).
+9. **On STOP** → surface to user; do not proceed until the design / spec issue is resolved.
+
+> Folding a spec-amending note into the design alone is FORBIDDEN — the design would be built against the old spec without ever being verified against the new one. _See `ai-docs/learnings.md` 2026-05-15 (process) entry on spec amendment during GO-with-notes resolution._
+
 ## Steps 1–5 — spec creation delegation (detail)
 
 `/task` does not duplicate the interview workflow. Scope extraction, key-decision confirmation, tracking-issue resolution, spec writing, and the cross-link comment are owned by `/interview` (`.claude/skills/interview/SKILL.md`). Treat these five steps as a single delegated phase.
