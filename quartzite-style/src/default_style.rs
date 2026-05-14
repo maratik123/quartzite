@@ -318,6 +318,36 @@ mod tests {
         }
     }
 
+    // ── brush_color helper ───────────────────────────────────────────────────
+
+    #[test]
+    fn brush_color_linear_gradient_returns_start_color() {
+        let brush =
+            Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
+        assert_eq!(brush_color(&brush), Color::RED);
+    }
+
+    #[test]
+    fn brush_color_radial_gradient_returns_start_color() {
+        let brush = Brush::radial_gradient(Point::new(5, 5), 3.0, Color::WHITE, Color::BLACK);
+        assert_eq!(brush_color(&brush), Color::WHITE);
+    }
+
+    #[test]
+    fn brush_color_custom_first_stop_returns_its_color() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64))
+            .with_stops([peniko::Color::new([1.0f32, 0.0, 0.0, 1.0])]);
+        let brush = Brush::custom_gradient(gradient);
+        assert_eq!(brush_color(&brush), Color::new(1.0, 0.0, 0.0, 1.0));
+    }
+
+    #[test]
+    fn brush_color_custom_empty_stops_returns_transparent() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64));
+        let brush = Brush::custom_gradient(gradient);
+        assert_eq!(brush_color(&brush), Color::TRANSPARENT);
+    }
+
     // ── AC1: Send + Sync ─────────────────────────────────────────────────────
 
     #[test]
