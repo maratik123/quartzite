@@ -109,16 +109,7 @@ See [`ai-docs/code-style.md`](ai-docs/code-style.md) for the canonical reference
 ## Dependency Versions
 
 > **AXIOM — Query the live registry BEFORE writing any specific version string OR asserting external-action behaviour. Training data is stale.**
-> Whenever you write a specific version of a Cargo crate or a GitHub Action — anywhere (`Cargo.toml`, workflow file, issue body, spec, design doc, learning, any `ai-docs/**` page) — query the live source first. Treating remembered versions as authoritative has put wrong majors into specs twice in this repo (`criterion 0.5` vs. live `0.8`; `actions/deploy-pages@v4` vs. live `@v5`). The same logic applies one level deeper: a third-party GitHub Action's **behaviour** (what env vars it exports, what files it produces, which defaults it sets) is also stale in training data and in marketplace blurbs — treating it as authoritative landed the wrong claim into spec + design once (PR #179 sccache: "action sets `RUSTC_WRAPPER` and `SCCACHE_GHA_ENABLED` by default" — false; `src/setup.ts` only exports `SCCACHE_PATH` + cache-service vars, README's "Rust code" subsection explicitly mandates the user set them).
->
-> | If you need to write... | Run this first |
-> |---|---|
-> | A Cargo crate version | `curl -sS "https://crates.io/api/v1/crates/<name>" \| jq -r '.crate.max_stable_version'` |
-> | A GitHub Action version | `gh api /repos/<owner>/<repo>/releases --jq '.[0].tag_name'` (and verify the action's Node runtime is current) |
-> | A version into a long-lived doc (won't be revisited for months) | Annotate `(verified current YYYY-MM-DD)` next to the version |
-> | A **load-bearing claim about an Action's behaviour** (env vars it exports, defaults it sets, files it produces — anything the spec or design relies on) | `gh api /repos/<owner>/<repo>/contents/action.yml --jq '.content' \| base64 -d` AND `gh api /repos/<owner>/<repo>/contents/src/setup.ts --jq '.content' \| base64 -d \| grep -inE 'exportVariable\|process\.env\|GITHUB_ENV\|saveState'` (or `src/main.ts` for run-step actions). Cite the source-line evidence in the design — README narrative alone is **not** evidence. |
->
-> Then apply the pinning rule (below) to the **observed** version, never the remembered one. If `setup.ts` / `main.ts` does not export the env vars your design assumed, set them explicitly in the workflow (per-job `env:` or `echo >> $GITHUB_ENV` after the action step) — don't rely on "the action probably sets it".
+> Treating remembered versions or remembered Action behaviour as authoritative has shipped wrong majors and false load-bearing claims more than once in this repo. See [`ai-docs/dependency-versions.md`](ai-docs/dependency-versions.md) for the per-artifact lookup table (Cargo crate / GitHub Action / Action behaviour-verification recipe). Apply the pinning rule (below) to the **observed** version, never the remembered one.
 
 When adding or editing dependencies in `Cargo.toml`:
 
@@ -230,6 +221,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/workflow.md` | Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment resolution GraphQL recipe). Read on demand. |
 | `ai-docs/corrections-log.md` | Extracted carve-outs from `AGENTS.md` § *Corrections Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand. |
 | `ai-docs/key-decisions.md` | Extracted Key Design Decisions detail bodies from `ai-docs/context.md` § Key Design Decisions (implementation-detail rows). Read on demand. |
+| `ai-docs/dependency-versions.md` | Live-lookup reference for Cargo / GitHub Action versions and Action behaviour verification — extracted from `AGENTS.md` § *Dependency Versions* AXIOM. Read on demand when writing a specific version string or a load-bearing claim about an Action's behaviour. |
 | `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
 | `ai-docs/templates/` | Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files). |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`. |
