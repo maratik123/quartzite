@@ -1098,7 +1098,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
 
-**Escalated?** hook, settings
+**Escalated?** hook
 
 ### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
 
