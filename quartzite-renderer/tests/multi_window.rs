@@ -10,6 +10,12 @@
 //! winit's default `EventLoop::new()` enforces a main-thread check on Linux.
 //! We use `WindowedApplication::builder().with_any_thread(true)` to bypass it.
 
+// The test fns themselves are `#[cfg(target_os = "linux")]`-gated, so the
+// helper structs / handlers / imports in this file are unused on non-Linux
+// targets. Suppress the resulting dead_code / unused_imports lints there
+// rather than gating every item individually.
+#![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports))]
+
 mod support;
 
 use std::sync::{Arc, Mutex};
