@@ -1098,3 +1098,19 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
 
 **Escalated?** no
+
+### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
+
+**What happened:** During `/task #281`, after Step 9 (Verify) and Step 9.5 (Update docs) all passed, the implementation jumped directly to Step 12 (commit + PR) without running the self-review agent loop at Step 10. The PR (#339) was created without a self-review pass.
+
+**Rule:** After Step 9.5, always spawn the self-review agent (Step 10) before proceeding to Step 12. The verdict (APPROVE / REJECT) gates whether Step 12 is entered. Do not skip this step even when all gate commands pass — the self-review agent checks design conformance, edge cases, and nits that automated gates cannot catch.
+
+**Escalated?** no
+
+### 2026-05-14 — process — too many subtasks taken without /context-reset leads to compaction before all tasks finish
+
+**What happened:** During `/task #281`, six subtasks were planned and all executed in a single long conversation without calling `/context-reset` between subtasks. The conversation exceeded the context window and was compacted mid-task. Compaction discarded useful in-context state (notably the strict step sequence of the `/task` skill), which caused Step 10 (self-review loop) to be silently skipped — the compacted summary did not reproduce the skill's step contract faithfully enough to trigger it.
+
+**Rule:** When `/task` decomposes into ≥ 3 non-trivial subtasks, call `/context-reset` after every N=3 subtasks (per `.claude/skills/task/SKILL.md` Step 8: "If N=3 of M≥5 → handoff via Agent (see `/context-reset`)"). This keeps the active context window small, prevents mid-task compaction, and ensures the full skill contract (including Step 10's self-review gate) remains live in context at each handoff point.
+
+**Escalated?** no
