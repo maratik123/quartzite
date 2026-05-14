@@ -62,7 +62,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable
+          cache-shared-key: ${{ runner.os }}-stable-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -97,7 +97,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable
+          cache-shared-key: ${{ runner.os }}-stable-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -129,7 +129,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
-          cache-shared-key: ${{ runner.os }}-stable
+          cache-shared-key: ${{ runner.os }}-stable-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -174,7 +174,7 @@ jobs:
           # cache-shared-key is distinct from the `*-stable` key used by
           # build/test/clippy/docs to avoid cache thrash with the existing
           # test job.
-          cache-shared-key: ${{ runner.os }}-stable-gpu
+          cache-shared-key: ${{ runner.os }}-stable-gpu-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Install Linux GPU stack
         if: runner.os == 'Linux'
@@ -365,7 +365,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable
+          cache-shared-key: ${{ runner.os }}-stable-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
@@ -413,7 +413,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}
+          cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}-v2
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
 
       - name: Run sccache-cache

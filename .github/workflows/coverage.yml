@@ -33,7 +33,7 @@ jobs:
           # the parsed-lockfile hash to cacheKey internally, leaving the
           # restoreKey lockfile-agnostic — reproduces today's restore-keys
           # partial-prefix semantics. See design § Q3.
-          cache-shared-key: ${{ runner.os }}-cargo-coverage
+          cache-shared-key: ${{ runner.os }}-cargo-coverage-v2
       - name: Install Linux GPU stack
         # Mirror the gpu-tests Linux lane so the GPU code paths in
         # `quartzite-renderer::render_harness` and the widget snapshot
