@@ -47,6 +47,80 @@ pub struct VelloPainter<'a> {
     clips: Vec<u32>,
 }
 
+/// Private renderer-internal classification of [`BrushKind`] into the four variants the
+/// renderer knows how to handle today, plus an explicit `Unknown` bucket that funnels
+/// every future upstream variant. Mirrors `quartzite_paint_api::BrushKind` 1:1 by
+/// reference; this isolates the single `_ => Unknown` wildcard to one location so
+/// neither `brush_to_peniko` nor `brush_color` needs a catch-all arm.
+///
+/// `quartzite_paint_api::BrushKind` is `#[non_exhaustive]`, meaning downstream crates
+/// cannot write an exhaustive match directly. Any future variant added in that crate
+/// routes here to `Unknown`, preserving the existing "no brush" fallback semantics
+/// without requiring a `_` wildcard in the two consumer call sites.
+enum LocalBrushKind<'a> {
+    Solid(&'a quartzite_paint_api::Color),
+    LinearGradient {
+        start: &'a quartzite_geometry::Point,
+        end: &'a quartzite_geometry::Point,
+        start_color: &'a quartzite_paint_api::Color,
+        end_color: &'a quartzite_paint_api::Color,
+    },
+    RadialGradient {
+        centre: &'a quartzite_geometry::Point,
+        radius: f32,
+        start_color: &'a quartzite_paint_api::Color,
+        end_color: &'a quartzite_paint_api::Color,
+    },
+    Custom(&'a peniko::Gradient),
+    /// Forward-compat sink for any future `BrushKind` variant added in
+    /// `quartzite-paint-api` (the upstream type is `#[non_exhaustive]`).
+    /// The renderer falls back to "no brush" semantics, matching the previous
+    /// `_ => None` behaviour. See `quartzite_paint_api::BrushKind`.
+    ///
+    /// FIXME(after `BrushKind` extension): map the new variant in
+    /// `LocalBrushKind::from_brush_kind` when `quartzite_paint_api` adds one.
+    Unknown,
+}
+
+impl<'a> LocalBrushKind<'a> {
+    /// Classifies a `&'a BrushKind` into the renderer-internal `LocalBrushKind`.
+    ///
+    /// The single `_ => Self::Unknown` arm is the only place in the renderer
+    /// that carries a wildcard over `BrushKind`, satisfying AC4.
+    #[inline]
+    fn from_brush_kind(k: &'a BrushKind) -> Self {
+        match k {
+            BrushKind::Solid(c) => Self::Solid(c),
+            BrushKind::LinearGradient {
+                start,
+                end,
+                start_color,
+                end_color,
+            } => Self::LinearGradient {
+                start,
+                end,
+                start_color,
+                end_color,
+            },
+            BrushKind::RadialGradient {
+                centre,
+                radius,
+                start_color,
+                end_color,
+            } => Self::RadialGradient {
+                centre,
+                radius: *radius,
+                start_color,
+                end_color,
+            },
+            BrushKind::Custom(g) => Self::Custom(g),
+            // Upstream `BrushKind` is `#[non_exhaustive]` — keep the sink here so the
+            // exhaustive matches in `brush_to_peniko` / `brush_color` never need `_`.
+            _ => Self::Unknown,
+        }
+    }
+}
+
 impl<'a> VelloPainter<'a> {
     /// Creates a painter that borrows `scene` for one frame.
     ///
@@ -159,9 +233,9 @@ impl<'a> VelloPainter<'a> {
     }
 
     fn brush_to_peniko(&self, brush: &Brush) -> Option<peniko::Brush> {
-        match brush.kind() {
-            BrushKind::Solid(c) => Some(peniko::Brush::Solid(Self::color_to_peniko(*c))),
-            BrushKind::LinearGradient {
+        match LocalBrushKind::from_brush_kind(brush.kind()) {
+            LocalBrushKind::Solid(c) => Some(peniko::Brush::Solid(Self::color_to_peniko(*c))),
+            LocalBrushKind::LinearGradient {
                 start,
                 end,
                 start_color,
@@ -180,7 +254,7 @@ impl<'a> VelloPainter<'a> {
                         .with_stops([stop0, stop1]),
                 ))
             }
-            BrushKind::RadialGradient {
+            LocalBrushKind::RadialGradient {
                 centre,
                 radius,
                 start_color,
@@ -201,15 +275,18 @@ impl<'a> VelloPainter<'a> {
                         .with_stops([stop0, stop1]),
                 ))
             }
-            BrushKind::Custom(gradient) => Some(peniko::Brush::Gradient(gradient.clone())),
-            _ => None,
+            LocalBrushKind::Custom(gradient) => Some(peniko::Brush::Gradient(gradient.clone())),
+            LocalBrushKind::Unknown => None,
         }
     }
 
     fn brush_color(brush: &Brush) -> Option<peniko::Color> {
-        match brush.kind() {
-            BrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
-            _ => None,
+        match LocalBrushKind::from_brush_kind(brush.kind()) {
+            LocalBrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
+            LocalBrushKind::LinearGradient { .. }
+            | LocalBrushKind::RadialGradient { .. }
+            | LocalBrushKind::Custom(_)
+            | LocalBrushKind::Unknown => None,
         }
     }
 
