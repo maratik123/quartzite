@@ -23,6 +23,13 @@ librust_out.rlib
 # /triage runs persist resume state to ai-docs/triage/triage-YYYY-MM-DD.progress.md.
 # Created by the triage-runner subagent at Phase 1.5, deleted at Phase 8.
 /ai-docs/triage/**/*.progress.md
+# /pr-ci-failed fallback progress files (when invoked on a PR not produced by /task).
+# Created by the skill at Step 1, deleted by /pr-merged. Never committed.
+/ai-docs/ci-fixes/
+# /master-ci-failed progress files (keyed by failing run-id, since no PR exists at entry).
+# Created by the skill at Step 1, deleted by /pr-merged via the new **Tracked in run:**
+# probe in scripts/cleanup-progress.sh. Never committed.
+/ai-docs/master-ci/
 
 # Claude Code runtime scheduler state (lock file for ScheduleWakeup).
 # Local-only; never committed.
