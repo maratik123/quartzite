@@ -36,7 +36,7 @@ This pattern preserves the bit-rot guard under the feature-on path (compile-chec
 
 The mistake also exposes that explicit `fn main()` (used in the same doctest to defeat rustdoc's auto-`fn main` wrapping for derive-macro path resolution) does NOT itself gate the body — the macros are still referenced at parse time.
 
-**Escalated?** no
+**Escalated?** doc-convention
 
 > Candidate for escalation to `ai-docs/doc-convention.md` (a "Doctests + features" sub-section) and to `.claude/agents/self-review.md` / `.claude/agents/review-findings.md` checklist (under feature-gated re-exports, doctest must be feature-gated). `/improve` should consider on recurrence.
 
@@ -566,7 +566,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** Start every "I've commented gh pr" workflow with the GraphQL unresolved-threads query, not the REST `/pulls/{N}/comments` endpoint (which returns all comments regardless of resolution state).
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — process — always run the PR body check after every push, even if no edit seems needed
 
@@ -638,7 +638,7 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **How to apply:** When adding a new 0.x.y dep, look at the version that `cargo update` resolves (e.g., `tracing v0.1.44`) and write `"0.1"`, not `"0"`. Same applies to `{ version = "0.x", ... }` inline tables.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-05 — process — switch to feature branch BEFORE editing files in `/improve` (and similar skills)
 
@@ -814,7 +814,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Only apply the nested `fn inner()` split when the outer function has a conversion-style generic parameter (`impl Into<T>`, `impl AsRef<T>`, `impl ToString`) **and** the body is >3 lines. For non-generic fns (no params, concrete types only), write the body directly in the outer fn. Additionally, re-evaluate `#[inline]` after inlining: if the body now has >1 non-simple call, the fn no longer qualifies and `#[inline]` must be removed.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, code-style
 
 ### 2026-05-08 — code-style — `_Simple._` and `#[inline]` are mutually exclusive; drop `_Simple._` when `#[inline]` is present
 
@@ -983,7 +983,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** add a Phase 0.5 step to `.claude/skills/task/SKILL.md` (between the branch check and the issue-body fetch) running the four-step reconciliation above. The check fires only when the resolved input is a gh issue (bare-number `/task <N>` or deferred-spec activation with a populated `**Tracked in:** #N`); free-text `/task` invocations with no issue reference skip the check entirely. Propagate the change through the Task/Design sync group per AGENTS.md's Propagation Rule, and add the matching pre-resolved-rule entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent does not surface the `blocked`-label question.
 
-**Escalated?** no
+**Escalated?** skill:pr-merged
 
 ### 2026-05-13 — process — stale `.progress.md` after a merge mis-routes the next `/task` into the RESUME path
 
