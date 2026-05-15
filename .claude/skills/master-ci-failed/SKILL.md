@@ -1,7 +1,7 @@
 ---
 name: master-ci-failed
 description: "Address a CI-failure round on the master branch (post-merge red build). Identifies the failing run on the current master commit (or an explicit run-id via $ARGUMENTS), fetches the failing-step log, classifies (fmt / clippy / test / doc / actionlint / build / coverage / other), reproduces locally, applies the fix on a NEW feature branch (master is never modified directly), runs self-review, pushes the new branch, and opens a new PR. Re-invocable per round. Downstream of /pr-merged in v1 (manual invocation); auto-invoke is deferred."
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git fetch *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr create *) Bash(gh pr edit *) Bash(gh run view *) Bash(gh run list *) Bash(gh api *)
 ---
 

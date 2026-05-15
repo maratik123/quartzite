@@ -1,7 +1,7 @@
 ---
 name: pr-ci-failed
 description: "Address one CI-failure round on the current branch's open PR. Identifies the first failing required check, fetches the failing-step log, classifies the failure (fmt / clippy / test / doc / actionlint / build / coverage / other), reproduces locally, applies the fix, runs self-review, commits, pushes, and runs the unconditional AXIOM-2 PR-body read. Re-invocable per round (one CI failure per invocation). Runs downstream of /task Step 12, in parallel with /pr-commented; does NOT replace /task."
-disable-model-invocation: true
+disable-model-invocation: false
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git fetch *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr edit *) Bash(gh run view *) Bash(gh run list *) Bash(gh api *)
 ---
 
