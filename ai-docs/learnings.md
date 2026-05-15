@@ -1173,7 +1173,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, run the self-review loop (or at minimum, perform an inline review of: correct idiom used, no semantics broken, no adjacent lint issues missed, commit message accurate). The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch. A potential future `/ci-fix` skill (analogous to `/pr-commented`) could formalise this: read CI logs → isolate root cause → apply fix → self-review → push → re-read PR body (per AGENTS.md unconditional post-push rule).
 
-**Escalated?** no
+**Escalated?** AGENTS.md
 
 ### 2026-05-15 — process — learnings.md changes during PR evolution must be committed to the branch
 
@@ -1181,7 +1181,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** After any code change during PR evolution (CI fix, reviewer-comment fix, self-review fix), write the learning → immediately commit it to the feature branch in the same turn. Do not leave `ai-docs/learnings.md` as an unstaged working-tree change after the push. The check order: write learning → `git add ai-docs/learnings.md` → commit → push. This is a corollary of the AGENTS.md `git status` check: if the learning was written after the last push, it needs its own commit rather than waiting to be bundled with the next code change.
 
-**Escalated?** no
+**Escalated?** AGENTS.md, skill:task
 
 ### 2026-05-15 — process — fail-loud pattern added in one PR but the style guide that anchors patterns was not updated in the same PR — propagation gap closed by a dedicated Propagation Rule row + grep recipe scanning the style guide
 
@@ -1189,4 +1189,4 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** When adding a new fail-loud rule pattern that appears (or will appear) in multiple `SKILL.md` / `agent.md` files, also add a corresponding pattern entry to `ai-docs/agent-writing-style.md § Patterns` in the same PR. The style guide names the *shape* (variant taxonomy, distinguishing phrases, cross-link anchor, skill assignments); the SKILL.md files carry the *body*. Mechanical enforcement: AGENTS.md `## Propagation Rule` Procedure step 1 grep recipe (and the AXIOM-table sibling) now includes `ai-docs/agent-writing-style.md` in the scan paths — `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md ai-docs/agent-writing-style.md`. A dedicated Propagation Rule table row also names the downstream-consumer fan-out contract so the next contributor reads the rule before editing the style guide. **Why:** the style guide is auto-loaded into every Claude Code session via the CLAUDE.md instruction-file set; a pattern that lands in six SKILL.md files but not the style guide forces every future skill author to re-derive the taxonomy from an archival doc — and risks invented 4th variants that drift from the locked three. **How to apply:** before opening any PR that touches a fail-loud callout in two or more SKILL.md / agent files, run the new grep recipe; if `ai-docs/agent-writing-style.md` has zero hits for the changed pattern keyword, the style guide is missing a corresponding entry — add Pattern N before committing the SKILL.md fan-out.
 
-**Escalated?** no
+**Escalated?** AGENTS.md
