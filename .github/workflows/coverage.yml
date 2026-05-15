@@ -24,6 +24,11 @@ jobs:
       LIBGL_ALWAYS_SOFTWARE: "1"
     steps:
       - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
@@ -33,7 +38,12 @@ jobs:
           # the parsed-lockfile hash to cacheKey internally, leaving the
           # restoreKey lockfile-agnostic — reproduces today's restore-keys
           # partial-prefix semantics. See design § Q3.
-          cache-shared-key: ${{ runner.os }}-cargo-coverage-v2
+          cache-shared-key: ${{ runner.os }}-cargo-coverage-v2-${{ env.ImageVersion }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Install Linux GPU stack
         # Mirror the gpu-tests Linux lane so the GPU code paths in
         # `quartzite-renderer::render_harness` and the widget snapshot
