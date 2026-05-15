@@ -1090,7 +1090,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 - **`/pr-commented`, `/triage`, `/interview`, `/improve`, `/ai-audit`** — each already has its own self-review protocol (`/pr-commented` Step 5; the others have agent-driven review built into their workflow). The gap is `/bugfix`-specific.
 
-**Escalated?** skill:bugfix
+**Escalated?** skill:bugfix, AGENTS.md
 
 ### 2026-05-14 — process — ROADMAP.md must be regenerated before pushing to a PR
 
@@ -1106,7 +1106,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** After Step 9.5, always spawn the self-review agent (Step 10) before proceeding to Step 12. The verdict (APPROVE / REJECT) gates whether Step 12 is entered. Do not skip this step even when all gate commands pass — the self-review agent checks design conformance, edge cases, and nits that automated gates cannot catch.
 
-**Escalated?** skill:task
+**Escalated?** skill:task, AGENTS.md
 
 ### 2026-05-14 — process — too many subtasks taken without /context-reset leads to compaction before all tasks finish
 
