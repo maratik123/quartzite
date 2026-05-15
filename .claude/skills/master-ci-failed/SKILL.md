@@ -213,7 +213,24 @@ Now root-cause the failure from the log + reproducer output. Two paths:
 
 > **Workflow YAML edit gate.** If the fix touches `.github/workflows/*.yml`, run `actionlint <file>` locally **before** `git add` (AGENTS.md `## Build & Test` axiom).
 
-**Write progress at this step boundary** before further tool calls.
+> **Spec Amendment recipe — fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`).** Mirrors the `/task` Step 7 *Spec Amendment recipe* rule (`ai-docs/learnings.md` 2026-05-15 *"spec amendment during GO-with-notes resolution"* + 2026-05-15 *"spec amendment during `/pr-commented`"* recurrence). The rule fans out to every downstream "fix" skill whose round can touch `ai-docs/plans/*.spec.md` — including this master-branch surface.
+>
+> | Detection trigger | Action |
+> |---|---|
+> | `git diff --name-only master..HEAD \| grep -E '^ai-docs/plans/(done/)?.*\.spec\.md$'` returns ≥ 1 file on the new `fix/master-ci-<run-id>` feature branch | The fix is **spec-amending**. PAUSE before Step 5. |
+> | Diff contains no `.spec.md` files | Proceed straight to Step 5 (self-review). The recipe does not fire. |
+>
+> **When spec-amending, run this sub-flow instead of going straight to Step 5:**
+>
+> 1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/master-ci-failed` for run `<run-id>`; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The CI-fix implementation has already landed in commit `<fix-SHA>` on branch `fix/master-ci-<run-id>`."*
+> 2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, fix diff)`. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total). On REQUEST-USER → surface and stop.
+> 3. Only on a GO verdict: resume `/master-ci-failed` Step 5 (self-review).
+>
+> **Why:** A master-CI-fix that also amends `.spec.md` has reclassified the spec contract — the failure is no longer purely a post-merge regression but a partial spec rewrite. `self-review` checks code-against-spec, not spec-against-design; the design-review re-entry is the only gate that catches contradictions or new ACs introduced by the amendment. **Master-specific consideration:** the amended spec will land on the new feature branch's eventual PR (per Step 7), not directly on master — so the design-review re-entry runs against the feature branch's tree, exactly like the `/pr-commented` and `/pr-ci-failed` flows.
+>
+> **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just to mirror the new value"* / *"only the lint output changed"* / *"self-review will catch it"* / *"the CI failure is the real fix; the spec edit is incidental"* / *"master CI is on fire; we need to ship the fix fast"*. All forbidden — the recipe fires on **any** `.spec.md` line in the diff. Same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
+
+**Write progress at this step boundary** before further tool calls. If the Spec Amendment recipe fired, record the design / design-review verdicts in the `## Decisions log` under a `Step 4 (spec amendment):` bullet.
 
 ### Step 5 — Self-review (mandatory; loops with Step 4, cap 3)
 

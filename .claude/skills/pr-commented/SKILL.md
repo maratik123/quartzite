@@ -200,7 +200,24 @@ Trivial fixes (typo, rename, single-call rewrite, comment fix, test addition, do
 
 - Capture the commit SHA. Update the progress file's `Diff SHA` for each fix row.
 
-**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the fix count + commit SHA (one line, prefixed `Step 4:`).
+> **Spec Amendment recipe — fires BEFORE Step 5 when the round's diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`).** Mirrors the `/task` Step 7 *Spec Amendment recipe* rule (`ai-docs/learnings.md` 2026-05-15 *"spec amendment during GO-with-notes resolution"* + 2026-05-15 *"spec amendment during `/pr-commented`"* recurrence). Same root cause, same remedy in every downstream "fix" skill.
+>
+> | Detection trigger | Action |
+> |---|---|
+> | `git diff --name-only <round-M-base-sha>..HEAD \| grep -E '^ai-docs/plans/(done/)?.*\.spec\.md$'` returns ≥ 1 file | The round is **spec-amending**. PAUSE before Step 5. |
+> | Diff contains no `.spec.md` files | Proceed straight to Step 5 (self-review). The recipe does not fire. |
+>
+> **When spec-amending, run this sub-flow instead of going straight to Step 5:**
+>
+> 1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/pr-commented` Round M; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The implementation has already landed in commit `<round-M-fix-SHA>`."* Expected output: a refreshed design doc (`ai-docs/plans/*.design.md` if extant, otherwise an inline analysis).
+> 2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, round-M-fix diff)`. Expected verdict: GO, NEEDS-CHANGES, or REQUEST-USER. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total, matching `/task` Step 7's cap). On REQUEST-USER → surface and stop.
+> 3. Only on a GO verdict from design-review: resume `/pr-commented` Step 5 (self-review). `self-review` operates on a code-vs-spec diff; it cannot validate that the spec → design → implementation chain still holds after a spec amendment — that's what the design-review re-entry does.
+>
+> **Why:** a spec amendment can introduce contradictions, unresolved decomposition items, or new ACs that only a fresh design-review pass against the amended spec catches; `self-review` checks code-against-spec, not spec-against-design. Recurrence root cause: the `/task` Step 7 rule was not propagated to `/pr-commented` until the second incident; this recipe block closes that gap.
+>
+> **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just a wording fix"* / *"the spec change is mechanical"* / *"self-review will catch it"* / *"only 3 lines changed"*. All forbidden — the recipe fires on **any** `.spec.md` line in the round's diff, regardless of size. The same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
+
+**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the fix count + commit SHA (one line, prefixed `Step 4:`). If the Spec Amendment recipe fired, append a second bullet recording the design / design-review verdicts (prefixed `Step 4 (spec amendment):`).
 
 ### Step 5 — Self-review (loops with Step 4, cap 3)
 
