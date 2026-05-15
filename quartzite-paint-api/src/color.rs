@@ -137,6 +137,39 @@ impl Color {
     pub const fn with_alpha(self, a: f32) -> Self {
         Self { a, ..self }
     }
+
+    /// Returns a componentwise linear interpolation between `self` and `other`.
+    ///
+    /// At `t = 0.0` the result equals `self`; at `t = 1.0` the result equals `other`.
+    /// Each channel is blended independently: `(1.0 - t) * self + t * other`.
+    ///
+    /// # Parameters
+    ///
+    /// - `other`: the target color.
+    /// - `t`: blend factor in `[0.0, 1.0]`; `0.0` returns `self`, `1.0` returns `other`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Color;
+    ///
+    /// // 25 % blend toward sky-blue: r stays 0.75, g moves from 1.0 to 0.875
+    /// let blended = Color::WHITE.blend(Color::SKY_BLUE, 0.25);
+    /// assert_eq!(blended.r(), 0.75);
+    /// assert!((blended.g() - 0.875).abs() < 1e-6);
+    /// assert_eq!(blended.b(), 1.0);
+    /// assert_eq!(blended.a(), 1.0);
+    /// ```
+    #[inline]
+    pub const fn blend(self, other: Self, t: f32) -> Self {
+        let inv_t = 1.0 - t;
+        Self {
+            r: inv_t * self.r + t * other.r,
+            g: inv_t * self.g + t * other.g,
+            b: inv_t * self.b + t * other.b,
+            a: inv_t * self.a + t * other.a,
+        }
+    }
 }
 
 impl Default for Color {
@@ -216,5 +249,32 @@ mod tests {
         const TRANSLUCENT: Color = Color::RED.with_alpha(0.5);
         assert_eq!(TRANSLUCENT.r(), 1.0);
         assert_eq!(TRANSLUCENT.a(), 0.5);
+    }
+
+    #[test]
+    fn blend_at_zero_returns_self() {
+        assert_eq!(Color::RED.blend(Color::BLUE, 0.0), Color::RED);
+    }
+
+    #[test]
+    fn blend_at_one_returns_other() {
+        assert_eq!(Color::RED.blend(Color::BLUE, 1.0), Color::BLUE);
+    }
+
+    #[test]
+    fn blend_at_quarter_lerps_componentwise() {
+        let result = Color::new(1.0, 0.0, 0.0, 1.0).blend(Color::new(0.0, 0.0, 1.0, 1.0), 0.25);
+        assert_eq!(result, Color::new(0.75, 0.0, 0.25, 1.0));
+    }
+
+    #[test]
+    fn blend_lerps_alpha_too() {
+        let result = Color::new(0.0, 0.0, 0.0, 1.0).blend(Color::new(0.0, 0.0, 0.0, 0.0), 0.5);
+        assert_eq!(result.a(), 0.5);
+    }
+
+    #[test]
+    fn blend_is_const_fn() {
+        const _: Color = Color::RED.blend(Color::BLUE, 0.5);
     }
 }

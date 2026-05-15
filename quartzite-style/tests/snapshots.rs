@@ -109,6 +109,48 @@ fn text_edit_read_only_renders() {
 }
 
 #[test]
+fn button_hovered_renders() {
+    let Some(mut harness) = harness_or_skip("button_hovered_renders") else {
+        return;
+    };
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_hovered(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("button_hovered", &image);
+}
+
+#[test]
+fn button_pressed_renders() {
+    let Some(mut harness) = harness_or_skip("button_pressed_renders") else {
+        return;
+    };
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_pressed(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("button_pressed", &image);
+}
+
+#[test]
+fn button_focused_renders() {
+    let Some(mut harness) = harness_or_skip("button_focused_renders") else {
+        return;
+    };
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("button_focused", &image);
+}
+
+#[test]
 fn scroll_area_chrome_renders() {
     let Some(mut harness) = harness_or_skip("scroll_area_chrome_renders") else {
         return;
