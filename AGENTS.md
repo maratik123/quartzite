@@ -162,6 +162,20 @@ When adding or editing dependencies in `Cargo.toml`:
 >
 > The upstream tracking **issue**'s title and body are the user's original problem statement — do not rewrite them. Communicate scope changes via `gh issue comment` instead.
 
+> **AXIOM — Every code-producing commit on a feature branch with an open PR (or about-to-be-opened PR) must pass `self-review` before `git push`.**
+> The per-skill rules already exist (`/task` Step 10, `/pr-commented` Step 5, `/pr-ci-failed` Step 5, `/master-ci-failed` Step 5, `/bugfix` Step 6). This AXIOM names them as instances of a single workspace rule, so the next surface that doesn't yet have its own per-skill step still falls under the rule.
+>
+> | If the commit is... | Action |
+> |---|---|
+> | Initial implementation in `/task` | `/task` Step 10 — spawn `self-review` |
+> | Reviewer-comment fix in `/pr-commented` | `/pr-commented` Step 5 — spawn `self-review` |
+> | CI-failure fix in `/pr-ci-failed` / `/master-ci-failed` | per-skill `self-review` step |
+> | Bugfix in `/bugfix` (standalone or detoured from `/task`) | `/bugfix` Step 6 — spawn `self-review` |
+> | Ad-hoc / out-of-skill fix on a feature branch with an open PR | Spawn `self-review` manually over `git diff <merge-base>..HEAD` before `git push` |
+> | Docs-only / instruction-file-only commit (no `.rs` diff) | Self-review optional; still required if the diff touches any user-facing artefact |
+>
+> APPROVE = push. REJECT = fix on the same branch and re-run; after 3 REJECTs in a row, surface and stop without pushing.
+
 > **AXIOM — `ai-docs/deferred/_inbox.md` is written ONLY by `/task` Step 12 and `/triage`.**
 > Hand-edits to `_inbox.md` defeat the propagation contract that Issue A2 sets up — they hide rows from the parser and conflict with future Step-12 appends.
 >
