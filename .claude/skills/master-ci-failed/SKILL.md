@@ -246,10 +246,11 @@ Confirm again that `git branch --show-current` is NOT `master`. If it is — STO
 Commit message format:
 
 ```
-fix(master-ci): CI <class> failure — <one-line summary>
+fix(master-ci): <one-line summary> (run <run-id>)
 
 Failing run: https://github.com/<O>/<R>/actions/runs/<run-id>
 Master commit: <commit-sha>
+Failure class: <class>
 Local reproducer that re-ran green: <reproducer-command>
 
 <optional 1-3 line body explaining the root cause>
@@ -270,7 +271,7 @@ Capture the commit SHA; update the progress file.
 2. Open the PR via `gh pr create`:
 
    ```bash
-   gh pr create --title "fix(master-ci): <class> failure — <one-line summary> (run <run-id>)" --body "$(cat <<'EOF'
+   gh pr create --title "fix(master-ci): <one-line summary> (run <run-id>)" --body "$(cat <<'EOF'
    ## Summary
    
    <1-3 sentences: what failed, what the fix does, which class.>
