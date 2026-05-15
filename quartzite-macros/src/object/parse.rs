@@ -366,4 +366,90 @@ mod tests {
         });
         assert!(err.contains("unknown #[prop] option"), "unexpected: {err}");
     }
+
+    // R6 — error paths not yet covered
+    #[test]
+    fn tuple_struct_errors() {
+        let err = parse_err(quote! { struct Foo(i32); });
+        assert!(
+            err.contains("only supports named-field structs"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn unit_struct_errors() {
+        let err = parse_err(quote! { struct Foo; });
+        assert!(
+            err.contains("only supports named-field structs"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn enum_errors() {
+        let err = parse_err(quote! { enum Foo { A, B } });
+        assert!(err.contains("only supports structs"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn union_errors() {
+        let err = parse_err(quote! { union Foo { x: i32 } });
+        assert!(err.contains("only supports structs"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn generic_struct_type_param_errors() {
+        let err = parse_err(quote! {
+            struct Foo<T> {
+                #[prop]
+                x: T,
+            }
+        });
+        assert!(
+            err.contains("generic structs not yet supported"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn generic_struct_lifetime_errors() {
+        let err = parse_err(quote! {
+            struct Foo<'a> {
+                #[prop]
+                x: &'a str,
+            }
+        });
+        assert!(
+            err.contains("generic structs not yet supported"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn generic_struct_const_param_errors() {
+        let err = parse_err(quote! {
+            struct Foo<const N: usize> {
+                x: i32,
+            }
+        });
+        assert!(
+            err.contains("generic structs not yet supported"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn prop_name_value_syntax_errors() {
+        let err = parse_err(quote! {
+            struct Foo {
+                #[prop = "x"]
+                pub x: i32,
+            }
+        });
+        assert!(
+            err.contains("does not support name-value"),
+            "unexpected: {err}"
+        );
+    }
 }
