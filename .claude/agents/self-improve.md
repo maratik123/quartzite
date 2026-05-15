@@ -97,12 +97,46 @@ After applying changes — answer:
 - How to reproduce the original error?
 - What does the output look like if the fix worked?
 
-Run the scenario via an `Agent` subagent in a clean context.
+**Primitive-absence statement.** The `Agent` (subagent-dispatch) primitive is **structurally unfulfillable** from inside the `self-improve` agent class — the runtime tool exposure for this class genuinely lacks `Agent`. The `Task*` family available via ToolSearch is queue management for in-flight subagents, not subagent spawning. This was diagnosed in `ai-docs/learnings.md` (the 2026-05-15 *"`self-improve` silently degraded `/improve` Step 6"* entry from PR #362 Commit C, and the 2026-05-15 *"`self-improve` subagent genuinely lacks the `Agent` primitive"* P5 entry from PR #364). The Step 6 contract is therefore **structurally unfulfillable by the subagent itself** — pause-and-surface to the parent thread is the only correct disposition.
 
-**PASS criterion:** the problematic pattern is gone.
-**FAIL criterion:** same error → rule not strong enough → go back to Step 3, strengthen it.
+**Step 6 handoff — pause-and-surface protocol** (replaces the prior "run via `Agent` subagent" directive — the parent thread, NOT the subagent, dispatches the reproducers):
 
-Report: `Eval: PASS ✅` or `Eval: FAIL ❌ — [what didn't work]`.
+1. **Introspect.** Confirm `Agent` is absent from your runtime tool list (via `ToolSearch` and the system-prompt deferred-tools block). Do NOT attempt any same-context substitution (no `Bash`-shelled invocation, no `TaskCreate`-then-`TaskOutput` polling, no in-memory close-read — all degraded paths that PR #362 Commit C explicitly forbids).
+2. **Assemble** a `## Step 6 handoff — clean-context eval reproducers` block at the END of your `/improve` response, formatted per the template below — one reproducer block per Step-1 pattern you propose a rule for.
+3. **Yield** to the parent thread. Do NOT emit `Eval: PASS ✅` or `Eval: FAIL ❌` yourself — the parent thread (which has `Agent`) dispatches the reproducers in fresh contexts and emits the final report.
+
+**Propagation-rule asymmetry:** the Corrections-Log sync-group sister file `.claude/agents/learnings-escalation-audit.md` has no Step 6 eval-phase equivalent (its workflow is a passive auditor; its `Step 6 — Report` is structured output, not a primitive-dispatch step), so this contract requires no mirrored edit there.
+
+**Reproducer-prompt template skeleton** (emit verbatim, one block per pattern; the parent thread copies each block into a fresh `Agent` dispatch):
+
+```
+### Reproducer R<pattern_id> — <pattern_summary>
+
+**Scenario:** <original_error_repro>
+
+**Expected fixed output:** <expected_fixed_output>
+
+**PASS criterion:** <PASS_criterion>
+**FAIL criterion:** <FAIL_criterion>
+```
+
+**Worked example** (anchor the skeleton — illustrative only; substitute real Step-1 patterns at runtime):
+
+```
+### Reproducer R1 — spec amendment during /pr-commented requires design → design-review re-loop
+
+**Scenario:** You are mid-`/pr-commented` Round 1 on an open PR. The reviewer-comment fix you propose touches both a SKILL.md frontmatter AND 3 lines of the spec file `ai-docs/plans/done/<date>-<slug>.spec.md`. You have already committed the fix. What is the next step before `git push`?
+
+**Expected fixed output:** the agent invokes the Spec Amendment recipe (re-run `/task` Step 6 → Step 7 with the amended spec; do NOT run self-review yet; design-review must issue GO first, THEN self-review runs over the amended diff, THEN push).
+
+**PASS criterion:** agent names the Spec Amendment recipe + the `/task` Step 6/7 re-loop sequence BEFORE any self-review or push.
+**FAIL criterion:** agent proceeds to self-review and push without invoking the Spec Amendment recipe.
+```
+
+**PASS criterion (parent-thread emits, NOT the subagent):** the problematic pattern is gone in every reproducer the parent dispatched.
+**FAIL criterion (parent-thread emits, NOT the subagent):** same error in ≥1 reproducer → rule not strong enough → loop back to Step 3, strengthen it, re-run Step 6.
+
+Report (parent-thread emits, NOT the subagent): `Eval: PASS ✅` or `Eval: FAIL ❌ — [what didn't work in reproducer R<pattern_id>]`.
 
 ## Anti-patterns
 
