@@ -708,4 +708,85 @@ mod tests {
         p.draw_path(&path, &pen, &radial);
         p.draw_path(&path, &pen, &custom);
     }
+
+    // R8 — draw_text with italic/underline/strikethrough font flags
+    #[test]
+    fn draw_text_with_italic_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_italic(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    #[test]
+    fn draw_text_with_underline_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_underline(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    #[test]
+    fn draw_text_with_strikethrough_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_strikethrough(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    // R8 — LocalBrushKind::from_brush_kind round-trip classification
+    #[test]
+    fn local_brush_kind_solid_classifies_correctly() {
+        let brush = Brush::solid(Color::RED);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::Solid(_)
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_linear_gradient_classifies_correctly() {
+        let brush =
+            Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::LinearGradient { .. }
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_radial_gradient_classifies_correctly() {
+        let brush = Brush::radial_gradient(Point::new(5, 5), 5.0, Color::WHITE, Color::BLACK);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::RadialGradient { .. }
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_custom_classifies_correctly() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64))
+            .with_stops([
+                peniko::ColorStop {
+                    offset: 0.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        1.0f32, 0.0, 0.0, 1.0,
+                    ])),
+                },
+                peniko::ColorStop {
+                    offset: 1.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        0.0f32, 0.0, 1.0, 1.0,
+                    ])),
+                },
+            ]);
+        let brush = Brush::custom_gradient(gradient);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::Custom(_)
+        ));
+    }
 }
