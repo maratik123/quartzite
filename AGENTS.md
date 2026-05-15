@@ -192,6 +192,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, and task SKILL Step 8's verification of that round-trip all co-evolve) |
 > | `.claude/agents/design.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design-review.md` (Task/Design group) |
 > | `.claude/agents/design-review.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` (Task/Design group) |
+> | `.claude/skills/task/SKILL.md` Step 7 *Spec Amendment recipe* (or any rule about spec-amendment → design → design-review re-entry) | `.claude/skills/pr-commented/SKILL.md` AND `.claude/skills/pr-ci-failed/SKILL.md` AND `.claude/skills/master-ci-failed/SKILL.md` (Spec-Amendment group — every downstream "fix" skill whose round can touch `ai-docs/plans/*.spec.md` carries the same recipe; the rule's mechanical detection trigger — *"the fix commit's diff includes a `.spec.md` file"* — applies identically in each surface) |
 > | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | Each `.claude/skills/**/SKILL.md` and `.claude/agents/**.md` that carries — or should carry — the new pattern. The style guide names the *shape*; the downstream consumers carry the *body*. After adding or amending a pattern, run `grep -rn "<pattern-keyword>" .claude/agents/ .claude/skills/` to find any file already half-using the pattern and reconcile. (Pattern 7 *Compaction recovery callout* is the introducing case — see `ai-docs/agent-writing-style.md § Pattern 7` for the variant taxonomy.) |
@@ -246,7 +247,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 
 ## Corrections Log
 
-On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`. **Read the two boundary rules below before you write — both have been violated multiple times.**
+On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/learnings.md` — there is no "obvious", "minor", "trivial", "already-known", or "duplicate" disposition. The history (including recurrences and superseded entries) is the artefact `/improve` audits to decide escalation fan-out. See [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write) for the enumerated list of skip-reasons that have been used in violation of this rule and are therefore explicitly disallowed. **Read the two boundary rules below before you write — both have been violated multiple times.**
 
 ### Boundary rule 1 — `ai-docs/learnings.md` is APPEND-ONLY
 
