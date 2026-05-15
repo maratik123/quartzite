@@ -110,6 +110,39 @@ For non-trivial rules, show both shapes:
 
 Examples remove ambiguity faster than prose.
 
+### 7. Compaction recovery callout
+
+The callout exists because Sonnet-mode sessions in the Claude Code harness auto-compact when input approaches the 180k-token ceiling and risk losing intermediate reasoning mid-flow. Read the four numbers behind that rule as: **1M tokens** = Sonnet base-model context window (what the model can hold in principle); **200k tokens** = Claude Code harness session cap when Sonnet is the active model — the tighter, harness-imposed budget that actually fires the auto-compaction; **180k input + 20k output** = the harness's split of that 200k cap, with auto-compaction triggered as the input side approaches the 180k ceiling. The full fact table plus the Opus-vs-Sonnet distinction (Opus is NOT auto-compacted in the same way and therefore doesn't need a callout) lives in the introducing spec at `ai-docs/plans/done/2026-05-15-propagate-callout-to-style-guide.spec.md § Context → Why the callout pattern exists`. Every code-side orchestrator skill (the dual-model ones that run on Sonnet) carries this callout at the top of its `SKILL.md` body in one of three per-skill variants. Opus-mode skills (enumerated under `## Out of scope` below) do not need it and do not carry it.
+
+| Variant | Probe shape | Distinguishing phrase (verbatim) | Skills using it |
+|---|---|---|---|
+| A | Preamble-glob — the skill's `⚡ First` (or equivalent) preamble runs a `ls <glob>` probe that doubles as path discovery and RESUME/fresh routing | `"Locate the durable-state file via this skill's active-state probe"` | `/task`, `/code-review`, `/pr-commented` |
+| B | Fixed-glob single in-flight artefact — the durable state is a single named file under a known directory | `"If exactly one in-flight artefact exists"` | `/bugfix`, `/interview` |
+| C | Parent-routing — the skill has no own durable surface; it inherits whichever parent skill is active | `"Identify the **parent workflow**"` | `/context-reset` (also the canonical cross-link target) |
+
+Variants A and B share the invariant phrase `"re-enter this skill from the top of its body"`. Variant C uses the equivalent phrasing `"Run the parent skill's own compaction-recovery callout"`.
+
+The canonical cross-link target — every callout body ends with a `See ... § Compaction recovery (re-entry)` link — is the singular h2 `## Compaction recovery (re-entry)` in `.claude/skills/context-reset/SKILL.md`. The locked full bodies for all three variants (the source-of-truth wording the six skill files carry verbatim) live in the archival design doc at `ai-docs/plans/done/2026-05-14-sonnet-skill-reentry-protocol.design.md`; treat that doc as read-only history.
+
+**Variant A — trimmed example** (see `.claude/skills/task/SKILL.md` for the full body):
+
+> **⚡ Compaction recovery check — read FIRST on every invocation.**
+> If you are re-entering this skill after auto-compaction […], STOP
+> before any tool call and:
+>
+> 1. **Locate the durable-state file via this skill's active-state probe**
+>    — run the preamble glob (`ls <skill-specific>.progress.md 2>/dev/null`)
+>    and apply the validation it documents.
+> 2. Read the matched file top-to-bottom in one pass — the recorded
+>    `current_step` is a cross-check, never an instruction to skip the read.
+> 3. Then re-enter this skill from the top of its body — let the
+>    preamble's probe / validation / RESUME sequence route control.
+>
+> See `.claude/skills/context-reset/SKILL.md` § **Compaction recovery
+> (re-entry)** for the canonical handoff rationale.
+
+When adding the callout to a new code-side skill, pick the variant matching the skill's durable-state shape; copy the live full body from a sibling that already uses that variant; do not invent a 4th variant without first updating this section and the cross-link target.
+
 ## Writing checklist
 
 Before submitting a rule paragraph, check:
