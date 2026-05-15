@@ -47,6 +47,80 @@ pub struct VelloPainter<'a> {
     clips: Vec<u32>,
 }
 
+/// Private renderer-internal classification of [`BrushKind`] into the four variants the
+/// renderer knows how to handle today, plus an explicit `Unknown` bucket that funnels
+/// every future upstream variant. Mirrors `quartzite_paint_api::BrushKind` 1:1 by
+/// reference; this isolates the single `_ => Unknown` wildcard to one location so
+/// neither `brush_to_peniko` nor `brush_color` needs a catch-all arm.
+///
+/// `quartzite_paint_api::BrushKind` is `#[non_exhaustive]`, meaning downstream crates
+/// cannot write an exhaustive match directly. Any future variant added in that crate
+/// routes here to `Unknown`, preserving the existing "no brush" fallback semantics
+/// without requiring a `_` wildcard in the two consumer call sites.
+enum LocalBrushKind<'a> {
+    Solid(&'a quartzite_paint_api::Color),
+    LinearGradient {
+        start: &'a quartzite_geometry::Point,
+        end: &'a quartzite_geometry::Point,
+        start_color: &'a quartzite_paint_api::Color,
+        end_color: &'a quartzite_paint_api::Color,
+    },
+    RadialGradient {
+        centre: &'a quartzite_geometry::Point,
+        radius: f32,
+        start_color: &'a quartzite_paint_api::Color,
+        end_color: &'a quartzite_paint_api::Color,
+    },
+    Custom(&'a peniko::Gradient),
+    /// Forward-compat sink for any future `BrushKind` variant added in
+    /// `quartzite-paint-api` (the upstream type is `#[non_exhaustive]`).
+    /// The renderer falls back to "no brush" semantics, matching the previous
+    /// `_ => None` behaviour. See `quartzite_paint_api::BrushKind`.
+    ///
+    /// FIXME(after `BrushKind` extension): map the new variant in
+    /// `LocalBrushKind::from_brush_kind` when `quartzite_paint_api` adds one.
+    Unknown,
+}
+
+impl<'a> LocalBrushKind<'a> {
+    /// Classifies a `&'a BrushKind` into the renderer-internal `LocalBrushKind`.
+    ///
+    /// The single `_ => Self::Unknown` arm is the only place in the renderer
+    /// that carries a wildcard over `BrushKind`, satisfying AC4.
+    #[inline]
+    fn from_brush_kind(k: &'a BrushKind) -> Self {
+        match k {
+            BrushKind::Solid(c) => Self::Solid(c),
+            BrushKind::LinearGradient {
+                start,
+                end,
+                start_color,
+                end_color,
+            } => Self::LinearGradient {
+                start,
+                end,
+                start_color,
+                end_color,
+            },
+            BrushKind::RadialGradient {
+                centre,
+                radius,
+                start_color,
+                end_color,
+            } => Self::RadialGradient {
+                centre,
+                radius: *radius,
+                start_color,
+                end_color,
+            },
+            BrushKind::Custom(g) => Self::Custom(g),
+            // Upstream `BrushKind` is `#[non_exhaustive]` — keep the sink here so the
+            // exhaustive matches in `brush_to_peniko` / `brush_color` never need `_`.
+            _ => Self::Unknown,
+        }
+    }
+}
+
 impl<'a> VelloPainter<'a> {
     /// Creates a painter that borrows `scene` for one frame.
     ///
@@ -159,9 +233,9 @@ impl<'a> VelloPainter<'a> {
     }
 
     fn brush_to_peniko(&self, brush: &Brush) -> Option<peniko::Brush> {
-        match brush.kind() {
-            BrushKind::Solid(c) => Some(peniko::Brush::Solid(Self::color_to_peniko(*c))),
-            BrushKind::LinearGradient {
+        match LocalBrushKind::from_brush_kind(brush.kind()) {
+            LocalBrushKind::Solid(c) => Some(peniko::Brush::Solid(Self::color_to_peniko(*c))),
+            LocalBrushKind::LinearGradient {
                 start,
                 end,
                 start_color,
@@ -180,7 +254,7 @@ impl<'a> VelloPainter<'a> {
                         .with_stops([stop0, stop1]),
                 ))
             }
-            BrushKind::RadialGradient {
+            LocalBrushKind::RadialGradient {
                 centre,
                 radius,
                 start_color,
@@ -201,15 +275,18 @@ impl<'a> VelloPainter<'a> {
                         .with_stops([stop0, stop1]),
                 ))
             }
-            BrushKind::Custom(gradient) => Some(peniko::Brush::Gradient(gradient.clone())),
-            _ => None,
+            LocalBrushKind::Custom(gradient) => Some(peniko::Brush::Gradient(gradient.clone())),
+            LocalBrushKind::Unknown => None,
         }
     }
 
     fn brush_color(brush: &Brush) -> Option<peniko::Color> {
-        match brush.kind() {
-            BrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
-            _ => None,
+        match LocalBrushKind::from_brush_kind(brush.kind()) {
+            LocalBrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
+            LocalBrushKind::LinearGradient { .. }
+            | LocalBrushKind::RadialGradient { .. }
+            | LocalBrushKind::Custom(_)
+            | LocalBrushKind::Unknown => None,
         }
     }
 
@@ -630,5 +707,86 @@ mod tests {
         p.draw_rect(rect, &pen, &linear);
         p.draw_path(&path, &pen, &radial);
         p.draw_path(&path, &pen, &custom);
+    }
+
+    // R8 — draw_text with italic/underline/strikethrough font flags
+    #[test]
+    fn draw_text_with_italic_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_italic(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    #[test]
+    fn draw_text_with_underline_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_underline(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    #[test]
+    fn draw_text_with_strikethrough_font_does_not_panic() {
+        let (mut scene, mut cache) = make_scene_and_cache();
+        let mut p = VelloPainter::new(&mut scene).with_fonts(&mut cache);
+        let font = Font::new("Arial", 12.0).with_strikethrough(true);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text(Point::new(0, 0), "hello", &font, &brush);
+    }
+
+    // R8 — LocalBrushKind::from_brush_kind round-trip classification
+    #[test]
+    fn local_brush_kind_solid_classifies_correctly() {
+        let brush = Brush::solid(Color::RED);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::Solid(_)
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_linear_gradient_classifies_correctly() {
+        let brush =
+            Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::LinearGradient { .. }
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_radial_gradient_classifies_correctly() {
+        let brush = Brush::radial_gradient(Point::new(5, 5), 5.0, Color::WHITE, Color::BLACK);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::RadialGradient { .. }
+        ));
+    }
+
+    #[test]
+    fn local_brush_kind_custom_classifies_correctly() {
+        let gradient = peniko::Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64))
+            .with_stops([
+                peniko::ColorStop {
+                    offset: 0.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        1.0f32, 0.0, 0.0, 1.0,
+                    ])),
+                },
+                peniko::ColorStop {
+                    offset: 1.0,
+                    color: peniko::color::DynamicColor::from_alpha_color(peniko::Color::new([
+                        0.0f32, 0.0, 1.0, 1.0,
+                    ])),
+                },
+            ]);
+        let brush = Brush::custom_gradient(gradient);
+        assert!(matches!(
+            LocalBrushKind::from_brush_kind(brush.kind()),
+            LocalBrushKind::Custom(_)
+        ));
     }
 }

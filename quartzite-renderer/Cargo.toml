@@ -26,7 +26,8 @@ parley    = "0.9"
 skrifa    = "0.42"
 
 [dev-dependencies]
-# nothing needed yet; GPU tests are #[ignore]-gated
+rstest = "0.25"
+pretty_assertions = "1"
 
 [package.metadata.docs.rs]
 all-features = true

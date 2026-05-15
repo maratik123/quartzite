@@ -1166,3 +1166,19 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** Restore `Write` and `Edit` to `.claude/agents/spec-writer.md` frontmatter. The corrected line should read `tools: Read, Write, Edit, Grep, Glob, Bash` — preserving the post-spec `Grep` / `Glob` additions (the agent uses `Grep` for AGENTS.md Rule-5 preflight per its own *Read before drafting* section) and restoring the spec-required `Write` / `Edit`. **Why:** the originating spec / design / AC1-verification-grep all require Write+Edit; the shipped shape is a deviation from the user-approved contract, not a deliberate decision. **How to apply:** A separate PR's edit to the frontmatter line (one-line change) is sufficient. **Process learning underlying this learning:** AC-verification greps that are documented in the design as automated checks MUST be re-run against the shipped artefact before declaring the AC mechanically passed — running them once at draft time + relying on memory thereafter is the failure mode that let this through PR #295's self-review without detection. **Supersedes:** the 2026-05-14 entry "`spec-writer` agent uses `cat > … <<EOF` heredocs to write the spec instead of Claude Code's Write/Edit tools — needs inspection" (`Pending inspection` resolved here).
 
 **Escalated?** agent:spec-writer, agent:self-review, agent:review-findings
+
+### 2026-05-15 — process — CI-fix code changes require self-review before declaring done
+
+**What happened:** After PR #356 was opened, CI failed with `field 'sig' is never read` (dead-code lint promoted to error by `-D warnings` in the test job). The fix (rename `pub sig` → `_sig` in a test-local struct) was committed and pushed directly without running a self-review pass first. The user had to explicitly request self-review after the push.
+
+**Rule:** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, run the self-review loop (or at minimum, perform an inline review of: correct idiom used, no semantics broken, no adjacent lint issues missed, commit message accurate). The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch. A potential future `/ci-fix` skill (analogous to `/pr-commented`) could formalise this: read CI logs → isolate root cause → apply fix → self-review → push → re-read PR body (per AGENTS.md unconditional post-push rule).
+
+**Escalated?** no
+
+### 2026-05-15 — process — learnings.md changes during PR evolution must be committed to the branch
+
+**What happened:** After the initial PR #356 implementation commits, `ai-docs/learnings.md` was updated (CI-fix self-review learning). The file sat as an unstaged working-tree change until the user explicitly asked to commit it. AGENTS.md already says to check `git status` for `learnings.md` before every `git commit` and stage it with related code changes — but this rule was not applied after the standalone CI-fix commit because the learning was written after the push, not before.
+
+**Rule:** After any code change during PR evolution (CI fix, reviewer-comment fix, self-review fix), write the learning → immediately commit it to the feature branch in the same turn. Do not leave `ai-docs/learnings.md` as an unstaged working-tree change after the push. The check order: write learning → `git add ai-docs/learnings.md` → commit → push. This is a corollary of the AGENTS.md `git status` check: if the learning was written after the last push, it needs its own commit rather than waiting to be bundled with the next code change.
+
+**Escalated?** no

@@ -669,6 +669,100 @@ mod tests {
         assert_eq!(adj.size(), SizeF::new(5.0, 5.0));
     }
 
+    // R7 — RectF::united
+    #[test]
+    fn rectf_united_overlapping() {
+        let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(5.0, 5.0));
+        let b = RectF::new(PointF::new(3.0, 3.0), SizeF::new(5.0, 5.0));
+        let u = a.united(b);
+        assert_eq!(u.origin(), PointF::new(0.0, 0.0));
+        assert_eq!(u.size(), SizeF::new(8.0, 8.0));
+    }
+
+    #[test]
+    fn rectf_united_disjoint() {
+        let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(2.0, 2.0));
+        let b = RectF::new(PointF::new(5.0, 5.0), SizeF::new(2.0, 2.0));
+        let u = a.united(b);
+        assert_eq!(u.origin(), PointF::new(0.0, 0.0));
+        assert_eq!(u.size(), SizeF::new(7.0, 7.0));
+    }
+
+    #[test]
+    fn rectf_united_identical() {
+        let a = RectF::new(PointF::new(1.0, 2.0), SizeF::new(3.0, 4.0));
+        let u = a.united(a);
+        assert_eq!(u.origin(), a.origin());
+        assert_eq!(u.size(), a.size());
+    }
+
+    // R7 — RectF::translated
+    #[test]
+    fn rectf_translated_zero_offset() {
+        let r = RectF::new(PointF::new(1.0, 2.0), SizeF::new(3.0, 4.0));
+        let t = r.translated(PointF::new(0.0, 0.0));
+        assert_eq!(t.origin(), r.origin());
+        assert_eq!(t.size(), r.size());
+    }
+
+    #[test]
+    fn rectf_translated_positive_offset() {
+        let r = RectF::new(PointF::new(1.0, 1.0), SizeF::new(2.0, 2.0));
+        assert_eq!(
+            r.translated(PointF::new(0.5, -0.5)).origin(),
+            PointF::new(1.5, 0.5)
+        );
+    }
+
+    #[test]
+    fn rectf_translated_negative_offset() {
+        let r = RectF::new(PointF::new(3.0, 4.0), SizeF::new(2.0, 2.0));
+        let t = r.translated(PointF::new(-1.0, -2.0));
+        assert_eq!(t.origin(), PointF::new(2.0, 2.0));
+        assert_eq!(t.size(), r.size());
+    }
+
+    // R7 — RectF::intersects false branches
+    #[test]
+    fn rectf_intersects_disjoint_right() {
+        // b is entirely to the right of a
+        let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(3.0, 3.0));
+        let b = RectF::new(PointF::new(5.0, 0.0), SizeF::new(3.0, 3.0));
+        assert!(!a.intersects(b));
+    }
+
+    #[test]
+    fn rectf_intersects_disjoint_bottom() {
+        // b is entirely below a
+        let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(3.0, 3.0));
+        let b = RectF::new(PointF::new(0.0, 5.0), SizeF::new(3.0, 3.0));
+        assert!(!a.intersects(b));
+    }
+
+    #[test]
+    fn rectf_intersects_touching_edge_exclusive() {
+        // a right == b left → no overlap (exclusive semantics)
+        let a = RectF::new(PointF::new(0.0, 0.0), SizeF::new(3.0, 3.0));
+        let b = RectF::new(PointF::new(3.0, 0.0), SizeF::new(3.0, 3.0));
+        assert!(!a.intersects(b));
+    }
+
+    // R7 — Rect::is_empty zero-size paths
+    #[test]
+    fn rect_is_empty_zero_width() {
+        assert!(Rect::new(Point::new(0, 0), Size::new(0, 10)).is_empty());
+    }
+
+    #[test]
+    fn rect_is_empty_zero_height() {
+        assert!(Rect::new(Point::new(0, 0), Size::new(10, 0)).is_empty());
+    }
+
+    #[test]
+    fn rect_is_empty_non_empty() {
+        assert!(!Rect::new(Point::new(0, 0), Size::new(1, 1)).is_empty());
+    }
+
     #[test]
     fn rectf_from_rect() {
         let r = Rect::new(Point::new(1, 2), Size::new(10, 5));

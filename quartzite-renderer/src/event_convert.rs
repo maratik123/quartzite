@@ -179,24 +179,45 @@ pub(crate) fn key_event_from_winit(
     event: &winit::event::KeyEvent,
     modifiers: KeyModifiers,
 ) -> Option<KeyEvent> {
-    let key = key_from_winit(&event.logical_key)?;
-    let text = event
-        .text
-        .as_ref()
-        .map(|s| s.to_string())
-        .unwrap_or_default();
-    let kind = match event.state {
+    key_event_from_parts(
+        &event.logical_key,
+        event.text.as_deref(),
+        event.state,
+        event.repeat,
+        modifiers,
+    )
+}
+
+/// Core of [`key_event_from_winit`], operating on decomposed fields.
+///
+/// Split out so that tests can supply their own `logical_key` / `state` /
+/// `repeat` without needing to construct `winit::event::KeyEvent` (which has
+/// a `pub(crate)` platform-specific field).
+pub(crate) fn key_event_from_parts(
+    logical_key: &WinitKey,
+    text: Option<&str>,
+    state: ElementState,
+    repeat: bool,
+    modifiers: KeyModifiers,
+) -> Option<KeyEvent> {
+    let key = key_from_winit(logical_key)?;
+    let text = text.map(str::to_string).unwrap_or_default();
+    let kind = match state {
         ElementState::Pressed => KeyEventKind::Press,
         ElementState::Released => KeyEventKind::Release,
     };
-    Some(KeyEvent::new(key, text, modifiers, event.repeat, kind))
+    Some(KeyEvent::new(key, text, modifiers, repeat, kind))
 }
 
 #[cfg(test)]
 mod tests {
-    use winit::dpi::PhysicalSize;
+    use rstest::rstest;
+    use winit::dpi::{PhysicalPosition, PhysicalSize};
+    use winit::keyboard::{ModifiersState, NamedKey, NativeKey};
 
     use super::*;
+
+    // --- size_from_physical ---
 
     #[test]
     fn size_from_physical_normal() {
@@ -207,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn size_from_physical_saturates() {
+    fn size_from_physical_saturates_width() {
         assert_eq!(
             size_from_physical(PhysicalSize::new(u32::MAX, 0_u32)),
             Size::new(i32::MAX, 0)
@@ -215,14 +236,277 @@ mod tests {
     }
 
     #[test]
-    fn mouse_button_left_maps() {
-        let btns = mouse_button_from_winit(WinitMouseButton::Left);
-        assert!(btns.contains(MouseButton::Left));
+    fn size_from_physical_saturates_height() {
+        assert_eq!(
+            size_from_physical(PhysicalSize::new(0_u32, u32::MAX)),
+            Size::new(0, i32::MAX)
+        );
+    }
+
+    // --- mouse_button_from_winit ---
+
+    #[rstest]
+    #[case(WinitMouseButton::Left, MouseButton::Left)]
+    #[case(WinitMouseButton::Right, MouseButton::Right)]
+    #[case(WinitMouseButton::Middle, MouseButton::Middle)]
+    #[case(WinitMouseButton::Back, MouseButton::Back)]
+    #[case(WinitMouseButton::Forward, MouseButton::Forward)]
+    fn mouse_button_maps(#[case] btn: WinitMouseButton, #[case] expected: MouseButton) {
+        assert!(mouse_button_from_winit(btn).contains(expected));
     }
 
     #[test]
     fn mouse_button_other_maps_to_empty() {
-        let btns = mouse_button_from_winit(WinitMouseButton::Other(99));
-        assert!(btns.is_empty());
+        assert!(mouse_button_from_winit(WinitMouseButton::Other(99)).is_empty());
     }
+
+    // --- mouse_event_from_winit ---
+
+    #[test]
+    fn mouse_event_pressed() {
+        let pos = PhysicalPosition::new(10.0_f64, 20.0);
+        let ev = mouse_event_from_winit(
+            ElementState::Pressed,
+            WinitMouseButton::Left,
+            pos,
+            MouseButtons::empty(),
+        );
+        assert!(matches!(ev.kind(), MouseEventKind::Press));
+        assert!(ev.event_button().contains(MouseButton::Left));
+        assert_eq!(ev.position(), Point::new(10, 20));
+    }
+
+    #[test]
+    fn mouse_event_released() {
+        let pos = PhysicalPosition::new(5.0_f64, 15.0);
+        let ev = mouse_event_from_winit(
+            ElementState::Released,
+            WinitMouseButton::Right,
+            pos,
+            MouseButton::Right.into(),
+        );
+        assert!(matches!(ev.kind(), MouseEventKind::Release));
+        assert!(ev.event_button().contains(MouseButton::Right));
+    }
+
+    // --- key_from_winit: character keys ---
+
+    #[rstest]
+    #[case("a", Key::A)]
+    #[case("A", Key::A)]
+    #[case("b", Key::B)]
+    #[case("B", Key::B)]
+    #[case("c", Key::C)]
+    #[case("d", Key::D)]
+    #[case("e", Key::E)]
+    #[case("f", Key::F)]
+    #[case("g", Key::G)]
+    #[case("h", Key::H)]
+    #[case("i", Key::I)]
+    #[case("j", Key::J)]
+    #[case("k", Key::K)]
+    #[case("l", Key::L)]
+    #[case("m", Key::M)]
+    #[case("n", Key::N)]
+    #[case("o", Key::O)]
+    #[case("p", Key::P)]
+    #[case("q", Key::Q)]
+    #[case("r", Key::R)]
+    #[case("s", Key::S)]
+    #[case("t", Key::T)]
+    #[case("u", Key::U)]
+    #[case("v", Key::V)]
+    #[case("w", Key::W)]
+    #[case("x", Key::X)]
+    #[case("y", Key::Y)]
+    #[case("z", Key::Z)]
+    #[case("0", Key::Num0)]
+    #[case("1", Key::Num1)]
+    #[case("2", Key::Num2)]
+    #[case("3", Key::Num3)]
+    #[case("4", Key::Num4)]
+    #[case("5", Key::Num5)]
+    #[case("6", Key::Num6)]
+    #[case("7", Key::Num7)]
+    #[case("8", Key::Num8)]
+    #[case("9", Key::Num9)]
+    fn character_key_maps(#[case] ch: &str, #[case] expected: Key) {
+        assert_eq!(
+            key_from_winit(&WinitKey::Character(ch.into())),
+            Some(expected)
+        );
+    }
+
+    #[test]
+    fn character_key_unmapped_returns_none() {
+        assert_eq!(key_from_winit(&WinitKey::Character("!".into())), None);
+    }
+
+    // --- key_from_winit: named keys ---
+
+    #[rstest]
+    #[case(NamedKey::Enter, Key::Return)]
+    #[case(NamedKey::Escape, Key::Escape)]
+    #[case(NamedKey::Backspace, Key::Backspace)]
+    #[case(NamedKey::Tab, Key::Tab)]
+    #[case(NamedKey::Space, Key::Space)]
+    #[case(NamedKey::Delete, Key::Delete)]
+    #[case(NamedKey::Insert, Key::Insert)]
+    #[case(NamedKey::Home, Key::Home)]
+    #[case(NamedKey::End, Key::End)]
+    #[case(NamedKey::PageUp, Key::PageUp)]
+    #[case(NamedKey::PageDown, Key::PageDown)]
+    #[case(NamedKey::ArrowLeft, Key::Left)]
+    #[case(NamedKey::ArrowRight, Key::Right)]
+    #[case(NamedKey::ArrowUp, Key::Up)]
+    #[case(NamedKey::ArrowDown, Key::Down)]
+    #[case(NamedKey::F1, Key::F1)]
+    #[case(NamedKey::F2, Key::F2)]
+    #[case(NamedKey::F3, Key::F3)]
+    #[case(NamedKey::F4, Key::F4)]
+    #[case(NamedKey::F5, Key::F5)]
+    #[case(NamedKey::F6, Key::F6)]
+    #[case(NamedKey::F7, Key::F7)]
+    #[case(NamedKey::F8, Key::F8)]
+    #[case(NamedKey::F9, Key::F9)]
+    #[case(NamedKey::F10, Key::F10)]
+    #[case(NamedKey::F11, Key::F11)]
+    #[case(NamedKey::F12, Key::F12)]
+    fn named_key_maps(#[case] named: NamedKey, #[case] expected: Key) {
+        assert_eq!(key_from_winit(&WinitKey::Named(named)), Some(expected));
+    }
+
+    #[test]
+    fn named_key_unmapped_returns_none() {
+        assert_eq!(key_from_winit(&WinitKey::Named(NamedKey::Hyper)), None);
+    }
+
+    #[test]
+    fn unidentified_key_returns_none() {
+        assert_eq!(
+            key_from_winit(&WinitKey::Unidentified(NativeKey::Unidentified)),
+            None
+        );
+    }
+
+    // --- modifiers_from_winit ---
+
+    #[test]
+    fn modifiers_empty() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(ModifiersState::empty()));
+        assert!(mods.is_empty());
+    }
+
+    #[test]
+    fn modifiers_shift() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(ModifiersState::SHIFT));
+        assert!(mods.contains(KeyModifier::Shift));
+        assert!(!mods.contains(KeyModifier::Ctrl));
+    }
+
+    #[test]
+    fn modifiers_ctrl() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(ModifiersState::CONTROL));
+        assert!(mods.contains(KeyModifier::Ctrl));
+        assert!(!mods.contains(KeyModifier::Shift));
+    }
+
+    #[test]
+    fn modifiers_alt() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(ModifiersState::ALT));
+        assert!(mods.contains(KeyModifier::Alt));
+    }
+
+    #[test]
+    fn modifiers_meta() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(ModifiersState::SUPER));
+        assert!(mods.contains(KeyModifier::Meta));
+    }
+
+    #[test]
+    fn modifiers_combined_shift_ctrl() {
+        let mods = modifiers_from_winit(winit::event::Modifiers::from(
+            ModifiersState::SHIFT | ModifiersState::CONTROL,
+        ));
+        assert!(mods.contains(KeyModifier::Shift));
+        assert!(mods.contains(KeyModifier::Ctrl));
+        assert!(!mods.contains(KeyModifier::Alt));
+    }
+
+    // --- key_event_from_parts ---
+
+    #[test]
+    fn key_event_parts_mapped_pressed() {
+        let ev = key_event_from_parts(
+            &WinitKey::Character("a".into()),
+            Some("a"),
+            ElementState::Pressed,
+            false,
+            KeyModifiers::empty(),
+        );
+        let ev = ev.expect("should map 'a'");
+        assert_eq!(ev.key(), Key::A);
+        assert_eq!(ev.text(), "a");
+        assert!(matches!(ev.kind(), KeyEventKind::Press));
+        assert!(!ev.is_repeat());
+    }
+
+    #[test]
+    fn key_event_parts_released() {
+        let ev = key_event_from_parts(
+            &WinitKey::Named(NamedKey::Enter),
+            None,
+            ElementState::Released,
+            false,
+            KeyModifiers::empty(),
+        );
+        let ev = ev.expect("Enter should map");
+        assert!(matches!(ev.kind(), KeyEventKind::Release));
+        assert_eq!(ev.text(), "");
+    }
+
+    #[test]
+    fn key_event_parts_repeat_propagates() {
+        let ev = key_event_from_parts(
+            &WinitKey::Character("b".into()),
+            None,
+            ElementState::Pressed,
+            true,
+            KeyModifiers::empty(),
+        )
+        .expect("should map");
+        assert!(ev.is_repeat());
+    }
+
+    #[test]
+    fn key_event_parts_unmapped_returns_none() {
+        let result = key_event_from_parts(
+            &WinitKey::Named(NamedKey::Hyper),
+            None,
+            ElementState::Pressed,
+            false,
+            KeyModifiers::empty(),
+        );
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn key_event_parts_modifiers_propagate() {
+        let mods: KeyModifiers = KeyModifier::Shift.into();
+        let ev = key_event_from_parts(
+            &WinitKey::Character("c".into()),
+            None,
+            ElementState::Pressed,
+            false,
+            mods,
+        )
+        .expect("should map");
+        assert!(ev.modifiers().contains(KeyModifier::Shift));
+    }
+
+    // --- key_event_from_winit (smoke through wrapping fn) ---
+
+    // Coverage of the `key_event_from_winit` wrapper itself is obtained via
+    // wrapped_handler tests (subtask R4) which inject `WindowEvent::KeyboardInput`.
+    // The inner logic is fully covered by `key_event_from_parts` tests above.
 }

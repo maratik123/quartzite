@@ -917,4 +917,63 @@ mod tests {
         assert!(meta.property("single_shot").is_some());
         assert!(meta.property("nonexistent").is_none());
     }
+
+    // R9 partial — signals_blocked / connect_tick_queued / start idempotency
+
+    #[test]
+    fn signals_blocked_accessor_reflects_block_state() {
+        let mut timer = Timer::new(Duration::from_millis(100));
+        assert!(!timer.signals_blocked(), "new timer must not be blocked");
+        timer.block_signals();
+        assert!(timer.signals_blocked(), "blocked timer must return true");
+        timer.unblock_signals();
+        assert!(
+            !timer.signals_blocked(),
+            "unblocked timer must return false"
+        );
+    }
+
+    #[test]
+    fn connect_tick_queued_returns_nonzero_id_and_can_disconnect() {
+        use quartzite_core::receiver_guard::ReceiverGuard;
+
+        let timer = Timer::new(Duration::from_millis(100));
+        let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
+        let receiver_thread = std::thread::current().id();
+
+        let id = timer.connect_tick_queued(receiver_thread, |_args: (TimerEvent,)| {}, guard_weak);
+        // ConnectionId wraps a u64; the default (zero) sentinel means "no connection".
+        assert!(
+            id != ConnectionId::default(),
+            "ConnectionId must not be the zero sentinel"
+        );
+
+        // disconnect must succeed without panic.
+        timer.disconnect_tick(id);
+        drop(guard_arc);
+    }
+
+    #[test]
+    fn start_while_already_running_is_noop() {
+        let mut timer = Timer::new(Duration::from_millis(50));
+        let driver: Arc<dyn TimerDriver> = Arc::new(ThreadDriver::new());
+
+        timer.start(Arc::clone(&driver));
+        assert!(
+            timer.is_running(),
+            "timer must be running after first start"
+        );
+        let fire_count_before = timer.state.fire_count.load(Ordering::SeqCst);
+
+        // Second call must be a no-op (early return at the running check).
+        timer.start(Arc::clone(&driver));
+        assert!(timer.is_running(), "timer must still be running");
+        assert_eq!(
+            timer.state.fire_count.load(Ordering::SeqCst),
+            fire_count_before,
+            "fire_count must not reset on idempotent start"
+        );
+
+        timer.stop();
+    }
 }

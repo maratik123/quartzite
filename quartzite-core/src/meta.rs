@@ -1105,4 +1105,79 @@ mod tests {
         assert!(noop_lookup_entry_by_name("anything").is_none());
         assert!(noop_lookup_entry_by_value(42).is_none());
     }
+
+    // --- Runtime constructor coverage (const fn bodies need a non-const call site) ---
+
+    #[test]
+    fn param_meta_new_at_runtime() {
+        let p = ParamMeta::new("x", "i64");
+        assert_eq!(p.name, "x");
+        assert_eq!(p.type_name, "i64");
+    }
+
+    #[test]
+    fn signal_meta_new_at_runtime() {
+        let s = SignalMeta::new("tick", &[]);
+        assert_eq!(s.name, "tick");
+        assert!(s.params.is_empty());
+    }
+
+    #[test]
+    fn method_meta_new_at_runtime() {
+        let m = MethodMeta::new("run", &[], "()");
+        assert_eq!(m.name, "run");
+        assert!(m.params.is_empty());
+        assert_eq!(m.return_type, "()");
+    }
+
+    // --- Debug impls ---
+
+    #[test]
+    fn meta_object_debug_contains_class_name() {
+        let m = meta("Widget", &[], &[], &[], &[]);
+        let s = format!("{m:?}");
+        assert!(s.contains("MetaObject"));
+        assert!(s.contains("Widget"));
+    }
+
+    #[test]
+    fn enum_meta_debug_contains_name() {
+        static ENTRIES: &[EnumEntry] = &[EnumEntry::new("On", 1)];
+        let em = enum_meta_noop("State", ENTRIES);
+        let s = format!("{em:?}");
+        assert!(s.contains("EnumMeta"));
+        assert!(s.contains("State"));
+    }
+
+    // --- PartialEq impls ---
+
+    #[test]
+    fn meta_object_eq_same_is_true() {
+        let m1 = meta("Btn", &[], &[], &[], &[]);
+        let m2 = meta("Btn", &[], &[], &[], &[]);
+        assert_eq!(m1, m2);
+    }
+
+    #[test]
+    fn meta_object_eq_different_class_name_is_false() {
+        let m1 = meta("Btn", &[], &[], &[], &[]);
+        let m2 = meta("Lbl", &[], &[], &[], &[]);
+        assert_ne!(m1, m2);
+    }
+
+    #[test]
+    fn enum_meta_eq_same_is_true() {
+        static ENTRIES: &[EnumEntry] = &[EnumEntry::new("A", 0)];
+        let em1 = enum_meta_noop("E", ENTRIES);
+        let em2 = enum_meta_noop("E", ENTRIES);
+        assert_eq!(em1, em2);
+    }
+
+    #[test]
+    fn enum_meta_eq_different_name_is_false() {
+        static ENTRIES: &[EnumEntry] = &[EnumEntry::new("A", 0)];
+        let em1 = enum_meta_noop("E1", ENTRIES);
+        let em2 = enum_meta_noop("E2", ENTRIES);
+        assert_ne!(em1, em2);
+    }
 }

@@ -496,6 +496,36 @@ mod tests {
         assert_eq!(builder.scale_factor, 2.0);
     }
 
+    // R10 — accessor + Debug tests (GPU-gated like the snapshot test below)
+    #[test]
+    fn render_harness_accessors_and_debug() {
+        if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some() {
+            eprintln!(
+                "render_harness_accessors_and_debug: \
+                 SKIP_RENDER_SNAPSHOT set; skipping GPU work"
+            );
+            return;
+        }
+        let harness = match RenderHarnessBuilder::new(64, 32).scale_factor(1.5).build() {
+            Ok(h) => h,
+            Err(e) => {
+                eprintln!(
+                    "render_harness_accessors_and_debug: \
+                     no GPU adapter available ({e}); skipping"
+                );
+                return;
+            }
+        };
+        assert_eq!(harness.width(), 64);
+        assert_eq!(harness.height(), 32);
+        assert_eq!(harness.scale_factor(), 1.5);
+        let dbg = format!("{harness:?}");
+        assert!(dbg.contains("RenderHarness"), "debug: {dbg}");
+        assert!(dbg.contains("width: 64"), "debug: {dbg}");
+        assert!(dbg.contains("height: 32"), "debug: {dbg}");
+        assert!(dbg.contains("scale_factor: 1.5"), "debug: {dbg}");
+    }
+
     /// Smoke test: a 64x64 harness rendered against a no-op paint closure
     /// produces an all-`BASE_COLOR` (opaque black) image. This ensures the
     /// readback path (texture → buffer copy → row-aligned decode) is wired

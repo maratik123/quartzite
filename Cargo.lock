@@ -2605,7 +2605,7 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "parking_lot",
- "rstest",
+ "rstest 0.26.1",
  "serde",
  "serde_json",
  "serial_test",
@@ -2620,7 +2620,7 @@ version = "0.1.0"
 dependencies = [
  "pretty_assertions",
  "quartzite-core",
- "rstest",
+ "rstest 0.26.1",
 ]
 
 [[package]]
@@ -2633,7 +2633,7 @@ dependencies = [
  "quartzite-core",
  "quartzite-event-types",
  "quartzite-geometry",
- "rstest",
+ "rstest 0.26.1",
 ]
 
 [[package]]
@@ -2644,7 +2644,7 @@ dependencies = [
  "pretty_assertions",
  "quartzite-core",
  "quartzite-macros",
- "rstest",
+ "rstest 0.26.1",
 ]
 
 [[package]]
@@ -2666,7 +2666,7 @@ dependencies = [
  "peniko",
  "quartzite-geometry",
  "quartzite-paint-api",
- "rstest",
+ "rstest 0.26.1",
 ]
 
 [[package]]
@@ -2675,7 +2675,7 @@ version = "0.1.0"
 dependencies = [
  "peniko",
  "quartzite-geometry",
- "rstest",
+ "rstest 0.26.1",
  "thiserror 2.0.18",
 ]
 
@@ -2688,10 +2688,12 @@ dependencies = [
  "parley",
  "peniko",
  "pollster",
+ "pretty_assertions",
  "quartzite-events",
  "quartzite-geometry",
  "quartzite-paint-api",
  "quartzite-runtime",
+ "rstest 0.25.0",
  "skrifa 0.42.1",
  "thiserror 2.0.18",
  "vello",
@@ -2757,7 +2759,7 @@ name = "quartzite-style-types"
 version = "0.1.0"
 dependencies = [
  "quartzite-paint-api",
- "rstest",
+ "rstest 0.26.1",
 ]
 
 [[package]]
@@ -2776,7 +2778,7 @@ dependencies = [
  "quartzite-paint-api",
  "quartzite-renderer",
  "quartzite-style-types",
- "rstest",
+ "rstest 0.26.1",
  "tempfile",
 ]
 
@@ -3027,13 +3029,43 @@ dependencies = [
 
 [[package]]
 name = "rstest"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fc39292f8613e913f7df8fa892b8944ceb47c247b78e1b1ae2f09e019be789d"
+dependencies = [
+ "futures-timer",
+ "futures-util",
+ "rstest_macros 0.25.0",
+ "rustc_version",
+]
+
+[[package]]
+name = "rstest"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f5a3193c063baaa2a95a33f03035c8a72b83d97a54916055ba22d35ed3839d49"
 dependencies = [
  "futures-timer",
  "futures-util",
- "rstest_macros",
+ "rstest_macros 0.26.1",
+]
+
+[[package]]
+name = "rstest_macros"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f168d99749d307be9de54d23fd226628d99768225ef08f6ffb52e0182a27746"
+dependencies = [
+ "cfg-if",
+ "glob",
+ "proc-macro-crate",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "relative-path",
+ "rustc_version",
+ "syn",
+ "unicode-ident",
 ]
 
 [[package]]

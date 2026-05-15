@@ -145,6 +145,72 @@ impl Font {
     pub const fn strikethrough(&self) -> bool {
         self.strikethrough
     }
+
+    /// Sets the italic flag and returns the updated `Font`.
+    ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable italic, `false` to disable it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Font;
+    ///
+    /// let f = Font::new("Arial", 12.0).with_italic(true);
+    /// assert!(f.italic());
+    /// let f2 = f.with_italic(false);
+    /// assert!(!f2.italic());
+    /// ```
+    #[inline]
+    pub fn with_italic(mut self, v: bool) -> Self {
+        self.italic = v;
+        self
+    }
+
+    /// Sets the underline flag and returns the updated `Font`.
+    ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable underline, `false` to disable it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Font;
+    ///
+    /// let f = Font::new("Arial", 12.0).with_underline(true);
+    /// assert!(f.underline());
+    /// let f2 = f.with_underline(false);
+    /// assert!(!f2.underline());
+    /// ```
+    #[inline]
+    pub fn with_underline(mut self, v: bool) -> Self {
+        self.underline = v;
+        self
+    }
+
+    /// Sets the strikethrough flag and returns the updated `Font`.
+    ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable strikethrough, `false` to disable it.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Font;
+    ///
+    /// let f = Font::new("Arial", 12.0).with_strikethrough(true);
+    /// assert!(f.strikethrough());
+    /// let f2 = f.with_strikethrough(false);
+    /// assert!(!f2.strikethrough());
+    /// ```
+    #[inline]
+    pub fn with_strikethrough(mut self, v: bool) -> Self {
+        self.strikethrough = v;
+        self
+    }
 }
 
 impl Default for Font {
