@@ -1067,7 +1067,7 @@ mod tests {
         // Build a receiver with sig carrying type "bool" to trigger TypeMismatch.
         struct BoolRecv2 {
             base: ObjectBase,
-            pub sig: Signal<(bool,)>,
+            _sig: Signal<(bool,)>,
         }
         static BR2_PARAMS: [crate::meta::ParamMeta; 1] =
             [crate::meta::ParamMeta::new("arg0", "bool")];
@@ -1132,7 +1132,7 @@ mod tests {
         let mut sender = Sender::new();
         let br2 = Arc::new(Mutex::new(BoolRecv2 {
             base: ObjectBase::new(),
-            sig: Signal::new(),
+            _sig: Signal::new(),
         }));
         let err = connect_signals::<_, _, (i32,)>(
             &mut sender,
