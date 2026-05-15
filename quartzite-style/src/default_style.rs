@@ -3,7 +3,7 @@
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorRole, Palette};
 use quartzite_widgets::{
-    Alignment, AsWidget, Button, Container, Label, ScrollArea, TextEdit, WidgetExt,
+    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetExt,
 };
 
 use crate::Style;
@@ -20,6 +20,7 @@ use crate::Style;
 /// - [`TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
 /// - [`ScrollArea`] — chrome only (background fill + 1 px outline); no child traversal.
 /// - [`Container`] — Window background fill + 1 px `WindowText` outline; no child traversal.
+/// - [`LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
 ///
 /// Unknown widget types fall through silently — no painter methods are called
 /// and no panic is issued. This is intentional: new widget types can be added
@@ -62,7 +63,10 @@ impl Style for DefaultStyle {
             return self.draw_scroll_area(w, painter, palette);
         }
         if let Some(w) = any.downcast_ref::<Container>() {
-            self.draw_container(w, painter, palette);
+            return self.draw_container(w, painter, palette);
+        }
+        if let Some(w) = any.downcast_ref::<LineEdit>() {
+            self.draw_line_edit(w, painter, palette);
         }
         // Unknown widget type — deliberate no-op; does not panic.
     }
@@ -174,6 +178,33 @@ impl DefaultStyle {
             &Pen::new(palette.color(ColorRole::WindowText), 1.0),
             &Brush::solid(Color::TRANSPARENT),
         );
+    }
+
+    fn draw_line_edit(&self, w: &LineEdit, painter: &mut dyn Painter, palette: &Palette) {
+        let geom = w.geometry();
+        let font = w.widget_base().font.clone();
+
+        painter.fill_rect(geom, &brush(palette, ColorRole::Base));
+        if w.read_only {
+            painter.fill_rect(
+                geom,
+                &Brush::solid(disabled(palette.color(ColorRole::Window))),
+            );
+        }
+        painter.draw_rect(
+            geom,
+            &Pen::new(palette.color(ColorRole::Text), 1.0),
+            &Brush::solid(Color::TRANSPARENT),
+        );
+        let (text_arg, text_brush) = if w.text.is_empty() && !w.placeholder.is_empty() {
+            (
+                w.placeholder.as_str(),
+                Brush::solid(disabled(palette.color(ColorRole::Text))),
+            )
+        } else {
+            (w.text.as_str(), brush(palette, ColorRole::Text))
+        };
+        painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
     }
 }
 
