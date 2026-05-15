@@ -41,6 +41,11 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Format
         run: cargo fmt --all -- --check
 
@@ -59,11 +64,30 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
+      # Why ImageVersion in the cache key + the cargo-identity check: see
+      # issue #340 — a polluted ~/.cargo/bin/cargo shim was being restored
+      # from a macos-15.7.4 cache onto a macos-15.7.5 runner, leaving
+      # `cargo` resolving to rustup-init. The image-version segment busts
+      # the cache on every runner-image bump. Export step is needed because
+      # macOS only writes ImageVersion to ~/.bashrc (not sourced by the
+      # Actions runner); Linux/Windows have it in process env already.
+      - name: Export ImageVersion
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable-v2
+          cache-shared-key: ${{ runner.os }}-stable-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Verify cargo identity
+        # See #340: rustup-init masquerading as cargo emits argparse errors.
+        # Fail here with a clear cause rather than inside the build step.
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
       - name: Install Linux dependencies
@@ -94,11 +118,21 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable-v2
+          cache-shared-key: ${{ runner.os }}-stable-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
       - name: Install Linux dependencies
@@ -125,12 +159,22 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: clippy
-          cache-shared-key: ${{ runner.os }}-stable-v2
+          cache-shared-key: ${{ runner.os }}-stable-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
       - name: Install Linux dependencies
@@ -168,14 +212,24 @@ jobs:
             wgpu_adapter_name: ""
     steps:
       - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           # cache-shared-key is distinct from the `*-stable` key used by
           # build/test/clippy/docs to avoid cache thrash with the existing
           # test job.
-          cache-shared-key: ${{ runner.os }}-stable-gpu-v2
+          cache-shared-key: ${{ runner.os }}-stable-gpu-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Install Linux GPU stack
         if: runner.os == 'Linux'
         run: |
@@ -362,11 +416,21 @@ jobs:
       SCCACHE_CACHE_SIZE: "2G"
     steps:
       - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable-v2
+          cache-shared-key: ${{ runner.os }}-stable-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
       - name: Install Linux dependencies
@@ -410,11 +474,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
+
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}-v2
+          cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
+
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          cargo --version
+          rustc --version
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
