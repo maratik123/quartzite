@@ -148,6 +148,10 @@ impl Font {
 
     /// Sets the italic flag and returns the updated `Font`.
     ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable italic, `false` to disable it.
+    ///
     /// # Examples
     ///
     /// ```
@@ -166,6 +170,10 @@ impl Font {
 
     /// Sets the underline flag and returns the updated `Font`.
     ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable underline, `false` to disable it.
+    ///
     /// # Examples
     ///
     /// ```
@@ -183,6 +191,10 @@ impl Font {
     }
 
     /// Sets the strikethrough flag and returns the updated `Font`.
+    ///
+    /// # Parameters
+    ///
+    /// - `v`: `true` to enable strikethrough, `false` to disable it.
     ///
     /// # Examples
     ///
