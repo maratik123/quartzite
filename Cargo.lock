@@ -2727,6 +2727,7 @@ dependencies = [
  "image",
  "nv-flip",
  "peniko",
+ "quartzite-core",
  "quartzite-geometry",
  "quartzite-paint",
  "quartzite-paint-api",
