@@ -962,10 +962,7 @@ mod tests {
         assert_eq!(Value::List(vec![]).type_name(), "List");
         assert_eq!(Value::Map(Default::default()).type_name(), "Map");
         assert_eq!(Value::Bytes(vec![]).type_name(), "Bytes");
-        assert_eq!(
-            Value::Custom(Arc::new(MyCustom)).type_name(),
-            "Custom"
-        );
+        assert_eq!(Value::Custom(Arc::new(MyCustom)).type_name(), "Custom");
         assert_eq!(Value::Object(WeakObjectRef(0)).type_name(), "Object");
         assert_eq!(
             Value::Duration(core::time::Duration::ZERO).type_name(),
