@@ -21,22 +21,48 @@
 #   6. Delete ai-docs/plans/<spec-base>.progress.md (if it exists)
 #   7. Delete ai-docs/pr-comments/pr-<PR_NUM>.progress.md (the fallback path
 #      used by /pr-commented for PRs not produced by /task)
-#   8. `rmdir ai-docs/pr-comments` -- opportunistic cleanup; non-fatal if the
-#      directory still has unrelated files
+#   8. Delete ai-docs/ci-fixes/pr-<PR_NUM>.progress.md (the fallback path
+#      used by /pr-ci-failed for PRs not produced by /task)
+#   9. `rmdir ai-docs/pr-comments ai-docs/ci-fixes ai-docs/master-ci`
+#      -- opportunistic cleanup; non-fatal if the directories still have
+#      unrelated files or do not exist.
+#
+# Secondary derivation (master-ci run linkage):
+#   A. `gh pr view <PR_NUM> --json body` -> PR body (same body fetch as
+#      step 2 -- the secondary probe runs against the same `${PR_BODY}`).
+#   B. `grep -oE '^\*\*Tracked in run:\*\* [0-9]+'` on the body -> the
+#      first `**Tracked in run:** <run-id>` reference. RUN_ID is the
+#      trailing digits. /master-ci-failed writes this line into the body
+#      of the fresh PR it opens; the per-run progress file lives at
+#      `ai-docs/master-ci/<run-id>.progress.md` (gitignored).
+#   C. Delete ai-docs/master-ci/<RUN_ID>.progress.md (if it exists).
+#
+# A PR may carry both `Closes/Fixes/Resolves #N` (primary path) and
+# `**Tracked in run:** <run-id>` (secondary path) -- both probes run
+# unconditionally and independently. They are not mutually exclusive: a
+# /pr-ci-failed run on a /task-produced PR may still surface a fresh
+# /master-ci-failed sibling PR carrying the run-id line.
 #
 # Failure modes (all exit 0 -- workflow step 4 proceeds regardless):
 # - `PR_NUM` empty (branch merged outside `gh`, or PR is closed-not-merged):
 #   prints a one-line note to stdout and exits 0 (nothing reliable to derive
 #   paths from).
 # - `ISSUE_NUM` empty (PR body has no Closes/Fixes/Resolves #N line -- e.g.
-#   manual non-/task PR, or `/task` PR whose body convention drifted):
+#   manual non-/task PR, or `/task` PR whose body convention drifted, or a
+#   /master-ci-failed-produced PR which has no upstream tracking issue):
 #   prints a one-line warning to STDERR naming the PR and branch, skips the
-#   /task-progress-file deletion, proceeds to the /pr-comments fallback path.
+#   /task-progress-file deletion, proceeds to the fallback + secondary
+#   probe paths.
 # - `SPEC_PATH` empty (issue number derived but no spec carries
 #   `Tracked in: #<ISSUE_NUM>` -- e.g. PR closes a satellite issue without
 #   its own /task spec): prints a one-line warning to STDERR naming the
 #   issue number, skips the /task-progress-file deletion, proceeds to the
-#   /pr-comments fallback path.
+#   fallback + secondary probe paths.
+# - `RUN_ID` empty (PR body has no `**Tracked in run:** <run-id>` line --
+#   the common case: every /task PR, every /pr-ci-failed PR, every manual
+#   PR. Only /master-ci-failed-produced PRs carry the line.): silent
+#   no-op; the master-ci secondary probe simply does not match. No
+#   warning -- absence of this line is the norm, not an anomaly.
 # - rm -f is silent on missing files (intentional -- files may not exist;
 #   idempotent re-runs are safe).
 # - rmdir failing on non-empty directory is expected and ignored.
@@ -44,7 +70,9 @@
 # Multi-close PRs (rare; e.g. `Closes #289` + `Closes #277` on PR #295):
 # the FIRST closing-keyword match wins. By convention the first-listed
 # issue is the primary /task tracking issue; satellite closures are
-# bundled cleanup items without their own spec.
+# bundled cleanup items without their own spec. The same FIRST-match rule
+# applies to multi-`**Tracked in run:**` PR bodies (rare; a single PR
+# rarely references more than one master CI run).
 #
 # Deferred-task progress files (ai-docs/plans/deferred/) are intentionally
 # NOT touched -- deferral is its own workflow and a deferred task has no
@@ -65,7 +93,9 @@ if [ -z "${PR_NUM}" ]; then
   exit 0
 fi
 
-ISSUE_NUM=$(gh pr view "${PR_NUM}" --json body --jq '.body' 2>/dev/null \
+PR_BODY=$(gh pr view "${PR_NUM}" --json body --jq '.body' 2>/dev/null)
+
+ISSUE_NUM=$(printf '%s' "${PR_BODY}" \
   | grep -oiE '(Close[sd]?|Fix(es|ed)?|Resolve[sd]?) #[0-9]+' \
   | head -n1 \
   | grep -oE '[0-9]+$')
@@ -82,10 +112,23 @@ else
   fi
 fi
 
-rm -f "ai-docs/pr-comments/pr-${PR_NUM}.progress.md"
+# Secondary probe: /master-ci-failed PR bodies carry a `**Tracked in run:**
+# <run-id>` line pointing at ai-docs/master-ci/<run-id>.progress.md. Absence
+# of the line is the norm for every non-/master-ci-failed PR -- silent no-op.
+RUN_ID=$(printf '%s' "${PR_BODY}" \
+  | grep -oE '^\*\*Tracked in run:\*\* [0-9]+' \
+  | head -n1 \
+  | grep -oE '[0-9]+$')
 
-# Opportunistic cleanup -- fails non-fatally if directory has other files
-# or does not exist. Exit code intentionally ignored.
-rmdir ai-docs/pr-comments 2>/dev/null || true
+if [ -n "${RUN_ID}" ]; then
+  rm -f "ai-docs/master-ci/${RUN_ID}.progress.md"
+fi
+
+rm -f "ai-docs/pr-comments/pr-${PR_NUM}.progress.md"
+rm -f "ai-docs/ci-fixes/pr-${PR_NUM}.progress.md"
+
+# Opportunistic cleanup -- fails non-fatally if directories have other files
+# or do not exist. Exit code intentionally ignored.
+rmdir ai-docs/pr-comments ai-docs/ci-fixes ai-docs/master-ci 2>/dev/null || true
 
 exit 0
