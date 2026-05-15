@@ -904,6 +904,84 @@ mod tests {
         assert_eq!(i64::from_value(Value::Int(i64::MIN)), Ok(i64::MIN));
     }
 
+    // --- FromValue error arms for each implementor ---
+
+    #[test]
+    fn i64_rejects_wrong_type() {
+        let err = i64::from_value(Value::Bool(true)).unwrap_err();
+        assert_eq!(err.expected, "Int");
+        assert_eq!(err.got, "Bool");
+    }
+
+    #[test]
+    fn f64_rejects_wrong_type() {
+        let err = f64::from_value(Value::Int(1)).unwrap_err();
+        assert_eq!(err.expected, "Float");
+        assert_eq!(err.got, "Int");
+    }
+
+    #[test]
+    fn f32_rejects_wrong_type() {
+        let err = f32::from_value(Value::Int(1)).unwrap_err();
+        assert_eq!(err.expected, "Float");
+        assert_eq!(err.got, "Int");
+    }
+
+    #[test]
+    fn bool_rejects_wrong_type() {
+        let err = bool::from_value(Value::Int(0)).unwrap_err();
+        assert_eq!(err.expected, "Bool");
+        assert_eq!(err.got, "Int");
+    }
+
+    #[test]
+    fn string_rejects_wrong_type() {
+        let err = String::from_value(Value::Null).unwrap_err();
+        assert_eq!(err.expected, "String");
+        assert_eq!(err.got, "Null");
+    }
+
+    // --- Clone for Box<dyn CustomValue> ---
+
+    #[test]
+    fn box_custom_value_clone() {
+        let b: Box<dyn CustomValue> = Box::new(MyCustom);
+        let cloned = b.clone();
+        assert!(cloned.as_any().downcast_ref::<MyCustom>().is_some());
+    }
+
+    // --- Value::type_name for all variants ---
+
+    #[test]
+    fn type_name_all_variants() {
+        assert_eq!(Value::Null.type_name(), "Null");
+        assert_eq!(Value::Bool(false).type_name(), "Bool");
+        assert_eq!(Value::Int(0).type_name(), "Int");
+        assert_eq!(Value::Float(0.0).type_name(), "Float");
+        assert_eq!(Value::String(String::new()).type_name(), "String");
+        assert_eq!(Value::List(vec![]).type_name(), "List");
+        assert_eq!(Value::Map(Default::default()).type_name(), "Map");
+        assert_eq!(Value::Bytes(vec![]).type_name(), "Bytes");
+        assert_eq!(
+            Value::Custom(Arc::new(MyCustom)).type_name(),
+            "Custom"
+        );
+        assert_eq!(Value::Object(WeakObjectRef(0)).type_name(), "Object");
+        assert_eq!(
+            Value::Duration(core::time::Duration::ZERO).type_name(),
+            "Duration"
+        );
+    }
+
+    // --- Value PartialEq: mismatched-variant arm ---
+
+    #[test]
+    fn value_ne_different_variants() {
+        assert_ne!(Value::Int(1), Value::Bool(true));
+        assert_ne!(Value::String("x".into()), Value::Int(0));
+        assert_ne!(Value::Null, Value::Int(0));
+    }
+
     // --- Serde round-trip tests ---
 
     #[cfg(feature = "serde")]
