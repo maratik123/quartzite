@@ -961,6 +961,198 @@ mod tests {
         );
     }
 
+    // R2 partial — connect_signals arity / type mismatch error arms
+    // (connect_signal_to_signal already has arity/type tests; these cover
+    // the same checks inside the typed connect_signals wrapper at lines 293-315.)
+
+    #[test]
+    fn connect_signals_typed_arity_mismatch_returns_error() {
+        // Sender has sig_a: Signal<(i32,)> — 1 param.
+        // Receiver has sig_b: Signal<(i32,)> — 1 param.
+        // Pass `(i32, i32)` as Args to force a mismatch with Receiver's 1-param signal.
+        // Note: from_arity in this path is inferred from Args length (2), but the
+        // meta says sig_a has 1 param — so from_arity (1) != to_arity (1 for sig_b)
+        // doesn't trigger, but connect_signals delegates to connect_signal_to_signal
+        // which already does the check. To force arity mismatch within connect_signals
+        // itself, use a 2-arg sender meta pointing at a 1-arg receiver.
+        // Easiest approach: use connect_signal_to_signal's arity check result by
+        // building a 2-arg sender. Since connect_signals calls connect_signal_to_signal
+        // internally, validate via the top-level error result.
+        struct Sender2 {
+            base: ObjectBase,
+            pub sig: Signal<(i32, i32)>,
+        }
+        static S2_PARAMS: [crate::meta::ParamMeta; 2] = [
+            crate::meta::ParamMeta::new("a", "i32"),
+            crate::meta::ParamMeta::new("b", "i32"),
+        ];
+        static S2_SIGS: [crate::meta::SignalMeta; 1] =
+            [crate::meta::SignalMeta::new("sig", &S2_PARAMS)];
+        static S2_META: MetaObject = MetaObject::new(
+            "Sender2",
+            &[],
+            &S2_SIGS,
+            &[],
+            &[],
+            crate::meta::noop_lookup_property,
+            |name| {
+                if name == "sig" {
+                    Some(S2_SIGS[0])
+                } else {
+                    None
+                }
+            },
+            crate::meta::noop_lookup_method,
+            crate::meta::noop_lookup_enum,
+        );
+        impl crate::AsObject for Sender2 {
+            fn object_base(&self) -> &ObjectBase {
+                &self.base
+            }
+            fn object_base_mut(&mut self) -> &mut ObjectBase {
+                &mut self.base
+            }
+            fn as_any(&self) -> &dyn core::any::Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+                self
+            }
+        }
+        impl crate::Object for Sender2 {
+            fn meta_object(&self) -> &'static MetaObject {
+                &S2_META
+            }
+            fn read_property(&self, _: &str) -> Option<Value> {
+                None
+            }
+            fn write_property(&mut self, _: &str, _: Value) -> bool {
+                false
+            }
+            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
+                None
+            }
+            fn connect_signal(
+                &mut self,
+                _s: &str,
+                _cb: crate::traits::SignalCallback,
+                _ct: ConnectionType,
+            ) -> Option<ConnectionId> {
+                None
+            }
+            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
+                None
+            }
+        }
+        let mut s2 = Sender2 {
+            base: ObjectBase::new(),
+            sig: Signal::new(),
+        };
+        let receiver = Arc::new(Mutex::new(Receiver::new()));
+        let err = connect_signals::<_, _, (i32, i32)>(
+            &mut s2,
+            "sig",
+            |obj: &mut Sender2| &mut obj.sig,
+            Arc::clone(&receiver),
+            "sig_b",
+            ConnectionType::Direct,
+        )
+        .unwrap_err();
+        assert_eq!(err, SignalConnectionError::ArityMismatch { from: 2, to: 1 });
+    }
+
+    #[test]
+    fn connect_signals_typed_type_mismatch_returns_error() {
+        // Sender has sig_a: Signal<(i32,)> — type "i32".
+        // Build a receiver with sig carrying type "bool" to trigger TypeMismatch.
+        struct BoolRecv2 {
+            base: ObjectBase,
+            pub sig: Signal<(bool,)>,
+        }
+        static BR2_PARAMS: [crate::meta::ParamMeta; 1] =
+            [crate::meta::ParamMeta::new("arg0", "bool")];
+        static BR2_SIGS: [crate::meta::SignalMeta; 1] =
+            [crate::meta::SignalMeta::new("sig", &BR2_PARAMS)];
+        static BR2_META: MetaObject = MetaObject::new(
+            "BoolRecv2",
+            &[],
+            &BR2_SIGS,
+            &[],
+            &[],
+            crate::meta::noop_lookup_property,
+            |name| {
+                if name == "sig" {
+                    Some(BR2_SIGS[0])
+                } else {
+                    None
+                }
+            },
+            crate::meta::noop_lookup_method,
+            crate::meta::noop_lookup_enum,
+        );
+        impl crate::AsObject for BoolRecv2 {
+            fn object_base(&self) -> &ObjectBase {
+                &self.base
+            }
+            fn object_base_mut(&mut self) -> &mut ObjectBase {
+                &mut self.base
+            }
+            fn as_any(&self) -> &dyn core::any::Any {
+                self
+            }
+            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+                self
+            }
+        }
+        impl crate::Object for BoolRecv2 {
+            fn meta_object(&self) -> &'static MetaObject {
+                &BR2_META
+            }
+            fn read_property(&self, _: &str) -> Option<Value> {
+                None
+            }
+            fn write_property(&mut self, _: &str, _: Value) -> bool {
+                false
+            }
+            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
+                None
+            }
+            fn connect_signal(
+                &mut self,
+                _s: &str,
+                _cb: crate::traits::SignalCallback,
+                _ct: ConnectionType,
+            ) -> Option<ConnectionId> {
+                None
+            }
+            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
+                None
+            }
+        }
+        let mut sender = Sender::new();
+        let br2 = Arc::new(Mutex::new(BoolRecv2 {
+            base: ObjectBase::new(),
+            sig: Signal::new(),
+        }));
+        let err = connect_signals::<_, _, (i32,)>(
+            &mut sender,
+            "sig_a",
+            |obj: &mut Sender| &mut obj.sig_a,
+            Arc::clone(&br2),
+            "sig",
+            ConnectionType::Direct,
+        )
+        .unwrap_err();
+        assert_eq!(
+            err,
+            SignalConnectionError::TypeMismatch {
+                index: 0,
+                from: "i32".into(),
+                to: "bool".into()
+            }
+        );
+    }
+
     // AC6 — Auto cross-thread: callback is posted to the queued dispatcher.
     #[test]
     #[cfg(feature = "std")]
