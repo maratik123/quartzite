@@ -94,4 +94,10 @@ mod tests {
             .expect("alignment property missing");
         assert_eq!(Alignment::from_value(v), Ok(Alignment::Left));
     }
+
+    #[test]
+    fn widget_view_returns_label_variant() {
+        let label = Label::new("hi".into());
+        assert!(matches!(label.widget_view(), crate::WidgetView::Label(_)));
+    }
 }

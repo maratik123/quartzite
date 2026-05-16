@@ -89,6 +89,26 @@ use quartzite_widgets::AsWidget;
 /// than panicking.
 pub trait Paint<W: AsWidget + ?Sized> {
     /// Paints `widget` onto `painter` using the given `palette`.
+    ///
+    /// # Parameters
+    ///
+    /// - `widget` — the widget to paint; typed as `&W` for zero-cost dispatch.
+    /// - `painter` — the drawing target; geometry and text calls go through this.
+    /// - `palette` — colour roles used by the style implementation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Paint, Palette};
+    /// use quartzite_widgets::Button;
+    ///
+    /// struct MyStyle;
+    ///
+    /// impl Paint<Button> for MyStyle {
+    ///     fn paint(&self, _widget: &Button, _painter: &mut dyn Painter, _palette: &Palette) {}
+    /// }
+    /// ```
     fn paint(&self, widget: &W, painter: &mut dyn Painter, palette: &Palette);
 }
 

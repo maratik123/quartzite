@@ -190,4 +190,10 @@ mod tests {
         let c = Container::new();
         assert_eq!(<Container as AsWidget>::children(&c).into_iter().count(), 0);
     }
+
+    #[test]
+    fn widget_view_returns_container_variant() {
+        let c = Container::new();
+        assert!(matches!(c.widget_view(), crate::WidgetView::Container(_)));
+    }
 }

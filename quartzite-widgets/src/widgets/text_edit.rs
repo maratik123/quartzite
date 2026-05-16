@@ -199,4 +199,10 @@ mod tests {
         assert!(edit.plain_text.is_empty());
         assert_eq!(*received.lock().unwrap(), Some(String::new()));
     }
+
+    #[test]
+    fn widget_view_returns_text_edit_variant() {
+        let edit = TextEdit::new();
+        assert!(matches!(edit.widget_view(), crate::WidgetView::TextEdit(_)));
+    }
 }

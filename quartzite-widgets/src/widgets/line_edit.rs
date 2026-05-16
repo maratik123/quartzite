@@ -220,4 +220,10 @@ mod tests {
         assert_eq!(edit.text, "world");
         assert_eq!(*fired.lock().unwrap(), Some("world".into()));
     }
+
+    #[test]
+    fn widget_view_returns_line_edit_variant() {
+        let edit = LineEdit::new();
+        assert!(matches!(edit.widget_view(), crate::WidgetView::LineEdit(_)));
+    }
 }

@@ -145,4 +145,13 @@ mod tests {
         let area = ScrollArea::new();
         assert_eq!(area.children().into_iter().count(), 0);
     }
+
+    #[test]
+    fn widget_view_returns_scroll_area_variant() {
+        let area = ScrollArea::new();
+        assert!(matches!(
+            area.widget_view(),
+            crate::WidgetView::ScrollArea(_)
+        ));
+    }
 }
