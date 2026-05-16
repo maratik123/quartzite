@@ -33,6 +33,6 @@ pub use layout::{BoxLayout, Direction, GridCell, GridLayout, Layout, WidgetResol
 pub use quartzite_geometry::Alignment;
 pub use quartzite_paint::{Font, FontWeight};
 pub use quartzite_style_types::{ColorRole, Palette};
-pub use widget_base::{AsWidget, WidgetBase};
+pub use widget_base::{AsWidget, WidgetBase, WidgetChildren, WidgetChildrenIter, WidgetView};
 pub use widget_ext::WidgetExt;
 pub use widgets::{Button, Container, Label, LineEdit, ScrollArea, ScrollPolicy, TextEdit};

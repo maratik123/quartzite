@@ -84,6 +84,50 @@ pub(crate) fn crate_root() -> TokenStream {
     crate_root_from(facade, core, &pkg_name)
 }
 
+/// Returns the leading path fragment for all `::quartzite::widgets::*` references in generated code.
+///
+/// Resolution order (facade-first):
+/// 1. `quartzite` facade found → `::name::widgets` (Name) or absolute path via pkg name (Itself)
+/// 2. `quartzite-widgets` found → `::name` (Name) or absolute path via pkg name (Itself)
+/// 3. Neither found → silent fallback to `::quartzite_widgets`
+///
+/// Used to qualify `WidgetView` and `WidgetChildren` in emitted code so they resolve
+/// correctly both from within `quartzite-widgets` and from third-party crates.
+pub(crate) fn widgets_root() -> TokenStream {
+    let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "quartzite".into());
+    let facade = crate_name("quartzite").ok();
+    let widgets = if facade.is_none() {
+        crate_name("quartzite-widgets").ok()
+    } else {
+        None
+    };
+    widgets_root_from(facade, widgets, &pkg_name)
+}
+
+pub(crate) fn widgets_root_from(
+    facade: Option<FoundCrate>,
+    widgets: Option<FoundCrate>,
+    _pkg_name: &str,
+) -> TokenStream {
+    match facade {
+        // Compiling quartzite facade itself: module `widgets` lives at `crate::widgets`.
+        Some(FoundCrate::Itself) => quote!(crate::widgets),
+        Some(FoundCrate::Name(n)) => {
+            let ident = Ident::new(&n, Span::call_site());
+            quote!(::#ident::widgets)
+        }
+        None => match widgets {
+            // Compiling quartzite-widgets itself: types live in `crate::`.
+            Some(FoundCrate::Itself) => quote!(crate),
+            Some(FoundCrate::Name(n)) => {
+                let ident = Ident::new(&n, Span::call_site());
+                quote!(::#ident)
+            }
+            None => quote!(::quartzite_widgets),
+        },
+    }
+}
+
 pub(crate) fn crate_root_from(
     facade: Option<FoundCrate>,
     core: Option<FoundCrate>,
@@ -124,6 +168,10 @@ mod tests {
         crate_root_from(facade, core, "quartzite").to_string()
     }
 
+    fn wts(facade: Option<FoundCrate>, widgets: Option<FoundCrate>) -> String {
+        widgets_root_from(facade, widgets, "quartzite-widgets").to_string()
+    }
+
     #[test]
     fn crate_root_facade_itself() {
         assert_eq!(ts(Some(FoundCrate::Itself), None), ":: quartzite :: core");
@@ -156,6 +204,37 @@ mod tests {
     #[test]
     fn crate_root_fallback() {
         assert_eq!(ts(None, None), ":: quartzite_core");
+    }
+
+    #[test]
+    fn widgets_root_facade_itself() {
+        assert_eq!(wts(Some(FoundCrate::Itself), None), "crate :: widgets");
+    }
+
+    #[test]
+    fn widgets_root_facade_name() {
+        assert_eq!(
+            wts(Some(FoundCrate::Name("my_quartzite".into())), None),
+            ":: my_quartzite :: widgets"
+        );
+    }
+
+    #[test]
+    fn widgets_root_widgets_itself() {
+        assert_eq!(wts(None, Some(FoundCrate::Itself)), "crate");
+    }
+
+    #[test]
+    fn widgets_root_widgets_name() {
+        assert_eq!(
+            wts(None, Some(FoundCrate::Name("quartzite_widgets".into()))),
+            ":: quartzite_widgets"
+        );
+    }
+
+    #[test]
+    fn widgets_root_fallback() {
+        assert_eq!(wts(None, None), ":: quartzite_widgets");
     }
 
     #[test]

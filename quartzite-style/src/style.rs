@@ -1,10 +1,58 @@
 //! [`Style`] — trait describing how to paint a widget.
 //!
-//! Concrete [`Style`] implementations route on widget type via downcast or a
-//! visitor; per-widget primitive methods (`draw_button`, `draw_label`, …) are
-//! intentionally **not** part of the trait surface. The [`Style`] trait carries
-//! a `Send + Sync` bound because [`StyleRegistry`](crate::StyleRegistry) hands
-//! out `&'static dyn Style` references reachable from any thread.
+//! Concrete [`Style`] implementations route on widget type via the **Hybrid
+//! `Paint<W>`** mechanism: a widget-side dispatch hook
+//! ([`AsWidget::widget_view`](quartzite_widgets::AsWidget::widget_view)) returns a
+//! [`WidgetView`](quartzite_widgets::WidgetView) that the style pattern-matches,
+//! routing each built-in variant to the matching typed
+//! [`Paint<W>`](crate::Paint) impl. Third-party widgets surface as
+//! [`WidgetView::Other`](quartzite_widgets::WidgetView::Other) — the open-set
+//! escape hatch. The [`Style`] trait carries a `Send + Sync` bound because
+//! [`StyleRegistry`](crate::StyleRegistry) hands out `&'static dyn Style`
+//! references reachable from any thread.
+//!
+//! ## Implementing `Paint<W>` for a third-party widget
+//!
+//! A crate that defines a custom widget can integrate with the dispatch system
+//! without modifying `quartzite-widgets` or `quartzite-style`:
+//!
+//! 1. Define the widget using `#[derive(Extend)]` (no `#[widget_view]` attribute
+//!    → `widget_view()` returns `WidgetView::Other(self)` automatically).
+//! 2. Implement [`Paint<MyWidget>`](crate::Paint) for your style type.
+//! 3. Override [`Style::draw_widget`] to pattern-match `WidgetView::Other` and
+//!    downcast the payload via `as_any()` (from `quartzite_core::AsObject`).
+//!
+//! ```ignore
+//! use quartzite_core::AsObject;
+//! use quartzite_macros::Extend;
+//! use quartzite_paint_api::Painter;
+//! use quartzite_style::{Paint, Palette, Style};
+//! use quartzite_widgets::{AsWidget, WidgetBase, WidgetView};
+//!
+//! #[derive(Extend)]
+//! struct MyWidget {
+//!     #[base]
+//!     widget_base: WidgetBase,
+//! }
+//!
+//! struct MyStyle;
+//!
+//! impl Paint<MyWidget> for MyStyle {
+//!     fn paint(&self, _widget: &MyWidget, _painter: &mut dyn Painter, _palette: &Palette) {
+//!         // draw MyWidget
+//!     }
+//! }
+//!
+//! impl Style for MyStyle {
+//!     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
+//!         if let WidgetView::Other(other) = widget.widget_view() {
+//!             if let Some(w) = other.as_any().downcast_ref::<MyWidget>() {
+//!                 self.paint(w, painter, palette);
+//!             }
+//!         }
+//!     }
+//! }
+//! ```
 
 use quartzite_paint_api::Painter;
 use quartzite_style_types::Palette;
@@ -12,12 +60,21 @@ use quartzite_widgets::AsWidget;
 
 /// Painting strategy for the widget tree.
 ///
-/// A [`Style`] is the single hook a renderer uses to draw any concrete widget:
-/// [`draw_widget`](Self::draw_widget) takes the widget as `&dyn AsWidget`,
-/// inspects the runtime type (via downcast or a visitor pattern, depending on
-/// the concrete impl), and dispatches to the appropriate drawing routine.
-/// All routing is the implementor's responsibility — the trait surface is
-/// deliberately a single method.
+/// A [`Style`] is the single hook a renderer uses to draw any concrete widget.
+/// [`draw_widget`](Self::draw_widget) takes the widget as `&dyn AsWidget`, calls
+/// [`widget.widget_view()`](quartzite_widgets::AsWidget::widget_view) to obtain a
+/// [`WidgetView`](quartzite_widgets::WidgetView), and pattern-matches the result to
+/// route each built-in variant to the matching typed
+/// [`Paint<W>`](crate::Paint) impl. This is the **Hybrid `Paint<W>`** dispatch
+/// mechanism — widget→style flow with statically-typed per-widget paint code.
+///
+/// ## Open-set contract
+///
+/// Third-party widgets (widgets not in `quartzite-widgets`) return
+/// [`WidgetView::Other`](quartzite_widgets::WidgetView::Other) from
+/// `widget_view()`. A custom [`Style`] that wants to handle a third-party widget
+/// type overrides `draw_widget`, pattern-matches the `Other` payload, and
+/// dispatches through its own [`Paint<W>`](crate::Paint) impl.
 ///
 /// `Style: Send + Sync` is required so the global [`StyleRegistry`](crate::StyleRegistry)
 /// can hand out `&'static dyn Style` references across threads.
@@ -50,10 +107,29 @@ use quartzite_widgets::AsWidget;
 pub trait Style: Send + Sync {
     /// Paints `widget` using `painter`, resolving any colour references through `palette`.
     ///
-    /// The implementor is responsible for routing on the concrete widget type
-    /// (typically via a downcast against the `AsWidget` upcast path or a custom
-    /// visitor). The trait deliberately exposes a single method so adding new
-    /// widget variants does not require trait churn.
+    /// Implementors typically call
+    /// [`widget.widget_view()`](quartzite_widgets::AsWidget::widget_view) and
+    /// `match` the result, routing each
+    /// [`WidgetView`](quartzite_widgets::WidgetView) variant to the corresponding
+    /// [`Paint<W>`](crate::Paint) impl:
+    ///
+    /// ```text
+    /// fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
+    ///     match widget.widget_view() {
+    ///         WidgetView::Button(w)  => self.paint(w, painter, palette),
+    ///         WidgetView::Label(w)   => self.paint(w, painter, palette),
+    ///         // … other built-ins …
+    ///         WidgetView::Other(_)   => {} // documented no-op
+    ///         _ => {}                      // #[non_exhaustive] catch-all
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// The [`WidgetView::Other`](quartzite_widgets::WidgetView::Other) arm is a
+    /// documented silent no-op — unknown widget types do not panic. A custom
+    /// style may pattern-match `Other`'s `&dyn AsWidget` payload and downcast
+    /// via `as_any()` (from `quartzite_core::AsObject`) to handle third-party widgets
+    /// through its own [`Paint<W>`](crate::Paint) impl.
     ///
     /// # Parameters
     ///

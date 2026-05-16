@@ -22,6 +22,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(btn.meta_object().class_name, "Button");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "Button")]
 pub struct Button {
     #[base]
     widget_base: WidgetBase,
@@ -218,6 +219,12 @@ mod tests {
         });
         btn.set_text("OK".into());
         assert_eq!(*count.lock().unwrap(), 0);
+    }
+
+    #[test]
+    fn widget_view_returns_button_variant() {
+        let btn = Button::new("OK".into());
+        assert!(matches!(btn.widget_view(), crate::WidgetView::Button(_)));
     }
 
     #[test]

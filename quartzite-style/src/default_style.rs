@@ -4,16 +4,17 @@ use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorRole, Palette};
 use quartzite_widgets::{
     Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetExt,
+    WidgetView,
 };
 
-use crate::Style;
+use crate::{Paint, Style};
 
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
 /// `DefaultStyle` is a zero-sized, `Default`-implementing struct that ships
 /// inside `quartzite-style`. Its [`draw_widget`](Style::draw_widget) body
-/// routes on the runtime widget type via downcast and dispatches to a
-/// dedicated private method for each supported widget:
+/// routes on the runtime widget type via [`WidgetView`] pattern matching and
+/// dispatches to the appropriate [`Paint<W>`](crate::Paint) impl:
 ///
 /// - [`Button`] — flat fill, 1 px outline, centered label; checked/disabled variants.
 /// - [`Label`] — background fill + left-aligned (or widget-specified) text.
@@ -22,9 +23,9 @@ use crate::Style;
 /// - [`Container`] — Window background fill + 1 px `WindowText` outline; no child traversal.
 /// - [`LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
 ///
-/// Unknown widget types fall through silently — no painter methods are called
-/// and no panic is issued. This is intentional: new widget types can be added
-/// to the widget tree without breaking `DefaultStyle`.
+/// Unknown widget types (the [`WidgetView::Other`] arm) fall through silently — no
+/// painter methods are called and no panic is issued. This is intentional: new widget
+/// types can be added to the widget tree without breaking `DefaultStyle`.
 ///
 /// `DefaultStyle` is **not** auto-installed. Callers must register it
 /// explicitly via [`StyleRegistry::set_style`](crate::StyleRegistry::set_style).
@@ -49,31 +50,21 @@ pub struct DefaultStyle;
 
 impl Style for DefaultStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
-        let any = widget.as_any();
-        if let Some(w) = any.downcast_ref::<Button>() {
-            return self.draw_button(w, painter, palette);
+        match widget.widget_view() {
+            WidgetView::Button(w) => self.paint(w, painter, palette),
+            WidgetView::Label(w) => self.paint(w, painter, palette),
+            WidgetView::TextEdit(w) => self.paint(w, painter, palette),
+            WidgetView::ScrollArea(w) => self.paint(w, painter, palette),
+            WidgetView::Container(w) => self.paint(w, painter, palette),
+            WidgetView::LineEdit(w) => self.paint(w, painter, palette),
+            // Unknown widget type — deliberate no-op; does not panic.
+            _ => {}
         }
-        if let Some(w) = any.downcast_ref::<Label>() {
-            return self.draw_label(w, painter, palette);
-        }
-        if let Some(w) = any.downcast_ref::<TextEdit>() {
-            return self.draw_text_edit(w, painter, palette);
-        }
-        if let Some(w) = any.downcast_ref::<ScrollArea>() {
-            return self.draw_scroll_area(w, painter, palette);
-        }
-        if let Some(w) = any.downcast_ref::<Container>() {
-            return self.draw_container(w, painter, palette);
-        }
-        if let Some(w) = any.downcast_ref::<LineEdit>() {
-            self.draw_line_edit(w, painter, palette);
-        }
-        // Unknown widget type — deliberate no-op; does not panic.
     }
 }
 
-impl DefaultStyle {
-    fn draw_button(&self, w: &Button, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<Button> for DefaultStyle {
+    fn paint(&self, w: &Button, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
         let enabled = w.is_enabled();
@@ -122,8 +113,10 @@ impl DefaultStyle {
             Alignment::Center,
         );
     }
+}
 
-    fn draw_label(&self, w: &Label, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<Label> for DefaultStyle {
+    fn paint(&self, w: &Label, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
 
@@ -136,8 +129,10 @@ impl DefaultStyle {
             w.alignment,
         );
     }
+}
 
-    fn draw_text_edit(&self, w: &TextEdit, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<TextEdit> for DefaultStyle {
+    fn paint(&self, w: &TextEdit, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
 
@@ -159,8 +154,10 @@ impl DefaultStyle {
             Alignment::Left,
         );
     }
+}
 
-    fn draw_scroll_area(&self, w: &ScrollArea, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<ScrollArea> for DefaultStyle {
+    fn paint(&self, w: &ScrollArea, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         painter.fill_rect(geom, &brush(palette, ColorRole::Base));
         painter.draw_rect(
@@ -169,8 +166,10 @@ impl DefaultStyle {
             &Brush::solid(Color::TRANSPARENT),
         );
     }
+}
 
-    fn draw_container(&self, w: &Container, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<Container> for DefaultStyle {
+    fn paint(&self, w: &Container, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         painter.fill_rect(geom, &brush(palette, ColorRole::Window));
         painter.draw_rect(
@@ -179,8 +178,10 @@ impl DefaultStyle {
             &Brush::solid(Color::TRANSPARENT),
         );
     }
+}
 
-    fn draw_line_edit(&self, w: &LineEdit, painter: &mut dyn Painter, palette: &Palette) {
+impl Paint<LineEdit> for DefaultStyle {
+    fn paint(&self, w: &LineEdit, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
 

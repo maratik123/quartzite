@@ -40,10 +40,12 @@
 //! ```
 
 mod default_style;
+mod paint_widget;
 mod registry;
 mod style;
 
 pub use default_style::DefaultStyle;
+pub use paint_widget::Paint;
 pub use quartzite_style_types::{ColorRole, Palette};
 pub use registry::StyleRegistry;
 pub use style::Style;

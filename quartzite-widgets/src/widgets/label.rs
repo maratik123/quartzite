@@ -17,6 +17,7 @@ use crate::{Alignment, WidgetBase, widget_base::AsWidget};
 /// assert_eq!(label.meta_object().class_name, "Label");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "Label")]
 pub struct Label {
     #[base]
     widget_base: WidgetBase,
@@ -92,5 +93,11 @@ mod tests {
             .read_property("alignment")
             .expect("alignment property missing");
         assert_eq!(Alignment::from_value(v), Ok(Alignment::Left));
+    }
+
+    #[test]
+    fn widget_view_returns_label_variant() {
+        let label = Label::new("hi".into());
+        assert!(matches!(label.widget_view(), crate::WidgetView::Label(_)));
     }
 }

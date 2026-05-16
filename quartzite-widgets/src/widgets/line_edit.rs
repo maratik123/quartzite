@@ -18,6 +18,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(edit.meta_object().class_name, "LineEdit");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "LineEdit")]
 pub struct LineEdit {
     #[base]
     widget_base: WidgetBase,
@@ -218,5 +219,11 @@ mod tests {
         assert!(edit.write_property("text", Value::String("world".into())));
         assert_eq!(edit.text, "world");
         assert_eq!(*fired.lock().unwrap(), Some("world".into()));
+    }
+
+    #[test]
+    fn widget_view_returns_line_edit_variant() {
+        let edit = LineEdit::new();
+        assert!(matches!(edit.widget_view(), crate::WidgetView::LineEdit(_)));
     }
 }

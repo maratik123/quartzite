@@ -38,10 +38,12 @@ pub enum ScrollPolicy {
 /// assert_eq!(area.meta_object().class_name, "ScrollArea");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "ScrollArea")]
 pub struct ScrollArea {
     #[base]
     widget_base: WidgetBase,
     /// The widget shown inside the scroll area (if any).
+    #[widget_children(optional)]
     pub content_widget: Option<ObjectId>,
     /// Horizontal scrollbar policy.
     #[prop]
@@ -125,5 +127,31 @@ mod tests {
         let id = ObjectId::new();
         area.content_widget = Some(id);
         assert_eq!(area.content_widget, Some(id));
+    }
+
+    #[test]
+    fn as_widget_children_with_content_yields_one_id() {
+        use crate::widget_base::AsWidget;
+        let mut area = ScrollArea::new();
+        let id = ObjectId::new();
+        area.content_widget = Some(id);
+        let ids: Vec<ObjectId> = area.children().into_iter().collect();
+        assert_eq!(ids, [id]);
+    }
+
+    #[test]
+    fn as_widget_children_without_content_yields_zero() {
+        use crate::widget_base::AsWidget;
+        let area = ScrollArea::new();
+        assert_eq!(area.children().into_iter().count(), 0);
+    }
+
+    #[test]
+    fn widget_view_returns_scroll_area_variant() {
+        let area = ScrollArea::new();
+        assert!(matches!(
+            area.widget_view(),
+            crate::WidgetView::ScrollArea(_)
+        ));
     }
 }
