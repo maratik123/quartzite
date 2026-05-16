@@ -141,3 +141,13 @@ Configurable via `WindowedApplicationBuilder::quit_on_last_window_closed(bool)` 
 ## `AppEvent` / proxy exit
 
 `pub enum AppEvent { Exit }` drives `EventLoop<AppEvent>`. `WindowedApplication::event_proxy() -> EventLoopProxy<AppEvent>` exposes the proxy for cross-thread exit requests. `user_event` in `WrappedHandler` calls `event_loop.exit()` on `AppEvent::Exit`. The proxy-based exit is the only cross-thread exit path; `winit` provides no synthesise-`WindowEvent` API.
+
+## `Style` dispatch mechanism
+
+**Hybrid `Paint<W>`** (draw-widget-type-system-redesign #373). Two halves:
+
+1. **Widget-side dispatch hook** — `AsWidget::widget_view(&self) -> WidgetView<'_>`. Built-ins return `WidgetView::Button(self)` etc. via `#[widget_view(variant = "…")]` proc-macro attribute; third-party widgets (no attribute) return `WidgetView::Other(self)`. `WidgetView<'a>` is a `#[non_exhaustive]` borrowed enum in `quartzite-widgets::widget_base`, one variant per built-in plus `Other(&'a dyn AsWidget)`.
+
+2. **Style-side typed dispatch** — `DefaultStyle::draw_widget` is a single `match widget.widget_view()` body routing each variant to `self.paint(w, painter, palette)` where `w` is typed (`&Button`, `&Label`, …). The per-widget paint code lives in `impl Paint<W> for DefaultStyle` blocks. `WidgetView::Other` arm is a documented silent no-op.
+
+`Paint<W>` is a public trait in `quartzite-style::paint_widget` (re-exported at crate root) with a single method `fn paint(&self, widget: &W, painter: &mut dyn Painter, palette: &Palette)`. Third-party styles implement `Paint<MyWidget> for MyStyle` and override `draw_widget` to pattern-match `WidgetView::Other`. `Style` remains object-safe (no generic methods; `Paint<W>` is orthogonal). Children enumerated via `AsWidget::children(&self) -> WidgetChildren<'_>` (enum: `Slice`/`Optional`/`Empty`) replacing the former `children_of` downcast chain.
