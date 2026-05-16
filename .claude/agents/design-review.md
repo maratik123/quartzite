@@ -29,6 +29,7 @@ Every suspicion — **investigate via Read/grep**, don't guess and don't give be
    - Risks (DB migrations, breaking API changes, panics, performance)
    - Tests (Test Design section present? entry points correct?)
    - Economy (YAGNI, minimum abstractions)
+   - **Handoff plan (M ≥ 5 only)** — verify the design has a `## Handoff plan` section per `.claude/agents/design.md` § Rules → handoff-grouping. Specifically: (a) section present when Decomposition has M ≥ 5 subtasks; (b) groups are exactly 3 consecutive subtasks each except the terminal group which is `1..=3`; (c) `/context-reset` named in prose at every group boundary (not just the first). Severities: missing `## Handoff plan` when M ≥ 5 = `major`; non-terminal group size ≠ 3 = `major`; terminal group size outside `1..=3` = `major`; cosmetic issues (wording, ordering, missing prose line) = `minor`. **M ≤ 4 designs auto-PASS** this checklist item regardless of whether the section is present — for M ≤ 4 the section is optional, never required.
 4. **Verify via code** — do the listed files exist? does the description match reality?
 5. **If not the first round** — check that blockers from previous feedback were resolved
 6. **Issue feedback** — strictly in the format below

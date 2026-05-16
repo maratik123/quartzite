@@ -61,6 +61,14 @@ Designer agent. Receives a task description (and optionally reviewer feedback), 
 | 1 | ... | `src/foo.rs` | — |
 | 2 | ... | `src/bar.rs` | 1 |
 
+## Handoff plan
+
+[Required when M ≥ 5; omit for M ≤ 4. See § Rules → handoff-grouping for the contract. Synthetic example for M = 5 below.]
+
+- **Group A:** subtasks 1–3 — initial implementation chunk.
+- **Handoff after Group A:** spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). Parent /task resumes in Group B with fresh context.
+- **Group B:** subtasks 4–5 — terminal group (2 subtasks; within the 1..=3 range).
+
 ## Risks
 
 - [risk]: [mitigation]
@@ -85,3 +93,9 @@ For each non-trivial task:
 - Don't write code — only the plan. Code is written by another agent or the user
 - If scope > 7 tasks in decomposition — propose splitting into multiple issues
 - If unsure about the codebase — investigate via Read/grep, don't guess
+- **Handoff-grouping requirement for the N=3-of-M≥5 handoff gate.** The `/task` workflow's Step 8 binds `/context-reset` handoff when total subtask count M ≥ 5 AND the just-completed subtask is the 3rd (per `.claude/skills/task/SKILL.md` Step 8 + `.claude/skills/task/reference.md` § *N=3 of M≥5 handoff gate*). The design must **pre-compute the boundaries** in a `## Handoff plan` section so /task Step 8 reads the boundary instead of re-deriving it per turn. Four wording sub-points are mandatory in every M ≥ 5 design:
+  - **(a) When grouping is required** — `M ≥ 5`. For M ≤ 4 designs the `## Handoff plan` section is OPTIONAL; if omitted, design-review's M ≤ 4 auto-PASS branch fires. (M ≤ 4 designs MAY still emit the section as a forward-compatibility courtesy.)
+  - **(b) Maximum group size** — `3 consecutive subtasks`. Non-terminal groups MUST be exactly 3.
+  - **(c) Handoff destination** — `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). Named in prose at every boundary, not just at the first.
+  - **(d) Terminal-group sizing** — `1..=3`. The last group may be smaller than the cap; sizes outside `1..=3` are a design defect.
+  Severity rubric (enforced by `design-review`): missing `## Handoff plan` when M ≥ 5 = `major`; non-terminal group ≠ 3 = `major`; terminal group outside `1..=3` = `major`; cosmetic issues (wording, ordering) = `minor`; M ≤ 4 auto-pass regardless of section presence/absence.
