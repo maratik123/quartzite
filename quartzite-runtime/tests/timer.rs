@@ -3,6 +3,21 @@
 //
 // All three driver backends are tested here together with ObjectTree insertion,
 // signals_blocked suppression, and single_shot semantics.
+//
+// Skipped under Miri at the file level: every assertion in this integration
+// suite is wall-clock-bounded (e.g. `wait_for_count(&counter, 1, 200ms)` after
+// a 30ms-interval timer, "ThreadDriver must fire at least once in 200 ms",
+// "AppDriver did not fire within 500 ms"). Miri's 10–30× interpreter
+// overhead can't preserve those budgets, producing timeout false-positives.
+// One such test (`unblock_signals_restores_tick`) already tripped master
+// Miri run 25976106489 (post #428); the others (`thread_driver_fires_at_interval`,
+// `app_driver_executes_on_event_loop_thread`, `app_driver_*_tick`) happened
+// to make their budgets in that run but carry the same latent risk.
+//
+// The native `cargo test` gate retains full coverage; the lib unit tests in
+// `src/timer.rs` and `src/timer_drivers.rs` still provide Tree Borrows
+// aliasing coverage on the Timer / Driver infrastructure under Miri.
+#![cfg(not(miri))]
 
 use std::{
     sync::{
