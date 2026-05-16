@@ -175,6 +175,21 @@ When a PR adds or modifies a fail-loud section, cite this doc in the body:
 Citing this doc grounds the stylistic choice in the agreed convention rather
 than per-PR taste.
 
+## Enforcement
+
+PR-side citation (above) relies on the author remembering. The
+**reverse-direction audit** — sweeping downstream files for drift against the
+7 Patterns + Anti-patterns table — lives in `/ai-audit`'s Phase 2 Checklist M.
+See [`.claude/skills/ai-audit/SKILL.md#m-agent-writing-stylemd-conformance`](../.claude/skills/ai-audit/SKILL.md#m-agent-writing-stylemd-conformance)
+for the 8 sub-checks (one per Pattern + one for the Anti-patterns table) and
+the severity assignments. Run `/ai-audit` after any PR that touches a fail-loud
+section if you want a mechanical conformance check on the corpus.
+
+The forward direction (style-guide edits fan out to downstream consumers) is
+already covered by `AGENTS.md` `## Propagation Rule` — the row for
+`ai-docs/agent-writing-style.md` instructs editors to grep `.claude/agents/` +
+`.claude/skills/` for files affected by a new or amended Pattern entry.
+
 ## Out of scope
 
 This file does not govern:
