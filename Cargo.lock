@@ -2731,6 +2731,7 @@ dependencies = [
  "peniko",
  "quartzite-core",
  "quartzite-geometry",
+ "quartzite-macros",
  "quartzite-paint",
  "quartzite-paint-api",
  "quartzite-renderer",
