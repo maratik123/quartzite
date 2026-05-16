@@ -70,56 +70,6 @@ where
     }
 }
 
-/// Per-type child identifier enumeration for widget tree traversal.
-enum ChildIds<'a> {
-    Slice(&'a [ObjectId]),
-    Optional(Option<ObjectId>),
-    Empty,
-}
-
-impl<'a> IntoIterator for ChildIds<'a> {
-    type Item = ObjectId;
-    type IntoIter = ChildIdsIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        match self {
-            ChildIds::Slice(s) => ChildIdsIter::Slice(s.iter()),
-            ChildIds::Optional(opt) => ChildIdsIter::Optional(opt),
-            ChildIds::Empty => ChildIdsIter::Exhausted,
-        }
-    }
-}
-
-enum ChildIdsIter<'a> {
-    Slice(std::slice::Iter<'a, ObjectId>),
-    Optional(Option<ObjectId>),
-    Exhausted,
-}
-
-impl Iterator for ChildIdsIter<'_> {
-    type Item = ObjectId;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            ChildIdsIter::Slice(it) => it.next().copied(),
-            ChildIdsIter::Optional(opt) => opt.take(),
-            ChildIdsIter::Exhausted => None,
-        }
-    }
-}
-
-fn children_of(widget: &dyn AsWidget) -> ChildIds<'_> {
-    use quartzite_widgets::{Container, ScrollArea};
-    let any = widget.as_any();
-    if let Some(c) = any.downcast_ref::<Container>() {
-        return ChildIds::Slice(c.children());
-    }
-    if let Some(s) = any.downcast_ref::<ScrollArea>() {
-        return ChildIds::Optional(s.content_widget);
-    }
-    ChildIds::Empty
-}
-
 /// Walks the widget subtree rooted at `root` and calls
 /// [`Style::draw_widget`][quartzite_style::Style::draw_widget] once per visible
 /// node, using `painter` and `palette`.
@@ -205,7 +155,7 @@ fn visit(
 
     style.draw_widget(widget, painter, palette);
 
-    for child_id in children_of(widget) {
+    for child_id in widget.children() {
         let Some(child) = resolver.resolve(child_id) else {
             tracing::warn!(id = ?child_id, "dispatch_paint: resolver miss");
             continue;
