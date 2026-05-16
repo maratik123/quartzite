@@ -26,6 +26,7 @@ pub struct Container {
     #[base]
     widget_base: WidgetBase,
     /// Ordered list of child widget ids.
+    #[widget_children(slice)]
     children: Vec<ObjectId>,
 }
 
@@ -168,5 +169,25 @@ mod tests {
         let id = ObjectId::new();
         c.remove_child(id);
         assert!(c.children().is_empty());
+    }
+
+    #[test]
+    fn as_widget_children_returns_all_ids() {
+        use crate::widget_base::AsWidget;
+        let mut c = Container::new();
+        let id1 = ObjectId::new();
+        let id2 = ObjectId::new();
+        c.add_child(id1);
+        c.add_child(id2);
+        // Use trait-qualified call to reach AsWidget::children, not the inherent method.
+        let ids: Vec<ObjectId> = <Container as AsWidget>::children(&c).into_iter().collect();
+        assert_eq!(ids, [id1, id2]);
+    }
+
+    #[test]
+    fn as_widget_children_empty_when_no_children() {
+        use crate::widget_base::AsWidget;
+        let c = Container::new();
+        assert_eq!(<Container as AsWidget>::children(&c).into_iter().count(), 0);
     }
 }

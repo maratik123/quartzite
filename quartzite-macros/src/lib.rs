@@ -53,6 +53,10 @@ pub(crate) mod object_part;
 /// - `#[widget_view(variant = "X")]` — when the type's direct parent is `WidgetBase`,
 ///   specifies the `WidgetView` variant to return from the generated `widget_view` impl.
 ///   Absent → `WidgetView::Other(self)`. Only meaningful for `AsWidget` subtypes.
+/// - `#[widget_children(slice)]` / `#[widget_children(optional)]` — placed on a field to
+///   override the `AsWidget::children` default. `slice` wraps a `Vec<ObjectId>` field as
+///   `WidgetChildren::Slice`; `optional` wraps an `Option<ObjectId>` field as
+///   `WidgetChildren::Optional`. Only meaningful for `AsWidget` subtypes.
 ///
 /// # Examples
 ///
@@ -75,7 +79,7 @@ pub(crate) mod object_part;
 ///     widget: Widget,
 /// }
 /// ```
-#[proc_macro_derive(Extend, attributes(root, base, mixin, widget_view))]
+#[proc_macro_derive(Extend, attributes(root, base, mixin, widget_view, widget_children))]
 pub fn derive_extend(input: TokenStream) -> TokenStream {
     extend::expand(input.into()).into()
 }

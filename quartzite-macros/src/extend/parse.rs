@@ -2,6 +2,22 @@ use syn::{Data, DeriveInput, Fields, Ident, Type, parse2, spanned::Spanned};
 
 use crate::util::extract_attr;
 
+/// How a field tagged with `#[widget_children]` provides children.
+#[cfg_attr(test, derive(Debug, PartialEq))]
+pub(crate) enum WidgetChildrenKind {
+    /// `Vec<ObjectId>` — emit `WidgetChildren::Slice(&self.field)`.
+    Slice,
+    /// `Option<ObjectId>` — emit `WidgetChildren::Optional(self.field)`.
+    Optional,
+}
+
+/// A field annotated with `#[widget_children(slice|optional)]`.
+#[cfg_attr(test, derive(Debug))]
+pub(crate) struct WidgetChildrenField {
+    pub ident: Ident,
+    pub kind: WidgetChildrenKind,
+}
+
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ExtendInput {
     pub ident: Ident,
@@ -10,8 +26,10 @@ pub(crate) struct ExtendInput {
     pub base_field: Option<BaseField>,
     pub mixin_fields: Vec<MixinField>,
     /// Variant name from `#[widget_view(variant = "X")]`, used by codegen when
-    /// `parent_trait == "AsWidget"` to emit the matching `WidgetView::X(self)` arm.
+    /// `base.ty_ident == "WidgetBase"` to emit the matching `WidgetView::X(self)` arm.
     pub widget_view_variant: Option<String>,
+    /// Field that provides children via `#[widget_children(slice|optional)]`.
+    pub widget_children_field: Option<WidgetChildrenField>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -55,6 +73,40 @@ fn extract_widget_view_variant(attrs: &mut Vec<syn::Attribute>) -> syn::Result<O
         ));
     }
     Ok(variant)
+}
+
+/// Removes and parses `#[widget_children(slice|optional)]` from `attrs`.
+/// Returns `Ok(None)` if absent; `Ok(Some(kind))` on success; `Err` if malformed.
+fn extract_widget_children_kind(
+    attrs: &mut Vec<syn::Attribute>,
+) -> syn::Result<Option<WidgetChildrenKind>> {
+    let Some(pos) = attrs
+        .iter()
+        .position(|a| a.path().is_ident("widget_children"))
+    else {
+        return Ok(None);
+    };
+    let attr = attrs.remove(pos);
+    let span = attr.span();
+    let mut kind: Option<WidgetChildrenKind> = None;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("slice") {
+            kind = Some(WidgetChildrenKind::Slice);
+            Ok(())
+        } else if meta.path.is_ident("optional") {
+            kind = Some(WidgetChildrenKind::Optional);
+            Ok(())
+        } else {
+            Err(meta.error("expected `slice` or `optional`"))
+        }
+    })?;
+    if kind.is_none() {
+        return Err(syn::Error::new(
+            span,
+            "#[widget_children] requires `slice` or `optional`",
+        ));
+    }
+    Ok(kind)
 }
 
 /// Extracts the last path-segment ident from a `Type::Path`.
@@ -109,25 +161,40 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
     // Classify fields.
     let mut base_fields: Vec<BaseField> = Vec::new();
     let mut mixin_fields: Vec<MixinField> = Vec::new();
+    let mut widget_children_field: Option<WidgetChildrenField> = None;
 
     for mut field in fields.named.into_iter() {
         let is_base = extract_attr(&mut field.attrs, "base");
         let is_mixin = extract_attr(&mut field.attrs, "mixin");
+        let wc_kind = extract_widget_children_kind(&mut field.attrs)?;
         let field_ident = field.ident.clone().expect("named field has ident");
 
         if is_base {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
             base_fields.push(BaseField {
-                ident: field_ident,
+                ident: field_ident.clone(),
                 ty_ident,
                 ty: field.ty.clone(),
             });
         } else if is_mixin {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
             mixin_fields.push(MixinField {
-                ident: field_ident,
+                ident: field_ident.clone(),
                 ty_ident,
                 ty: field.ty.clone(),
+            });
+        }
+
+        if let Some(kind) = wc_kind {
+            if widget_children_field.is_some() {
+                return Err(syn::Error::new(
+                    field_ident.span(),
+                    "at most one #[widget_children] field allowed",
+                ));
+            }
+            widget_children_field = Some(WidgetChildrenField {
+                ident: field_ident,
+                kind,
             });
         }
     }
@@ -155,6 +222,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         base_field,
         mixin_fields,
         widget_view_variant,
+        widget_children_field,
     })
 }
 
@@ -321,5 +389,110 @@ mod tests {
             }
         });
         assert!(err.contains("expected `variant"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn widget_children_slice_parsed() {
+        let ir = parse_ok(quote! {
+            struct Container {
+                #[base]
+                widget: Widget,
+                #[widget_children(slice)]
+                children: Vec<ObjectId>,
+            }
+        });
+        let wc = ir.widget_children_field.expect("widget_children_field set");
+        assert_eq!(wc.ident, "children");
+        assert_eq!(wc.kind, super::WidgetChildrenKind::Slice);
+    }
+
+    #[test]
+    fn widget_children_optional_parsed() {
+        let ir = parse_ok(quote! {
+            struct ScrollArea {
+                #[base]
+                widget: Widget,
+                #[widget_children(optional)]
+                content: Option<ObjectId>,
+            }
+        });
+        let wc = ir.widget_children_field.expect("widget_children_field set");
+        assert_eq!(wc.ident, "content");
+        assert_eq!(wc.kind, super::WidgetChildrenKind::Optional);
+    }
+
+    #[test]
+    fn widget_children_absent_is_none() {
+        let ir = parse_ok(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(ir.widget_children_field.is_none());
+    }
+
+    #[test]
+    fn two_widget_children_fields_errors() {
+        let err = parse_err(quote! {
+            struct Bad {
+                #[base]
+                widget: Widget,
+                #[widget_children(slice)]
+                children: Vec<ObjectId>,
+                #[widget_children(optional)]
+                other: Option<ObjectId>,
+            }
+        });
+        assert!(
+            err.contains("at most one #[widget_children] field allowed"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn widget_children_empty_errors() {
+        let err = parse_err(quote! {
+            struct Bad {
+                #[base]
+                widget: Widget,
+                #[widget_children()]
+                children: Vec<ObjectId>,
+            }
+        });
+        assert!(
+            err.contains("#[widget_children] requires"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn widget_children_unknown_key_errors() {
+        let err = parse_err(quote! {
+            struct Bad {
+                #[base]
+                widget: Widget,
+                #[widget_children(vec)]
+                children: Vec<ObjectId>,
+            }
+        });
+        assert!(
+            err.contains("expected `slice` or `optional`"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn widget_children_on_base_field_ok() {
+        // A field may be both #[base] and #[widget_children] — both are recorded.
+        let ir = parse_ok(quote! {
+            struct Foo {
+                #[base]
+                #[widget_children(slice)]
+                widget: Widget,
+            }
+        });
+        assert!(ir.base_field.is_some());
+        assert!(ir.widget_children_field.is_some());
     }
 }

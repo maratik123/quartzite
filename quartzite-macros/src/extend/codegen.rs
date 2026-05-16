@@ -2,16 +2,18 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-use super::parse::{BaseField, ExtendInput, MixinField};
+use super::parse::{BaseField, ExtendInput, MixinField, WidgetChildrenField, WidgetChildrenKind};
 use crate::util::{accessor_name, as_trait_name, crate_root, inline_if_concrete, widgets_root};
 
 pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
     let wv = ir.widget_view_variant.as_deref();
+    let wc = ir.widget_children_field.as_ref();
 
     // NOTE: The original struct is NOT re-emitted here.
     // Derive macros append to the item; re-emitting would cause duplicate definitions.
-    // Helper attributes (#[root]/#[base]/#[mixin]/#[widget_view]) are inert and harmless.
+    // Helper attributes (#[root]/#[base]/#[mixin]/#[widget_view]/#[widget_children]) are inert
+    // and harmless.
 
     match (&ir.is_root, &ir.base_field) {
         (true, None) => {
@@ -22,11 +24,17 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
             // Root with parent: trait + self-ref + direct parent-chain impls.
             out.extend(emit_root_trait_and_impl(&ir));
             // Root structs always have empty generics (enforced by parse).
-            out.extend(emit_parent_chain_impls(&ir.ident, base, &ir.generics, wv));
+            out.extend(emit_parent_chain_impls(
+                &ir.ident,
+                base,
+                &ir.generics,
+                wv,
+                wc,
+            ));
         }
         (false, Some(base)) => {
             // Concrete type: parent delegation + AsObject delegation.
-            out.extend(emit_delegation_impl(&ir.ident, base, &ir.generics, wv));
+            out.extend(emit_delegation_impl(&ir.ident, base, &ir.generics, wv, wc));
             out.extend(emit_as_object_impl(&ir.ident, base, &ir.generics));
         }
         (false, None) => {
@@ -213,6 +221,7 @@ fn emit_parent_chain_impls(
     base: &BaseField,
     generics: &syn::Generics,
     widget_view_variant: Option<&str>,
+    widget_children_field: Option<&WidgetChildrenField>,
 ) -> TokenStream {
     let mut out = emit_as_object_impl(self_ident, base, generics);
     // For non-ObjectBase parents, also emit the intermediate delegation impl.
@@ -222,6 +231,7 @@ fn emit_parent_chain_impls(
             base,
             generics,
             widget_view_variant,
+            widget_children_field,
         ));
     }
     out
@@ -269,12 +279,14 @@ fn emit_as_object_impl(
 }
 
 /// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in `AsObject`).
-/// When `parent_trait == "AsWidget"`, also emits `widget_view` using `widget_view_variant`.
+/// When the immediate parent is `WidgetBase`, also emits `widget_view` and optionally
+/// `children` when `widget_children_field` is set.
 fn emit_delegation_impl(
     self_ident: &Ident,
     base: &BaseField,
     generics: &syn::Generics,
     widget_view_variant: Option<&str>,
+    widget_children_field: Option<&WidgetChildrenField>,
 ) -> TokenStream {
     let parent_trait = match as_trait_name(&base.ty_ident) {
         Some(t) => t,
@@ -292,10 +304,10 @@ fn emit_delegation_impl(
     let (impl_generics, ty_generics, _) = bare.split_for_impl();
     let inline = inline_if_concrete(generics);
 
-    // Emit widget_view only when the immediate parent is WidgetBase.
-    let widget_view_method = if base.ty_ident == "WidgetBase" {
+    // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
+    let (widget_view_method, children_method) = if base.ty_ident == "WidgetBase" {
         let wr = widgets_root();
-        match widget_view_variant {
+        let wv = match widget_view_variant {
             Some(variant) => {
                 let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
                 quote! {
@@ -311,9 +323,30 @@ fn emit_delegation_impl(
                     #wr::WidgetView::Other(self)
                 }
             },
-        }
+        };
+        let ch = match widget_children_field {
+            Some(wc) => {
+                let field_ident = &wc.ident;
+                let body = match wc.kind {
+                    WidgetChildrenKind::Slice => quote! {
+                        #wr::WidgetChildren::Slice(&self.#field_ident)
+                    },
+                    WidgetChildrenKind::Optional => quote! {
+                        #wr::WidgetChildren::Optional(self.#field_ident)
+                    },
+                };
+                quote! {
+                    #inline
+                    fn children(&self) -> #wr::WidgetChildren<'_> {
+                        #body
+                    }
+                }
+            }
+            None => quote! {},
+        };
+        (wv, ch)
     } else {
-        quote! {}
+        (quote! {}, quote! {})
     };
 
     quote! {
@@ -327,6 +360,7 @@ fn emit_delegation_impl(
                 self.#base_field_ident.#parent_acc_mut()
             }
             #widget_view_method
+            #children_method
         }
     }
 }
@@ -781,6 +815,85 @@ mod tests {
         assert!(
             !out.contains("widget_view"),
             "unexpected widget_view for non-widget parent: {out}"
+        );
+    }
+
+    // #[widget_children(slice)] → children() returns WidgetChildren::Slice(&self.field).
+    #[test]
+    fn widget_children_slice_emits_children_method() {
+        let out = emit(quote! {
+            struct Container {
+                #[base]
+                widget_base: WidgetBase,
+                #[widget_children(slice)]
+                children: Vec<ObjectId>,
+            }
+        });
+        assert!(
+            out.contains("fn children"),
+            "missing children method: {out}"
+        );
+        assert!(
+            out.contains("WidgetChildren :: Slice (& self . children)"),
+            "expected Slice body: {out}"
+        );
+    }
+
+    // #[widget_children(optional)] → children() returns WidgetChildren::Optional(self.field).
+    #[test]
+    fn widget_children_optional_emits_children_method() {
+        let out = emit(quote! {
+            struct ScrollArea {
+                #[base]
+                widget_base: WidgetBase,
+                #[widget_children(optional)]
+                content_widget: Option<ObjectId>,
+            }
+        });
+        assert!(
+            out.contains("fn children"),
+            "missing children method: {out}"
+        );
+        assert!(
+            out.contains("WidgetChildren :: Optional (self . content_widget)"),
+            "expected Optional body: {out}"
+        );
+    }
+
+    // No #[widget_children] → no children() override in the generated impl.
+    #[test]
+    fn no_widget_children_no_children_override() {
+        let out = emit(quote! {
+            #[widget_view(variant = "Button")]
+            struct Button {
+                #[base]
+                widget_base: WidgetBase,
+            }
+        });
+        // widget_view IS emitted, but children is NOT (default from trait is used).
+        assert!(out.contains("widget_view"), "widget_view should be emitted");
+        // The only `children` in output would be from a method — there should be none.
+        // Count occurrences: widget_view adds `fn widget_view` but we don't emit `fn children`.
+        assert!(
+            !out.contains("fn children"),
+            "unexpected children override: {out}"
+        );
+    }
+
+    // Non-WidgetBase parent with #[widget_children] must not emit children() override.
+    #[test]
+    fn non_widget_parent_no_children_even_with_annotation() {
+        let out = emit(quote! {
+            struct Panel {
+                #[base]
+                layout: LayoutBase,
+                #[widget_children(slice)]
+                items: Vec<ObjectId>,
+            }
+        });
+        assert!(
+            !out.contains("fn children"),
+            "unexpected children for non-widget parent: {out}"
         );
     }
 
