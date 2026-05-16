@@ -38,6 +38,7 @@ pub enum ScrollPolicy {
 /// assert_eq!(area.meta_object().class_name, "ScrollArea");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "ScrollArea")]
 pub struct ScrollArea {
     #[base]
     widget_base: WidgetBase,

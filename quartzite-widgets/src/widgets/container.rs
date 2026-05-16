@@ -21,6 +21,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert!(c.children().is_empty());
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "Container")]
 pub struct Container {
     #[base]
     widget_base: WidgetBase,

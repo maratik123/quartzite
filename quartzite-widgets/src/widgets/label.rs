@@ -17,6 +17,7 @@ use crate::{Alignment, WidgetBase, widget_base::AsWidget};
 /// assert_eq!(label.meta_object().class_name, "Label");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "Label")]
 pub struct Label {
     #[base]
     widget_base: WidgetBase,

@@ -314,4 +314,16 @@ mod tests {
         let v: Vec<ObjectId> = WidgetChildren::Optional(Some(id)).into_iter().collect();
         assert_eq!(v, [id]);
     }
+
+    #[test]
+    fn widget_base_widget_view_returns_other() {
+        let w = WidgetBase::new();
+        assert!(matches!(w.widget_view(), WidgetView::Other(_)));
+    }
+
+    #[test]
+    fn widget_base_children_returns_empty() {
+        let w = WidgetBase::new();
+        assert_eq!(w.children().into_iter().count(), 0);
+    }
 }

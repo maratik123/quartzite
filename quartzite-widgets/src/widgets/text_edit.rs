@@ -18,6 +18,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(edit.meta_object().class_name, "TextEdit");
 /// ```
 #[derive(Extend, Object)]
+#[widget_view(variant = "TextEdit")]
 pub struct TextEdit {
     #[base]
     widget_base: WidgetBase,
