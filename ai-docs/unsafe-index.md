@@ -39,3 +39,4 @@ eventually hardened.
 - **Why no `unsafe` block / `unsafe fn` taxonomy column?** With only two entries, free-form **Why unsafe** prose is sufficient. Revisit if the index grows past ~5 entries (see spec § Open questions).
 - **Test-only `unsafe` is excluded.** Any `unsafe { … }` block inside `#[cfg(test)]` modules, `tests/`, `benches/`, or `examples/` is out of scope (e.g. the `unsafe { std::mem::transmute(n) }` at `wrapped_handler.rs:255` inside `#[cfg(test)] mod tests`). The catch-net grep recipe in `.claude/skills/task/reference.md` § Step 9 — unsafe-index sync (detail) surfaces them; reviewers walk hits and skip cfg-test sites.
 - Entries should be removed once the preferred fix is implemented.
+- Miri runs Tree Borrows on every master push over the FFI-free subset (see `.github/workflows/miri.yml`).
