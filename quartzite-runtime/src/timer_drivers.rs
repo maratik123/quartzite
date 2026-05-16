@@ -431,7 +431,18 @@ mod tests {
     /// fix the pool thread never wakes and `handle.join()` deadlocks.
     /// A channel with a 10-second timeout converts the hang into an assertion
     /// failure so the test suite does not block indefinitely.
+    ///
+    /// Skipped under Miri: 2000 `PoolDriver::new()`+`drop()` iterations (each
+    /// spawning + joining a background thread) blow the 10-second wall-clock
+    /// budget under Miri's 10–30× interpreter overhead, producing a timeout
+    /// false-positive that looks like a real deadlock. The native `cargo test`
+    /// gate retains coverage; this test's value is wall-clock-bounded stress,
+    /// which is exactly what Miri can't preserve.
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "stress test — 2000 thread spawn+join iterations exceed Miri's interpreter budget"
+    )]
     fn pool_driver_drop_no_deadlock() {
         use std::sync::mpsc;
 
