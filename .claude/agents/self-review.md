@@ -55,6 +55,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
 ### 4. Safety and correctness
 - `unsafe` blocks: each one justified with a comment?
 - **Panic-index sync.** For every new production `.unwrap()` / `.expect(…)` / `panic!` hit outside `#[cfg(test)]`, **and** for every new public fn / method that documents a `# Panics` doc section, verify `ai-docs/panic-index.md` was updated in this diff with a row covering the new panic site (location, trigger, invariant, why not `Result`, preferred fix). New production panic site without a corresponding panic-index entry → REJECT (`major`). The doc-section signal (`# Panics`) is the primary trigger; the grep below is the secondary catch-net.
+- **Unsafe-index sync.** For every new production `unsafe { … }` block / `unsafe fn` declaration outside `#[cfg(test)]`, **and** for every new public fn / method that documents a `# Safety` doc section, verify `ai-docs/unsafe-index.md` was updated in this diff with a row covering the new unsafe site (location, why unsafe, safety invariant, why not safe Rust, preferred fix). New production unsafe site without a corresponding unsafe-index entry → REJECT (`major`). The doc-section signal (`# Safety`) is the primary trigger; the `rg '\bunsafe\s*\{|\bunsafe\s+fn\b'` recipe is the secondary catch-net.
 - **`unwrap()` / `expect()` / `panic!()` audit (run this grep first):**
   ```bash
   grep -n '\.unwrap()\|\.expect(\|panic!' <changed-files> | grep -v '#\[cfg(test)\]' | grep -v '^\s*//'
