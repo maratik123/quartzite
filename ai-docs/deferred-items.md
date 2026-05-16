@@ -9,6 +9,6 @@ Extracted from completed plans in `ai-docs/plans/done/`. Split by functional are
 | Macros & Codegen | [macros-codegen.md](deferred/macros-codegen.md) | 40 |
 | Object Tree | [object-tree.md](deferred/object-tree.md) | 10 |
 | Threading & Runtime | [threading-runtime.md](deferred/threading-runtime.md) | 54 |
-| Future Crates | [future-crates.md](deferred/future-crates.md) | 8 |
-| CI, Docs & Workflow | [ci-docs-workflow.md](deferred/ci-docs-workflow.md) | 84 |
+| Future Crates | [future-crates.md](deferred/future-crates.md) | 9 |
+| CI, Docs & Workflow | [ci-docs-workflow.md](deferred/ci-docs-workflow.md) | 124 |
 | Python Interop | [python.md](deferred/python.md) | 6 |
