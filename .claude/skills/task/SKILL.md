@@ -131,9 +131,9 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 
 ### Step 9: Verify
 
-Run the full 10-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
+Run the full 11-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), unsafe-index sync (see `reference.md` § Step 9 — unsafe-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
 
-**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9 — Verify (ALL PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording panic-index additions, if any (one line, prefixed `Step 9:`; omit if none).
+**Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9 — Verify (ALL PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording panic-index additions and unsafe-index additions, if any (one line, prefixed `Step 9:`; omit if none).
 
 ### Step 9.5: Update documentation
 
