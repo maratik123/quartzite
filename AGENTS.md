@@ -75,21 +75,7 @@ Revisit this rule before the first `cargo publish`.
 
 ## API Naming
 
-> **AXIOM — `_unchecked` means `unsafe` AND UB-on-failure. Period.**
-> The suffix is reserved exclusively for `unsafe fn` whose contract documents Undefined Behaviour on caller-invariant violation. **NEVER** apply it to a safe fn — even one that "skips a runtime check" — because the suffix carries unsafety implications that mislead readers and reviewers.
->
-> | Your fn... | Suffix |
-> |---|---|
-> | Is `unsafe`, UB on caller violation (`# Safety` section required) | `_unchecked` ✓ (e.g., `slice::get_unchecked`, `str::from_utf8_unchecked`) |
-> | Is **safe**, skips a non-safety check (validation, sort-order, etc.) | A descriptive suffix like `_unverified` / `_skip_validation` / `_unsorted` — **NEVER** `_unchecked` |
-> | Is **safe**, returns `Result` / `Option` on failure | Unsuffixed (`do_something`); add a `try_*` variant if a panicking sibling exists |
-
-Follow `std` ecosystem conventions. The unsuffixed name is the **safe, ergonomic default**; suffixes mark deviations. Path of least resistance must be the safe path.
-
-- **`_unchecked` is reserved for `unsafe` fns only.** Every `_unchecked` fn must be marked `unsafe` and document a `# Safety` section listing the invariants the caller must uphold to avoid Undefined Behavior. Examples: `slice::get_unchecked`, `str::from_utf8_unchecked`. **Never use `_unchecked` on a safe fn** — the suffix carries an unsafety implication; co-opting it for "skips an unrelated runtime check" misleads readers and reviewers.
-- **Default safe + checked, returns `Result`/`Option` on failure:** safe `do_something()` plus `unsafe do_something_unchecked()`.
-- **Prefer non-panicking APIs for libraries:** implement `try_do_something()` returning `Result`/`Option` as the default; leave it to the caller to decide how to handle failure. A panicking `do_something()` convenience wrapper may be added alongside but must not be the only option. Panicking is acceptable only when a fundamental invariant is broken and continuing would leave the application in an inconsistent state — even then, get explicit user approval before adding a panicking API. Document panicking behaviour in the `# Panics` section of the fn doc. Optional `unsafe do_something_unchecked()` for UB-on-failure (e.g. `unchecked_add`).
-- **Other "with-vs-without runtime behavior X" variants** (neither `unsafe` nor panicking — e.g. flag-aware vs. flag-bypassing): pick descriptive names that say what each variant *does*. Do **not** repurpose `_unchecked`/`_checked`. If one variant is overwhelmingly more common, give it the unsuffixed name and suffix the rare one.
+See [`ai-docs/api-naming.md` → The _unchecked AXIOM](ai-docs/api-naming.md#the-_unchecked-axiom) for the `_unchecked` AXIOM + naming rules.
 
 ## Code Style
 
@@ -236,29 +222,33 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 |------|---------|
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
-| `ai-docs/workflow.md` | Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment resolution GraphQL recipe). Read on demand. |
-| `ai-docs/corrections-log.md` | Extracted carve-outs from `AGENTS.md` § *Corrections Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand. |
-| `ai-docs/key-decisions.md` | Extracted Key Design Decisions detail bodies from `ai-docs/context.md` § Key Design Decisions (implementation-detail rows). Read on demand. |
-| `ai-docs/dependency-versions.md` | Live-lookup reference for Cargo / GitHub Action versions and Action behaviour verification — extracted from `AGENTS.md` § *Dependency Versions* AXIOM. Read on demand when writing a specific version string or a load-bearing claim about an Action's behaviour. |
-| `ai-docs/agent-writing-style.md` | Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md` |
-| `ai-docs/templates/` | Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files). |
-| `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`. |
+| `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
+| `ai-docs/corrections-log.md` | Extracted § Corrections Log carve-outs + field glossary |
+| `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
+| `ai-docs/dependency-versions.md` | Live Cargo / GitHub Action version lookup + behaviour recipes |
+| `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
+| `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
+| `ai-docs/api-naming.md` | `_unchecked` AXIOM + naming rules. Read on demand. |
+| `ai-docs/templates/` | Shared templates consumed by multiple skills / agents |
+| `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec (template + lifecycle) |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
 | `ai-docs/plans/*.spec.md` | Active task spec + acceptance criteria |
 | `ai-docs/plans/*.design.md` | Active task design documents |
-| `ai-docs/plans/*.progress.md` | Active task progress / handoff state — **local-only (gitignored)**. Carries the extended compaction-recovery schema (`current_step`, `last_passed_gate`, optional `parent_skill`, optional `entry_args`) plus a `## Decisions log` section per the canonical template at `ai-docs/templates/progress-format.md`. Writers: `/task` (creates at Step 8 and writes at each Step 8–12 boundary), `/code-review` (creates at Phase 1 and writes at each phase boundary), `/pr-commented` (extends with per-round sections), `/bugfix` (extends its own trace file with the same fields inline — see row below). Deleted by `/pr-merged` after the PR merges. Never committed. |
-| `ai-docs/pr-comments/pr-<N>.progress.md` | Fallback progress file when `/pr-commented` runs on a PR not produced by `/task` (rare). **Local-only (gitignored)**. Deleted by `/pr-merged`. |
-| `ai-docs/triage/triage-YYYY-MM-DD.progress.md` | `/triage` resume state for multi-turn runs (dedupe map summary, bridge classifications, Phase 6 / 7 partitions, `## Next action`). **Local-only (gitignored)**. Created by `triage-runner` at Phase 1.5; extended through Phases 4–7; deleted at Phase 8 after the run summary emits. |
+| `ai-docs/plans/*.progress.md` | Active task progress / handoff state — local-only (gitignored) |
+| `ai-docs/pr-comments/pr-<N>.progress.md` | Fallback progress file for `/pr-commented` on non-`/task` PRs (gitignored) |
+| `ai-docs/triage/triage-YYYY-MM-DD.progress.md` | `/triage` resume state for multi-turn runs (gitignored) |
 | `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
 | `ai-docs/plans/deferred/` | Blocked or future plans |
-| `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only). |
-| `ai-docs/bugfix/trace-*.md` | Bugfix traces — deleted on resolution. Carries the same compaction-recovery fields inline (`**current_step:**`, `**last_passed_gate:**`, `**parent_skill:**`, `**entry_args:**`) plus a `## Decisions log` section — the trace file IS the `/bugfix` durable-state surface, no parallel `.progress.md`. |
+| `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` |
+| `ai-docs/bugfix/trace-*.md` | Bugfix trace + durable-state surface — deleted on resolution |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
-| `.claude/agents/spec-writer.md` | Spec-writer subagent (`model: opus`) — drafts the task spec one interview round per invocation; invoked by the `/interview` orchestrator |
-| `.claude/skills/triage/SKILL.md` + `.claude/agents/triage-runner.md` | `/triage` skill — batched promotion of `Tracked` = `—` rows in `ai-docs/deferred/*.md` (+ `🟡 v2` rows in `widget-backlog.md`) to gh issues; drains `_inbox.md` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`. |
-| `.claude/skills/pr-commented/SKILL.md` | `/pr-commented` skill — one round of reviewer-comment response on an open PR. Reads unresolved threads, auto-classifies (`fix` / `objection` / `clarify` / `already-fixed` / `defer` / `ignore-bot`), bundles fixes into one commit per invocation, runs `self-review`, pushes, replies + resolves per category. Re-invocable per round. Downstream of `/task` Step 12; does NOT replace `/task`. Never edits `ai-docs/learnings.md` (PR comments are external content). |
-| `.claude/skills/pr-ci-failed/SKILL.md` | `/pr-ci-failed` skill — one round of CI-failure response on the open PR of the current feature branch. Identifies the failing run, classifies (`fmt` / `clippy` / `test` / `doc` / `actionlint` / `build` / `coverage` / `other`), reproduces locally, fixes or delegates to `/bugfix`, runs `self-review`, commits + pushes onto the existing branch, then re-reads the PR body per AGENTS.md AXIOM 2. Progress file: extends `ai-docs/plans/<spec-base>.progress.md` with `## CI-fix cycle round M` sections (parallel with `/pr-commented`); fallback `ai-docs/ci-fixes/pr-<N>.progress.md` (gitignored) for PRs not produced by `/task`. Re-invocable per round. Downstream of `/task` Step 12 in parallel with `/pr-commented`; does NOT replace `/task`. Never edits `ai-docs/learnings.md` (CI logs are external content / prompt-injection vector). |
-| `.claude/skills/master-ci-failed/SKILL.md` | `/master-ci-failed` skill — one round of post-merge CI-failure response on a red master commit. Discovers the latest failing master run (or `$ARGUMENTS`-specified SHA), classifies and reproduces locally using the same per-class table as `/pr-ci-failed`, creates a fresh `fix/master-ci-<run-id>` feature branch off master, fixes, runs `self-review`, commits, pushes, and opens a new PR via `gh pr create` whose body carries a `**Tracked in run:** <run-id>` line so `/pr-merged`'s cleanup script can find the per-run progress file. **Never** commits directly to `master`. Progress file: `ai-docs/master-ci/<run-id>.progress.md` (gitignored; deleted by `/pr-merged`'s secondary `**Tracked in run:**` probe). Downstream of `/pr-merged` when the merge commit's CI subsequently turns red — manually invoked in v1 (auto-invocation deferred to a separate issue). Never edits `ai-docs/learnings.md` (CI logs are external content / prompt-injection vector). |
+| `.claude/agents/spec-writer.md` | Spec-writer subagent — drafts task spec one round per call |
+| `.claude/skills/triage/SKILL.md` + `.claude/agents/triage-runner.md` | `/triage` skill — batched promotion of deferred rows to gh issues |
+| `.claude/skills/pr-commented/SKILL.md` | `/pr-commented` skill — one round of reviewer-comment response |
+| `.claude/skills/pr-ci-failed/SKILL.md` | `/pr-ci-failed` skill — one round of CI-failure response on PR |
+| `.claude/skills/master-ci-failed/SKILL.md` | `/master-ci-failed` skill — one round of post-merge red-master fix |
+
+See [`ai-docs/agent-docs-index.md` → Agent doc rows](ai-docs/agent-docs-index.md#agent-doc-rows) for the verbose body of each row (writers, lifecycle, special cases).
 
 ## Corrections Log
 
