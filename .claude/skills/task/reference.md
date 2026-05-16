@@ -195,9 +195,10 @@ Verify both spec and design (with GO verdict) exist AND that **every note / mino
 5. `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` — no doc errors or warnings (matches CI; `--all-features` so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them)
 6. **actionlint gate** — if this task created or modified any `.github/workflows/*.yml` file, run `actionlint <file>` (or pass every changed workflow file in one invocation) and require a clean pass. Skip the gate only when no workflow file was touched. See AGENTS.md *Build & Test → Workflow files*.
 7. **Panic-index sync** — see `## Step 9 — panic-index sync (detail)` below.
-8. For each AC — confirm covered by test or manual verification.
-9. Show a `| # | Criterion | Test / Verification | Status |` summary table.
-10. On ALL PASS → proceed to Step 9.5.
+8. **Unsafe-index sync** — see `## Step 9 — unsafe-index sync (detail)` below.
+9. For each AC — confirm covered by test or manual verification.
+10. Show a `| # | Criterion | Test / Verification | Status |` summary table.
+11. On ALL PASS → proceed to Step 9.5.
 
 ## Every-group handoff (rationale)
 
@@ -224,6 +225,15 @@ Scan new/modified production sources for documented or direct panic sites and up
 - `rg '\.expect\(|\.unwrap\(|panic!' <changed-files>` filtered to lines outside `#[cfg(test)]` modules — direct panic call sites
 
 For each new hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invariant, why not `Result`, preferred fix). Stage `panic-index.md` with the implementation commit. Skip when this task added no new production panics.
+
+## Step 9 — unsafe-index sync (detail)
+
+Scan new/modified production sources for `# Safety` doc sections and direct `unsafe` call sites; update `ai-docs/unsafe-index.md` if any new production unsafe sites were introduced:
+
+- `rg '^\s*///\s*#\s*Safety' <changed-files>` — `# Safety` doc-section signal on `unsafe fn` / `unsafe trait` declarations (primary signal; required by `#![warn(clippy::undocumented_unsafe_blocks)]` on every workspace crate)
+- `rg '\bunsafe\s*\{|\bunsafe\s+fn\b' --type rust <changed-files>` — direct `unsafe { … }` blocks and `unsafe fn` declarations (secondary catch-net; walk hits and skip those inside `#[cfg(test)]` modules or under `tests/` / `benches/` / `examples/`)
+
+For each new production hit, add an entry to `ai-docs/unsafe-index.md` (Location, Why unsafe, Safety invariant, Why not safe Rust, Preferred fix). Stage `unsafe-index.md` with the implementation commit. Skip when this task added no new production unsafe sites.
 
 ## Step 11 — review-fix narrative (detail)
 
@@ -286,7 +296,7 @@ The Step 12 sub-step 4 parser specification lives in a dedicated reference file:
 | Step 8 | Design doc with GO? Test Design section present? **Every note / minor / recommendation from the GO verdict written back into the design doc?** |
 | Step 8 start | Feature branch created? Run `git branch --show-current` before every `git commit` — must not be `master`. `base_commit` + `branch` recorded in progress file? |
 | Each subtask | `cargo build` ✅? Tests run? `.progress.md` updated? |
-| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace --all-features` clean (note: `--all-features`, not bare and not a hand-picked subset — every feature-gated public module/re-export must be enabled so intra-doc links resolve)? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? All ACs covered? |
+| Step 9 | `cargo build` ✅? `cargo test` green? `cargo fmt -- --check` clean? `cargo clippy --workspace -- -D warnings` clean (note: `--workspace`, not bare)? `cargo doc --no-deps --workspace --all-features` clean (note: `--all-features`, not bare and not a hand-picked subset — every feature-gated public module/re-export must be enabled so intra-doc links resolve)? `actionlint` clean on every changed `.github/workflows/*.yml` (skip if none changed)? Any new `# Panics` doc section / `.unwrap()` / `.expect()` / `panic!` outside `#[cfg(test)]` → `ai-docs/panic-index.md` updated and staged (skip when no new production panics)? Any new `# Safety` doc section / `unsafe { … }` / `unsafe fn` outside `#[cfg(test)]` → `ai-docs/unsafe-index.md` updated and staged (skip when no new production unsafe sites)? All ACs covered? |
 | Step 9.5 | context.md + README.md updated? (spec/design NOT moved yet — happens at Step 12) |
 | Step 10 | Self-review APPROVE? (Progress file persists in working tree — gitignored — until `/pr-merged`. Do NOT `rm` it here.) |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
