@@ -180,8 +180,65 @@ A field added to the entry format without parallel coverage in all four targets 
 | 6 | **Pattern 6 (do/not examples for non-trivial rules)** — paragraphs that articulate a contrast between two shapes must demonstrate both shapes. | **Tightened heuristic** (per design-review note 4 on issue #369 PR — `not`/`NOT` alone are too noisy, firing on every "do not" / "must not" / "is not" paragraph): trigger iff the paragraph contains **BOTH** (a) a Pattern 2 fail-loud verb AND (b) one of the stronger contrast markers `instead` / `wrong` / `correct` / `forbidden`. Then check if a fenced code block OR a two-column `\| Do this \| NOT this \|` table follows within 8 lines. If both triggers fire AND no example follows, flag the paragraph. (Words `not` / `NOT` / `right` / `bad` / `good` are NOT in the trigger list — they produce false positives at unacceptable scale.) | `nit` |
 | 7 | **Pattern 7 (compaction recovery callout)** — every callout-carrying skill must carry exactly one of the three locked variant-distinguishing phrases. | **Drive off the live grep, NOT the style guide table.** For each `.claude/skills/*/SKILL.md` whose body contains the literal string `Compaction recovery check`, run `rg -F` against the three variant-distinguishing phrases (verbatim from the archival source-of-truth at `ai-docs/plans/done/2026-05-14-sonnet-skill-reentry-protocol.design.md`): Variant A = `"Locate the durable-state file via this skill's active-state probe"`; Variant B = `"If exactly one in-flight artefact exists"`; Variant C = `"Identify the **parent workflow**"`. If a callout-carrying skill contains zero or > 1 of the phrases → flag (likely invented 4th variant OR Variant-A/B/C drift). Also flag any callout-carrying skill not enumerated in the style guide Pattern 7 table at `ai-docs/agent-writing-style.md` lines 119–121 (style guide drift; the table should grow when a new skill onboards the callout). | `major` |
 | 8 | **Anti-patterns table audit** — no row of the Anti-patterns table (`ai-docs/agent-writing-style.md § Anti-patterns, lines 157–167`) should appear verbatim as a positive rule anywhere in the audited corpus. | For each anti-pattern row's left-column text (e.g., `"Every paragraph in caps"`, `"AXIOM blockquote without action table"`), grep the audited corpus for matches NOT inside the style guide itself. Flag matches. | `major` |
+| 9 | **Pattern 8 (file-size AXIOM conformance)** — every covered instruction file must stay below the 40,000-char hard cap; the 35,000-char band is an early warning. Rule-of-truth: `ai-docs/agent-writing-style.md § 8. 40k char-cap on instruction files`; source AXIOM: `AGENTS.md § Build & Test`. | Run the verbatim `wc -c` invocation below against the covered file set, apply the three-band severity table. See § *Sub-check 9 — file-size AXIOM conformance* below for the recipe + severity bands. | see body |
+| 10 | **Style-guide audit coverage map** — every `## ` (level-2) heading in `ai-docs/agent-writing-style.md` must map to either an existing Checklist M sub-check or to the explicit exclusion list of non-rule-bearing meta-sections. Unmapped headings produce `nit` "audit coverage gap" findings. | Parse ATX `## ` headings from the **live** `ai-docs/agent-writing-style.md` (re-grep at audit time; do NOT use a baked-in snapshot). Apply the inline coverage map below. See § *Sub-check 10 — style-guide audit coverage map* below for the parser recipe + map + finding format. | `nit` |
 
 After running Checklist M, surface findings using the same severity-driven apply-or-ask pattern as Checklists A–L (Step 2.5). Pattern 6 noise-management fallback: if AC5's demonstrator run shows > 50% false-positive rate on Pattern 6 findings, record the rate and tighten the heuristic in a follow-up `/improve` cycle (the heuristic itself is encoded here, not in a separate config file — design choice to keep the audit self-contained).
+
+##### Sub-check 9 — file-size AXIOM conformance
+
+Detection mechanism. Run this verbatim invocation:
+
+```bash
+wc -c AGENTS.md CLAUDE.md .claude/skills/*/SKILL.md .claude/agents/*.md \
+      ai-docs/code-style.md ai-docs/doc-convention.md ai-docs/context.md \
+      ai-docs/agent-writing-style.md ai-docs/corrections-log.md
+```
+
+Apply the three-band severity table to every reported size:
+
+| Reported size (chars) | Finding | Severity |
+|---|---|---|
+| `< 35,000` | none | — |
+| `35,000–39,999` | `<path>: <count> chars — early warning (≥ 35,000)` | `minor` |
+| `≥ 40,000` | `<path>: <count> chars — AXIOM violation (≥ 40,000)` | `blocker` |
+
+The covered file set is enumerated verbatim from `AGENTS.md § Build & Test` (the source-of-truth AXIOM) and restated in `ai-docs/agent-writing-style.md § 8. 40k char-cap on instruction files`. A future change to the covered file set MUST update Sub-check 9 in the same PR per the Propagation Rule.
+
+Note: the shell-glob form (`.claude/skills/*/SKILL.md`, `.claude/agents/*.md`) is acceptable here because Pattern 4's explicit-path requirement applies to the *fail-loud bullet list* in Pattern 8 (so static readers see the covered set), not to the shell command that consumes the set.
+
+This sub-check is the audit-side back-stop. The mechanical pre-commit gate is planned in #383; until that lands, Sub-check 9 fires per-`/ai-audit`-run.
+
+##### Sub-check 10 — style-guide audit coverage map
+
+Detection mechanism. The audit reads `ai-docs/agent-writing-style.md` at audit time and parses every ATX `## ` heading.
+
+Parser strictness rules:
+
+1. Match **ATX-style level-2 headings only** — exactly two `#` characters followed by exactly one space, then heading text.
+2. **Skip lines inside fenced code blocks.** Track ` ``` ` and `~~~` fence state; a `## ` line inside an open fence is NOT a heading.
+3. **Case-sensitive match.** `## Patterns` ≠ `## patterns`.
+4. **Trim** leading/trailing whitespace from heading text before lookup.
+
+Inline coverage map (live as of this commit; re-validate at audit time by re-running `grep -n '^## ' ai-docs/agent-writing-style.md` and reconciling against this map):
+
+| `## ` heading | Maps to | Outcome |
+|---|---|---|
+| `## Patterns` | sub-checks 1–7 (audits the shape of every entry under this heading, including the new Pattern 8 via Patterns 1–4 self-conformance) | no finding |
+| `## Anti-patterns` | sub-check 8 | no finding |
+| `## Writing checklist` | excluded — meta-section (reader checklist, not a rule shape) | no finding |
+| `## Citation in PRs` | excluded — meta-section (PR-author convention, not a rule shape) | no finding |
+| `## Enforcement` | excluded — meta-section (cross-references the audit itself) | no finding |
+| `## Propagation rule for new patterns` | excluded — meta-section (fan-out procedure, not a rule shape) | no finding |
+| `## Out of scope` | excluded — meta-section (negative-space scoping, not a rule shape) | no finding |
+
+Unmatched-heading rule. For every parsed `## ` heading NOT in the coverage map above, emit:
+
+- **Finding text:** `audit coverage gap: § <heading>`
+- **Proposed action:** `add sub-check N+1 to /ai-audit Checklist M` (where N is the current max sub-check number)
+- **Severity:** `nit`
+
+When a future PR adds a new `## ` heading to `agent-writing-style.md`, Sub-check 10 fires at the next `/ai-audit` run with the gap; the operator either adds a corresponding sub-check or extends the exclusion list in the same follow-up.
 
 ### Step 2.4: Categorise findings
 

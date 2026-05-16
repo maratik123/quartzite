@@ -143,6 +143,47 @@ The canonical cross-link target — every callout body ends with a `See ... § C
 
 When adding the callout to a new code-side skill, pick the variant matching the skill's durable-state shape; copy the live full body from a sibling that already uses that variant; do not invent a 4th variant without first updating this section and the cross-link target.
 
+### 8. 40k char-cap on instruction files
+
+Source-of-truth AXIOM lives in `AGENTS.md § Build & Test`. Pattern 8 is the
+style-guide-side restatement so the rule is discoverable from the writing
+conventions reference and audit-able via `/ai-audit` Phase 2 Checklist M.
+Mechanical pre-commit gate planned in #383; this audit-side back-stop fires
+in the meantime.
+
+> **AXIOM — Every covered instruction file MUST stay below 40,000 chars at every commit boundary.**
+> The harness applies a soft cap on per-invocation instruction-file load; crossing 40,000 chars imposes measurable per-invocation cost on every agent spawn and skill invocation. The 35,000-char early-warning band gives one full `/task` cycle of headroom before the harness warning starts firing.
+>
+> | If `wc -c <file>` reports... | Action |
+> |---|---|
+> | `≥ 40,000` chars | **STOP**. Plan extraction / dedup before the next commit. Same model as PR #324 (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
+> | `35,000–39,999` chars | Proactive extraction pass; do not let the next `/task` push it over 40,000. |
+> | `< 35,000` chars | OK. |
+
+**Covered file set** (enumerate verbatim; no glob-as-the-entire-list per Pattern 4):
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- `.claude/skills/**/SKILL.md` (every file under this directory)
+- `.claude/agents/**.md` (every file under this directory)
+- `ai-docs/code-style.md`
+- `ai-docs/doc-convention.md`
+- `ai-docs/context.md`
+- `ai-docs/agent-writing-style.md`
+- `ai-docs/corrections-log.md`
+
+**Per-commit invariant.** The cap binds at every commit boundary on a
+feature branch — not just at merge time. A commit that introduces a
+transient violation (e.g., adds 4,000 chars to a 38,000-char file, then a
+later commit on the same branch extracts the content back out) is still a
+violation. Stage the extraction in the same commit as the addition, or
+sequence the extraction commit first.
+
+**Extraction model.** PR #324 is the canonical extraction example for
+`AGENTS.md`: verbose subsections moved into `ai-docs/<topic>.md` reference
+pages with anchored links from the source file. Apply the same model when
+any covered file crosses 35,000 chars.
+
 ## Writing checklist
 
 Before submitting a rule paragraph, check:
