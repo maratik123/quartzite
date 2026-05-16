@@ -9,6 +9,9 @@ pub(crate) struct ExtendInput {
     pub is_root: bool,
     pub base_field: Option<BaseField>,
     pub mixin_fields: Vec<MixinField>,
+    /// Variant name from `#[widget_view(variant = "X")]`, used by codegen when
+    /// `parent_trait == "AsWidget"` to emit the matching `WidgetView::X(self)` arm.
+    pub widget_view_variant: Option<String>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -23,6 +26,35 @@ pub(crate) struct MixinField {
     pub ident: Ident,
     pub ty_ident: Ident,
     pub ty: Type,
+}
+
+/// Removes and parses `#[widget_view(variant = "X")]` from `attrs`.
+/// Returns `Ok(None)` if the attribute is absent; `Ok(Some("X"))` on success;
+/// `Err` if the attribute is present but malformed.
+fn extract_widget_view_variant(attrs: &mut Vec<syn::Attribute>) -> syn::Result<Option<String>> {
+    let Some(pos) = attrs.iter().position(|a| a.path().is_ident("widget_view")) else {
+        return Ok(None);
+    };
+    let attr = attrs.remove(pos);
+    let span = attr.span();
+    let mut variant: Option<String> = None;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("variant") {
+            let value = meta.value()?;
+            let s: syn::LitStr = value.parse()?;
+            variant = Some(s.value());
+            Ok(())
+        } else {
+            Err(meta.error("expected `variant = \"VariantName\"`"))
+        }
+    })?;
+    if variant.is_none() {
+        return Err(syn::Error::new(
+            span,
+            "#[widget_view] requires `variant = \"VariantName\"`",
+        ));
+    }
+    Ok(variant)
 }
 
 /// Extracts the last path-segment ident from a `Type::Path`.
@@ -63,6 +95,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
 
     // Check for #[root] on the struct itself; strip it.
     let is_root = extract_attr(&mut derive.attrs, "root");
+    let widget_view_variant = extract_widget_view_variant(&mut derive.attrs)?;
 
     // Root + generic is unsupported: the generated `As{Self}` trait's return type
     // would reference the bare ident without type params, causing a type mismatch.
@@ -121,6 +154,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         is_root,
         base_field,
         mixin_fields,
+        widget_view_variant,
     })
 }
 
@@ -240,5 +274,52 @@ mod tests {
             !ir.generics.params.is_empty(),
             "lifetime param should be stored"
         );
+    }
+
+    #[test]
+    fn widget_view_variant_parsed() {
+        let ir = parse_ok(quote! {
+            #[widget_view(variant = "Button")]
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert_eq!(ir.widget_view_variant.as_deref(), Some("Button"));
+    }
+
+    #[test]
+    fn widget_view_variant_absent_is_none() {
+        let ir = parse_ok(quote! {
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(ir.widget_view_variant.is_none());
+    }
+
+    #[test]
+    fn widget_view_missing_variant_key_errors() {
+        let err = parse_err(quote! {
+            #[widget_view()]
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(err.contains("#[widget_view] requires"), "unexpected: {err}");
+    }
+
+    #[test]
+    fn widget_view_unknown_key_errors() {
+        let err = parse_err(quote! {
+            #[widget_view(name = "Button")]
+            struct Button {
+                #[base]
+                widget: Widget,
+            }
+        });
+        assert!(err.contains("expected `variant"), "unexpected: {err}");
     }
 }

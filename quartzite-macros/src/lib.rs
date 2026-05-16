@@ -50,6 +50,9 @@ pub(crate) mod object_part;
 ///   `As{ParentTypeName}` and all its ancestors.
 /// - `#[mixin]` — additional delegation targets; generates `As{MixinTypeName}` impls
 ///   without joining the primary inheritance chain.
+/// - `#[widget_view(variant = "X")]` — when the type's direct parent is `WidgetBase`,
+///   specifies the `WidgetView` variant to return from the generated `widget_view` impl.
+///   Absent → `WidgetView::Other(self)`. Only meaningful for `AsWidget` subtypes.
 ///
 /// # Examples
 ///
@@ -72,7 +75,7 @@ pub(crate) mod object_part;
 ///     widget: Widget,
 /// }
 /// ```
-#[proc_macro_derive(Extend, attributes(root, base, mixin))]
+#[proc_macro_derive(Extend, attributes(root, base, mixin, widget_view))]
 pub fn derive_extend(input: TokenStream) -> TokenStream {
     extend::expand(input.into()).into()
 }
