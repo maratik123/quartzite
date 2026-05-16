@@ -186,9 +186,35 @@ the severity assignments. Run `/ai-audit` after any PR that touches a fail-loud
 section if you want a mechanical conformance check on the corpus.
 
 The forward direction (style-guide edits fan out to downstream consumers) is
-already covered by `AGENTS.md` `## Propagation Rule` — the row for
-`ai-docs/agent-writing-style.md` instructs editors to grep `.claude/agents/` +
-`.claude/skills/` for files affected by a new or amended Pattern entry.
+already covered by the next section, `## Propagation rule for new patterns`,
+which instructs editors to grep `.claude/agents/` + `.claude/skills/` for
+files affected by a new or amended Pattern entry.
+
+## Propagation rule for new patterns
+
+When a new fail-loud pattern entry is added under `## Patterns` (or an
+existing entry is amended), the change must fan out to every downstream
+consumer that carries — or should carry — the pattern:
+
+- Every `.claude/skills/**/SKILL.md`
+- Every `.claude/agents/**.md`
+
+The style guide names the *shape*; the downstream consumers carry the
+*body*.
+
+**Procedure.** After adding or amending a pattern entry, run:
+
+```
+grep -rn "<pattern-keyword>" .claude/agents/ .claude/skills/
+```
+
+…to find any file already half-using the pattern and reconcile. Pattern 7
+*Compaction recovery callout* is the introducing case — see § Pattern 7
+for the variant taxonomy.
+
+This section is the `ai-docs/agent-writing-style.md` sub-rule of
+`AGENTS.md` § *Propagation Rule*; AGENTS.md keeps a one-line stub row
+pointing here.
 
 ## Out of scope
 

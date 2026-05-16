@@ -1,8 +1,8 @@
 ---
 name: context-reset
 description: "Handoff protocol for large tasks (>=5 subtasks) AND compaction-recovery re-entry. Prevents context degradation and compaction-related quality loss."
-when_to_use: "Activate automatically after completing 3rd subtask when total >= 5, when a summary/compaction block appears at the top of context, or when noticing yourself rushing, simplifying, or skipping steps."
-allowed-tools: Bash(cargo build)
+when_to_use: "Activate at the start of every design-defined group per the design's ## Handoff plan, when a summary/compaction block appears at the top of context, or when noticing yourself rushing, simplifying, or skipping steps."
+allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(git status) Bash(git rev-parse *) Bash(git branch *) Bash(git diff *) Bash(git add *) Bash(git commit *)
 ---
 
 > **⚡ Compaction recovery check — read FIRST on every invocation.**
@@ -33,13 +33,15 @@ allowed-tools: Bash(cargo build)
 
 ## Handoff protocol
 
-When triggered (N=3, M>=5 OR compaction detected):
+When triggered (every design-defined group OR compaction detected):
 
 1. `cargo build` — ensure code compiles
 2. Update `ai-docs/plans/YYYY-MM-DD-name.progress.md` (format below)
 3. Launch: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue")`
 4. Remaining subtasks — one per Agent call, not batched
 5. Do NOT continue in current context
+
+The per-group subagent inherits the canonical schema at [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md) verbatim and writes `current_step` / `last_passed_gate` / `Decisions log` entries at the same subtask boundaries the orchestrator writes them at today. No new per-group section is introduced.
 
 ## Compaction recovery (re-entry)
 
@@ -92,4 +94,4 @@ The full format spec lives in the shared-templates directory: **[`ai-docs/templa
 1. Progress file = `ai-docs/plans/*.progress.md`. Updated at each checkpoint.
 2. On context reset: pass file path in Agent prompt: `"Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue"`
 3. `cargo build` BEFORE handoff — don't pass broken code
-4. Maximum 3 handoffs per task. If more needed — the task is too large, decompose.
+4. Maximum 3 design-defined groups per task. If more needed — the task is too large, decompose into separate issues.
