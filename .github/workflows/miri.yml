@@ -23,7 +23,16 @@ jobs:
     # tracked as a deferred follow-up to #422.
     continue-on-error: true
     env:
-      MIRIFLAGS: -Zmiri-tree-borrows
+      # `-Zmiri-tree-borrows`: aliasing model per spec / design Round 2.
+      # `-Zmiri-ignore-leaks`: `serial_test` (used by quartzite-core, runtime,
+      #   style-dispatch) keys a global `scc::HashMap<String, Mutex>` by
+      #   test name and never frees it — intentional, since test names live
+      #   for the program's lifetime and `scc`/`sdd` use epoch-based
+      #   reclamation that doesn't run at shutdown. Miri's strict-leak
+      #   detector flags every such entry on test-binary exit, drowning out
+      #   real findings. Tree Borrows itself remains active for UB/aliasing
+      #   detection; only the leak-checker is disabled.
+      MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-ignore-leaks
     steps:
       - uses: actions/checkout@v6
       - name: Export ImageVersion  # See #340
