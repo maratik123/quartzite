@@ -7,7 +7,7 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Item | Source | Status | Tracked |
 |------|--------|--------|---------|
 | Examples for geometry-events, widgets, paint-style \| those crates not yet implemented | [examples-crate spec](../plans/done/2026-05-02-examples-crate.spec.md) | | #45 (closed), #46 (closed), #47 (closed) |
-| Facade `style-dispatch` feature in `quartzite/Cargo.toml` for re-exporting the bridge crate. | [renderer-style-dispatch design](../plans/done/2026-05-13-renderer-style-dispatch.design.md) |  | — |
+| Facade `style-dispatch` feature in `quartzite/Cargo.toml` for re-exporting the bridge crate. | [renderer-style-dispatch design](../plans/done/2026-05-13-renderer-style-dispatch.design.md) |  | #393 |
 
 ## Out of scope
 
