@@ -1,0 +1,62 @@
+# Why master-only: Miri is 10-30x slower than native `cargo test`; running per-PR
+# would impose an unacceptable latency tax. No PR-side workflow exercises an
+# equivalent Miri / Tree Borrows path — this gate is the intended
+# defense-in-depth surface, with findings visible via /master-ci-failed.
+name: Miri (master push)
+
+on:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  miri:
+    name: Miri / Tree Borrows
+    runs-on: ubuntu-latest
+    # v1 policy: surface Miri findings in the CI summary without turning master
+    # red. Flip to `false` after a stabilisation window of Miri-clean runs is
+    # tracked as a deferred follow-up to #422.
+    continue-on-error: true
+    env:
+      MIRIFLAGS: -Zmiri-tree-borrows
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export ImageVersion  # See #340
+        shell: bash
+        run: |
+          source "${HOME}/.bashrc" 2>/dev/null || true
+          printf 'ImageVersion=%s\n' "${ImageVersion:-}" >> "${GITHUB_ENV}"
+      - name: Install Rust nightly with miri + rust-src
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly-2026-05-01
+          components: miri, rust-src
+          cache-shared-key: ${{ runner.os }}-nightly-miri-v1-${{ env.ImageVersion }}
+      - name: Verify cargo identity  # See #340
+        shell: bash
+        run: |
+          which cargo
+          cargo --version
+          rustc --version
+      - name: cargo +nightly miri setup
+        run: cargo +nightly miri setup
+      # The explicit -p list mirrors the FFI-free audit recorded in
+      # ai-docs/plans/done/2026-05-17-miri-master-push-job.design.md and must be
+      # re-audited whenever a workspace member is added or removed.
+      - name: cargo +nightly miri test (FFI-free crate subset)
+        run: |
+          cargo +nightly miri test \
+            -p quartzite-core \
+            -p quartzite-geometry \
+            -p quartzite-paint-api \
+            -p quartzite-events \
+            -p quartzite-event-types \
+            -p quartzite-paint \
+            -p quartzite-style-types \
+            -p quartzite-style-dispatch \
+            -p quartzite-runtime
