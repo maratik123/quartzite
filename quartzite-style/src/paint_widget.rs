@@ -114,7 +114,8 @@ pub trait Paint<W: AsWidget + ?Sized> {
 
 #[cfg(test)]
 mod tests {
-    use quartzite_paint_api::Painter;
+    use quartzite_geometry::{Alignment, Point, Rect};
+    use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
     use quartzite_style_types::Palette;
     use quartzite_widgets::Button;
 
@@ -124,6 +125,30 @@ mod tests {
 
     impl Paint<Button> for FakeStyle {
         fn paint(&self, _widget: &Button, _painter: &mut dyn Painter, _palette: &Palette) {}
+    }
+
+    struct NullPainter;
+
+    impl Painter for NullPainter {
+        fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
+        fn fill_rect(&mut self, _rect: Rect, _brush: &Brush) {}
+        fn draw_line(&mut self, _from: Point, _to: Point, _pen: &Pen) {}
+        fn clip_rect(&mut self, _rect: Rect) {}
+        fn translate(&mut self, _delta: Point) {}
+        fn save(&mut self) {}
+        fn restore(&mut self) {}
+        fn draw_text(&mut self, _pos: Point, _text: &str, _font: &Font, _brush: &Brush) {}
+        fn draw_text_in(
+            &mut self,
+            _rect: Rect,
+            _text: &str,
+            _font: &Font,
+            _brush: &Brush,
+            _alignment: Alignment,
+        ) {
+        }
+        fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
+        fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
     }
 
     fn assert_send_sync<T: Send + Sync>() {}
@@ -140,5 +165,15 @@ mod tests {
     fn boxed_paint_button_constructs() {
         assert_send_sync::<FakeStyle>();
         let _boxed: Box<dyn Paint<Button>> = Box::new(FakeStyle);
+    }
+
+    // paint() is callable through the trait — exercises the method body.
+    #[test]
+    fn paint_method_is_callable() {
+        let style = FakeStyle;
+        let widget = Button::new("ok".into());
+        let mut painter = NullPainter;
+        let palette = Palette::default();
+        style.paint(&widget, &mut painter, &palette);
     }
 }
