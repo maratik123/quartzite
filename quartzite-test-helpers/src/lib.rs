@@ -21,10 +21,10 @@
 //! TEST_LOCK` is declared exactly once in this crate's source, **each
 //! downstream test binary that links `quartzite-test-helpers` ends up with its
 //! own instance of that static**. The lock therefore serialises tests **within
-//! a single test binary**, matching the per-binary semantics that
-//! `#[serial_test::serial]` previously provided. Cross-binary serialisation is
-//! **not** provided (and was not provided by `serial_test` either — `cargo
-//! test` runs each test binary as an independent process).
+//! a single test binary**, matching the per-binary semantics that the previous
+//! attribute-based serialisation helper provided. Cross-binary serialisation is
+//! **not** provided (nor was it provided by the previous helper — `cargo test`
+//! runs each test binary as an independent process).
 //!
 //! ## Usage
 //!
