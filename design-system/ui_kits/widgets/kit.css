@@ -48,7 +48,10 @@ html, body {
   font-size: 12pt;
   color: var(--qz-window-text);
   -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
 }
+
+svg { shape-rendering: geometricPrecision; }
 
 /* WindowFrame ---------------------------------------------- */
 .qz-window {

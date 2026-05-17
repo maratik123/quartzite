@@ -133,6 +133,10 @@ body.qz {
   text-rendering: geometricPrecision;
 }
 
+/* Global SVG rendering — match the text-rendering hint so curves
+   and strokes stay smooth rather than pixel-aligned. */
+svg { shape-rendering: geometricPrecision; }
+
 /* Heading scale — Quartzite does not define one. Reusing
    FontWeight + Font::size_pt as the scaling axis. */
 .qz-h1 { font-size: 24pt; font-weight: var(--qz-weight-bold); }

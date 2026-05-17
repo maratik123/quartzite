@@ -12,6 +12,8 @@ html, body {
   text-rendering: geometricPrecision;
 }
 
+svg { shape-rendering: geometricPrecision; }
+
 .card {
   width: 700px;
   box-sizing: border-box;
