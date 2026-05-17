@@ -2814,6 +2814,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-test-helpers"
+version = "0.1.0"
+dependencies = [
+ "parking_lot",
+]
+
+[[package]]
 name = "quartzite-widgets"
 version = "0.1.0"
 dependencies = [
