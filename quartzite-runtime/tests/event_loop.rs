@@ -1,9 +1,6 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-    time::Duration,
-};
+use std::{sync::Arc, thread, time::Duration};
 
+use parking_lot::Mutex;
 use quartzite_runtime::EventLoop;
 
 fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
@@ -21,14 +18,14 @@ fn post_from_other_thread_executes_on_loop_thread() {
 
     let tid = Arc::clone(&loop_tid);
     el.post(Box::new(move || {
-        *tid.lock().unwrap() = Some(thread::current().id());
+        *tid.lock() = Some(thread::current().id());
     }));
 
     thread::sleep(Duration::from_millis(20));
     el.stop();
     handle.join().unwrap();
 
-    let recorded = *loop_tid.lock().unwrap();
+    let recorded = *loop_tid.lock();
     assert!(recorded.is_some(), "closure must have run");
     assert_ne!(
         recorded,
@@ -48,14 +45,14 @@ fn post_multiple_preserves_order() {
 
     for i in 1u32..=3 {
         let log2 = Arc::clone(&log);
-        el.post(Box::new(move || log2.lock().unwrap().push(i)));
+        el.post(Box::new(move || log2.lock().push(i)));
     }
 
     thread::sleep(Duration::from_millis(20));
     el.stop();
     handle.join().unwrap();
 
-    assert_eq!(*log.lock().unwrap(), vec![1, 2, 3]);
+    assert_eq!(*log.lock(), vec![1, 2, 3]);
 }
 
 // stop() causes run() to return within a reasonable timeout.

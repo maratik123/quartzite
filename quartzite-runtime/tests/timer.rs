@@ -21,13 +21,14 @@
 
 use std::{
     sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     thread,
     time::Duration,
 };
 
+use parking_lot::Mutex;
 use quartzite_runtime::{AppDriver, Application, PoolDriver, ThreadDriver, Timer, TimerDriver};
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ fn thread_driver_fire_count_increments() {
     let mut timer = Timer::new(Duration::from_millis(30));
     timer.connect_tick(move |args| {
         let fc = args.0.fire_count();
-        counts2.lock().expect("counts lock").push(fc);
+        counts2.lock().push(fc);
         if fc >= 2 {
             done2.store(true, Ordering::SeqCst);
         }
@@ -88,7 +89,7 @@ fn thread_driver_fire_count_increments() {
     }
     timer.stop();
 
-    let observed = counts.lock().expect("counts lock").clone();
+    let observed = counts.lock().clone();
     assert!(
         observed.len() >= 3,
         "expected at least 3 fires, got {observed:?}"
@@ -190,7 +191,7 @@ fn app_driver_executes_on_event_loop_thread() {
 
     // Post a probe to discover the event-loop thread id from inside the loop.
     app.post_event(Box::new(move || {
-        *el_id2.lock().expect("el_id lock") = Some(thread::current().id());
+        *el_id2.lock() = Some(thread::current().id());
     }));
 
     let el_thread = thread::spawn({
@@ -201,7 +202,7 @@ fn app_driver_executes_on_event_loop_thread() {
     // Wait until the probe fires (the event loop started) — up to 500 ms.
     let deadline = std::time::Instant::now() + Duration::from_millis(500);
     loop {
-        if el_thread_id.lock().expect("el_id lock").is_some() {
+        if el_thread_id.lock().is_some() {
             break;
         }
         assert!(
@@ -210,7 +211,7 @@ fn app_driver_executes_on_event_loop_thread() {
         );
         thread::sleep(Duration::from_millis(5));
     }
-    let expected_el_id = el_thread_id.lock().expect("el_id lock").unwrap();
+    let expected_el_id = el_thread_id.lock().unwrap();
 
     // Now run the timer.
     let observed_thread = Arc::new(Mutex::new(None::<thread::ThreadId>));
@@ -220,7 +221,7 @@ fn app_driver_executes_on_event_loop_thread() {
 
     let mut timer = Timer::new(Duration::from_millis(30));
     timer.connect_tick(move |_| {
-        *observed2.lock().expect("observed lock") = Some(thread::current().id());
+        *observed2.lock() = Some(thread::current().id());
         fired2.store(true, Ordering::SeqCst);
     });
     timer.start(Arc::new(AppDriver::new()));
@@ -244,7 +245,7 @@ fn app_driver_executes_on_event_loop_thread() {
     Application::global().unwrap().quit();
     let _ = el_thread.join();
 
-    if let Some(actual) = *observed_thread.lock().expect("observed lock") {
+    if let Some(actual) = *observed_thread.lock() {
         assert_eq!(
             actual, expected_el_id,
             "AppDriver slots must run on the event-loop thread"
