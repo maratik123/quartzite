@@ -1,0 +1,109 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Button — states</title>
+<style>
+/* Card chrome — shared by every file under /preview.
+   Cards target ~700×<height>px and render the swatches / specimens
+   /tokens directly with minimal decoration. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #FFFFFF;
+  color: #000000;
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.card {
+  width: 700px;
+  box-sizing: border-box;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 12pt;
+}
+
+/* swatch primitives */
+.sw-row    { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.sw-col    { display: flex; flex-direction: column; gap: 6px; }
+.sw-grid   { display: grid; gap: 12px; }
+.sw        {
+  width: 64px; height: 64px;
+  border: 1px solid #000000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10pt;
+}
+.sw.lg     { width: 96px; height: 96px; }
+.sw.sm     { width: 48px; height: 48px; }
+.sw .mono  { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; }
+.cap       { font-size: 9pt; color: #000000; letter-spacing: 0.02em; }
+.mono      { font-family: 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace; }
+.note      { font-size: 9.5pt; color: rgba(0,0,0,0.65); }
+.kbd       { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; padding: 1px 5px; border: 1px solid #000; background: #fff; }
+
+/* meta info pair */
+.kv        { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; font-size: 10pt; }
+.kv .k     { font-family: 'DejaVu Sans Mono', monospace; }
+.kv .v     { font-family: 'DejaVu Sans Mono', monospace; color: rgba(0,0,0,0.7); }
+
+/* mirrors of DefaultStyle */
+.qz-button {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 6px 16px;
+  font: inherit; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 64px; min-height: 32px;
+}
+.qz-button.hover    { background: #BFDFFF; }
+.qz-button.pressed,
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.focused  {
+  /* additive 2px highlight outline over idle */
+  box-shadow: inset 0 0 0 2px #0080FF;
+}
+.qz-button.disabled { opacity: 0.5; }
+
+.qz-line-edit, .qz-text-edit {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 4px 6px; font: inherit;
+  display: inline-block;
+}
+.qz-line-edit { min-width: 180px; min-height: 28px; }
+.qz-text-edit { min-width: 220px; min-height: 72px; white-space: pre-wrap; vertical-align: top; }
+.qz-line-edit.read-only, .qz-text-edit.read-only {
+  background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5));
+}
+.qz-line-edit.placeholder { color: rgba(0,0,0,0.5); }
+
+.qz-container, .qz-scroll-area {
+  background: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+.qz-scroll-area { background: #FFFFFF; }
+
+</style></head>
+<body><div class="card" style="height:240px;">
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;align-items:flex-end;">
+    <div class="sw-col" style="align-items:center"><button class="qz-button">OK</button>           <div class="cap">idle</div></div>
+    <div class="sw-col" style="align-items:center"><button class="qz-button hover">OK</button>     <div class="cap">hovered</div></div>
+    <div class="sw-col" style="align-items:center"><button class="qz-button pressed">OK</button>   <div class="cap">pressed</div></div>
+    <div class="sw-col" style="align-items:center"><button class="qz-button checked">OK</button>   <div class="cap">checked</div></div>
+    <div class="sw-col" style="align-items:center"><button class="qz-button focused">OK</button>   <div class="cap">focused</div></div>
+    <div class="sw-col" style="align-items:center"><button class="qz-button disabled">OK</button>  <div class="cap">disabled</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:18px;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADS0lEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8++MEP9nu/93vz/9F3f/d3U9/7vd+bz/qsz+L/KYL/AtM08Y3f+I28y7u8C2/7tm/Ll3zJl3B4eMj9lssl7//+78+9997L/Z7whCfwAR/wAfzDP/wD/4kI/pOt12te8zVfkx/5kR/hnd7pnfjAD/xA/vRP/5SXe7mX4+zZswAMw8B3fMd3cOnSJQD+6q/+itd+7dfmpV7qpXixF3sx/hNR+U/2VV/1VTztaU/j9ttvp+s6AN7ojd6IV3iFV+AzP/Mz+aZv+iYe6A//8A95q7d6K77iK76C93zP9+Q/GcF/sp/+6Z/mjd7ojei6jvtJ4i3e4i34qZ/6KR7o137t13iLt3gLvu3bvo33fM/35L8AwX+yJz3pSbzhG74hz+0N3/ANuffee7l06RL3+8iP/Eg+9EM/lLd+67fmvwjBf7Ljx49z++2389xuv/12+r5nc3OT+33Zl30ZX/3VX83P/MzP8F+E4D/ZS7zES/CLv/iLPLdf+IVf4DGPeQy1Vu735m/+5vzgD/4g7/7u787P/uzP8l+A4D/Zp37qp/Inf/In/PZv/zb3+/u//3t+/ud/nk/7tE/jub3FW7wFP/ADP8C7vdu78XM/93P8J6Pyn+yVXumV+N7v/V7e4R3egYc97GHM53P+5m/+hs/5nM/hHd7hHXh+3vIt35Lv//7v513f9V35wR/8Qd7iLd6C/yRU/gu80zu9E2/zNm/D3//937Ner3mpl3opNjY2uN/29jZPecpTuOWWW7jfW73VW/GkJz2JcRz5T0Tlv0jf97zsy74sz09E8LCHPYzndv311/OfjOD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/36jf/d3fzf9X3/3d380/AnTSstz1AS1EAAAAAElFTkSuQmCC"     style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADRElEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a9ed9OD/cZv/978f/TLP/7d1Dd++/fmvT7qs/h/iuC/QJsmfub7vpHP+8h34TM/+G35oW/+ElZHh9xvvVryZZ/8/lw8dy/3u+2pT+DLP/kDuPVJ/8B/IoL/ZMN6zUe902vyW7/wI7zOm78Tb/4uH8gT/uZP+cC3eDl2L5wFYBoHfvFHvoOD/UsAPPkf/oqPfufX5mGPfSke/MgX4z8Rlf9kP/6dX8Vdtz2NH/uj2ym1A+AVXvON+OC3egW+6ys/k4/5/G/igf7+L/6QT/+At+JDP/0reMO3fU/+kxH8J/v9X/1pXvE134hSO+4niVd9vbfg937lp3igv/j9X+PT3v8t+Pgv/jbe8G3fk/8CBP/J7nj6k3j513hDntsrvOYbcvHcvRzuX+J+X/vZH8lbvfuH8upv+Nb8FyH4T7a5c5z77r6d53bfXbdTu575YpP7ffCnfBk//l1fzR/82s/wX4TgP9nDHvUS/Mlv/yLP7Y9/8xd40MMfQ6mV+73K6705n/41P8gXfMy78we//rP8FyD4T/ZuH/apPO6v/oS//uPf5n5Pf+Lf84e/8fO8+4d/Gs/tVV/vLfj0r/4BvuCj340//PWf4z8Zlf9kj3npV+JTv/J7+ewPewduuOVh9LM5T3383/DeH/05vPabvgPPz6u+/lvyaV/1/Xz+R78rn/41P8irvt5b8J+Eyn+B13nzd+LV3+htePoT/55xWPOwx7wU88UG91tsbvMDv/0UrrnhFu73am/wVnzfbz6JNo38J6LyX6Treh754i/L8xMR3PCgh/HcTl1zPf/JCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jeD/N4L/3wj+fyP4/43g/zeC/98I/n8j+P+N4P83gv/fCP5/I/j/jfrLP/7d/H/1yz/+3fwj5zyzMU6J5ZYAAAAASUVORK5CYII="  style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACsUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8+/aL9PX/N/0vv9dJQv+ev4bN/h/+vCP4L1IAPfQX4obeDn3wn+KRXg82OZ1l08O1vCddu8SyPPg3f9hbwYtfwn4ngP9mswu++N7zTi8GP/AN861/AK94If/FBcGaDy/qA93sZODbjspe5Dn77veFv7oV/uI//TFT+k33MK8NDT8LNXwljctmvPAX+7APhc18HPuQXeA6vejP8zDvDx/0qfO/f8J+N4D/ZWz8afuUpMCbPYuDnnghv82iewxs8FH7uXeADfg6+92/4r0Dwn+yRp+BXn8bz+NWnwrVbcGzGs3ztm8A3/hn89BP4r0Lwn2x3BTfv8DxuPgZDg8ORZ/mEX4OPfmV4q0fxX4XgP9nf3Qtv+nCex5s9Ah5/DqbkWX7+SfCuPwHf/7bwlo/ivwLBf7Iv/D14pZvgtR/Ms7z4NfDmj4Qv+F2ex889Cd7tJ+EH3hbe4lH8Z6Pyn+xP7oT3/Cn4sXeAp16E1QQvdS181m/Djz2O5+tnnwjv/pPwg28L7/oT8HNP4j8Llf8CP/IP8FNPgBe/BmYV/uYeOBp5lv0BHv51cNslnuVnngiP/Hrogv9MVP6LDA3+8m6erzQ89QLP4+59/rMR/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8b9b1emv+33uul4R8BnQ1840OAvAkAAAAASUVORK5CYII="  style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACsUlEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a8+/aL9PX/N/0vv9dJQv+ev4bN/h/+vCP4L1IAPfQX4obeDn3wn+KRXg82OZ1l08O1vCddu8SyPPg3f9hbwYtfwn4ngP9mswu++N7zTi8GP/AN861/AK94If/FBcGaDy/qA93sZODbjspe5Dn77veFv7oV/uI//TFT+k33MK8NDT8LNXwljctmvPAX+7APhc18HPuQXeA6vejP8zDvDx/0qfO/f8J+N4D/ZWz8afuUpMCbPYuDnnghv82iewxs8FH7uXeADfg6+92/4r0Dwn+yRp+BXn8bz+NWnwrVbcGzGs3ztm8A3/hn89BP4r0Lwn2x3BTfv8DxuPgZDg8ORZ/mEX4OPfmV4q0fxX4XgP9nf3Qtv+nCex5s9Ah5/DqbkWX7+SfCuPwHf/7bwlo/ivwLBf7Iv/D14pZvgtR/Ms7z4NfDmj4Qv+F2ex889Cd7tJ+EH3hbe4lH8Z6Pyn+xP7oT3/Cn4sXeAp16E1QQvdS181m/Djz2O5+tnnwjv/pPwg28L7/oT8HNP4j8Llf8CP/IP8FNPgBe/BmYV/uYeOBp5lv0BHv51cNslnuVnngiP/Hrogv9MVP6LDA3+8m6erzQ89QLP4+59/rMR/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8b9b1emv+33uul4R8BnQ1840OAvAkAAAAASUVORK5CYII="  style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAADNElEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a/y2Tb/f1EB/Fn8v6TPgeC/wDRNfOM3fiPv8i7vwtu+7dvyJV/yJRweHnK/5XLJ+7//+3Pvvfdyvyc84Ql8wAd8AP/wD//AfyKC/2Tr9ZrXfM3X5Ed+5Ed4p3d6Jz7wAz+QP/3TP+XlXu7lOHv2LADDMPAd3/EdXLp0CYC/+qu/4rVf+7V5qZd6KV7sxV6M/0RU/pN91Vd9FU972tO4/fbb6boOgDd6ozfiFV7hFfjMz/xMvumbvokH+sM//EPe6q3eiq/4iq/gPd/zPflPRvCf7Kd/+qd5ozd6I7qu436SeIu3eAt+6qd+igf6tV/7Nd7iLd6Cb/u2b+M93/M9+S9A8J/sSU96Em/4hm/Ic3vDN3xD7r33Xi5dusT9PvIjP5IP/dAP5a3f+q35L0Lwn+z48ePcfvvtPLfbb7+dvu/Z3Nzkfl/2ZV/GV3/1V/MzP/Mz/Bch+E/2Ei/xEvziL/4iz+0XfuEXeMxjHkOtlfu9+Zu/OT/4gz/Iu7/7u/OzP/uz/Bcg+E/2qZ/6qfzJn/wJv/3bv839/v7v/56f//mf59M+7dN4bm/xFm/BD/zAD/Bu7/Zu/NzP/Rz/yaj8J3ulV3olvvd7v5d3eId34GEPexjz+Zy/+Zu/4XM+53N4h3d4B56ft3zLt+T7v//7edd3fVd+8Ad/kLd4i7fgPwnis21/Fv/phmHg7//+71mv17zUS70UGxsb3C8zefrTn84tt9xC13Xc7+6772YcR2655Rb+M+hzoPJfpO97XvZlX5bnJyJ42MMexnO7/vrr+U9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vVAB9Dv9f8Y8OE7UQevvLgAAAAABJRU5ErkJggg=="  style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAC6ElEQVR4Ae3AA6AkWZbG8f937o3IzKdyS2Oubdu2bdu2bdu2bWmMnpZKr54yMyLu+Xa3anqmhztr1a++8Ru/sa+77jr+P7rnnnuo1113HQ9+8IP5f4rKfwHb3HXXXVy6dInMZGdnhxtvvJFSCgCZyZOf/GQe8pCH0Pc9AEdHR9x+++3cdNNNbG5u8p+E4D9ZZvJXf/VX3HfffVxzzTXccMMN7O/v8xd/8ReM4whAZnL33XczTRMABwcH/PVf/zVbW1tsbm7yn4jgP9kdd9zBarXipV/6pTl9+jQnT57kxV7sxSil8PSnP53ndunSJf7mb/6Ghz70odx44438JyP4T3bu3DlOnjyJJB7o1KlTnDt3jge6ePEif/d3f8ejHvUorrvuOv4LEPwnOzo64sSJEzy3kydPMgwD0zRxvyc/+cnceOONnD59mv8iBP/Jaq2s12ue22q1QhKlFO73sIc9jDvuuINz587xX4TgP9nm5ibnz5/nuZ0/f57NzU0kcb9Tp07x2Mc+lsc//vGcO3eO/wIE/8ke9KAHsbe3x+7uLvc7PDzk/PnzPOhBD+K5nTp1isc85jE8/vGP59y5c/wno/KfbGdnh8c85jH8wz/8A4vFgojg4OCABz/4wZw5c4bn5/Tp0zzmMY/h8Y9/PI997GM5deoU/0mo/Be45pprOH36NIeHh9hmc3OTUgr3K6XwSq/0Ssznc+53+vRpXumVXonM5D8Rlf8iEcH29jbPjyQWiwXPre97/pMR/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8bwf9vBP+/Efz/RvD/G8H/bwT/vxH8/0bw/xvB/28E/78R/P9G8P8b9Z577uH/q3vuuYd/BNpRqmlIPl55AAAAAElFTkSuQmCC" style="width:96px;image-rendering:pixelated;justify-self:center;border:1px dashed #999;">
+  </div>
+  <div class="note" style="margin-top:8px;text-align:center;">
+    HTML mocks (top) vs committed `DefaultStyle` snapshots (bottom).
+  </div>
+</div></body></html>

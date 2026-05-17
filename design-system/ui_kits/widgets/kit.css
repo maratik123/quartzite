@@ -1,0 +1,247 @@
+/* ui_kits/widgets/kit.css
+ * Mirrors DefaultStyle as a single stylesheet so the JSX
+ * components stay tiny. Class names map 1:1 onto widget types
+ * from `quartzite-widgets`. */
+
+* { box-sizing: border-box; }
+
+:root {
+  --qz-window:           #FFFFFF;
+  --qz-button:           #FFFFFF;
+  --qz-base:             #FFFFFF;
+  --qz-window-text:      #000000;
+  --qz-button-text:      #000000;
+  --qz-text:             #000000;
+  --qz-highlight:        #0080FF;
+  --qz-highlighted-text: #FFFFFF;
+  --qz-bright-text:      #FFFFFF;
+  --qz-link:             #0000FF;
+  --qz-link-visited:     #0000FF;
+  --qz-button-hover:     #BFDFFF;
+  --qz-readonly-overlay: rgba(255, 255, 255, 0.5);
+  --qz-desktop:          #D4D4D4;
+}
+
+/* Dark theme override — same 11 ColorRole slots, dark seeds.
+   Activated by setting data-theme="dark" or .qz-dark on any ancestor. */
+[data-theme="dark"], .qz-dark {
+  --qz-window:           #2B2B2B;
+  --qz-button:           #3C3C3C;
+  --qz-base:             #1E1E1E;
+  --qz-window-text:      #E8E8E8;
+  --qz-button-text:      #E8E8E8;
+  --qz-text:             #E8E8E8;
+  --qz-highlight:        #1E90FF;
+  --qz-highlighted-text: #FFFFFF;
+  --qz-bright-text:      #FF6B6B;
+  --qz-link:             #5BB0FF;
+  --qz-link-visited:     #C58AFF;
+  --qz-button-hover:     #345067;
+  --qz-readonly-overlay: rgba(43, 43, 43, 0.5);
+  --qz-desktop:          #1B1B1B;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--qz-desktop);
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12pt;
+  color: var(--qz-window-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* WindowFrame ---------------------------------------------- */
+.qz-window {
+  background: var(--qz-window);
+  border: 1px solid var(--qz-window-text);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);   /* visual lift only, not framework */
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+.qz-window__titlebar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--qz-window-text);
+  background: var(--qz-window);
+  user-select: none;
+}
+.qz-window__title { font-weight: 600; font-size: 11pt; }
+.qz-window__title-mono { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; color: var(--qz-window-text); opacity: 0.6; }
+.qz-window__chrome-btn {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--qz-window-text);
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; line-height: 1;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.qz-window__chrome-btn--wide {
+  width: auto;
+  font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+  font-size: 10pt;
+  padding: 0 10px;
+  gap: 4px;
+}
+.qz-window__chrome-btn:hover { background: var(--qz-button-hover); }
+.qz-window__body {
+  flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--qz-window);
+}
+
+/* Container ------------------------------------------------ */
+.qz-container {
+  background: var(--qz-window);
+  border: 1px solid var(--qz-window-text);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 0; /* allow flex children to shrink */
+}
+fieldset.qz-container {
+  /* override default fieldset reset */
+  margin: 0;
+}
+.qz-container__legend {
+  font-weight: 600; font-size: 11pt;
+  padding: 0 6px;
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  /* native <legend> sits on the top border automatically */
+}
+
+/* Label ---------------------------------------------------- */
+.qz-label {
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  text-align: left;
+  padding: 0;
+  white-space: pre-wrap;
+}
+.qz-label--center { text-align: center; }
+.qz-label--right  { text-align: right; }
+
+/* Button --------------------------------------------------- */
+.qz-button {
+  background: var(--qz-button);
+  color: var(--qz-button-text);
+  border: 1px solid var(--qz-button-text);
+  font: inherit;
+  padding: 6px 16px;
+  min-height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+.qz-button:hover { background: var(--qz-button-hover); }
+.qz-button:active, .qz-button.is-pressed {
+  background: var(--qz-highlight);
+  color: var(--qz-highlighted-text);
+  border-color: var(--qz-highlighted-text);
+}
+.qz-button.is-checked {
+  background: var(--qz-highlight);
+  color: var(--qz-highlighted-text);
+  border-color: var(--qz-highlighted-text);
+}
+.qz-button:focus-visible, .qz-button.is-focused {
+  outline: 2px solid var(--qz-highlight);
+  outline-offset: -2px;
+}
+.qz-button:disabled, .qz-button.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* LineEdit ------------------------------------------------- */
+.qz-line-edit {
+  background: var(--qz-base);
+  color: var(--qz-text);
+  border: 1px solid var(--qz-text);
+  font: inherit;
+  padding: 4px 6px;
+  min-height: 28px;
+  width: 100%;
+  outline: none;
+}
+.qz-line-edit::placeholder { color: rgba(0,0,0,0.5); }
+[data-theme="dark"] .qz-line-edit::placeholder, .qz-dark .qz-line-edit::placeholder { color: rgba(232,232,232,0.5); }
+.qz-line-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-line-edit:read-only {
+  background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
+}
+
+/* TextEdit ------------------------------------------------- */
+.qz-text-edit {
+  background: var(--qz-base);
+  color: var(--qz-text);
+  border: 1px solid var(--qz-text);
+  font: inherit;
+  padding: 4px 6px;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+}
+.qz-text-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-text-edit:read-only {
+  background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
+}
+
+/* ScrollArea ----------------------------------------------- */
+.qz-scroll-area {
+  background: var(--qz-base);
+  border: 1px solid var(--qz-window-text);
+  position: relative;
+  overflow: hidden;
+}
+.qz-scroll-area__viewport {
+  width: 100%; height: 100%;
+  overflow: auto;
+  padding: 8px 14px 8px 10px;
+  scrollbar-width: thin;
+}
+/* WebKit scrollbar — flat, 1px, matches Pen widths */
+.qz-scroll-area__viewport::-webkit-scrollbar { width: 12px; height: 12px; }
+.qz-scroll-area__viewport::-webkit-scrollbar-track {
+  background: var(--qz-base); border-left: 1px solid var(--qz-window-text);
+}
+.qz-scroll-area__viewport::-webkit-scrollbar-thumb {
+  background: var(--qz-window-text);
+  border: 1px solid var(--qz-window-text);
+  background-clip: padding-box;
+}
+.qz-scroll-area__viewport::-webkit-scrollbar-thumb:hover { background: var(--qz-highlight); }
+
+/* Field row (BoxLayout helper) ----------------------------- */
+.qz-row { display: flex; align-items: center; gap: 10px; }
+.qz-row > .qz-label { min-width: 90px; }
+.qz-col { display: flex; flex-direction: column; gap: 8px; }
+.qz-stretch { flex: 1; }
+
+/* Helpers for the log ------------------------------------- */
+.qz-log-row {
+  font-family: 'DejaVu Sans Mono', monospace;
+  font-size: 10pt;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+[data-theme="dark"] .qz-log-row, .qz-dark .qz-log-row { border-bottom-color: rgba(255,255,255,0.08); }
+.qz-log-row .signal { color: var(--qz-link); }
+.qz-log-row .value  { color: var(--qz-window-text); }
+.qz-log-row.empty { color: rgba(0,0,0,0.45); border: none; }
+[data-theme="dark"] .qz-log-row.empty, .qz-dark .qz-log-row.empty { color: rgba(255,255,255,0.45); }
+
+/* Note list item */
+.qz-note {
+  border: 1px solid var(--qz-window-text);
+  padding: 8px 10px;
+  background: var(--qz-base);
+}
+.qz-note + .qz-note { border-top: none; }
+.qz-note__title { font-weight: 700; font-size: 11pt; }
+.qz-note__body  { font-size: 11pt; white-space: pre-wrap; margin-top: 2px; }

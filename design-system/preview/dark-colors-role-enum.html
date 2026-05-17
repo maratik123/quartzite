@@ -1,0 +1,126 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Dark — ColorRole</title>
+<style>
+/* Card chrome — shared by every file under /preview.
+   Cards target ~700×<height>px and render the swatches / specimens
+   /tokens directly with minimal decoration. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #FFFFFF;
+  color: #000000;
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+.card {
+  width: 700px;
+  box-sizing: border-box;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 12pt;
+}
+
+/* swatch primitives */
+.sw-row    { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.sw-col    { display: flex; flex-direction: column; gap: 6px; }
+.sw-grid   { display: grid; gap: 12px; }
+.sw        {
+  width: 64px; height: 64px;
+  border: 1px solid #000000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10pt;
+}
+.sw.lg     { width: 96px; height: 96px; }
+.sw.sm     { width: 48px; height: 48px; }
+.sw .mono  { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; }
+.cap       { font-size: 9pt; color: #000000; letter-spacing: 0.02em; }
+.mono      { font-family: 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace; }
+.note      { font-size: 9.5pt; color: rgba(0,0,0,0.65); }
+.kbd       { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; padding: 1px 5px; border: 1px solid #000; background: #fff; }
+
+/* meta info pair */
+.kv        { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; font-size: 10pt; }
+.kv .k     { font-family: 'DejaVu Sans Mono', monospace; }
+.kv .v     { font-family: 'DejaVu Sans Mono', monospace; color: rgba(0,0,0,0.7); }
+
+/* mirrors of DefaultStyle */
+.qz-button {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 6px 16px;
+  font: inherit; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 64px; min-height: 32px;
+}
+.qz-button.hover    { background: #BFDFFF; }
+.qz-button.pressed,
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.focused  {
+  /* additive 2px highlight outline over idle */
+  box-shadow: inset 0 0 0 2px #0080FF;
+}
+.qz-button.disabled { opacity: 0.5; }
+
+.qz-line-edit, .qz-text-edit {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 4px 6px; font: inherit;
+  display: inline-block;
+}
+.qz-line-edit { min-width: 180px; min-height: 28px; }
+.qz-text-edit { min-width: 220px; min-height: 72px; white-space: pre-wrap; vertical-align: top; }
+.qz-line-edit.read-only, .qz-text-edit.read-only {
+  background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5));
+}
+.qz-line-edit.placeholder { color: rgba(0,0,0,0.5); }
+
+.qz-container, .qz-scroll-area {
+  background: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+.qz-scroll-area { background: #FFFFFF; }
+
+
+.card.dark { background: #2B2B2B; color: #E8E8E8; }
+.card.dark .sw       { border-color: #E8E8E8; color: #E8E8E8; }
+.card.dark .cap      { color: #E8E8E8; }
+.card.dark .note     { color: rgba(232,232,232,0.7); }
+.card.dark .mono     { color: #E8E8E8; }
+.card.dark .kv .k    { color: #E8E8E8; }
+.card.dark .kv .v    { color: rgba(232,232,232,0.7); }
+.card.dark .qz-button { background: #3C3C3C; color: #E8E8E8; border: 1px solid #E8E8E8; }
+.card.dark .qz-button.hover    { background: #345067; }
+.card.dark .qz-button.pressed,
+.card.dark .qz-button.checked  { background: #1E90FF; color: #FFFFFF; border-color: #FFFFFF; }
+.card.dark .qz-button.focused  { box-shadow: inset 0 0 0 2px #1E90FF; }
+.card.dark .qz-button.disabled { opacity: 0.5; }
+.card.dark .qz-line-edit, .card.dark .qz-text-edit { background: #1E1E1E; color: #E8E8E8; border: 1px solid #E8E8E8; }
+.card.dark .qz-line-edit.read-only, .card.dark .qz-text-edit.read-only { background-image: linear-gradient(rgba(43,43,43,0.5), rgba(43,43,43,0.5)); }
+.card.dark .qz-line-edit.placeholder { color: rgba(232,232,232,0.5); }
+.card.dark .qz-container { background: #2B2B2B; border: 1px solid #E8E8E8; }
+.card.dark .qz-scroll-area { background: #1E1E1E; border: 1px solid #E8E8E8; }
+.card.dark .qz-label { background: #2B2B2B; color: #E8E8E8; }
+
+</style></head><body>
+<div class="card dark" style="height:300px;">
+  <div class="kv" style="grid-template-columns: max-content max-content 1fr;gap:4px 14px;">
+    <div class="cap"><b>Role</b></div><div class="cap"><b>Dark seed</b></div><div class="cap"><b>vs default</b></div>
+    <div class="mono">Window</div>          <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#2B2B2B;vertical-align:middle"></span> #2B2B2B</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">WindowText</div>      <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#E8E8E8;vertical-align:middle"></span> #E8E8E8</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">Button</div>          <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#3C3C3C;vertical-align:middle"></span> #3C3C3C</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">ButtonText</div>      <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#E8E8E8;vertical-align:middle"></span> #E8E8E8</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">Base</div>            <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#1E1E1E;vertical-align:middle"></span> #1E1E1E</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">Text</div>            <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#E8E8E8;vertical-align:middle"></span> #E8E8E8</div> <div style="color:#5BB0FF">overridden</div>
+    <div class="mono">Highlight</div>       <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#1E90FF;vertical-align:middle"></span> #1E90FF</div> <div style="opacity:0.6">brighter blue (DodgerBlue)</div>
+    <div class="mono">HighlightedText</div> <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#FFFFFF;vertical-align:middle"></span> #FFFFFF</div> <div style="opacity:0.6">same as default</div>
+    <div class="mono">Link</div>            <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#5BB0FF;vertical-align:middle"></span> #5BB0FF</div> <div style="color:#FF6B6B">diverged from Visited</div>
+    <div class="mono">LinkVisited</div>     <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#C58AFF;vertical-align:middle"></span> #C58AFF</div> <div style="color:#FF6B6B">diverged from Link</div>
+    <div class="mono">BrightText</div>      <div class="mono"><span style="display:inline-block;width:10px;height:10px;border:1px solid #E8E8E8;background:#FF6B6B;vertical-align:middle"></span> #FF6B6B</div> <div style="color:#FF6B6B">Qt red-for-attention</div>
+  </div>
+</div>
+</body></html>

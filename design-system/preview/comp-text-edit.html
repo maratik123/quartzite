@@ -1,0 +1,107 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>TextEdit</title>
+<style>
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:2px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
+
+.qz-text-edit {
+  background:#FFFFFF; color:#000000; border:1px solid #000000;
+  padding:4px 6px; font:inherit; display:inline-block;
+  min-width:200px; min-height:72px; white-space:pre-wrap; vertical-align:top;
+}
+.qz-text-edit.dark { background:#1E1E1E; color:#E8E8E8; border-color:#E8E8E8; }
+
+/* Proposed overlay: WindowText.with_alpha(0.10) — a tint of the
+   FOREGROUND, not the background. Visible on every palette because
+   WindowText is always the strongest contrast against Window/Base. */
+.qz-text-edit.read-only {
+  /* light: rgba(0,0,0,0.10) over #FFFFFF → ~#E6E6E6, a clean light gray */
+  background-image: linear-gradient(rgba(0,0,0,0.10), rgba(0,0,0,0.10));
+  /* Also dim the text itself for a stronger read-only signal */
+  color: rgba(0,0,0,0.65);
+}
+.qz-text-edit.dark.read-only {
+  /* dark: rgba(232,232,232,0.10) over #1E1E1E → ~#323232, clearly lifted */
+  background-image: linear-gradient(rgba(232,232,232,0.10), rgba(232,232,232,0.10));
+  color: rgba(232,232,232,0.65);
+}
+
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55); text-transform:uppercase; margin-bottom:6px; }
+
+.callout {
+  border:1px solid #000;
+  padding:10px 12px;
+  background:#FFFFFF;
+  font-size:10pt;
+  margin-top:14px;
+  display:grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 12px;
+  align-items:flex-start;
+}
+.callout::before {
+  content:""; display:inline-block; width:14px; height:14px;
+  background:#0080FF; border:1px solid #000; align-self:start;
+  margin-top:2px;
+}
+.callout b { font-weight:700; }
+</style></head>
+<body><div class="card" style="min-height:320px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr max-content;gap:20px;align-items:flex-start;">
+    <!-- Light pair -->
+    <div>
+      <div class="col-label">light · Palette::default</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <span class="qz-text-edit">Quartzite is a Rust&#10;GUI &amp; object framework.&#10;&#10;Writable.</span>
+          <div class="cap mono" style="margin-top:4px;">writable · #FFFFFF</div>
+        </div>
+        <div>
+          <span class="qz-text-edit read-only">Quartzite is a Rust&#10;GUI &amp; object framework.&#10;&#10;Read-only.</span>
+          <div class="cap mono" style="margin-top:4px;">read-only · ≈#E6E6E6, text α 0.65</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dark pair -->
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">dark · Window #2B2B2B</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <span class="qz-text-edit dark">Quartzite is a Rust&#10;GUI &amp; object framework.&#10;&#10;Writable.</span>
+          <div class="cap mono" style="margin-top:4px;">writable · #1E1E1E</div>
+        </div>
+        <div>
+          <span class="qz-text-edit dark read-only">Quartzite is a Rust&#10;GUI &amp; object framework.&#10;&#10;Read-only.</span>
+          <div class="cap mono" style="margin-top:4px;">read-only · ≈#323232, text α 0.65</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prop / signal list -->
+    <div class="kv">
+      <div class="k">prop</div><div class="v">plain_text: String</div>
+      <div class="k">prop</div><div class="v">read_only: bool</div>
+      <div class="k">signal</div><div class="v">text_changed(String)</div>
+      <div class="k">slot</div><div class="v">set_plain_text(String)</div>
+      <div class="k">slot</div><div class="v">clear()</div>
+      <div class="k">paint</div><div class="v">fill Base, stroke Text 1 px</div>
+      <div class="k">overlay</div><div class="v" style="color:#0080FF;">WindowText × 0.10α<br>+ Text × 0.65 (proposed)</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>Proposed change vs framework today.</b>
+    <div>
+      Current <span class="mono">DefaultStyle::paint&lt;TextEdit&gt;</span> overlays <span class="mono">Window.with_alpha(0.5)</span>, which on the default palette renders white-on-white and is indistinguishable from the writable state. This card instead tints with <span class="mono">WindowText.with_alpha(0.10)</span> and drops text alpha to <span class="mono">0.65</span> — both derive from <span class="mono">ColorRole</span> slots, both produce a visible read-only state on every palette. <b>Recommend updating the overlay in <span class="mono">default_style.rs</span> to match.</b>
+    </div>
+  </div>
+</div></body></html>

@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>quartzite-widgets demo</title>
+  <link rel="icon" href="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%20role%3D%22img%22%20aria-label%3D%22Quartzite%20mark%22%20shape-rendering%3D%22crispEdges%22%3E%0A%20%20%0A%20%20%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23FFFFFF%22%3E%3C%2Frect%3E%0A%0A%20%20%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2010%2C20%2010%2C44%2032%2C32%22%20fill%3D%22%230080FF%22%3E%3C%2Fpolygon%3E%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2054%2C20%2032%2C32%22%20fill%3D%22%23BFDFFF%22%3E%3C%2Fpolygon%3E%0A%0A%20%20%0A%20%20%3Cpath%20d%3D%22M%2032%206%20L%2054%2020%20L%2054%2044%20L%2032%2058%20L%2010%2044%20L%2010%2020%20Z%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%206%20%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2020%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2010%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%2058%20L%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22butt%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" type="image/svg+xml">
+  <style>
+/* ui_kits/widgets/kit.css
+ * Mirrors DefaultStyle as a single stylesheet so the JSX
+ * components stay tiny. Class names map 1:1 onto widget types
+ * from `quartzite-widgets`. */
+
+* { box-sizing: border-box; }
+
+:root {
+  --qz-window:           #FFFFFF;
+  --qz-button:           #FFFFFF;
+  --qz-base:             #FFFFFF;
+  --qz-window-text:      #000000;
+  --qz-button-text:      #000000;
+  --qz-text:             #000000;
+  --qz-highlight:        #0080FF;
+  --qz-highlighted-text: #FFFFFF;
+  --qz-bright-text:      #FFFFFF;
+  --qz-link:             #0000FF;
+  --qz-link-visited:     #0000FF;
+  --qz-button-hover:     #BFDFFF;
+  --qz-readonly-overlay: rgba(255, 255, 255, 0.5);
+  --qz-desktop:          #D4D4D4;
+}
+
+/* Dark theme override — same 11 ColorRole slots, dark seeds.
+   Activated by setting data-theme="dark" or .qz-dark on any ancestor. */
+[data-theme="dark"], .qz-dark {
+  --qz-window:           #2B2B2B;
+  --qz-button:           #3C3C3C;
+  --qz-base:             #1E1E1E;
+  --qz-window-text:      #E8E8E8;
+  --qz-button-text:      #E8E8E8;
+  --qz-text:             #E8E8E8;
+  --qz-highlight:        #1E90FF;
+  --qz-highlighted-text: #FFFFFF;
+  --qz-bright-text:      #FF6B6B;
+  --qz-link:             #5BB0FF;
+  --qz-link-visited:     #C58AFF;
+  --qz-button-hover:     #345067;
+  --qz-readonly-overlay: rgba(43, 43, 43, 0.5);
+  --qz-desktop:          #1B1B1B;
+}
+
+html, body {
+  margin: 0; padding: 0;
+  background: var(--qz-desktop);
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 12pt;
+  color: var(--qz-window-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* WindowFrame ---------------------------------------------- */
+.qz-window {
+  background: var(--qz-window);
+  border: 1px solid var(--qz-window-text);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);   /* visual lift only, not framework */
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+.qz-window__titlebar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--qz-window-text);
+  background: var(--qz-window);
+  user-select: none;
+}
+.qz-window__title { font-weight: 600; font-size: 11pt; }
+.qz-window__title-mono { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; color: var(--qz-window-text); opacity: 0.6; }
+.qz-window__chrome-btn {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--qz-window-text);
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; line-height: 1;
+  white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.qz-window__chrome-btn--wide {
+  width: auto;
+  font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+  font-size: 10pt;
+  padding: 0 10px;
+  gap: 4px;
+}
+.qz-window__chrome-btn:hover { background: var(--qz-button-hover); }
+.qz-window__body {
+  flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 8px;
+  background: var(--qz-window);
+}
+
+/* Container ------------------------------------------------ */
+.qz-container {
+  background: var(--qz-window);
+  border: 1px solid var(--qz-window-text);
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-width: 0; /* allow flex children to shrink */
+}
+fieldset.qz-container {
+  /* override default fieldset reset */
+  margin: 0;
+}
+.qz-container__legend {
+  font-weight: 600; font-size: 11pt;
+  padding: 0 6px;
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  /* native <legend> sits on the top border automatically */
+}
+
+/* Label ---------------------------------------------------- */
+.qz-label {
+  background: var(--qz-window);
+  color: var(--qz-window-text);
+  text-align: left;
+  padding: 0;
+  white-space: pre-wrap;
+}
+.qz-label--center { text-align: center; }
+.qz-label--right  { text-align: right; }
+
+/* Button --------------------------------------------------- */
+.qz-button {
+  background: var(--qz-button);
+  color: var(--qz-button-text);
+  border: 1px solid var(--qz-button-text);
+  font: inherit;
+  padding: 6px 16px;
+  min-height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+.qz-button:hover { background: var(--qz-button-hover); }
+.qz-button:active, .qz-button.is-pressed {
+  background: var(--qz-highlight);
+  color: var(--qz-highlighted-text);
+  border-color: var(--qz-highlighted-text);
+}
+.qz-button.is-checked {
+  background: var(--qz-highlight);
+  color: var(--qz-highlighted-text);
+  border-color: var(--qz-highlighted-text);
+}
+.qz-button:focus-visible, .qz-button.is-focused {
+  outline: 2px solid var(--qz-highlight);
+  outline-offset: -2px;
+}
+.qz-button:disabled, .qz-button.is-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* LineEdit ------------------------------------------------- */
+.qz-line-edit {
+  background: var(--qz-base);
+  color: var(--qz-text);
+  border: 1px solid var(--qz-text);
+  font: inherit;
+  padding: 4px 6px;
+  min-height: 28px;
+  width: 100%;
+  outline: none;
+}
+.qz-line-edit::placeholder { color: rgba(0,0,0,0.5); }
+[data-theme="dark"] .qz-line-edit::placeholder, .qz-dark .qz-line-edit::placeholder { color: rgba(232,232,232,0.5); }
+.qz-line-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-line-edit:read-only {
+  background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
+}
+
+/* TextEdit ------------------------------------------------- */
+.qz-text-edit {
+  background: var(--qz-base);
+  color: var(--qz-text);
+  border: 1px solid var(--qz-text);
+  font: inherit;
+  padding: 4px 6px;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+}
+.qz-text-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-text-edit:read-only {
+  background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
+}
+
+/* ScrollArea ----------------------------------------------- */
+.qz-scroll-area {
+  background: var(--qz-base);
+  border: 1px solid var(--qz-window-text);
+  position: relative;
+  overflow: hidden;
+}
+.qz-scroll-area__viewport {
+  width: 100%; height: 100%;
+  overflow: auto;
+  padding: 8px 14px 8px 10px;
+  scrollbar-width: thin;
+}
+/* WebKit scrollbar — flat, 1px, matches Pen widths */
+.qz-scroll-area__viewport::-webkit-scrollbar { width: 12px; height: 12px; }
+.qz-scroll-area__viewport::-webkit-scrollbar-track {
+  background: var(--qz-base); border-left: 1px solid var(--qz-window-text);
+}
+.qz-scroll-area__viewport::-webkit-scrollbar-thumb {
+  background: var(--qz-window-text);
+  border: 1px solid var(--qz-window-text);
+  background-clip: padding-box;
+}
+.qz-scroll-area__viewport::-webkit-scrollbar-thumb:hover { background: var(--qz-highlight); }
+
+/* Field row (BoxLayout helper) ----------------------------- */
+.qz-row { display: flex; align-items: center; gap: 10px; }
+.qz-row > .qz-label { min-width: 90px; }
+.qz-col { display: flex; flex-direction: column; gap: 8px; }
+.qz-stretch { flex: 1; }
+
+/* Helpers for the log ------------------------------------- */
+.qz-log-row {
+  font-family: 'DejaVu Sans Mono', monospace;
+  font-size: 10pt;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+[data-theme="dark"] .qz-log-row, .qz-dark .qz-log-row { border-bottom-color: rgba(255,255,255,0.08); }
+.qz-log-row .signal { color: var(--qz-link); }
+.qz-log-row .value  { color: var(--qz-window-text); }
+.qz-log-row.empty { color: rgba(0,0,0,0.45); border: none; }
+[data-theme="dark"] .qz-log-row.empty, .qz-dark .qz-log-row.empty { color: rgba(255,255,255,0.45); }
+
+/* Note list item */
+.qz-note {
+  border: 1px solid var(--qz-window-text);
+  padding: 8px 10px;
+  background: var(--qz-base);
+}
+.qz-note + .qz-note { border-top: none; }
+.qz-note__title { font-weight: 700; font-size: 11pt; }
+.qz-note__body  { font-size: 11pt; white-space: pre-wrap; margin-top: 2px; }
+
+.qz-shell { max-width: 980px; margin: 0 auto; padding: 24px 16px; }
+  </style>
+</head>
+<body data-screen-label="01 quartzite-widgets demo">
+  <div class="qz-shell" id="root"></div>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" data-presets="react">
+// --- Button.jsx ---
+/* Button.jsx
+ * Mirrors quartzite-widgets::Button + DefaultStyle::paint<Button>.
+ *
+ * Real Button has three props (text, checkable, checked) and three
+ * signals (text_changed, clicked, toggled). State precedence on the
+ * fill axis is pressed > checked > hovered > idle.
+ */
+
+const Button = ({
+  text = "",
+  checkable = false,
+  checked = false,
+  disabled = false,
+  focused = false,
+  onClicked,
+  onToggled,
+  style,
+  className = "",
+  ...rest
+}) => {
+  // Track hover so we can mirror the painter's "hovered" arm without relying
+  // on :hover (so it composes with `focused` props in storybook contexts).
+  const [hover, setHover] = React.useState(false);
+
+  const classes = [
+    "qz-button",
+    checked && "is-checked",
+    focused && "is-focused",
+    disabled && "is-disabled",
+  ].filter(Boolean).join(" ");
+
+  const handleClick = (e) => {
+    if (disabled) return;
+    if (checkable) {
+      const next = !checked;
+      // emit!(self.toggled, &(new_checked,)); emit!(self.clicked, &(new_checked,))
+      onToggled && onToggled(next);
+      onClicked && onClicked(next);
+    } else {
+      // emit!(self.clicked, &(false,))
+      onClicked && onClicked(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={`${classes} ${className}`}
+      disabled={disabled}
+      onClick={handleClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={style}
+      {...rest}
+    >
+      {text}
+    </button>
+  );
+};
+
+
+// --- Label.jsx ---
+/* Label.jsx
+ * Mirrors quartzite-widgets::Label + DefaultStyle::paint<Label>.
+ * Paints Window fill + WindowText foreground at the declared alignment.
+ */
+
+const Label = ({ text = "", alignment = "Left", style, className = "" }) => {
+  const align =
+    alignment === "Center" ? "qz-label--center" :
+    alignment === "Right"  ? "qz-label--right"  : "";
+  return (
+    <span className={`qz-label ${align} ${className}`} style={style}>
+      {text}
+    </span>
+  );
+};
+
+
+// --- LineEdit.jsx ---
+/* LineEdit.jsx
+ * Mirrors quartzite-widgets::LineEdit + DefaultStyle::paint<LineEdit>.
+ *
+ * Props: text, placeholder, read_only.
+ * Signals: text_changed(String), return_pressed().
+ */
+
+const LineEdit = ({
+  text = "",
+  placeholder = "",
+  readOnly = false,
+  onTextChanged,
+  onReturnPressed,
+  style,
+  className = "",
+  ...rest
+}) => {
+  const handleChange = (e) => {
+    if (readOnly) return;
+    const next = e.target.value;
+    onTextChanged && onTextChanged(next);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      onReturnPressed && onReturnPressed();
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      className={`qz-line-edit ${className}`}
+      value={text}
+      placeholder={placeholder}
+      readOnly={readOnly}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      style={style}
+      {...rest}
+    />
+  );
+};
+
+
+// --- TextEdit.jsx ---
+/* TextEdit.jsx
+ * Mirrors quartzite-widgets::TextEdit + DefaultStyle::paint<TextEdit>.
+ *
+ * Props: plain_text, read_only.
+ * Signals: text_changed(String).
+ */
+
+const TextEdit = ({
+  plainText = "",
+  readOnly = false,
+  rows = 4,
+  onTextChanged,
+  style,
+  className = "",
+  ...rest
+}) => {
+  const handleChange = (e) => {
+    if (readOnly) return;
+    const next = e.target.value;
+    onTextChanged && onTextChanged(next);
+  };
+
+  return (
+    <textarea
+      className={`qz-text-edit ${className}`}
+      value={plainText}
+      rows={rows}
+      readOnly={readOnly}
+      onChange={handleChange}
+      style={style}
+      {...rest}
+    />
+  );
+};
+
+
+// --- ScrollArea.jsx ---
+/* ScrollArea.jsx
+ * Mirrors quartzite-widgets::ScrollArea + DefaultStyle::paint<ScrollArea>.
+ *
+ * Real ScrollArea paints chrome only — a Base fill plus a 1 px
+ * WindowText outline — and does not traverse children. The browser
+ * scrollbar is a documentation hint; the framework does not yet
+ * render a bar primitive.
+ */
+
+const ScrollArea = ({
+  horizontalPolicy = "AsNeeded",
+  verticalPolicy = "AsNeeded",
+  children,
+  style,
+  className = "",
+}) => {
+  const overflowX =
+    horizontalPolicy === "AlwaysOn"  ? "scroll" :
+    horizontalPolicy === "AlwaysOff" ? "hidden" : "auto";
+  const overflowY =
+    verticalPolicy === "AlwaysOn"    ? "scroll" :
+    verticalPolicy === "AlwaysOff"   ? "hidden" : "auto";
+
+  return (
+    <div className={`qz-scroll-area ${className}`} style={style}>
+      <div className="qz-scroll-area__viewport" style={{ overflowX, overflowY }}>
+        {children}
+      </div>
+    </div>
+  );
+};
+
+
+// --- Container.jsx ---
+/* Container.jsx
+ * Mirrors quartzite-widgets::Container + DefaultStyle::paint<Container>.
+ *
+ * Real Container paints Window fill + WindowText outline only;
+ * child layout is delegated to the attached Layout.
+ *
+ * `legend` is a documentation affordance not present in the real
+ * Container — useful for grouping in the demo. We use the native
+ * <fieldset>/<legend> pair so the legend sits on the top border
+ * without negative-margin hacks (which can overlap previous
+ * siblings when padding is reduced).
+ */
+
+const Container = ({ legend, children, style, className = "" }) => {
+  if (legend) {
+    return (
+      <fieldset className={`qz-container ${className}`} style={style}>
+        <legend className="qz-container__legend">{legend}</legend>
+        {children}
+      </fieldset>
+    );
+  }
+  return (
+    <div className={`qz-container ${className}`} style={style}>
+      {children}
+    </div>
+  );
+};
+
+
+// --- WindowFrame.jsx ---
+/* WindowFrame.jsx
+ * A top-level surface using the `Window` color role for its background
+ * and `WindowText` for its border. Stands in for the OS-window chrome
+ * a real `WindowedApplication` would draw via the renderer (vello+winit).
+ *
+ * `theme` is a documentation affordance, not a framework concept —
+ * Quartzite themes are swapped by registering a different Style in the
+ * StyleRegistry. The toggle here flips a `data-theme` attribute so all
+ * downstream widgets pick up the dark palette via CSS variables.
+ */
+
+const WindowFrame = ({ title = "quartzite", subtitle = "", theme = "light", onToggleTheme, children, style }) => {
+  const isDark = theme === "dark";
+  const markSrc = isDark ? "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%20role%3D%22img%22%20aria-label%3D%22Quartzite%20mark%20(dark)%22%20shape-rendering%3D%22crispEdges%22%3E%0A%20%20%0A%0A%20%20%0A%20%20%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2010%2C20%2010%2C44%2032%2C32%22%20fill%3D%22%231E90FF%22%3E%3C%2Fpolygon%3E%0A%20%20%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2054%2C20%2032%2C32%22%20fill%3D%22%23345067%22%3E%3C%2Fpolygon%3E%0A%0A%20%20%0A%20%20%3Cpath%20d%3D%22M%2032%206%20L%2054%2020%20L%2054%2044%20L%2032%2058%20L%2010%2044%20L%2010%2020%20Z%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%206%20%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2020%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2010%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%2058%20L%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22%23E8E8E8%22%20stroke-width%3D%221%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22butt%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E" : "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%20role%3D%22img%22%20aria-label%3D%22Quartzite%20mark%22%20shape-rendering%3D%22crispEdges%22%3E%0A%20%20%0A%20%20%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2264%22%20height%3D%2264%22%20fill%3D%22%23FFFFFF%22%3E%3C%2Frect%3E%0A%0A%20%20%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2010%2C20%2010%2C44%2032%2C32%22%20fill%3D%22%230080FF%22%3E%3C%2Fpolygon%3E%0A%20%20%3Cpolygon%20points%3D%2232%2C6%2054%2C20%2032%2C32%22%20fill%3D%22%23BFDFFF%22%3E%3C%2Fpolygon%3E%0A%0A%20%20%0A%20%20%3Cpath%20d%3D%22M%2032%206%20L%2054%2020%20L%2054%2044%20L%2032%2058%20L%2010%2044%20L%2010%2020%20Z%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%206%20%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2020%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2054%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2010%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20M%2032%2058%20L%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22butt%22%3E%3C%2Fpath%3E%0A%3C%2Fsvg%3E";
+  return (
+    <div className="qz-window" data-theme={theme} style={style}>
+      <div className="qz-window__titlebar">
+        <img src={markSrc} width="22" height="22" alt="" />
+        <span className="qz-window__title">{title}</span>
+        {subtitle ? <span className="qz-window__title-mono">{subtitle}</span> : null}
+        <span style={{ flex: 1 }}></span>
+        <button
+          className="qz-window__chrome-btn qz-window__chrome-btn--wide"
+          title={isDark ? "switch to light palette" : "switch to dark palette"}
+          onClick={onToggleTheme}
+        >
+          {isDark ? "☀ light" : "☾ dark"}
+        </button>
+        <button className="qz-window__chrome-btn" title="minimize">_</button>
+        <button className="qz-window__chrome-btn" title="maximize">▢</button>
+        <button className="qz-window__chrome-btn" title="close">×</button>
+      </div>
+      <div className="qz-window__body">{children}</div>
+    </div>
+  );
+};
+
+
+// --- App.jsx ---
+/* App.jsx — interactive demo composing the kit.
+ *
+ * Layout (top → bottom inside a single WindowFrame):
+ *
+ *   ┌─ Counter ──────┬─ New note ─────────────────┐
+ *   │   Label + 4 btns│ name LineEdit              │
+ *   │   pause toggle  │ email LineEdit (read-only) │
+ *   │                 │ body  TextEdit             │
+ *   │                 │ Submit / Clear buttons     │
+ *   ├─ Notes list (ScrollArea) ───────────────────┤
+ *   └─ Signal log (ScrollArea) ───────────────────┘
+ */
+
+function App() {
+  // Theme — flipping this swaps the data-theme attribute on the WindowFrame
+  // which retargets every var(--qz-*) through the [data-theme="dark"] block
+  // in kit.css. Real Quartzite themes swap the StyleRegistry, not CSS vars.
+  const [theme, setTheme] = React.useState("light");
+
+  // Propagate to <body> so the desktop background flips with the window.
+  React.useEffect(() => {
+    document.body.setAttribute("data-theme", theme);
+    return () => document.body.removeAttribute("data-theme");
+  }, [theme]);
+
+  // Counter state — mirrors examples/combined.rs Counter
+  const [count, setCount] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
+
+  // Form state — mirrors LineEdit/TextEdit props
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("a@example.com");
+  const [emailReadOnly, setEmailReadOnly] = React.useState(true);
+  const [body, setBody] = React.useState("");
+
+  // Submitted notes
+  const [notes, setNotes] = React.useState([
+    { title: "First note", body: "Pre-populated to show the ScrollArea is non-empty.\nQuartzite paints chrome only — content is dispatched separately." },
+  ]);
+
+  // Signal log
+  const [log, setLog] = React.useState([
+    { sig: "Counter::count_changed", val: "0" },
+  ]);
+
+  const emit = React.useCallback((sig, val) => {
+    setLog(prev => [...prev, { sig, val }].slice(-40));
+  }, []);
+
+  // -- counter slots -----------------------------------------------------
+  const increment = () => {
+    if (paused) return;
+    setCount(c => {
+      const next = c + 1;
+      emit("Counter::count_changed", String(next));
+      return next;
+    });
+  };
+  const decrement = () => {
+    if (paused) return;
+    setCount(c => {
+      const next = Math.max(0, c - 1);
+      emit("Counter::count_changed", String(next));
+      if (next === 0) emit("Counter::zeroed", "()");
+      return next;
+    });
+  };
+  const reset = () => {
+    setCount(0);
+    emit("Counter::count_changed", "0");
+    emit("Counter::zeroed", "()");
+  };
+  const togglePause = (checked) => {
+    setPaused(checked);
+    emit("Counter::toggled", checked ? "true" : "false");
+    emit("Counter::clicked", checked ? "true" : "false");
+  };
+
+  // -- form slots --------------------------------------------------------
+  const submit = () => {
+    if (!name.trim() && !body.trim()) return;
+    const title = name.trim() || "(untitled)";
+    setNotes(ns => [...ns, { title, body }]);
+    emit("Note::submitted", `(${title})`);
+    setName("");
+    setBody("");
+  };
+  const clearForm = () => {
+    setName("");
+    setBody("");
+    emit("LineEdit::text_changed", "\"\"");
+    emit("TextEdit::text_changed", "\"\"");
+  };
+
+  return (
+    <WindowFrame
+      title="quartzite-widgets demo"
+      subtitle="quartzite::widgets + DefaultStyle"
+      theme={theme}
+      onToggleTheme={() => setTheme(t => t === "light" ? "dark" : "light")}
+    >
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 8 }}>
+
+        <Container legend="Counter">
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Label
+              text={`count = ${count}`}
+              alignment="Center"
+              style={{ fontSize: "18pt", fontWeight: 700, padding: "10px 0" }}
+            />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Button text="−" disabled={paused} onClicked={decrement} />
+            <Button text="+" disabled={paused} onClicked={increment} />
+            <Button text="reset" onClicked={reset} style={{ gridColumn: "span 2" }} />
+          </div>
+          <div style={{ marginTop: 4 }}>
+            <Button
+              text={paused ? "paused" : "pause"}
+              checkable
+              checked={paused}
+              onToggled={togglePause}
+              style={{ width: "100%" }}
+            />
+          </div>
+        </Container>
+
+        <Container legend="New note">
+          <div className="qz-row">
+            <Label text="title" />
+            <div className="qz-stretch">
+              <LineEdit
+                text={name}
+                placeholder="note title"
+                onTextChanged={(t) => { setName(t); emit("LineEdit::text_changed", JSON.stringify(t)); }}
+              />
+            </div>
+          </div>
+          <div className="qz-row">
+            <Label text="email" />
+            <div className="qz-stretch">
+              <LineEdit
+                text={email}
+                readOnly={emailReadOnly}
+                onTextChanged={(t) => { setEmail(t); emit("LineEdit::text_changed", JSON.stringify(t)); }}
+              />
+            </div>
+            <Button
+              text={emailReadOnly ? "unlock" : "lock"}
+              checkable
+              checked={!emailReadOnly}
+              onToggled={(c) => { setEmailReadOnly(!c); emit("Button::toggled", String(c)); }}
+            />
+          </div>
+          <div className="qz-row" style={{ alignItems: "flex-start" }}>
+            <Label text="body" />
+            <div className="qz-stretch">
+              <TextEdit
+                plainText={body}
+                rows={4}
+                onTextChanged={(t) => { setBody(t); emit("TextEdit::text_changed", JSON.stringify(t.length > 20 ? t.slice(0,20)+"…" : t)); }}
+              />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <Button text="clear" onClicked={clearForm} />
+            <Button text="submit" onClicked={submit} />
+          </div>
+        </Container>
+      </div>
+
+      <Container legend="Notes (ScrollArea content)">
+        <ScrollArea style={{ height: 160 }}>
+          {notes.length === 0
+            ? <Label text="(no notes)" style={{ color: "rgba(0,0,0,0.5)" }} />
+            : notes.map((n, i) => (
+                <div key={i} className="qz-note">
+                  <div className="qz-note__title">{n.title}</div>
+                  {n.body
+                    ? <div className="qz-note__body">{n.body}</div>
+                    : null}
+                </div>
+              ))
+          }
+        </ScrollArea>
+      </Container>
+
+      <Container legend="Signal log (Signal::connect)">
+        <ScrollArea style={{ height: 130 }}>
+          {log.length === 0
+            ? <div className="qz-log-row empty">// no signals yet</div>
+            : log.slice().reverse().map((r, i) => (
+                <div key={log.length - i} className="qz-log-row">
+                  <span className="signal">{r.sig}</span>
+                  <span> → </span>
+                  <span className="value">{r.val}</span>
+                </div>
+              ))
+          }
+        </ScrollArea>
+      </Container>
+    </WindowFrame>
+  );
+}
+
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+  </script>
+</body>
+</html>
