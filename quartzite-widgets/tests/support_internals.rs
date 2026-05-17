@@ -8,6 +8,17 @@
 //! and toggles env vars under a process-global mutex (env-var mutation
 //! affects the whole process).
 
+// Skipped under Miri at the file level: FFI. The whole-file shape is
+// required (not per-test `cfg_attr`) because every scenario reaches
+// `support::pixel_diff` → `nv_flip_sys::flip_image_color3_new`, a C foreign
+// function Miri cannot interpret (`unsupported operation: can't call foreign
+// function 'flip_image_color3_new' on OS 'linux'`). The FFI-bound
+// `support::*` import alone is enough to fail Miri compilation regardless of
+// which individual `#[test]` is enabled. Alternative coverage: native
+// `cargo test` exercises this file on the `gpu-tests` job. See
+// ai-docs/miri-policy.md § Per-file fallback recipe.
+#![cfg(not(miri))]
+
 mod support;
 
 use std::sync::Mutex;
