@@ -84,7 +84,7 @@ pub fn capture_object(obj: &dyn Object) -> Result<ObjectSnapshot, SerializeError
 /// ```
 pub fn restore_object(snap: &ObjectSnapshot) -> Result<Box<dyn Object>, DeserializeError> {
     let factory_arc = ObjectFactory::global().ok_or(DeserializeError::FactoryMissing)?;
-    let factory = factory_arc.read().unwrap_or_else(|e| e.into_inner());
+    let factory = factory_arc.read();
     let mut obj =
         factory
             .create(&snap.class_name)
@@ -250,9 +250,7 @@ mod tests {
             if ObjectFactory::install(factory).is_err() {
                 // Factory already installed (shared process); register into existing one.
                 if let Some(arc) = ObjectFactory::global() {
-                    arc.write()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .register("SnapshotSample", Sample::new_boxed);
+                    arc.write().register("SnapshotSample", Sample::new_boxed);
                 }
             }
         });

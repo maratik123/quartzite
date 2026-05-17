@@ -192,7 +192,6 @@ fn install_factory() {
             // Factory already installed (shared process); register into existing one.
             if let Some(arc) = ObjectFactory::global() {
                 arc.write()
-                    .unwrap_or_else(|e| e.into_inner())
                     .register("SerdeFixture", SerdeFixture::new_boxed);
             }
         }
