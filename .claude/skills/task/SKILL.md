@@ -167,21 +167,22 @@ After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo 
 
 ### Step 12: Finalise docs, commit, and create PR
 
-1. **Confirm `.progress.md` is NOT staged.** It is gitignored (`/ai-docs/plans/**/*.progress.md`); `git status` should not list it. If accidentally tracked or staged, unstage / `git rm --cached`. The file MUST stay in the working tree but MUST NOT enter the commit.
-2. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
-3. **Finalise INDEX.md and move plan files:**
+1. **Step-skip gate (binding, not optional).** Read `**current_step:**` from `ai-docs/plans/<spec-base>.progress.md`. It MUST be one of `Step 10 — self-review APPROVE (Round N)` or `Step 11 — review fixes complete (Round N)`. If it is anything else (e.g. `Step 9 — Verify (ALL PASS)`, `Step 9.5 — docs updated`, `Step 8 — subtask N of M complete`) — **STOP**, do not proceed to commit, surface the gap to the user, and loop back to the missing step. Rationale: Step 10 (self-review) has been silently skipped on "simple" tasks and post-compaction (recurrence pattern: 2026-05-07 design-skip, 2026-05-14 PR #339 Step-10 skip, 2026-05-14 PR #281 compaction-induced skip, 2026-05-16 PR #374 context-rot). The gate fires regardless of how trivial the diff appears — no "too simple" exemption (see [`ai-docs/learnings.md` 2026-05-07 entry](../../../ai-docs/learnings.md)). **Compaction-recovery exception:** if `**current_step:**` is unparseable or absent and the post-compaction summary suggests Step 10 ran, ask the user explicitly before treating Step 10 as satisfied — do NOT auto-pass the gate.
+2. **Confirm `.progress.md` is NOT staged.** It is gitignored (`/ai-docs/plans/**/*.progress.md`); `git status` should not list it. If accidentally tracked or staged, unstage / `git rm --cached`. The file MUST stay in the working tree but MUST NOT enter the commit.
+3. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
+4. **Finalise INDEX.md and move plan files:**
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-4. **Inbox propagation — parse the just-finalised spec (and its design if present) and append rows to `ai-docs/deferred/_inbox.md`.** Apply the file-level dedupe rule against the 8 thematic files in `ai-docs/deferred/`; emit a `WARN:` line on unrecognised body shapes and continue. Full per-shape parser + dedupe rules in `reference.md` § Step 12 — inbox propagation (detail) and in [`inbox-propagation.md`](inbox-propagation.md). The Step 12 commit (sub-step 7 below) stages `_inbox.md` alongside the existing artefacts.
-5. **Regenerate dependent artefacts** (e.g. `bash scripts/gen-roadmap.sh` → `ROADMAP.md` when `INDEX.md` or `done/**` changed) and stage them with the same commit. See `reference.md` § Step 12 — regenerate dependent artefacts (detail).
-6. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-7. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), `ai-docs/deferred/_inbox.md` (rows appended in sub-step 4), and spec/design now in `done/`.
-8. Commit `feat(<crate>): <imperative summary>` with a 1–3 line body and `N new tests; all M tests green.`
-9. `git push -u origin <branch>`
-10. `gh pr create` with title + body — body must include **Summary** / **Tracking** (`Closes #N` for full-resolve or `Refs #N` for partial; omit if `Tracked in: none`) / **Test plan** (one line per AC + clippy/build). Full body template: `reference.md` § Step 12 — PR-body template (detail).
-11. Post the PR URL to the user.
-12. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 12 — PR opened (PR #<N>)`; append a `## Decisions log` bullet recording the PR number and the spec/design `done/` move (one line, prefixed `Step 12:`).
+5. **Inbox propagation — parse the just-finalised spec (and its design if present) and append rows to `ai-docs/deferred/_inbox.md`.** Apply the file-level dedupe rule against the 8 thematic files in `ai-docs/deferred/`; emit a `WARN:` line on unrecognised body shapes and continue. Full per-shape parser + dedupe rules in `reference.md` § Step 12 — inbox propagation (detail) and in [`inbox-propagation.md`](inbox-propagation.md). The Step 12 commit (sub-step 8 below) stages `_inbox.md` alongside the existing artefacts.
+6. **Regenerate dependent artefacts** (e.g. `bash scripts/gen-roadmap.sh` → `ROADMAP.md` when `INDEX.md` or `done/**` changed) and stage them with the same commit. See `reference.md` § Step 12 — regenerate dependent artefacts (detail).
+7. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+8. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), `ai-docs/deferred/_inbox.md` (rows appended in sub-step 5), and spec/design now in `done/`.
+9. Commit `feat(<crate>): <imperative summary>` with a 1–3 line body and `N new tests; all M tests green.`
+10. `git push -u origin <branch>`
+11. `gh pr create` with title + body — body must include **Summary** / **Tracking** (`Closes #N` for full-resolve or `Refs #N` for partial; omit if `Tracked in: none`) / **Test plan** (one line per AC + clippy/build). Full body template: `reference.md` § Step 12 — PR-body template (detail).
+12. Post the PR URL to the user.
+13. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 12 — PR opened (PR #<N>)`; append a `## Decisions log` bullet recording the PR number and the spec/design `done/` move (one line, prefixed `Step 12:`).
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
 
