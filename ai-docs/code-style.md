@@ -70,6 +70,37 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
   `Ord`/`PartialOrd` types. Reach for the stdlib method first; fall back
   to branching only when the comparison logic is genuinely non-trivial.
 
+## Magic numbers
+
+Numeric literals that carry semantic meaning belong in named
+`const` values, not inline at the use site. The name documents the
+intent; the literal is an implementation detail.
+
+- **Applies to:** colour-component values (`Color::new(0.94, 0.94,
+  0.94, 1.0)` → `const NEUTRAL_GREY: Color = …`), sizes, timeouts,
+  cache limits, magic offsets, retry counts — anything where the
+  reader has to ask "why this number?".
+- **Does not apply to:** self-evident constants (`0`, `1`, `-1`,
+  `2` for "next/prev", powers-of-two array bounds in obvious
+  doubling contexts), loop indices, and test fixtures where the
+  exact value carries no meaning beyond "some valid input".
+- **Placement:** module-private `const FOO: T = …;` at the top of
+  the module (after `use` statements). Public surface only when the
+  constant is genuinely part of the public API (e.g. a default
+  exposed for callers to inspect).
+- **Naming:** `SCREAMING_SNAKE_CASE` per Rust convention; the name
+  must describe the *role* (`PALETTE_LIGHT_BACKGROUND`), not the
+  shape (`COLOR_94`). If the role is unclear, the constant is
+  premature — wait until the use site clarifies it.
+
+History — this rule has fired twice on `Palette::default()` /
+`palette.rs` (2026-05-08 in `Palette::default()`, again 2026-05-13
+on `palette.rs:119`'s `Color::new(0.0, 0.5, 1.0, 1.0)` literal —
+the second occurrence reached a human reviewer post-push because
+`/bugfix` Step 6 lacked the self-review gate that would have caught
+it). Both `self-review` and `review-findings` checklists list this
+as a `minor` finding so the gate fires pre-push.
+
 ## Library safety idioms
 
 Concrete forms of the "non-panicking APIs for libraries" rule (see
