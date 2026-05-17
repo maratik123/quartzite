@@ -227,7 +227,6 @@ mod tests {
         traits::{AsObject, Object, SignalCallback},
         value::{Value, WeakObjectRef},
     };
-    use serial_test::serial;
 
     use super::*;
     use crate::factory::ObjectFactory;
@@ -355,8 +354,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn tree_round_trips_structure() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_factory();
 
         let mut tree = ObjectTree::new();
@@ -395,8 +394,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn weakobjectref_link_remapped_after_restore() {
+        let _lock = quartzite_test_helpers::test_lock();
         // AC3: a Value::Object payload holding the old child id must be rewritten
         // to point at the new child id after restore_tree.
         install_factory();
@@ -499,8 +498,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn signals_blocked_resets_on_restore() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_factory();
         let mut tree = ObjectTree::new();
         let mut root = TreeSample::new_boxed();

@@ -324,8 +324,8 @@ fn install_dispatcher() -> Arc<TestDispatcher> {
 }
 
 #[test]
-#[serial_test::serial]
 fn auto_cross_thread_posts_to_dispatcher() {
+    let _lock = quartzite_test_helpers::test_lock();
     let dispatcher = install_dispatcher();
     dispatcher.posted.lock().clear();
 

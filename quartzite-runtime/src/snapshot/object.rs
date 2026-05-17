@@ -120,7 +120,6 @@ mod tests {
         traits::{AsObject, Object, SignalCallback},
         value::Value,
     };
-    use serial_test::serial;
 
     use super::*;
 
@@ -257,8 +256,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn capture_includes_stored_excludes_non_stored() {
+        let _lock = quartzite_test_helpers::test_lock();
         let mut s = Sample::new_boxed();
         s.write_property("count", Value::Int(7));
         s.write_property("name", Value::String("hello".into()));
@@ -276,8 +275,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn restore_object_round_trips_stored_props() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_factory();
 
         let mut s = Sample::new_boxed();
@@ -299,8 +298,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn restore_object_unknown_class_returns_error() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_factory();
 
         let snap = ObjectSnapshot {
@@ -314,8 +313,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn restore_object_type_mismatch_returns_write_rejected() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_factory();
 
         let snap = ObjectSnapshot {

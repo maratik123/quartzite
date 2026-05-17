@@ -1,0 +1,15 @@
+[package]
+name = "quartzite-test-helpers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Workspace-internal test-serialisation helper for quartzite (per-binary `test_lock()`)"
+
+[dependencies]
+parking_lot = "0.12"
+
+[lints]
+workspace = true

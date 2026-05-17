@@ -143,7 +143,6 @@ mod tests {
     use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
     use quartzite_style_types::Palette;
     use quartzite_widgets::AsWidget;
-    use serial_test::serial;
 
     /// Records how many times each fixture's `draw_widget` body executed.
     static A_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -216,23 +215,23 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn try_style_returns_none_before_set() {
+        let _lock = quartzite_test_helpers::test_lock();
         StyleRegistry::clear_for_test();
         assert!(StyleRegistry::try_style().is_none());
     }
 
     #[test]
-    #[serial]
     fn try_style_returns_some_after_set() {
+        let _lock = quartzite_test_helpers::test_lock();
         StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(StyleA));
         assert!(StyleRegistry::try_style().is_some());
     }
 
     #[test]
-    #[serial]
     fn set_style_replaces_previous() {
+        let _lock = quartzite_test_helpers::test_lock();
         StyleRegistry::clear_for_test();
         StyleRegistry::set_style(Box::new(StyleA));
         let first = StyleRegistry::try_style().expect("first set");
@@ -251,8 +250,8 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn registered_style_dispatches_draw_widget() {
+        let _lock = quartzite_test_helpers::test_lock();
         StyleRegistry::clear_for_test();
         let before_a = A_CALLS.load(Ordering::SeqCst);
         let before_b = B_CALLS.load(Ordering::SeqCst);

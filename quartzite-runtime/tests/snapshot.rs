@@ -21,7 +21,6 @@ use quartzite_runtime::{
     factory::ObjectFactory,
     snapshot::{capture_object, capture_tree, restore_object, restore_tree},
 };
-use serial_test::serial;
 
 // --- CustomValue for round-trip test ---
 
@@ -287,8 +286,8 @@ fn custom_value_bincode_round_trip() {
 // --- Object layer tests ---
 
 #[test]
-#[serial]
 fn capture_object_excludes_non_stored() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
     let mut obj = SerdeFixture::new_boxed();
     obj.write_property("count", Value::Int(7));
@@ -304,8 +303,8 @@ fn capture_object_excludes_non_stored() {
 }
 
 #[test]
-#[serial]
 fn restore_object_round_trips_stored_keeps_default_for_non_stored() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
     let mut obj = SerdeFixture::new_boxed();
     obj.write_property("count", Value::Int(42));
@@ -325,8 +324,8 @@ fn restore_object_round_trips_stored_keeps_default_for_non_stored() {
 }
 
 #[test]
-#[serial]
 fn restore_object_json_round_trip() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
     let mut obj = SerdeFixture::new_boxed();
     obj.write_property("count", Value::Int(7));
@@ -347,8 +346,8 @@ fn restore_object_json_round_trip() {
 // --- Tree layer tests ---
 
 #[test]
-#[serial]
 fn tree_round_trips_parent_child_structure() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
 
     let mut tree = ObjectTree::new();
@@ -386,8 +385,8 @@ fn tree_round_trips_parent_child_structure() {
 }
 
 #[test]
-#[serial]
 fn tree_json_round_trip_end_to_end() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
 
     let mut tree = ObjectTree::new();
@@ -412,8 +411,8 @@ fn tree_json_round_trip_end_to_end() {
 }
 
 #[test]
-#[serial]
 fn tree_bincode_round_trip_end_to_end() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
 
     let mut tree = ObjectTree::new();
@@ -457,8 +456,8 @@ fn schema_version_rejected() {
 }
 
 #[test]
-#[serial]
 fn signals_blocked_resets_after_restore() {
+    let _lock = quartzite_test_helpers::test_lock();
     install_factory();
 
     let mut tree = ObjectTree::new();
