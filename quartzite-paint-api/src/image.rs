@@ -24,7 +24,7 @@ use alloc::vec::Vec;
 /// assert_eq!(img.height(), 2);
 /// assert_eq!(img.pixels().len(), 16);
 /// ```
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Image {
     width: u32,
     height: u32,

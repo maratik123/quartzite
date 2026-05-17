@@ -317,7 +317,7 @@ impl<Args: 'static> core::fmt::Debug for Signal<Args> {
 impl<Args: 'static> Default for Signal<Args> {
     // _Simple._
     fn default() -> Self {
-        Signal {
+        Self {
             #[cfg(feature = "std")]
             slots: IndexMap::new(),
             #[cfg(not(feature = "std"))]
@@ -800,9 +800,9 @@ pub(crate) mod tests {
         let l2 = Arc::clone(&log);
         let l3 = Arc::clone(&log);
 
-        sig.connect(move |_| l1.lock().push(1)); // slot A
-        let id_b = sig.connect(move |_| l2.lock().push(2)); // slot B
-        sig.connect(move |_| l3.lock().push(3)); // slot C
+        sig.connect(move |()| l1.lock().push(1)); // slot A
+        let id_b = sig.connect(move |()| l2.lock().push(2)); // slot B
+        sig.connect(move |()| l3.lock().push(3)); // slot C
 
         sig.disconnect(id_b);
         sig.emit_unconditionally(&());
@@ -831,12 +831,12 @@ pub(crate) mod tests {
         let d2 = Arc::clone(&direct_count);
 
         sig.connect_typed(
-            move |_| {
+            move |()| {
                 ss2.fetch_add(1, Ordering::Relaxed);
             },
             ConnectionType::SingleShot,
         );
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             d2.fetch_add(1, Ordering::Relaxed);
         });
 
@@ -867,7 +867,7 @@ pub(crate) mod tests {
         let count2 = Arc::clone(&count);
 
         sig.connect_typed(
-            move |_| {
+            move |()| {
                 count2.fetch_add(1, Ordering::Relaxed);
             },
             ConnectionType::SingleShot,
@@ -917,7 +917,7 @@ pub(crate) mod tests {
     #[cfg(feature = "std")]
     fn multiple_disconnects_do_not_panic() {
         let mut sig: Signal<()> = Signal::new();
-        let id = sig.connect(|_| {});
+        let id = sig.connect(|()| {});
         sig.disconnect(id);
         sig.disconnect(id); // second disconnect must be a no-op
         sig.emit_unconditionally(&());
@@ -931,10 +931,10 @@ pub(crate) mod tests {
         let c1 = Arc::clone(&count);
         let c2 = Arc::clone(&count);
 
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             c1.fetch_add(1, Ordering::Relaxed);
         });
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             c2.fetch_add(1, Ordering::Relaxed);
         });
         sig.emit_unconditionally(&());
@@ -972,7 +972,7 @@ pub(crate) mod tests {
         sig.connect_queued(
             std::thread::current().id(),
             move |v| pv.lock().push(v),
-            guard_weak.clone(),
+            guard_weak,
         );
 
         // Drop receiver guard to invalidate.
@@ -1008,7 +1008,15 @@ pub(crate) mod tests {
         sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&(1,));
 
@@ -1046,7 +1054,15 @@ pub(crate) mod tests {
         sig.connect_auto(foreign_id, guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&(42,));
 
@@ -1059,7 +1075,9 @@ pub(crate) mod tests {
         // Drain only entries added by our emit; leave any foreign entries untouched.
         let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
-        posted.into_iter().for_each(|f| f());
+        for f in posted {
+            f();
+        }
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -1085,10 +1103,18 @@ pub(crate) mod tests {
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
+        sig.connect_auto(std::thread::current().id(), guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&());
 
@@ -1123,10 +1149,18 @@ pub(crate) mod tests {
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(foreign_id, guard_weak, move |_| {
+        sig.connect_auto(foreign_id, guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&());
 
@@ -1139,7 +1173,9 @@ pub(crate) mod tests {
         // Drain only entries added by our emit; leave any foreign entries untouched.
         let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
-        posted.into_iter().for_each(|f| f());
+        for f in posted {
+            f();
+        }
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -1165,7 +1201,7 @@ pub(crate) mod tests {
         let id = sig.connect_auto(
             std::thread::current().id(),
             std::sync::Weak::new(),
-            move |_| {
+            move |()| {
                 called2.store(true, Ordering::SeqCst);
             },
         );
@@ -1288,7 +1324,7 @@ pub(crate) mod tests {
     // emit! macro: AC2, AC3, borrow-split compile check
     // ---------------------------------------------------------------------------
 
-    /// Minimal AsObject implementor for macro tests.
+    /// Minimal `AsObject` implementor for macro tests.
     #[cfg(feature = "std")]
     struct SigHolder {
         base: crate::ObjectBase,

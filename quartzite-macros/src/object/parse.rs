@@ -64,7 +64,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
     let mut props = Vec::new();
     let mut signals = Vec::new();
 
-    for mut field in fields.named.into_iter() {
+    for mut field in fields.named {
         let has_prop = has_attr(&field, "prop");
         let has_signal = extract_attr(&mut field.attrs, "signal");
 
@@ -151,7 +151,7 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
                         "unknown #[prop] option `{}`",
                         meta.path
                             .get_ident()
-                            .map_or("?".to_owned(), |i| i.to_string())
+                            .map_or_else(|| "?".to_owned(), ToString::to_string)
                     )));
                 }
                 Ok(())
@@ -192,17 +192,15 @@ fn extract_signal_args(ty: &Type, context: &Ident) -> syn::Result<Type> {
             "#[signal] field must have type `Signal<Args>` (e.g. `Signal<(i32,)>`)",
         )
     };
-    let tp = match ty {
-        Type::Path(tp) => tp,
-        _ => return Err(err()),
+    let Type::Path(tp) = ty else {
+        return Err(err());
     };
     let seg = tp.path.segments.last().ok_or_else(err)?;
     if seg.ident != "Signal" {
         return Err(err());
     }
-    let angle = match &seg.arguments {
-        PathArguments::AngleBracketed(a) => a,
-        _ => return Err(err()),
+    let PathArguments::AngleBracketed(angle) = &seg.arguments else {
+        return Err(err());
     };
     match angle.args.first() {
         Some(GenericArgument::Type(inner)) => Ok(inner.clone()),

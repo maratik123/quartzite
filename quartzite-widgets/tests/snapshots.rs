@@ -32,7 +32,7 @@ const BG: [u8; 4] = [0, 0, 0, 255];
 /// is available locally or `SKIP_RENDER_SNAPSHOT=1` is set.
 ///
 /// For the standard 64×64 canvas use [`support::harness_or_skip`] instead.
-/// This variant is kept for HiDPI tests that need a custom [`RenderHarnessBuilder`].
+/// This variant is kept for `HiDPI` tests that need a custom [`RenderHarnessBuilder`].
 fn harness_or_skip_with(
     name: &str,
     builder: RenderHarnessBuilder,
@@ -361,7 +361,7 @@ fn draw_text_in_center() {
         );
         return;
     }
-    let mid = (left_x + right_x) / 2;
+    let mid = left_x.midpoint(right_x);
     let expected = CANVAS / 2;
     assert!(
         mid.abs_diff(expected) <= 2,
@@ -496,7 +496,7 @@ fn fill_rect_custom_gradient() {
     let mid = image.get_pixel(10, 0);
     let [r, g, b, _] = mid.0;
     assert!(
-        g as u16 > r as u16 + 51 && g as u16 > b as u16 + 51,
+        u16::from(g) > u16::from(r) + 51 && u16::from(g) > u16::from(b) + 51,
         "middle pixel should be green-dominant (G > R+51, G > B+51), got {mid:?}"
     );
 }

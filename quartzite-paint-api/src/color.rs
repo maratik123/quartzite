@@ -212,8 +212,8 @@ mod tests {
     #[test]
     fn color_is_copy() {
         let c = Color::RED;
-        let _c2 = c;
-        let _c3 = c; // use after copy — must compile
+        let _ = c;
+        let _ = c; // use after copy — must compile
     }
 
     #[test]

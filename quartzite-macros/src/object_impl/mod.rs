@@ -33,10 +33,8 @@ pub(crate) fn expand(
         let mut all_methods = accumulated;
         all_methods.append(&mut ir.methods);
         ir.methods = all_methods;
-        codegen::codegen(ir)
-    } else {
-        codegen::codegen(ir)
     }
+    codegen::codegen(&ir)
 }
 
 #[cfg(test)]

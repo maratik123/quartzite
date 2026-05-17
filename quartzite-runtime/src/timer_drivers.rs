@@ -426,7 +426,7 @@ mod tests {
         assert!(d.inner.state.lock().running);
     }
 
-    /// Stress-tests the TOCTOU race: pool_loop reads `running=true` then Drop
+    /// Stress-tests the TOCTOU race: `pool_loop` reads `running=true` then Drop
     /// fires `notify_all()` before `condvar.wait()` is registered.  Without the
     /// fix the pool thread never wakes and `handle.join()` deadlocks.
     /// A channel with a 10-second timeout converts the hang into an assertion

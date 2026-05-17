@@ -21,6 +21,9 @@ proc-macro-crate = "3"
 [dev-dependencies]
 quartzite = { path = ".." }
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

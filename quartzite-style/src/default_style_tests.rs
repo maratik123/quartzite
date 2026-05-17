@@ -159,8 +159,8 @@ fn brush_color(b: &Brush) -> Color {
     use quartzite_paint_api::BrushKind;
     match b.kind() {
         BrushKind::Solid(c) => *c,
-        BrushKind::LinearGradient { start_color, .. } => *start_color,
-        BrushKind::RadialGradient { start_color, .. } => *start_color,
+        BrushKind::LinearGradient { start_color, .. }
+        | BrushKind::RadialGradient { start_color, .. } => *start_color,
         BrushKind::Custom(gradient) => gradient.stops.first().map_or(Color::TRANSPARENT, |stop| {
             let alpha = stop.color.to_alpha_color::<peniko::color::Srgb>();
             let [r, g, b, a] = alpha.components;

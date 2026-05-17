@@ -77,10 +77,10 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
     fn arm_active_loop(&self, event_loop: &ActiveEventLoop) -> ActiveLoopGuard {
         self.registry
             .active_loop
-            .set(event_loop as *const ActiveEventLoop);
+            .set(std::ptr::from_ref::<ActiveEventLoop>(event_loop));
         // Cast to raw pointer immediately; the reference borrow ends here.
         // SAFETY: `self.registry` outlives every callback invocation.
-        let cell_ptr = &self.registry.active_loop as *const _;
+        let cell_ptr = &raw const self.registry.active_loop;
         ActiveLoopGuard(cell_ptr)
     }
 }
@@ -152,8 +152,7 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
                     let scale = entry
                         .window
                         .as_ref()
-                        .map(|w| w.scale_factor() as f32)
-                        .unwrap_or(1.0);
+                        .map_or(1.0, |w| w.scale_factor() as f32);
                     let mut scene = Scene::new();
                     {
                         let mut painter = VelloPainter::new(&mut scene)
@@ -221,7 +220,6 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
     use std::sync::{Arc, Mutex};
 
     use quartzite_events::{KeyEvent, MouseEvent};
@@ -262,6 +260,10 @@ mod tests {
     }
 
     /// A `WidgetRoot` that counts how many times each method is called.
+    #[allow(
+        clippy::struct_field_names,
+        reason = "Test fixture mirrors method names by design — `<method>_calls` is the readable convention"
+    )]
     struct CountingRoot {
         resize_calls: Arc<Mutex<Vec<Size>>>,
         press_calls: Arc<Mutex<u32>>,
@@ -387,7 +389,7 @@ mod tests {
 
     // --- AC5: per-window event routing -------------------------------------------
 
-    /// AC5: Resized event for window A routes to root A's on_resize, not root B.
+    /// AC5: Resized event for window A routes to root A's `on_resize`, not root B.
     #[test]
     fn resized_event_routes_to_correct_root() {
         let mut handler = make_handler(true);
@@ -413,7 +415,7 @@ mod tests {
         assert!(got_b.is_empty(), "root B must not receive root A's resize");
     }
 
-    /// AC5: event for an unknown (already-closed) window_id is silently dropped.
+    /// AC5: event for an unknown (already-closed) `window_id` is silently dropped.
     #[test]
     fn event_for_unknown_window_id_is_silently_dropped() {
         let mut handler = make_handler(true);
@@ -537,7 +539,10 @@ mod tests {
     fn modifiers_changed_does_not_panic() {
         let (mut handler, id, _, _, _, _) = make_handler_with_root(false);
         // A default Modifiers (no flags) — just verifying the arm runs without panic.
-        handler.dispatch_window_event_inner(id, WindowEvent::ModifiersChanged(Default::default()));
+        handler.dispatch_window_event_inner(
+            id,
+            WindowEvent::ModifiersChanged(winit::event::Modifiers::default()),
+        );
     }
 
     // KeyboardInput dispatch tests are omitted here: constructing
@@ -555,12 +560,12 @@ mod tests {
         assert!(registry.active_loop.get().is_null());
 
         // Simulate what arm_active_loop does: set a non-null address.
-        let fake_addr: usize = 0xdead_beef;
-        registry.active_loop.set(fake_addr as *const _);
+        let fake_addr: *const ActiveEventLoop = 0xdead_beef as *const _;
+        registry.active_loop.set(fake_addr);
         assert!(!registry.active_loop.get().is_null());
 
         {
-            let cell_ptr = &registry.active_loop as *const Cell<*const ActiveEventLoop>;
+            let cell_ptr = &raw const registry.active_loop;
             let _guard = ActiveLoopGuard(cell_ptr);
         }
 
@@ -573,11 +578,11 @@ mod tests {
     #[test]
     fn active_loop_guard_clears_slot_on_panic() {
         let registry = WindowRegistry::new(true, wgpu::Instance::default());
-        let fake_addr: usize = 0x1234;
-        registry.active_loop.set(fake_addr as *const _);
+        let fake_addr: *const ActiveEventLoop = 0x1234 as *const _;
+        registry.active_loop.set(fake_addr);
 
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let cell_ptr = &registry.active_loop as *const Cell<*const ActiveEventLoop>;
+            let cell_ptr = &raw const registry.active_loop;
             let _guard = ActiveLoopGuard(cell_ptr);
             panic!("simulated callback panic");
         }));

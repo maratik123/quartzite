@@ -31,6 +31,9 @@ quartzite-renderer = { path = "../quartzite-renderer" }
 ## Enable only in `[dev-dependencies]`, never in production builds.
 test-support = []
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

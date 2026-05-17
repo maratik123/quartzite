@@ -103,7 +103,7 @@ impl Application {
         // Mark the global tree as live so ObjectTreeExt::parent/children work.
         crate::global_tree::register();
 
-        Ok(Application(inner))
+        Ok(Self(inner))
     }
 
     /// Returns a handle to the global application, or `None` if it has not been installed yet.
@@ -120,8 +120,8 @@ impl Application {
     /// }
     /// ```
     #[inline]
-    pub fn global() -> Option<Application> {
-        APP.get().map(|inner| Application(Arc::clone(inner)))
+    pub fn global() -> Option<Self> {
+        APP.get().map(|inner| Self(Arc::clone(inner)))
     }
 
     /// Posts a closure to run on the event-loop thread.

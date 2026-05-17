@@ -36,7 +36,7 @@ pub(crate) fn accessor_name(type_ident: &Ident) -> Ident {
 
 /// Returns the hidden module ident: `__quartzite_{TypeName}`.
 pub(crate) fn hidden_mod_ident(type_ident: &Ident) -> Ident {
-    Ident::new(&format!("__quartzite_{}", type_ident), type_ident.span())
+    Ident::new(&format!("__quartzite_{type_ident}"), type_ident.span())
 }
 
 /// Removes the first `#[name]` attribute from `attrs`; returns whether it was present.

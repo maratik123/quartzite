@@ -14,7 +14,7 @@ struct FooObj {
 
 impl FooObj {
     fn new_boxed() -> Box<dyn Object> {
-        Box::new(FooObj {
+        Box::new(Self {
             base: ObjectBase::new(),
         })
     }

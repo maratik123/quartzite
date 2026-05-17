@@ -4,7 +4,7 @@ use quote::quote;
 use super::parse::MetaEnumInput;
 use crate::util::{crate_root, inline_if_concrete};
 
-pub(crate) fn codegen(ir: MetaEnumInput) -> TokenStream {
+pub(crate) fn codegen(ir: &MetaEnumInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
     let inline = inline_if_concrete(&ir.generics);
@@ -120,7 +120,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::meta_enum::parse::parse(ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // EnumMeta static: correct type name and variant entries.

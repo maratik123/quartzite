@@ -23,14 +23,14 @@ struct Stub {
 
 impl Stub {
     fn named(name: &str) -> Box<dyn Object> {
-        Box::new(Stub {
+        Box::new(Self {
             base: ObjectBase::named(name),
         })
     }
 
     /// Creates a query-only stub with a specific `id`, not inserted into the tree.
     fn with_id(id: ObjectId) -> Self {
-        Stub {
+        Self {
             base: ObjectBase::new_with_id(id),
         }
     }
@@ -92,6 +92,10 @@ impl Object for Stub {
 
 /// All AC1–AC9 scenarios in a single sequential test.
 #[test]
+#[allow(
+    clippy::similar_names,
+    reason = "Test fixture names `child_a`/`child_b` and `child_a_id`/`child_b_id` mirror the AC scenarios; renaming would obscure the symmetry"
+)]
 fn parent_children_accessors_all_acs() {
     // ──────────────────────────────────────────────────────────────────────────
     // Phase 0 — before Application::new() (AC9 pre-new)

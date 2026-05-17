@@ -116,10 +116,10 @@ impl Paint<ThirdPartyWidget> for ThirdPartyStyle {
 
 impl Style for ThirdPartyStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
-        if let WidgetView::Other(other) = widget.widget_view() {
-            if let Some(w) = other.as_any().downcast_ref::<ThirdPartyWidget>() {
-                self.paint(w, painter, palette);
-            }
+        if let WidgetView::Other(other) = widget.widget_view()
+            && let Some(w) = other.as_any().downcast_ref::<ThirdPartyWidget>()
+        {
+            self.paint(w, painter, palette);
         }
         // Built-in variants are not handled — documented no-op per AC2.
     }
@@ -127,7 +127,7 @@ impl Style for ThirdPartyStyle {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-/// ThirdPartyWidget under ThirdPartyStyle dispatches into the typed Paint<W> body.
+/// `ThirdPartyWidget` under `ThirdPartyStyle` dispatches into the typed `Paint<W>` body.
 #[test]
 fn third_party_widget_under_third_party_style_dispatches() {
     let mut w = ThirdPartyWidget::new();
@@ -143,7 +143,7 @@ fn third_party_widget_under_third_party_style_dispatches() {
     );
 }
 
-/// widget_view() on ThirdPartyWidget returns WidgetView::Other (no #[widget_view] attribute).
+/// `widget_view()` on `ThirdPartyWidget` returns `WidgetView::Other` (no `#[widget_view]` attribute).
 #[test]
 fn third_party_widget_view_returns_other() {
     let w = ThirdPartyWidget::new();
@@ -153,7 +153,7 @@ fn third_party_widget_view_returns_other() {
     );
 }
 
-/// ThirdPartyWidget under DefaultStyle → silent no-op (AC6 open-set fallback).
+/// `ThirdPartyWidget` under `DefaultStyle` → silent no-op (AC6 open-set fallback).
 #[test]
 fn third_party_widget_under_default_style_is_noop() {
     let mut w = ThirdPartyWidget::new();
@@ -169,7 +169,7 @@ fn third_party_widget_under_default_style_is_noop() {
     );
 }
 
-/// Built-in Button under ThirdPartyStyle → silent no-op (AC2 documented fallback).
+/// Built-in Button under `ThirdPartyStyle` → silent no-op (AC2 documented fallback).
 #[test]
 fn builtin_button_under_third_party_style_is_noop() {
     let mut w = quartzite_widgets::Button::new("X".into());
@@ -185,7 +185,7 @@ fn builtin_button_under_third_party_style_is_noop() {
     );
 }
 
-/// Box<dyn Style> with ThirdPartyStyle satisfies the object-safe contract (AC11).
+/// `Box<dyn Style>` with `ThirdPartyStyle` satisfies the object-safe contract (AC11).
 #[test]
 fn third_party_style_is_object_safe() {
     let _boxed: Box<dyn Style> = Box::new(ThirdPartyStyle);

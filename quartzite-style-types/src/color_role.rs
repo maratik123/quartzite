@@ -67,18 +67,18 @@ impl ColorRole {
     /// assert!(ColorRole::ALL.contains(&ColorRole::Window));
     /// assert_eq!(ColorRole::ALL.first().copied(), Some(ColorRole::Window));
     /// ```
-    pub const ALL: &'static [ColorRole] = &[
-        ColorRole::Window,
-        ColorRole::WindowText,
-        ColorRole::Button,
-        ColorRole::ButtonText,
-        ColorRole::Base,
-        ColorRole::Text,
-        ColorRole::Highlight,
-        ColorRole::HighlightedText,
-        ColorRole::Link,
-        ColorRole::LinkVisited,
-        ColorRole::BrightText,
+    pub const ALL: &'static [Self] = &[
+        Self::Window,
+        Self::WindowText,
+        Self::Button,
+        Self::ButtonText,
+        Self::Base,
+        Self::Text,
+        Self::Highlight,
+        Self::HighlightedText,
+        Self::Link,
+        Self::LinkVisited,
+        Self::BrightText,
     ];
 }
 

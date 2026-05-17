@@ -26,6 +26,9 @@ tempfile           = "3"
 quartzite-renderer = { path = "../quartzite-renderer" }
 peniko             = "0.6"
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

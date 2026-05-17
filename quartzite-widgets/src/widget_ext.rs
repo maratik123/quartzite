@@ -567,7 +567,7 @@ impl<T: AsWidget> WidgetExt for T {}
 mod tests {
     use super::*;
     use crate::WidgetBase;
-    use quartzite_events::{MouseButtons, MouseEventKind};
+    use quartzite_events::{KeyModifiers, MouseButtons, MouseEventKind};
     use quartzite_geometry::{Point, Size};
 
     #[test]
@@ -700,7 +700,7 @@ mod tests {
             Point::default(),
             MouseButtons::empty(),
             MouseButtons::empty(),
-            Default::default(),
+            KeyModifiers::default(),
             kind,
         )
     }

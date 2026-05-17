@@ -5,7 +5,7 @@ use syn::{Ident, Index, ReturnType};
 use super::parse::{MethodItem, ObjectImplInput};
 use crate::util::{crate_root, hidden_mod_ident, inline_if_concrete};
 
-pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
     let self_ty = &ir.self_ty;
     let other_items = &ir.other_items;
@@ -17,7 +17,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let meta_static = emit_meta_static(type_ident, &mod_ident);
     let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident, &ir.generics);
 
-    let impl_block = emit_impl_block(&ir.trait_path, self_ty, other_items);
+    let impl_block = emit_impl_block(ir.trait_path.as_ref(), self_ty, other_items);
 
     quote! {
         #impl_block
@@ -31,7 +31,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
 }
 
 pub(crate) fn emit_impl_block(
-    trait_path: &Option<syn::Path>,
+    trait_path: Option<&syn::Path>,
     self_ty: &syn::Type,
     other_items: &[syn::ImplItem],
 ) -> TokenStream {
@@ -270,7 +270,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::object_impl::parse::parse(quote! {}, ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // No methods — methods static is empty, invoke fn has no arms.

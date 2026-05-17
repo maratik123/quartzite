@@ -16,7 +16,7 @@ pub(crate) fn expand(
     if !errors.is_empty() {
         return errors;
     }
-    codegen::codegen(ir)
+    codegen::codegen(&ir)
 }
 
 #[cfg(test)]

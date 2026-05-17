@@ -4,7 +4,9 @@ use alloc::sync::{Arc, Weak};
 #[cfg(feature = "std")]
 use std::sync::{Arc, Weak};
 
-/// Zero-sized lifetime token. Every `ObjectBase` holds one `Arc<ReceiverGuard>`.
+/// Zero-sized lifetime token.
+///
+/// Every `ObjectBase` holds one `Arc<ReceiverGuard>`.
 /// Incoming signal connections hold a `Weak<ReceiverGuard>`. When the object is
 /// dropped, the `Arc` drops and all `Weak::upgrade()` calls return `None`, causing
 /// queued slot calls targeting that object to be silently discarded.
@@ -30,7 +32,7 @@ impl ReceiverGuard {
     /// assert!(weak.upgrade().is_none());
     /// ```
     pub fn new_pair() -> (Arc<Self>, Weak<Self>) {
-        let arc = Arc::new(ReceiverGuard);
+        let arc = Arc::new(Self);
         let weak = Arc::downgrade(&arc);
         (arc, weak)
     }

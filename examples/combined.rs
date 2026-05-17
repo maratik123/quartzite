@@ -1,4 +1,4 @@
-//! Shows Extend, DeriveObject, object_impl, object_part, and emit! working together.
+//! Shows `Extend`, `DeriveObject`, `object_impl`, `object_part`, and `emit!` working together.
 //!
 //! Layout:
 //!  - `Counter` — root object; property with notify + two signals
@@ -17,7 +17,7 @@ use quartzite::prelude::*;
 struct Counter {
     #[base]
     object_base: ObjectBase,
-    /// Current value; write_property fires count_changed automatically.
+    /// Current value; `write_property` fires `count_changed` automatically.
     #[prop(notify = count_changed)]
     pub count: i32,
     #[signal]
@@ -111,7 +111,7 @@ fn main() {
 
     c.count_changed
         .connect(|args| println!("  count_changed → {}", args.0));
-    c.zeroed.connect(|_| println!("  zeroed!"));
+    c.zeroed.connect(|()| println!("  zeroed!"));
 
     println!("--- increment ×3 via invoke_method ---");
     c.invoke_method("increment", &[]);

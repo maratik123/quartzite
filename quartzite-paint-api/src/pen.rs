@@ -94,7 +94,7 @@ mod tests {
     #[test]
     fn pen_is_copy() {
         let pen = Pen::new(Color::GREEN, 1.0);
-        let _p2 = pen;
-        let _p3 = pen;
+        let _ = pen;
+        let _ = pen;
     }
 }

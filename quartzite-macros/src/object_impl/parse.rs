@@ -62,11 +62,9 @@ pub(crate) fn parse(
                         params,
                         ret_ty,
                     });
-                    // Re-push cleaned fn (slot/invokable attrs already stripped)
-                    other_items.push(ImplItem::Fn(fn_item));
-                } else {
-                    other_items.push(ImplItem::Fn(fn_item));
                 }
+                // Re-push the (possibly slot/invokable-stripped) fn so it ends up in the impl block.
+                other_items.push(ImplItem::Fn(fn_item));
             }
             other => other_items.push(other),
         }
@@ -90,9 +88,8 @@ fn extract_self_ty_ident(self_ty: &Type) -> syn::Result<Ident> {
             "#[object_impl] self type must be a simple path (e.g. `Foo` or `my_mod::Foo`)",
         )
     };
-    let tp = match self_ty {
-        Type::Path(tp) => tp,
-        _ => return Err(err()),
+    let Type::Path(tp) = self_ty else {
+        return Err(err());
     };
     tp.path
         .segments
@@ -108,7 +105,7 @@ pub(crate) fn extract_params(
     let mut params = Vec::new();
     for arg in inputs {
         match arg {
-            FnArg::Receiver(_) => continue,
+            FnArg::Receiver(_) => {}
             FnArg::Typed(pat_ty) => {
                 let ident = match &*pat_ty.pat {
                     Pat::Ident(pi) => pi.ident.clone(),

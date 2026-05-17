@@ -29,6 +29,9 @@ skrifa    = "0.42"
 rstest = "0.25"
 pretty_assertions = "1"
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]

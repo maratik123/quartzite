@@ -34,6 +34,25 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
 ## Linter posture
 
 - Strict clippy (enforced).
+- **Workspace-wide lint policy** lives in the root `Cargo.toml`
+  `[workspace.lints.clippy]` table; every member crate (13 leaves + the
+  root `quartzite` package) opts in via `[lints] workspace = true` in
+  its own `Cargo.toml`. The four group/lint enables in force are
+  `clippy::pedantic` and `clippy::nursery` (both `warn`, `priority =
+  -1` so specific `clippy::* = "allow"` entries override the group),
+  plus `clippy::large_stack_frames` and `clippy::large_stack_arrays`
+  (both `warn`, listed separately so each survives a future
+  per-group rollback).
+- **Size-aware thresholds** live in `clippy.toml` at the workspace
+  root (`stack-size-threshold` / `array-size-threshold`). Clippy
+  auto-discovers `clippy.toml` from the workspace root; per-crate
+  `clippy.toml` is not used.
+- **Allow-list discipline.** Every `clippy::* = "allow"` entry in
+  `[workspace.lints.clippy]` MUST carry a one-line `#`-comment above
+  it justifying the allow — same rule as the in-source no-blanket-
+  `#[allow]`-without-justification axiom. Where the allow overlaps a
+  project doc (e.g., `missing_panics_doc` vs `panic-index.md`), the
+  comment cross-references the relevant doc.
 
 ## Rust idioms
 

@@ -5,7 +5,7 @@ use syn::Ident;
 use super::parse::{BaseField, ExtendInput, MixinField, WidgetChildrenField, WidgetChildrenKind};
 use crate::util::{accessor_name, as_trait_name, crate_root, inline_if_concrete, widgets_root};
 
-pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
     let wv = ir.widget_view_variant.as_deref();
     let wc = ir.widget_children_field.as_ref();
@@ -18,11 +18,11 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     match (&ir.is_root, &ir.base_field) {
         (true, None) => {
             // Terminal root with no parent: define As{Self} trait + self-ref impl.
-            out.extend(emit_root_trait_and_impl(&ir));
+            out.extend(emit_root_trait_and_impl(ir));
         }
         (true, Some(base)) => {
             // Root with parent: trait + self-ref + direct parent-chain impls.
-            out.extend(emit_root_trait_and_impl(&ir));
+            out.extend(emit_root_trait_and_impl(ir));
             // Root structs always have empty generics (enforced by parse).
             out.extend(emit_parent_chain_impls(
                 &ir.ident,
@@ -53,12 +53,15 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
 /// For a root struct, emits:
 ///   - `As{Self}` trait (with supertrait if base exists)
 ///   - self-ref impl
+#[allow(
+    clippy::too_many_lines,
+    reason = "Codegen for a trait + impl pair plus inline doc-test setup; extraction would split one logical emission into noise"
+)]
 fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     let cr = crate_root();
     let self_ident = &ir.ident;
-    let self_trait = match as_trait_name(self_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(self_ident),
+    let Some(self_trait) = as_trait_name(self_ident) else {
+        return emit_degenerate_error(self_ident);
     };
     let acc = accessor_name(self_ident);
     let acc_mut = acc_mut_ident(&acc);
@@ -257,8 +260,8 @@ fn emit_as_object_impl(
             quote! { self.#base_field.object_base_mut() },
         )
     };
-    let bare = bare_generics(generics);
-    let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let bare_generics_idents = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare_generics_idents.split_for_impl();
     let inline = inline_if_concrete(generics);
     quote! {
         impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
@@ -288,9 +291,8 @@ fn emit_delegation_impl(
     widget_view_variant: Option<&str>,
     widget_children_field: Option<&WidgetChildrenField>,
 ) -> TokenStream {
-    let parent_trait = match as_trait_name(&base.ty_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(&base.ty_ident),
+    let Some(parent_trait) = as_trait_name(&base.ty_ident) else {
+        return emit_degenerate_error(&base.ty_ident);
     };
     // Only emit for non-ObjectBase parents (AsObject is handled by emit_as_object_impl).
     if parent_trait == "AsObject" {
@@ -300,29 +302,28 @@ fn emit_delegation_impl(
     let base_field_ident = &base.ident;
     let parent_acc = accessor_name(&base.ty_ident);
     let parent_acc_mut = acc_mut_ident(&parent_acc);
-    let bare = bare_generics(generics);
-    let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let bare_generics_idents = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare_generics_idents.split_for_impl();
     let inline = inline_if_concrete(generics);
 
     // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
     let (widget_view_method, children_method) = if base.ty_ident == "WidgetBase" {
         let wr = widgets_root();
-        let wv = match widget_view_variant {
-            Some(variant) => {
-                let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
-                quote! {
-                    #inline
-                    fn widget_view(&self) -> #wr::WidgetView<'_> {
-                        #wr::WidgetView::#variant_ident(self)
-                    }
+        let wv = if let Some(variant) = widget_view_variant {
+            let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
+            quote! {
+                #inline
+                fn widget_view(&self) -> #wr::WidgetView<'_> {
+                    #wr::WidgetView::#variant_ident(self)
                 }
             }
-            None => quote! {
+        } else {
+            quote! {
                 #inline
                 fn widget_view(&self) -> #wr::WidgetView<'_> {
                     #wr::WidgetView::Other(self)
                 }
-            },
+            }
         };
         let ch = match widget_children_field {
             Some(wc) => {
@@ -371,9 +372,8 @@ fn emit_mixin_impl(
     mixin: &MixinField,
     generics: &syn::Generics,
 ) -> TokenStream {
-    let mixin_trait = match as_trait_name(&mixin.ty_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(&mixin.ty_ident),
+    let Some(mixin_trait) = as_trait_name(&mixin.ty_ident) else {
+        return emit_degenerate_error(&mixin.ty_ident);
     };
     let mixin_ty = &mixin.ty;
     let mixin_field = &mixin.ident;
@@ -394,15 +394,14 @@ fn emit_mixin_impl(
 }
 
 fn acc_mut_ident(acc: &Ident) -> Ident {
-    Ident::new(&format!("{}_mut", acc), acc.span())
+    Ident::new(&format!("{acc}_mut"), acc.span())
 }
 
 fn emit_degenerate_error(ident: &Ident) -> TokenStream {
     crate::util::emit_compile_error(
         ident.span(),
         &format!(
-            "type name '{}' alone is too generic after stripping 'Base'; choose a more descriptive name",
-            ident
+            "type name '{ident}' alone is too generic after stripping 'Base'; choose a more descriptive name"
         ),
     )
 }
@@ -414,7 +413,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::extend::parse::parse(ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // Case 1: #[root] with no base — emits As{Self} trait + self-ref impl, nothing else.

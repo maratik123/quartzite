@@ -19,7 +19,7 @@ fn make_name_changed_builtin() -> SignalField {
     }
 }
 
-pub(crate) fn codegen(ir: ObjectInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ObjectInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
     let mod_ident = hidden_mod_ident(type_ident);
@@ -553,7 +553,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::object::parse::parse(ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // Top-level: everything lives inside the hidden __quartzite_Foo module.

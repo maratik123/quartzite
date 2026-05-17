@@ -77,7 +77,7 @@ impl Palette {
     /// assert_eq!(palette.color(ColorRole::Text), Color::BLACK);
     /// ```
     #[inline]
-    pub fn with_role(mut self, role: ColorRole, color: Color) -> Palette {
+    pub fn with_role(mut self, role: ColorRole, color: Color) -> Self {
         self.colors[role as usize] = color;
         self
     }

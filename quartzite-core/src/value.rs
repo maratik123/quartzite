@@ -158,9 +158,9 @@ pub enum Value {
     /// A UTF-8 string.
     String(String),
     /// An ordered list of values.
-    List(Vec<Value>),
+    List(Vec<Self>),
     /// A string-keyed map of values (ordered by key).
-    Map(BTreeMap<String, Value>),
+    Map(BTreeMap<String, Self>),
     /// Raw byte sequence.
     Bytes(Vec<u8>),
     /// An arbitrary user-defined value implementing [`CustomValue`].
@@ -176,18 +176,18 @@ pub enum Value {
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Value::Null, Value::Null) => true,
-            (Value::Bool(a), Value::Bool(b)) => a == b,
-            (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::Float(a), Value::Float(b)) => a == b,
-            (Value::String(a), Value::String(b)) => a == b,
-            (Value::List(a), Value::List(b)) => a == b,
-            (Value::Map(a), Value::Map(b)) => a == b,
-            (Value::Bytes(a), Value::Bytes(b)) => a == b,
+            (Self::Null, Self::Null) => true,
+            (Self::Bool(a), Self::Bool(b)) => a == b,
+            (Self::Int(a), Self::Int(b)) => a == b,
+            (Self::Float(a), Self::Float(b)) => a == b,
+            (Self::String(a), Self::String(b)) => a == b,
+            (Self::List(a), Self::List(b)) => a == b,
+            (Self::Map(a), Self::Map(b)) => a == b,
+            (Self::Bytes(a), Self::Bytes(b)) => a == b,
             // Custom values are compared by Arc pointer identity, not deep equality.
-            (Value::Custom(a), Value::Custom(b)) => Arc::ptr_eq(a, b),
-            (Value::Object(a), Value::Object(b)) => a == b,
-            (Value::Duration(a), Value::Duration(b)) => a == b,
+            (Self::Custom(a), Self::Custom(b)) => Arc::ptr_eq(a, b),
+            (Self::Object(a), Self::Object(b)) => a == b,
+            (Self::Duration(a), Self::Duration(b)) => a == b,
             _ => false,
         }
     }
@@ -208,17 +208,17 @@ impl Value {
     /// ```
     pub fn type_name(&self) -> &'static str {
         match self {
-            Value::Null => "Null",
-            Value::Bool(_) => "Bool",
-            Value::Int(_) => "Int",
-            Value::Float(_) => "Float",
-            Value::String(_) => "String",
-            Value::List(_) => "List",
-            Value::Map(_) => "Map",
-            Value::Bytes(_) => "Bytes",
-            Value::Custom(_) => "Custom",
-            Value::Object(_) => "Object",
-            Value::Duration(_) => "Duration",
+            Self::Null => "Null",
+            Self::Bool(_) => "Bool",
+            Self::Int(_) => "Int",
+            Self::Float(_) => "Float",
+            Self::String(_) => "String",
+            Self::List(_) => "List",
+            Self::Map(_) => "Map",
+            Self::Bytes(_) => "Bytes",
+            Self::Custom(_) => "Custom",
+            Self::Object(_) => "Object",
+            Self::Duration(_) => "Duration",
         }
     }
 }
@@ -234,7 +234,7 @@ impl Value {
 /// assert_eq!(err.expected, "Int");
 /// assert_eq!(err.got, "Bool");
 /// ```
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("type error: expected {expected}, got {got}")]
 pub struct TypeError {
     /// The type name that was expected (e.g. `"Int"`).
@@ -343,14 +343,14 @@ macro_rules! impl_from_value_checked {
     };
 }
 
-// i32 and u32 always fit in i64, so `as i64` is lossless.
+// i32 and u32 always fit in i64, so `i64::from` is lossless.
 macro_rules! impl_int_checked {
     ($t:ty) => {
         impl_from_value_checked!($t);
         impl IntoValue for $t {
             #[inline]
             fn into_value(self) -> Value {
-                Value::Int(self as i64)
+                Value::Int(i64::from(self))
             }
         }
     };
@@ -397,7 +397,7 @@ impl IntoValue for f64 {
 impl FromValue for f32 {
     fn from_value(val: Value) -> Result<Self, TypeError> {
         match val {
-            Value::Float(f) => Ok(f as f32),
+            Value::Float(f) => Ok(f as Self),
             _ => Err(TypeError {
                 expected: "Float",
                 got: val.type_name(),
@@ -408,7 +408,7 @@ impl FromValue for f32 {
 
 impl IntoValue for f32 {
     fn into_value(self) -> Value {
-        Value::Float(self as f64)
+        Value::Float(f64::from(self))
     }
 }
 
@@ -712,9 +712,10 @@ mod tests {
     fn custom_clone_no_panic() {
         let arc: Arc<dyn CustomValue> = Arc::new(MyCustom);
         let val = Value::Custom(arc);
-        let cloned = val.clone();
         // Both should be Custom variants (pointer may differ due to clone_box).
+        let cloned = val.clone();
         assert!(matches!(cloned, Value::Custom(_)));
+        assert!(matches!(val, Value::Custom(_)));
     }
 
     // --- FromValue / IntoValue round-trips via rstest ---
@@ -754,7 +755,7 @@ mod tests {
 
     #[rstest]
     #[case(String::from("hello"))]
-    #[case(String::from(""))]
+    #[case(String::new())]
     fn string_round_trip(#[case] s: String) {
         let val = s.clone().into_value();
         assert_eq!(String::from_value(val), Ok(s));
@@ -960,7 +961,7 @@ mod tests {
         assert_eq!(Value::Float(0.0).type_name(), "Float");
         assert_eq!(Value::String(String::new()).type_name(), "String");
         assert_eq!(Value::List(vec![]).type_name(), "List");
-        assert_eq!(Value::Map(Default::default()).type_name(), "Map");
+        assert_eq!(Value::Map(BTreeMap::default()).type_name(), "Map");
         assert_eq!(Value::Bytes(vec![]).type_name(), "Bytes");
         assert_eq!(Value::Custom(Arc::new(MyCustom)).type_name(), "Custom");
         assert_eq!(Value::Object(WeakObjectRef(0)).type_name(), "Object");

@@ -20,7 +20,7 @@ struct Stub {
 
 impl Stub {
     fn named(name: &str) -> Box<dyn Object> {
-        Box::new(Stub {
+        Box::new(Self {
             base: ObjectBase::named(name),
         })
     }
@@ -88,7 +88,7 @@ struct LogObj {
 
 impl LogObj {
     fn boxed(name: &str, log: Arc<Mutex<Vec<String>>>) -> Box<dyn Object> {
-        Box::new(LogObj {
+        Box::new(Self {
             base: ObjectBase::named(name),
             log,
         })

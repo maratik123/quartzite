@@ -254,7 +254,7 @@ impl EventLoop {
     pub fn spawn(
         f: impl FnOnce() + Send + 'static,
     ) -> Result<(Arc<Self>, std::thread::JoinHandle<()>), LoopAlreadyInstalled> {
-        let el = Arc::new(EventLoop::new());
+        let el = Arc::new(Self::new());
         let el_thread = Arc::clone(&el);
         let (tx, rx) = mpsc::channel::<Result<(), LoopAlreadyInstalled>>();
         let handle = std::thread::spawn(move || {
