@@ -71,6 +71,14 @@ jobs:
       # and fail with `'cargo-miri' is not installed`.
       - name: cargo miri setup
         run: cargo miri setup
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys),
+          # reached via `cargo miri test --lib -p quartzite-widgets` from the
+          # v2 widening; ubuntu-latest runner does not include it.
+          sudo apt-get install -y libfontconfig1-dev
       # The explicit -p list mirrors the FFI-free audit recorded in
       # ai-docs/plans/done/2026-05-17-miri-master-push-job.design.md and must be
       # re-audited whenever a workspace member is added or removed.
