@@ -48,7 +48,7 @@ use parking_lot::{Mutex, MutexGuard};
 
 static TEST_LOCK: Mutex<()> = Mutex::new(());
 
-/// Acquire the per-binary test serialisation lock.
+/// Acquires the per-binary test serialisation lock.
 ///
 /// Hold the returned guard for the entire duration of any test that mutates
 /// process-global state. The lock is released when the guard is dropped (end
