@@ -234,7 +234,7 @@ impl Value {
 /// assert_eq!(err.expected, "Int");
 /// assert_eq!(err.got, "Bool");
 /// ```
-#[derive(Debug, Clone, PartialEq, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("type error: expected {expected}, got {got}")]
 pub struct TypeError {
     /// The type name that was expected (e.g. `"Int"`).
@@ -343,14 +343,14 @@ macro_rules! impl_from_value_checked {
     };
 }
 
-// i32 and u32 always fit in i64, so `as i64` is lossless.
+// i32 and u32 always fit in i64, so `i64::from` is lossless.
 macro_rules! impl_int_checked {
     ($t:ty) => {
         impl_from_value_checked!($t);
         impl IntoValue for $t {
             #[inline]
             fn into_value(self) -> Value {
-                Value::Int(self as i64)
+                Value::Int(i64::from(self))
             }
         }
     };
@@ -408,7 +408,7 @@ impl FromValue for f32 {
 
 impl IntoValue for f32 {
     fn into_value(self) -> Value {
-        Value::Float(self as f64)
+        Value::Float(f64::from(self))
     }
 }
 
@@ -712,9 +712,10 @@ mod tests {
     fn custom_clone_no_panic() {
         let arc: Arc<dyn CustomValue> = Arc::new(MyCustom);
         let val = Value::Custom(arc);
-        let cloned = val.clone();
         // Both should be Custom variants (pointer may differ due to clone_box).
+        let cloned = val.clone();
         assert!(matches!(cloned, Value::Custom(_)));
+        assert!(matches!(val, Value::Custom(_)));
     }
 
     // --- FromValue / IntoValue round-trips via rstest ---
@@ -960,7 +961,7 @@ mod tests {
         assert_eq!(Value::Float(0.0).type_name(), "Float");
         assert_eq!(Value::String(String::new()).type_name(), "String");
         assert_eq!(Value::List(vec![]).type_name(), "List");
-        assert_eq!(Value::Map(Default::default()).type_name(), "Map");
+        assert_eq!(Value::Map(BTreeMap::default()).type_name(), "Map");
         assert_eq!(Value::Bytes(vec![]).type_name(), "Bytes");
         assert_eq!(Value::Custom(Arc::new(MyCustom)).type_name(), "Custom");
         assert_eq!(Value::Object(WeakObjectRef(0)).type_name(), "Object");

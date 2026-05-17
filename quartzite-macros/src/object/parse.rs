@@ -151,7 +151,7 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
                         "unknown #[prop] option `{}`",
                         meta.path
                             .get_ident()
-                            .map_or("?".to_owned(), ToString::to_string)
+                            .map_or_else(|| "?".to_owned(), ToString::to_string)
                     )));
                 }
                 Ok(())

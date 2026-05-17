@@ -972,7 +972,7 @@ pub(crate) mod tests {
         sig.connect_queued(
             std::thread::current().id(),
             move |v| pv.lock().push(v),
-            guard_weak.clone(),
+            guard_weak,
         );
 
         // Drop receiver guard to invalidate.
@@ -1008,7 +1008,15 @@ pub(crate) mod tests {
         sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&(1,));
 
@@ -1046,7 +1054,15 @@ pub(crate) mod tests {
         sig.connect_auto(foreign_id, guard_weak, move |_| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&(42,));
 
@@ -1090,7 +1106,15 @@ pub(crate) mod tests {
         sig.connect_auto(std::thread::current().id(), guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&());
 
@@ -1128,7 +1152,15 @@ pub(crate) mod tests {
         sig.connect_auto(foreign_id, guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
-        let _guard = guard_arc;
+        // `guard_arc` is held by this fn's scope; the connection's Weak stays upgradable.
+        // Underscore-prefixed `_keep_alive_*` bindings still trip
+        // `clippy::no_effect_underscore_binding`; binding to `_` would drop the Arc
+        // immediately, breaking the test. Per-test allow scoped narrowly.
+        #[allow(
+            clippy::no_effect_underscore_binding,
+            reason = "RAII guard must outlive `sig.emit_unconditionally` below; clippy 1.95 flags `_<name>` bindings even when their lifetime extension is load-bearing"
+        )]
+        let _keep_alive_guard = guard_arc;
 
         sig.emit_unconditionally(&());
 
@@ -1292,7 +1324,7 @@ pub(crate) mod tests {
     // emit! macro: AC2, AC3, borrow-split compile check
     // ---------------------------------------------------------------------------
 
-    /// Minimal AsObject implementor for macro tests.
+    /// Minimal `AsObject` implementor for macro tests.
     #[cfg(feature = "std")]
     struct SigHolder {
         base: crate::ObjectBase,

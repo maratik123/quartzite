@@ -375,8 +375,8 @@ impl ObjectTree {
         // Remove from old name bucket.
         let old_name = self.with(id, |obj| obj.object_base().name().map(str::to_owned));
         match old_name {
-            None => (),       // id not in tree
-            Some(None) => (), // already anonymous — no state change, no signal
+            // None: id not in tree. Some(None): already anonymous — no state change, no signal.
+            None | Some(None) => (),
             Some(Some(old_name)) => {
                 Self::remove_from_by_name(&mut self.by_name, &old_name, id);
                 self.with_mut(id, |obj| obj.object_base_mut().set_name_raw(None));

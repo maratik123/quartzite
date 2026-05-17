@@ -89,7 +89,7 @@ impl WindowedAppHandler for OnStartExitHandler {
     }
 }
 
-/// AC4a: default builder, one window created; explicit exit via proxy →
+/// `AC4a`: default builder, one window created; explicit exit via proxy →
 /// `run` returns `Ok(())`.
 ///
 /// Note: We use `AppEvent::Exit` here rather than simulating
@@ -135,7 +135,7 @@ impl WindowedAppHandler for OptOutHandler {
     }
 }
 
-/// AC4b: `quit_on_last_window_closed(false)` builder; loop keeps running
+/// `AC4b`: `quit_on_last_window_closed(false)` builder; loop keeps running
 /// until an explicit `AppEvent::Exit` is sent.
 ///
 /// The `on_last_window_closed` hook is also exercised — verified via the
@@ -182,8 +182,7 @@ fn ac7_builder_exists_and_build_works() {
         .build();
 
     match &result {
-        Ok(_) => {}
-        Err(RendererError::Application(ApplicationError::AlreadyExists)) => {}
+        Ok(_) | Err(RendererError::Application(ApplicationError::AlreadyExists)) => {}
         Err(RendererError::EventLoop(_)) => {
             // No display server available in this environment (headless CI
             // without xvfb). The builder API is verified at compile time above.

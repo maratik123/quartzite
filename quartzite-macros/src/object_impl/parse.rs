@@ -62,11 +62,9 @@ pub(crate) fn parse(
                         params,
                         ret_ty,
                     });
-                    // Re-push cleaned fn (slot/invokable attrs already stripped)
-                    other_items.push(ImplItem::Fn(fn_item));
-                } else {
-                    other_items.push(ImplItem::Fn(fn_item));
                 }
+                // Re-push the (possibly slot/invokable-stripped) fn so it ends up in the impl block.
+                other_items.push(ImplItem::Fn(fn_item));
             }
             other => other_items.push(other),
         }

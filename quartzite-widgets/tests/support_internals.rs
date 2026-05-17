@@ -55,6 +55,10 @@ impl EnvGuard {
         }
     }
 
+    #[allow(
+        clippy::unused_self,
+        reason = "Tying `set` to `&self` ensures callers hold a live `EnvGuard` (and thus `ENV_LOCK`) during env-var mutation; an associated fn would weaken that invariant"
+    )]
     fn set(&self, key: &str, value: &str) {
         // SAFETY: see `new` — ENV_LOCK serialises mutation.
         unsafe {

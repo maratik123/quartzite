@@ -207,18 +207,18 @@ impl<'a> VelloPainter<'a> {
 
     #[inline]
     fn scale_pt(&self, p: Point) -> kurbo::Point {
-        let s = self.scale as f64;
-        kurbo::Point::new(p.x() as f64 * s, p.y() as f64 * s)
+        let s = f64::from(self.scale);
+        kurbo::Point::new(f64::from(p.x()) * s, f64::from(p.y()) * s)
     }
 
     #[inline]
     fn scale_rect(&self, r: Rect) -> kurbo::Rect {
-        let s = self.scale as f64;
+        let s = f64::from(self.scale);
         kurbo::Rect::new(
-            r.left() as f64 * s,
-            r.top() as f64 * s,
-            r.right() as f64 * s,
-            r.bottom() as f64 * s,
+            f64::from(r.left()) * s,
+            f64::from(r.top()) * s,
+            f64::from(r.right()) * s,
+            f64::from(r.bottom()) * s,
         )
     }
 
@@ -297,7 +297,7 @@ impl<'a> VelloPainter<'a> {
 
     fn to_bez_path(&self, path: &Path) -> kurbo::BezPath {
         let mut bez = kurbo::BezPath::new();
-        let s = self.scale as f64;
+        let s = f64::from(self.scale);
         for seg in path.segments() {
             match seg {
                 Segment::MoveTo(p) => bez.move_to(self.scale_pt(*p)),
@@ -312,10 +312,10 @@ impl<'a> VelloPainter<'a> {
                     sweep_angle,
                 } => {
                     let arc = kurbo::Arc::new(
-                        (centre.x() as f64 * s, centre.y() as f64 * s),
-                        (radii.width() as f64 * s, radii.height() as f64 * s),
-                        *start_angle as f64,
-                        *sweep_angle as f64,
+                        (f64::from(centre.x()) * s, f64::from(centre.y()) * s),
+                        (f64::from(radii.width()) * s, f64::from(radii.height()) * s),
+                        f64::from(*start_angle),
+                        f64::from(*sweep_angle),
                         0.0,
                     );
                     bez.extend(arc.append_iter(0.1));
@@ -331,9 +331,9 @@ impl<'a> VelloPainter<'a> {
     fn push_font_style(builder: &mut RangedBuilder<'_, [u8; 4]>, font: &Font) {
         builder.push_default(StyleProperty::FontSize(font.size_pt()));
         builder.push_default(StyleProperty::from(FontFamilyName::named(font.family())));
-        builder.push_default(StyleProperty::FontWeight(ParleyFontWeight::new(
-            font.weight() as u16 as f32,
-        )));
+        builder.push_default(StyleProperty::FontWeight(ParleyFontWeight::new(f32::from(
+            font.weight() as u16,
+        ))));
         if font.italic() {
             builder.push_default(StyleProperty::FontStyle(ParleyFontStyle::Italic));
         }
@@ -359,8 +359,8 @@ impl<'a> VelloPainter<'a> {
                 let parley_font = run.font();
                 let run_size = run.font_size();
                 let normalized = run.normalized_coords();
-                let baseline = glyph_run.baseline() as f64;
-                let offset = glyph_run.offset() as f64;
+                let baseline = f64::from(glyph_run.baseline());
+                let offset = f64::from(glyph_run.offset());
 
                 // positioned_glyphs() already encodes both the centering offset and the
                 // per-run baseline into g.x / g.y. The run transform only supplies the
@@ -384,18 +384,18 @@ impl<'a> VelloPainter<'a> {
 
                 if font.underline() {
                     let m = run.metrics();
-                    let uy = py + baseline + m.underline_offset as f64;
-                    let x1 = px + offset + glyph_run.advance() as f64;
+                    let uy = py + baseline + f64::from(m.underline_offset);
+                    let x1 = px + offset + f64::from(glyph_run.advance());
                     let seg = kurbo::Line::new((px + offset, uy), (x1, uy));
-                    let stroke = kurbo::Stroke::new(m.underline_size as f64);
+                    let stroke = kurbo::Stroke::new(f64::from(m.underline_size));
                     self.scene.stroke(&stroke, xform, fill_color, None, &seg);
                 }
                 if font.strikethrough() {
                     let m = run.metrics();
-                    let sy = py + baseline + m.strikethrough_offset as f64;
-                    let x1 = px + offset + glyph_run.advance() as f64;
+                    let sy = py + baseline + f64::from(m.strikethrough_offset);
+                    let x1 = px + offset + f64::from(glyph_run.advance());
                     let seg = kurbo::Line::new((px + offset, sy), (x1, sy));
-                    let stroke = kurbo::Stroke::new(m.strikethrough_size as f64);
+                    let stroke = kurbo::Stroke::new(f64::from(m.strikethrough_size));
                     self.scene.stroke(&stroke, xform, fill_color, None, &seg);
                 }
             }
@@ -414,14 +414,14 @@ impl<'a> VelloPainter<'a> {
     }
 }
 
-impl<'a> Painter for VelloPainter<'a> {
+impl Painter for VelloPainter<'_> {
     fn draw_rect(&mut self, rect: Rect, pen: &Pen, brush: &Brush) {
         let r = self.scale_rect(rect);
         let xform = self.current_xform();
         if let Some(fill_brush) = self.brush_to_peniko(brush) {
             self.scene.fill(Fill::NonZero, xform, &fill_brush, None, &r);
         }
-        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        let stroke = kurbo::Stroke::new(f64::from(pen.width()) * f64::from(self.scale));
         self.scene
             .stroke(&stroke, xform, Self::pen_color(pen), None, &r);
     }
@@ -438,7 +438,7 @@ impl<'a> Painter for VelloPainter<'a> {
         let p0 = self.scale_pt(from);
         let p1 = self.scale_pt(to);
         let xform = self.current_xform();
-        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        let stroke = kurbo::Stroke::new(f64::from(pen.width()) * f64::from(self.scale));
         let line = kurbo::Line::new(p0, p1);
         self.scene
             .stroke(&stroke, xform, Self::pen_color(pen), None, &line);
@@ -452,8 +452,8 @@ impl<'a> Painter for VelloPainter<'a> {
     }
 
     fn translate(&mut self, delta: Point) {
-        let s = self.scale as f64;
-        let t = kurbo::Affine::translate((delta.x() as f64 * s, delta.y() as f64 * s));
+        let s = f64::from(self.scale);
+        let t = kurbo::Affine::translate((f64::from(delta.x()) * s, f64::from(delta.y()) * s));
         let xf = self.xforms.last_mut().expect("xforms stack is never empty");
         *xf *= t;
     }
@@ -483,9 +483,9 @@ impl<'a> Painter for VelloPainter<'a> {
         let Some(fill_color) = Self::brush_color(brush) else {
             return;
         };
-        let s = self.scale as f64;
-        let px = pos.x() as f64 * s;
-        let py = pos.y() as f64 * s;
+        let s = f64::from(self.scale);
+        let px = f64::from(pos.x()) * s;
+        let py = f64::from(pos.y()) * s;
 
         let layout: Layout<[u8; 4]> = {
             let Some(fonts) = self.fonts.as_mut() else {
@@ -517,9 +517,9 @@ impl<'a> Painter for VelloPainter<'a> {
         let Some(fill_color) = Self::brush_color(brush) else {
             return;
         };
-        let s = self.scale as f64;
-        let px = rect.left() as f64 * s;
-        let py = rect.top() as f64 * s;
+        let s = f64::from(self.scale);
+        let px = f64::from(rect.left()) * s;
+        let py = f64::from(rect.top()) * s;
         let max_advance = rect.size().width() as f32 * self.scale;
 
         let layout: Layout<[u8; 4]> = {
@@ -561,11 +561,11 @@ impl<'a> Painter for VelloPainter<'a> {
             width: image.width(),
             height: image.height(),
         };
-        let s = self.scale as f64;
-        let sw = rect.size().width() as f64 * s / image.width() as f64;
-        let sh = rect.size().height() as f64 * s / image.height() as f64;
-        let tx = rect.left() as f64 * s;
-        let ty = rect.top() as f64 * s;
+        let s = f64::from(self.scale);
+        let sw = f64::from(rect.size().width()) * s / f64::from(image.width());
+        let sh = f64::from(rect.size().height()) * s / f64::from(image.height());
+        let tx = f64::from(rect.left()) * s;
+        let ty = f64::from(rect.top()) * s;
         let local = kurbo::Affine::new([sw, 0.0, 0.0, sh, tx, ty]);
         let img_xform = self.current_xform() * local;
         self.scene.draw_image(&img_data, img_xform);
@@ -578,7 +578,7 @@ impl<'a> Painter for VelloPainter<'a> {
             self.scene
                 .fill(Fill::NonZero, xform, &fill_brush, None, &bez);
         }
-        let stroke = kurbo::Stroke::new(pen.width() as f64 * self.scale as f64);
+        let stroke = kurbo::Stroke::new(f64::from(pen.width()) * f64::from(self.scale));
         self.scene
             .stroke(&stroke, xform, Self::pen_color(pen), None, &bez);
     }

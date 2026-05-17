@@ -204,9 +204,10 @@ fn app_driver_executes_on_event_loop_thread() {
         if el_thread_id.lock().expect("el_id lock").is_some() {
             break;
         }
-        if std::time::Instant::now() >= deadline {
-            panic!("event loop did not start in time");
-        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "event loop did not start in time"
+        );
         thread::sleep(Duration::from_millis(5));
     }
     let expected_el_id = el_thread_id.lock().expect("el_id lock").unwrap();
@@ -230,9 +231,10 @@ fn app_driver_executes_on_event_loop_thread() {
         if fired.load(Ordering::SeqCst) {
             break;
         }
-        if std::time::Instant::now() >= deadline2 {
-            panic!("AppDriver did not fire within 500 ms");
-        }
+        assert!(
+            std::time::Instant::now() < deadline2,
+            "AppDriver did not fire within 500 ms"
+        );
         thread::sleep(Duration::from_millis(5));
     }
 

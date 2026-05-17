@@ -53,6 +53,10 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
 /// For a root struct, emits:
 ///   - `As{Self}` trait (with supertrait if base exists)
 ///   - self-ref impl
+#[allow(
+    clippy::too_many_lines,
+    reason = "Codegen for a trait + impl pair plus inline doc-test setup; extraction would split one logical emission into noise"
+)]
 fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     let cr = crate_root();
     let self_ident = &ir.ident;

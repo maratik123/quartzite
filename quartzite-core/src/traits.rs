@@ -85,7 +85,9 @@ pub trait AsObject {
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any;
 }
 
-/// Full meta-system trait. Extends [`AsObject`] with property access, method invocation,
+/// Full meta-system trait.
+///
+/// Extends [`AsObject`] with property access, method invocation,
 /// and signal connection. Also, object-safe: all methods use `&str`, `&[Value]`, and
 /// boxed closures — no generics that would break object safety.
 pub trait Object: AsObject + Send {

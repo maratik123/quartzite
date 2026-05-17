@@ -38,10 +38,8 @@ pub(crate) fn parse(
                         params,
                         ret_ty,
                     });
-                    other_items.push(ImplItem::Fn(fn_item));
-                } else {
-                    other_items.push(ImplItem::Fn(fn_item));
                 }
+                other_items.push(ImplItem::Fn(fn_item));
             }
             other => other_items.push(other),
         }

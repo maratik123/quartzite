@@ -264,7 +264,10 @@ mod tests {
         // `Style` impls have distinct vtables even when both are ZSTs, so
         // `std::ptr::eq` over the wide-pointer form distinguishes them.
         assert!(
-            !std::ptr::eq(first as *const dyn Style, second as *const dyn Style),
+            !std::ptr::eq(
+                std::ptr::from_ref::<dyn Style>(first),
+                std::ptr::from_ref::<dyn Style>(second)
+            ),
             "second set_style did not replace the first",
         );
     }

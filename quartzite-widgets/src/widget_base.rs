@@ -219,7 +219,7 @@ pub enum WidgetChildrenIter<'a> {
     Empty,
 }
 
-impl<'a> Iterator for WidgetChildrenIter<'a> {
+impl Iterator for WidgetChildrenIter<'_> {
     type Item = ObjectId;
 
     fn next(&mut self) -> Option<Self::Item> {

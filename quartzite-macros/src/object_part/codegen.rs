@@ -6,7 +6,7 @@ use crate::object_impl::parse::ObjectImplInput;
 /// Emits only the cleaned impl block — no metadata statics or `impl Object`.
 #[inline]
 pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
-    emit_impl_block(&ir.trait_path, &ir.self_ty, &ir.other_items)
+    emit_impl_block(ir.trait_path.as_ref(), &ir.self_ty, &ir.other_items)
 }
 
 #[cfg(test)]

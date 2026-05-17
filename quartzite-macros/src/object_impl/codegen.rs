@@ -17,7 +17,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
     let meta_static = emit_meta_static(type_ident, &mod_ident);
     let object_impl = emit_object_impl(self_ty, type_ident, &mod_ident, &ir.generics);
 
-    let impl_block = emit_impl_block(&ir.trait_path, self_ty, other_items);
+    let impl_block = emit_impl_block(ir.trait_path.as_ref(), self_ty, other_items);
 
     quote! {
         #impl_block
@@ -31,7 +31,7 @@ pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
 }
 
 pub(crate) fn emit_impl_block(
-    trait_path: &Option<syn::Path>,
+    trait_path: Option<&syn::Path>,
     self_ty: &syn::Type,
     other_items: &[syn::ImplItem],
 ) -> TokenStream {
