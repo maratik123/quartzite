@@ -21,6 +21,9 @@ rstest            = "0.26"
 pretty_assertions = "1"
 hashbrown         = "0.17"
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
