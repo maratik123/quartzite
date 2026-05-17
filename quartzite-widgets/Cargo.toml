@@ -16,6 +16,7 @@ quartzite-events       = { path = "../quartzite-events" }
 quartzite-paint-api    = { path = "../quartzite-paint-api" }
 quartzite-paint        = { path = "../quartzite-paint" }
 quartzite-style-types  = { path = "../quartzite-style-types" }
+parking_lot            = "0.12"
 
 [dev-dependencies]
 rstest             = "0.26"

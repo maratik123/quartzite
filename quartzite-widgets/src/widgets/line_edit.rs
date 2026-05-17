@@ -133,7 +133,9 @@ impl LineEdit {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use quartzite_core::{Object, Value};
 
@@ -160,11 +162,11 @@ mod tests {
         let received: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let recv2 = Arc::clone(&received);
         edit.text_changed.connect(move |args: &(String,)| {
-            *recv2.lock().unwrap() = Some(args.0.clone());
+            *recv2.lock() = Some(args.0.clone());
         });
         edit.set_text("hello".into());
         assert_eq!(edit.text, "hello");
-        assert_eq!(*received.lock().unwrap(), Some("hello".into()));
+        assert_eq!(*received.lock(), Some("hello".into()));
     }
 
     #[test]
@@ -174,10 +176,10 @@ mod tests {
         let count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
         let count2 = Arc::clone(&count);
         edit.text_changed.connect(move |_: &(String,)| {
-            *count2.lock().unwrap() += 1;
+            *count2.lock() += 1;
         });
         edit.set_text("hello".into());
-        assert_eq!(*count.lock().unwrap(), 0);
+        assert_eq!(*count.lock(), 0);
     }
 
     #[test]
@@ -187,11 +189,11 @@ mod tests {
         let count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
         let count2 = Arc::clone(&count);
         edit.text_changed.connect(move |_: &(String,)| {
-            *count2.lock().unwrap() += 1;
+            *count2.lock() += 1;
         });
         edit.set_text("hello".into());
         assert_eq!(edit.text, "");
-        assert_eq!(*count.lock().unwrap(), 0);
+        assert_eq!(*count.lock(), 0);
     }
 
     #[test]
@@ -201,11 +203,11 @@ mod tests {
         let received: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let recv2 = Arc::clone(&received);
         edit.text_changed.connect(move |args: &(String,)| {
-            *recv2.lock().unwrap() = Some(args.0.clone());
+            *recv2.lock() = Some(args.0.clone());
         });
         edit.clear();
         assert!(edit.text.is_empty());
-        assert_eq!(*received.lock().unwrap(), Some(String::new()));
+        assert_eq!(*received.lock(), Some(String::new()));
     }
 
     #[test]
@@ -214,11 +216,11 @@ mod tests {
         let fired: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let fired2 = Arc::clone(&fired);
         edit.text_changed.connect(move |args: &(String,)| {
-            *fired2.lock().unwrap() = Some(args.0.clone());
+            *fired2.lock() = Some(args.0.clone());
         });
         assert!(edit.write_property("text", Value::String("world".into())));
         assert_eq!(edit.text, "world");
-        assert_eq!(*fired.lock().unwrap(), Some("world".into()));
+        assert_eq!(*fired.lock(), Some("world".into()));
     }
 
     #[test]

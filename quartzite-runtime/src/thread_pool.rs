@@ -103,11 +103,7 @@ impl Drop for ThreadPool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        num::NonZeroUsize,
-        sync::{Arc, Mutex},
-        time::Duration,
-    };
+    use std::{num::NonZeroUsize, sync::Arc, time::Duration};
 
     #[test]
     fn tasks_execute_on_workers() {
@@ -116,14 +112,14 @@ mod tests {
 
         for i in 0u32..4 {
             let r = Arc::clone(&results);
-            pool.spawn(move || r.lock().unwrap().push(i));
+            pool.spawn(move || r.lock().push(i));
         }
 
         // Give workers time to finish.
         thread::sleep(Duration::from_millis(50));
         drop(pool); // joins workers
 
-        let mut v = results.lock().unwrap().clone();
+        let mut v = results.lock().clone();
         v.sort_unstable();
         assert_eq!(v, vec![0, 1, 2, 3]);
     }
@@ -135,9 +131,9 @@ mod tests {
         let f = Arc::clone(&flag);
         pool.spawn(move || {
             thread::sleep(Duration::from_millis(20));
-            *f.lock().unwrap() = true;
+            *f.lock() = true;
         });
         drop(pool); // must block until task completes
-        assert!(*flag.lock().unwrap());
+        assert!(*flag.lock());
     }
 }

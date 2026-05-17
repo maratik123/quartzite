@@ -220,7 +220,9 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use quartzite_events::{KeyEvent, MouseEvent};
     use quartzite_geometry::Size;
@@ -300,19 +302,19 @@ mod tests {
     impl WidgetRoot for CountingRoot {
         fn paint(&self, _painter: &mut dyn Painter) {}
         fn on_resize(&mut self, size: Size) {
-            self.resize_calls.lock().unwrap().push(size);
+            self.resize_calls.lock().push(size);
         }
         fn on_mouse_press(&mut self, _event: &MouseEvent) {
-            *self.press_calls.lock().unwrap() += 1;
+            *self.press_calls.lock() += 1;
         }
         fn on_mouse_release(&mut self, _event: &MouseEvent) {
-            *self.release_calls.lock().unwrap() += 1;
+            *self.release_calls.lock() += 1;
         }
         fn on_key_press(&mut self, _event: &KeyEvent) {
-            *self.key_press_calls.lock().unwrap() += 1;
+            *self.key_press_calls.lock() += 1;
         }
         fn on_key_release(&mut self, _event: &KeyEvent) {
-            *self.key_release_calls.lock().unwrap() += 1;
+            *self.key_release_calls.lock() += 1;
         }
     }
 
@@ -405,8 +407,8 @@ mod tests {
             WindowEvent::Resized(winit::dpi::PhysicalSize::new(800u32, 600u32)),
         );
 
-        let got_a = resizes_a.lock().unwrap().clone();
-        let got_b = resizes_b.lock().unwrap().clone();
+        let got_a = resizes_a.lock().clone();
+        let got_b = resizes_b.lock().clone();
         assert_eq!(
             got_a,
             vec![Size::new(800, 600)],
@@ -431,7 +433,7 @@ mod tests {
 
         assert!(!should_exit);
         assert!(
-            resizes_a.lock().unwrap().is_empty(),
+            resizes_a.lock().is_empty(),
             "root A must not receive events for an unknown window"
         );
     }
@@ -477,8 +479,8 @@ mod tests {
                 button: btn,
             },
         );
-        assert_eq!(*press.lock().unwrap(), 1, "press_calls should be 1");
-        assert_eq!(*release.lock().unwrap(), 0, "release_calls should be 0");
+        assert_eq!(*press.lock(), 1, "press_calls should be 1");
+        assert_eq!(*release.lock(), 0, "release_calls should be 0");
     }
 
     #[test]
@@ -502,8 +504,8 @@ mod tests {
                 button: btn,
             },
         );
-        assert_eq!(*press.lock().unwrap(), 1);
-        assert_eq!(*release.lock().unwrap(), 1);
+        assert_eq!(*press.lock(), 1);
+        assert_eq!(*release.lock(), 1);
     }
 
     #[test]
