@@ -125,7 +125,9 @@ impl TextEdit {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use quartzite_core::{Object, Value};
 
@@ -152,11 +154,11 @@ mod tests {
         let received: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let recv2 = Arc::clone(&received);
         edit.text_changed.connect(move |args: &(String,)| {
-            *recv2.lock().unwrap() = Some(args.0.clone());
+            *recv2.lock() = Some(args.0.clone());
         });
         edit.set_plain_text("hello\nworld".into());
         assert_eq!(edit.plain_text, "hello\nworld");
-        assert_eq!(*received.lock().unwrap(), Some("hello\nworld".into()));
+        assert_eq!(*received.lock(), Some("hello\nworld".into()));
     }
 
     #[test]
@@ -166,10 +168,10 @@ mod tests {
         let count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
         let count2 = Arc::clone(&count);
         edit.text_changed.connect(move |_: &(String,)| {
-            *count2.lock().unwrap() += 1;
+            *count2.lock() += 1;
         });
         edit.set_plain_text("hello".into());
-        assert_eq!(*count.lock().unwrap(), 0);
+        assert_eq!(*count.lock(), 0);
     }
 
     #[test]
@@ -179,11 +181,11 @@ mod tests {
         let count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
         let count2 = Arc::clone(&count);
         edit.text_changed.connect(move |_: &(String,)| {
-            *count2.lock().unwrap() += 1;
+            *count2.lock() += 1;
         });
         edit.set_plain_text("hello".into());
         assert_eq!(edit.plain_text, "");
-        assert_eq!(*count.lock().unwrap(), 0);
+        assert_eq!(*count.lock(), 0);
     }
 
     #[test]
@@ -193,11 +195,11 @@ mod tests {
         let received: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let recv2 = Arc::clone(&received);
         edit.text_changed.connect(move |args: &(String,)| {
-            *recv2.lock().unwrap() = Some(args.0.clone());
+            *recv2.lock() = Some(args.0.clone());
         });
         edit.clear();
         assert!(edit.plain_text.is_empty());
-        assert_eq!(*received.lock().unwrap(), Some(String::new()));
+        assert_eq!(*received.lock(), Some(String::new()));
     }
 
     #[test]

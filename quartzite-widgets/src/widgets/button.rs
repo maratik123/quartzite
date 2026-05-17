@@ -154,7 +154,9 @@ impl Button {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
+
+    use parking_lot::Mutex;
 
     use quartzite_core::{Object, Value};
 
@@ -178,10 +180,10 @@ mod tests {
         let received: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(None));
         let recv2 = Arc::clone(&received);
         btn.clicked.connect(move |args: &(bool,)| {
-            *recv2.lock().unwrap() = Some(args.0);
+            *recv2.lock() = Some(args.0);
         });
         btn.click();
-        assert_eq!(*received.lock().unwrap(), Some(false));
+        assert_eq!(*received.lock(), Some(false));
     }
 
     #[test]
@@ -190,11 +192,11 @@ mod tests {
         let fired: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let fired2 = Arc::clone(&fired);
         btn.text_changed.connect(move |args: &(String,)| {
-            *fired2.lock().unwrap() = Some(args.0.clone());
+            *fired2.lock() = Some(args.0.clone());
         });
         assert!(btn.write_property("text", Value::String("Cancel".into())));
         assert_eq!(btn.text, "Cancel");
-        assert_eq!(*fired.lock().unwrap(), Some("Cancel".into()));
+        assert_eq!(*fired.lock(), Some("Cancel".into()));
     }
 
     #[test]
@@ -203,10 +205,10 @@ mod tests {
         let fired: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
         let fired2 = Arc::clone(&fired);
         btn.text_changed.connect(move |args: &(String,)| {
-            *fired2.lock().unwrap() = Some(args.0.clone());
+            *fired2.lock() = Some(args.0.clone());
         });
         btn.set_text("Cancel".into());
-        assert_eq!(*fired.lock().unwrap(), Some("Cancel".into()));
+        assert_eq!(*fired.lock(), Some("Cancel".into()));
     }
 
     #[test]
@@ -215,10 +217,10 @@ mod tests {
         let count: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
         let count2 = Arc::clone(&count);
         btn.text_changed.connect(move |_: &(String,)| {
-            *count2.lock().unwrap() += 1;
+            *count2.lock() += 1;
         });
         btn.set_text("OK".into());
-        assert_eq!(*count.lock().unwrap(), 0);
+        assert_eq!(*count.lock(), 0);
     }
 
     #[test]
@@ -234,10 +236,10 @@ mod tests {
         let toggled: Arc<Mutex<Option<bool>>> = Arc::new(Mutex::new(None));
         let t2 = Arc::clone(&toggled);
         btn.toggled.connect(move |args: &(bool,)| {
-            *t2.lock().unwrap() = Some(args.0);
+            *t2.lock() = Some(args.0);
         });
         btn.click();
         assert!(btn.checked);
-        assert_eq!(*toggled.lock().unwrap(), Some(true));
+        assert_eq!(*toggled.lock(), Some(true));
     }
 }

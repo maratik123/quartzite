@@ -146,28 +146,13 @@ fn global_returns_some_after_install() {
 fn create_through_global_unregistered_returns_none() {
     install_once();
     let factory = ObjectFactory::global().expect("factory not installed");
-    assert!(
-        factory
-            .read()
-            .expect("lock poisoned")
-            .create("NoSuchClass")
-            .is_none()
-    );
+    assert!(factory.read().create("NoSuchClass").is_none());
 }
 
 #[test]
 fn register_and_create_through_global() {
     install_once();
     let factory = ObjectFactory::global().expect("factory not installed");
-    factory
-        .write()
-        .expect("lock poisoned")
-        .register("GlobalFoo", FooObj::new_boxed);
-    assert!(
-        factory
-            .read()
-            .expect("lock poisoned")
-            .create("GlobalFoo")
-            .is_some()
-    );
+    factory.write().register("GlobalFoo", FooObj::new_boxed);
+    assert!(factory.read().create("GlobalFoo").is_some());
 }

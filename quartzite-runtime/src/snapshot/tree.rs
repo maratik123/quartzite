@@ -348,9 +348,7 @@ mod tests {
             if ObjectFactory::install(factory).is_err() {
                 // Factory already installed (shared process); register into existing one.
                 if let Some(arc) = ObjectFactory::global() {
-                    arc.write()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .register("TreeSample", TreeSample::new_boxed);
+                    arc.write().register("TreeSample", TreeSample::new_boxed);
                 }
             }
         });

@@ -1,7 +1,7 @@
 //! Integration tests for per-thread event loops (AC12, AC13).
 use std::{
     sync::{
-        Arc, Mutex,
+        Arc,
         atomic::{AtomicBool, Ordering},
         mpsc,
     },
@@ -9,6 +9,7 @@ use std::{
     time::Duration,
 };
 
+use parking_lot::Mutex;
 use quartzite_core::signal::QueuedDispatcher;
 use quartzite_runtime::{ConnectionTable, EventLoop};
 
@@ -36,7 +37,7 @@ fn queued_dispatch_executes_on_worker_thread() {
     table.post(
         worker_tid,
         Box::new(move || {
-            *executed_on2.lock().unwrap() = Some(thread::current().id());
+            *executed_on2.lock() = Some(thread::current().id());
         }),
     );
 
@@ -45,7 +46,7 @@ fn queued_dispatch_executes_on_worker_thread() {
     el.stop();
     handle.join().expect("worker thread must exit cleanly");
 
-    let recorded = *executed_on.lock().unwrap();
+    let recorded = *executed_on.lock();
     assert_eq!(
         recorded,
         Some(worker_tid),

@@ -21,7 +21,7 @@
 
 mod support;
 
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use image::{Rgba, RgbaImage};
 use support::{
@@ -38,7 +38,7 @@ static ENV_LOCK: Mutex<()> = Mutex::new(());
 /// clears all four; `Drop` restores the originally-observed values so a
 /// later test on the same thread doesn't inherit our state.
 struct EnvGuard {
-    _lock: std::sync::MutexGuard<'static, ()>,
+    _lock: parking_lot::MutexGuard<'static, ()>,
     skip: Option<std::ffi::OsString>,
     regen: Option<std::ffi::OsString>,
     backend: Option<std::ffi::OsString>,
@@ -46,7 +46,7 @@ struct EnvGuard {
 
 impl EnvGuard {
     fn new() -> Self {
-        let lock = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let lock = ENV_LOCK.lock();
         let skip = std::env::var_os(SKIP_ENV);
         let regen = std::env::var_os(REGEN_ENV);
         let backend = std::env::var_os(BACKEND_ENV);

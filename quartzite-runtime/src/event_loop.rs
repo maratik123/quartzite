@@ -281,11 +281,8 @@ impl Default for EventLoop {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::{
-        sync::{Arc, Mutex},
-        thread,
-        time::Duration,
-    };
+    use parking_lot::Mutex;
+    use std::{sync::Arc, thread, time::Duration};
 
     fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
         thread::spawn(move || el.run())
@@ -303,14 +300,14 @@ mod tests {
         thread::sleep(Duration::from_millis(5));
 
         el2.post(Box::new(move || {
-            *tid.lock().unwrap() = Some(thread::current().id());
+            *tid.lock() = Some(thread::current().id());
         }));
 
         thread::sleep(Duration::from_millis(20));
         el.stop();
         handle.join().unwrap();
 
-        let recorded = loop_thread_id.lock().unwrap();
+        let recorded = loop_thread_id.lock();
         assert!(recorded.is_some());
         assert_ne!(*recorded, Some(thread::current().id()));
     }
@@ -325,14 +322,14 @@ mod tests {
 
         for i in 1u32..=3 {
             let log2 = Arc::clone(&log);
-            el.post(Box::new(move || log2.lock().unwrap().push(i)));
+            el.post(Box::new(move || log2.lock().push(i)));
         }
 
         thread::sleep(Duration::from_millis(20));
         el.stop();
         handle.join().unwrap();
 
-        assert_eq!(*log.lock().unwrap(), vec![1, 2, 3]);
+        assert_eq!(*log.lock(), vec![1, 2, 3]);
     }
 
     #[test]

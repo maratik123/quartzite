@@ -18,7 +18,9 @@
 
 mod support;
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use parking_lot::Mutex;
 
 use quartzite_renderer::{AppEvent, WindowId, WindowRegistry, WindowedAppHandler};
 use support::{RecordingRoot, build_test_app, proxy_send_exit};
@@ -35,7 +37,7 @@ impl WindowedAppHandler for OpenAndRecordHandler {
         for _ in 0..self.n {
             let records = Arc::new(Mutex::new(vec![]));
             match registry.try_create_window(RecordingRoot::new(records)) {
-                Ok(id) => self.ids.lock().unwrap().push(id),
+                Ok(id) => self.ids.lock().push(id),
                 Err(e) => eprintln!("try_create_window failed: {e}"),
             }
         }
@@ -65,7 +67,7 @@ fn ac1_ac2_open_two_windows_registry_lists_both() {
     let result = app.run(handler);
     assert!(result.is_ok(), "run must return Ok: {result:?}");
     assert_eq!(
-        ids.lock().unwrap().len(),
+        ids.lock().len(),
         2,
         "two calls to try_create_window must produce two WindowIds"
     );
@@ -84,7 +86,7 @@ impl WindowedAppHandler for OnStartExitHandler {
         if let Err(e) = registry.try_create_window(RecordingRoot::new(records)) {
             eprintln!("try_create_window failed in AC4a test: {e}");
         }
-        *self.started.lock().unwrap() = true;
+        *self.started.lock() = true;
         proxy_send_exit(&self.proxy);
     }
 }
@@ -110,7 +112,7 @@ fn ac4a_default_builder_run_returns_ok() {
     };
     let result = app.run(handler);
     assert!(result.is_ok(), "run must return Ok: {result:?}");
-    assert!(*started.lock().unwrap(), "on_start must have been called");
+    assert!(*started.lock(), "on_start must have been called");
 }
 
 // --- AC4b (opt-out keeps loop alive) -----------------------------------------
@@ -131,7 +133,7 @@ impl WindowedAppHandler for OptOutHandler {
     }
 
     fn on_last_window_closed(&mut self, _registry: &mut WindowRegistry) {
-        *self.last_window_closed_called.lock().unwrap() = true;
+        *self.last_window_closed_called.lock() = true;
     }
 }
 

@@ -12,8 +12,9 @@
 #![cfg_attr(not(target_os = "linux"), allow(dead_code, unused_imports))]
 
 use std::cell::Cell;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
+use parking_lot::Mutex;
 use quartzite_events::{KeyEvent, MouseEvent};
 use quartzite_geometry::Size;
 use quartzite_paint_api::Painter;
@@ -59,27 +60,27 @@ impl RecordingRoot {
 
 impl quartzite_renderer::WidgetRoot for RecordingRoot {
     fn paint(&self, _painter: &mut dyn Painter) {
-        self.records.lock().unwrap().push(RootEvent::Paint);
+        self.records.lock().push(RootEvent::Paint);
     }
 
     fn on_resize(&mut self, size: Size) {
-        self.records.lock().unwrap().push(RootEvent::Resize(size));
+        self.records.lock().push(RootEvent::Resize(size));
     }
 
     fn on_mouse_press(&mut self, _event: &MouseEvent) {
-        self.records.lock().unwrap().push(RootEvent::MousePress);
+        self.records.lock().push(RootEvent::MousePress);
     }
 
     fn on_mouse_release(&mut self, _event: &MouseEvent) {
-        self.records.lock().unwrap().push(RootEvent::MouseRelease);
+        self.records.lock().push(RootEvent::MouseRelease);
     }
 
     fn on_key_press(&mut self, _event: &KeyEvent) {
-        self.records.lock().unwrap().push(RootEvent::KeyPress);
+        self.records.lock().push(RootEvent::KeyPress);
     }
 
     fn on_key_release(&mut self, _event: &KeyEvent) {
-        self.records.lock().unwrap().push(RootEvent::KeyRelease);
+        self.records.lock().push(RootEvent::KeyRelease);
     }
 }
 

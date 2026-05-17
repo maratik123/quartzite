@@ -127,7 +127,9 @@ impl Default for ConnectionId {
 mod tests {
     use super::*;
     #[cfg(feature = "std")]
-    use std::{collections::HashSet, sync::Mutex, thread};
+    use parking_lot::Mutex;
+    #[cfg(feature = "std")]
+    use std::{collections::HashSet, thread};
 
     #[test]
     fn object_id_new_returns_distinct_sequential() {
@@ -166,11 +168,11 @@ mod tests {
             for _ in 0..N {
                 s.spawn(|| {
                     let id = ObjectId::new();
-                    ids.lock().unwrap().insert(id.raw());
+                    ids.lock().insert(id.raw());
                 });
             }
         });
-        assert_eq!(ids.lock().unwrap().len(), N);
+        assert_eq!(ids.lock().len(), N);
     }
 
     #[test]
@@ -182,10 +184,10 @@ mod tests {
             for _ in 0..N {
                 s.spawn(|| {
                     let id = ConnectionId::new();
-                    ids.lock().unwrap().insert(id.raw());
+                    ids.lock().insert(id.raw());
                 });
             }
         });
-        assert_eq!(ids.lock().unwrap().len(), N);
+        assert_eq!(ids.lock().len(), N);
     }
 }

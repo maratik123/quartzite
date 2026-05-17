@@ -75,11 +75,24 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
 Concrete forms of the "non-panicking APIs for libraries" rule (see
 [`AGENTS.md` § *API Naming*](../AGENTS.md#api-naming)):
 
-- **Mutex locks in `Option`/`Result`-returning fns:** use
-  `mutex.lock().ok()?` (or `.unwrap_or_else(|e| e.into_inner())` to
-  recover the inner value). Reserve `.lock().unwrap()` for cases where
-  poisoning genuinely indicates an unrecoverable broken global
-  invariant — and even then prefer `.expect("reason")`.
+- **Mutex / RwLock — workspace default is `parking_lot`.** Use
+  `parking_lot::Mutex` and `parking_lot::RwLock` for all in-tree
+  locks. Their `.lock()` / `.read()` / `.write()` methods are
+  infallible (no `PoisonError`, no `Result` wrapper) and return the
+  guard directly — call sites are plain `let g = m.lock();` with no
+  `.unwrap()` / `.expect()` / `.ok()?` / `.unwrap_or_else(...)`
+  ceremony. `parking_lot` does not poison on panic, so the recovery
+  idioms below are unnecessary in current code.
+  - _Footnote — rare FFI-imposed `std::sync::*Lock` retainees._ If a
+    `std::sync::Mutex` / `std::sync::RwLock` is unavoidable (e.g. it
+    appears in a public API exported across an FFI boundary that
+    requires the `std` type), prefer
+    `mutex.lock().ok()?` in `Option`/`Result`-returning fns or
+    `.unwrap_or_else(|e| e.into_inner())` to recover the inner value
+    on poison. Reserve `.lock().unwrap()` for cases where poisoning
+    genuinely indicates an unrecoverable broken global invariant —
+    and even then prefer `.expect("reason")`. No such retainee
+    currently exists in-tree.
 - **Prefer safe primitives over raw pointers.** If a `OnceLock` / `Arc`
   / `Weak` already in scope holds the value, an `AtomicBool` flag is
   enough to track liveness — do not reach for `AtomicPtr` + `unsafe`.

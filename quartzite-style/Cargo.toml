@@ -13,6 +13,7 @@ quartzite-style-types = { path = "../quartzite-style-types" }
 quartzite-paint        = { path = "../quartzite-paint" }
 quartzite-paint-api    = { path = "../quartzite-paint-api" }
 quartzite-widgets      = { path = "../quartzite-widgets" }
+parking_lot            = "0.12"
 
 [dev-dependencies]
 serial_test        = "3"

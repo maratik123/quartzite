@@ -2733,6 +2733,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "indexmap",
+ "parking_lot",
  "parley",
  "peniko",
  "pollster",
@@ -2776,6 +2777,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "parking_lot",
  "peniko",
  "quartzite-core",
  "quartzite-geometry",
@@ -2817,6 +2819,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "parking_lot",
  "peniko",
  "pretty_assertions",
  "quartzite-core",

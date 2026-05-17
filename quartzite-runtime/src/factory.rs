@@ -1,9 +1,10 @@
 //! Object factory: creates objects by class name for scripting and serialization.
 use std::{
     collections::HashMap,
-    sync::{Arc, OnceLock, RwLock},
+    sync::{Arc, OnceLock},
 };
 
+use parking_lot::RwLock;
 use quartzite_core::traits::Object;
 
 type Constructor = Box<dyn Fn() -> Box<dyn Object> + Send + Sync>;
@@ -87,8 +88,8 @@ impl ObjectFactory {
     /// [`install`](ObjectFactory::install) has not been called yet.
     ///
     /// Callers must lock the returned `RwLock` to read or mutate the factory:
-    /// - `global().unwrap().read().expect("poisoned").create("Foo")`,
-    /// - `global().unwrap().write().expect("poisoned").register("Foo", ctor)`.
+    /// - `global().unwrap().read().create("Foo")`,
+    /// - `global().unwrap().write().register("Foo", ctor)`.
     ///
     /// # Examples
     ///
@@ -96,7 +97,7 @@ impl ObjectFactory {
     /// use quartzite_runtime::ObjectFactory;
     ///
     /// if let Some(factory) = ObjectFactory::global() {
-    ///     let _obj = factory.read().expect("poisoned").create("MyClass");
+    ///     let _obj = factory.read().create("MyClass");
     /// }
     /// ```
     #[inline]

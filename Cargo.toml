@@ -62,8 +62,6 @@ type_complexity = "allow"
 struct_excessive_bools = "allow"
 # Stylistic; project doc convention currently does not normalise `[`code`]` link form, no value adds from forcing it
 doc_link_code = "allow"
-# AGENTS.md *Library safety idioms* designates `.lock().unwrap_or_else(|e| e.into_inner())` as the canonical poisoned-mutex recovery form. Replacing the closure with `std::sync::PoisonError::into_inner` is mechanically equivalent but collides with the named idiom — keep the closure form workspace-wide.
-redundant_closure_for_method_calls = "allow"
 
 [lints]
 workspace = true
