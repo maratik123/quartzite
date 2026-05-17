@@ -2776,6 +2776,7 @@ version = "0.1.0"
 dependencies = [
  "image",
  "nv-flip",
+ "parking_lot",
  "peniko",
  "quartzite-core",
  "quartzite-geometry",

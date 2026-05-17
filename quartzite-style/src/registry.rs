@@ -4,11 +4,10 @@
 //! calls [`Box::leak`] on the supplied `Box<dyn Style>` to obtain the
 //! `'static` reference; replacing the style leaks the prior box (acceptable
 //! for a process-lifetime registry — typical applications swap styles zero
-//! or one times). Lock-poisoning is recovered via
-//! `lock().unwrap_or_else(|e| e.into_inner())` per AGENTS.md library-safety
-//! idioms.
+//! or one times).
 
-use std::sync::{Mutex, OnceLock};
+use parking_lot::Mutex;
+use std::sync::OnceLock;
 
 use crate::Style;
 
@@ -92,15 +91,11 @@ impl StyleRegistry {
     /// ```
     pub fn set_style(style: Box<dyn Style>) {
         let leaked: &'static dyn Style = Box::leak(style);
-        let mut guard = slot().lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = slot().lock();
         *guard = Some(leaked);
     }
 
     /// Returns the active style, or [`None`] if no style is installed.
-    ///
-    /// The [`Mutex`] poison flag is intentionally tolerated:
-    /// `lock().unwrap_or_else(|e| e.into_inner())` recovers the inner
-    /// `Option` on a poisoned mutex per AGENTS.md library-safety idioms.
     ///
     /// # Examples
     ///
@@ -112,7 +107,7 @@ impl StyleRegistry {
     /// ```
     #[must_use]
     pub fn try_style() -> Option<&'static dyn Style> {
-        let guard = slot().lock().unwrap_or_else(|e| e.into_inner());
+        let guard = slot().lock();
         *guard
     }
 }
@@ -136,26 +131,9 @@ impl StyleRegistry {
     #[cfg(any(test, feature = "test-support"))]
     #[inline]
     pub fn clear_for_test() {
-        let mut guard = slot().lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = slot().lock();
         *guard = None;
     }
-}
-
-/// Forces the registry mutex into the poisoned state for the next lock.
-///
-/// Spawns a thread that locks and panics; the join handle's `Err` confirms
-/// the panic propagated. Subsequent `lock()` calls return `Err(PoisonError)`,
-/// which the registry's `unwrap_or_else(|e| e.into_inner())` recovers from.
-#[cfg(test)]
-pub(crate) fn poison_for_test() {
-    let mutex_ref: &'static Mutex<Option<&'static dyn Style>> = slot();
-    let handle = std::thread::spawn(move || {
-        let _guard = mutex_ref.lock().unwrap_or_else(|e| e.into_inner());
-        panic!("intentional panic to poison the registry mutex for tests");
-    });
-    // The thread panicked — join returns Err. We discard the error; the
-    // poisoned state is the artefact we wanted.
-    let _ = handle.join();
 }
 
 #[cfg(test)]
@@ -270,21 +248,6 @@ mod tests {
             ),
             "second set_style did not replace the first",
         );
-    }
-
-    #[test]
-    #[serial]
-    fn try_style_recovers_from_poisoned_mutex() {
-        StyleRegistry::clear_for_test();
-        StyleRegistry::set_style(Box::new(StyleA));
-
-        // Force the next lock() to observe a PoisonError.
-        poison_for_test();
-
-        // The recovery branch must turn `Err(PoisonError)` into the inner
-        // guard — try_style() therefore returns Some(_) without panicking.
-        let recovered = StyleRegistry::try_style();
-        assert!(recovered.is_some(), "poison-recovery branch returned None");
     }
 
     #[test]
