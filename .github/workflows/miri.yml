@@ -79,35 +79,10 @@ jobs:
           # reached via `cargo miri test --lib -p quartzite-widgets` from the
           # v2 widening; ubuntu-latest runner does not include it.
           sudo apt-get install -y libfontconfig1-dev
-      # The explicit -p list mirrors the FFI-free audit recorded in
-      # ai-docs/plans/done/2026-05-17-miri-master-push-job.design.md and must be
-      # re-audited whenever a workspace member is added or removed.
-      - name: cargo miri test (FFI-free crate subset)
-        run: |
-          cargo miri test \
-            -p quartzite-core \
-            -p quartzite-geometry \
-            -p quartzite-paint-api \
-            -p quartzite-events \
-            -p quartzite-event-types \
-            -p quartzite-paint \
-            -p quartzite-style-types \
-            -p quartzite-style-dispatch \
-            -p quartzite-runtime
-      - name: cargo miri test (widgets --lib)
-        run: cargo miri test --lib -p quartzite-widgets
-      - name: cargo miri test (style --lib)
-        run: cargo miri test --lib -p quartzite-style
-      - name: cargo miri test (macros --test allow-list)
-        run: |
-          cargo miri test -p quartzite-macros \
-            --test extend \
-            --test meta_enum \
-            --test object \
-            --test object_impl
-      - name: cargo miri test (widgets --test no_style_dep)
-        run: cargo miri test -p quartzite-widgets --test no_style_dep
-      - name: cargo miri test (widgets --test re_exports)
-        run: cargo miri test -p quartzite-widgets --test re_exports
-      - name: cargo miri test (style --test third_party_paint)
-        run: cargo miri test -p quartzite-style --test third_party_paint
+      # Why excluded: prod-dep FFI: winit/wgpu/vello reach quartzite-renderer's
+      # lib by construction; no --lib/--test filter side-steps the dep graph.
+      # Every other workspace crate is in scope; per-test or per-file opt-outs
+      # (`#[cfg_attr(miri, ignore = "<reason>")]` / `#![cfg(not(miri))]`)
+      # live at the source, NOT in this file. See ai-docs/miri-policy.md.
+      - name: cargo miri test (workspace, deny-list)
+        run: cargo miri test --workspace --exclude quartzite-renderer
