@@ -7,6 +7,16 @@
 //! the resolved dependency tree names `quartzite-style` (the trailing space in
 //! the grep avoids false-positives against `quartzite-style-types`).
 
+// Skipped under Miri at the file level: this is a build-graph contract test
+// that subprocesses `cargo tree` via `std::process::Command::output()`. The
+// std spawn path routes through `posix_spawnp → pidfd_spawnp`, which Miri
+// does not emulate (`error: unsupported operation: extern static
+// 'pidfd_spawnp' is not supported by Miri`). Tripped master Miri run
+// 25977995748 (post #433). The dependency graph is fully determined at
+// compile time, so Miri analysis of this test offers no UB/aliasing value;
+// the native `cargo test` gate retains full AC13 coverage.
+#![cfg(not(miri))]
+
 use std::process::Command;
 
 #[test]
