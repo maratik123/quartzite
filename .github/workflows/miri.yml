@@ -32,7 +32,16 @@ jobs:
       #   detector flags every such entry on test-binary exit, drowning out
       #   real findings. Tree Borrows itself remains active for UB/aliasing
       #   detection; only the leak-checker is disabled.
-      MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-ignore-leaks
+      # `-Zmiri-disable-isolation`: `tracing_subscriber`'s default fmt-time
+      #   layer calls `SystemTime::now()` → `clock_gettime(CLOCK_REALTIME)`
+      #   from inside `tracing::warn!` event formatting. Miri's default
+      #   isolation mode blocks the host syscall and the std `.unwrap()` on
+      #   line 107 of `std/src/sys/pal/unix/time.rs` then panics. Disabling
+      #   isolation lets the syscall return the real host time; tests that
+      #   warn through `tracing` (e.g. quartzite-style-dispatch's resolver-
+      #   miss test) then complete. Tree Borrows itself remains active for
+      #   UB/aliasing detection; only host-syscall isolation is relaxed.
+      MIRIFLAGS: -Zmiri-tree-borrows -Zmiri-ignore-leaks -Zmiri-disable-isolation
     steps:
       - uses: actions/checkout@v6
       - name: Export ImageVersion  # See #340
