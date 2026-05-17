@@ -220,7 +220,6 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::Cell;
     use std::sync::{Arc, Mutex};
 
     use quartzite_events::{KeyEvent, MouseEvent};

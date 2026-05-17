@@ -5,7 +5,7 @@ use crate::object_impl::parse::ObjectImplInput;
 
 /// Emits only the cleaned impl block — no metadata statics or `impl Object`.
 #[inline]
-pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ObjectImplInput) -> TokenStream {
     emit_impl_block(ir.trait_path.as_ref(), &ir.self_ty, &ir.other_items)
 }
 
@@ -26,7 +26,7 @@ mod tests {
             },
         )
         .expect("parse ok");
-        let out = super::codegen(ir).to_string();
+        let out = super::codegen(&ir).to_string();
         assert!(out.contains("impl Foo"), "missing impl block: {out}");
         assert!(out.contains("fn reset"), "missing slot fn: {out}");
         assert!(!out.contains("META_Foo"), "unexpected MetaObject: {out}");
@@ -53,7 +53,7 @@ mod tests {
             },
         )
         .expect("parse ok");
-        let out = super::codegen(ir).to_string();
+        let out = super::codegen(&ir).to_string();
         assert!(
             out.contains("impl MyTrait for Foo"),
             "missing trait impl header: {out}"

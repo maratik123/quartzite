@@ -5,7 +5,7 @@ use syn::{Ident, Index, ReturnType};
 use super::parse::{MethodItem, ObjectImplInput};
 use crate::util::{crate_root, hidden_mod_ident, inline_if_concrete};
 
-pub(crate) fn codegen(ir: ObjectImplInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
     let self_ty = &ir.self_ty;
     let other_items = &ir.other_items;
@@ -270,7 +270,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::object_impl::parse::parse(quote! {}, ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // No methods — methods static is empty, invoke fn has no arms.

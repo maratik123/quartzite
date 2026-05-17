@@ -5,7 +5,7 @@ use syn::Ident;
 use super::parse::{BaseField, ExtendInput, MixinField, WidgetChildrenField, WidgetChildrenKind};
 use crate::util::{accessor_name, as_trait_name, crate_root, inline_if_concrete, widgets_root};
 
-pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
+pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
     let wv = ir.widget_view_variant.as_deref();
     let wc = ir.widget_children_field.as_ref();
@@ -18,11 +18,11 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
     match (&ir.is_root, &ir.base_field) {
         (true, None) => {
             // Terminal root with no parent: define As{Self} trait + self-ref impl.
-            out.extend(emit_root_trait_and_impl(&ir));
+            out.extend(emit_root_trait_and_impl(ir));
         }
         (true, Some(base)) => {
             // Root with parent: trait + self-ref + direct parent-chain impls.
-            out.extend(emit_root_trait_and_impl(&ir));
+            out.extend(emit_root_trait_and_impl(ir));
             // Root structs always have empty generics (enforced by parse).
             out.extend(emit_parent_chain_impls(
                 &ir.ident,
@@ -260,8 +260,8 @@ fn emit_as_object_impl(
             quote! { self.#base_field.object_base_mut() },
         )
     };
-    let bare = bare_generics(generics);
-    let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let bare_generics_idents = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare_generics_idents.split_for_impl();
     let inline = inline_if_concrete(generics);
     quote! {
         impl #impl_generics #cr::AsObject for #self_ident #ty_generics {
@@ -302,8 +302,8 @@ fn emit_delegation_impl(
     let base_field_ident = &base.ident;
     let parent_acc = accessor_name(&base.ty_ident);
     let parent_acc_mut = acc_mut_ident(&parent_acc);
-    let bare = bare_generics(generics);
-    let (impl_generics, ty_generics, _) = bare.split_for_impl();
+    let bare_generics_idents = bare_generics(generics);
+    let (impl_generics, ty_generics, _) = bare_generics_idents.split_for_impl();
     let inline = inline_if_concrete(generics);
 
     // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
@@ -413,7 +413,7 @@ mod tests {
 
     fn emit(ts: TokenStream) -> String {
         let ir = crate::extend::parse::parse(ts).expect("parse ok");
-        super::codegen(ir).to_string()
+        super::codegen(&ir).to_string()
     }
 
     // Case 1: #[root] with no base — emits As{Self} trait + self-ref impl, nothing else.
