@@ -35,6 +35,8 @@ cargo build -p quartzite --no-default-features --features libm   # verify derive
 actionlint .github/workflows/<file>.yml   # required gate for any new/modified workflow file
 ```
 
+> See [`ai-docs/miri-policy.md`](ai-docs/miri-policy.md) for the per-test `#[cfg_attr(miri, ignore = "…")]` default + per-file `#![cfg(not(miri))]` fallback + workflow-level exclusion-list contract.
+
 > **AXIOM — `actionlint` MUST pass before `git add` on any modified workflow file.**
 > Required gate, same status as `cargo build` and `cargo clippy --workspace -- -D warnings`. Skipped twice despite the rule existing — escalated to AGENTS.md after the second occurrence.
 >

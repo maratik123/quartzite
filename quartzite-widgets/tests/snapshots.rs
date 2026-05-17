@@ -11,6 +11,15 @@
 //! painter-method tests in this file (AC1–AC9, AC11–AC12; issue #281
 //! gradient AC7–AC10).
 
+// Skipped under Miri at the file level: GPU init. The whole-file shape is
+// required (not per-test `cfg_attr`) because every test routes through
+// `support::harness_or_skip` → `RenderHarnessBuilder::build()` →
+// `wgpu::Instance::default()`, and the `quartzite-renderer` dev-dep imports
+// reach this module regardless of which individual `#[test]` is enabled.
+// Alternative coverage: native `cargo test` exercises this file on the
+// `gpu-tests` job. See ai-docs/miri-policy.md § Per-file fallback recipe.
+#![cfg(not(miri))]
+
 mod support;
 
 use quartzite_core::ObjectId;
