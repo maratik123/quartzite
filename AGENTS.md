@@ -96,8 +96,21 @@ See [`ai-docs/code-style.md`](ai-docs/code-style.md) for the canonical reference
 
 ## Dependency Versions
 
-> **AXIOM — Query the live registry BEFORE writing any specific version string OR asserting external-action behaviour. Training data is stale.**
-> Treating remembered versions or remembered Action behaviour as authoritative has shipped wrong majors and false load-bearing claims more than once in this repo. See [`ai-docs/dependency-versions.md`](ai-docs/dependency-versions.md) for the per-artifact lookup table (Cargo crate / GitHub Action / Action behaviour-verification recipe). Apply the pinning rule (below) to the **observed** version, never the remembered one.
+> **AXIOM — Query live state BEFORE asserting any claim about an external dep or the project's own dep graph. Memory is stale.**
+> Three dimensions of "I remember X is the case" have each landed wrong claims in this repo:
+> 1. **Version of an external dep** — `criterion = 0.5` when live is `0.8`; `actions/deploy-pages@v4` when live is `@v5`.
+> 2. **Behaviour of a third-party Action** — "the action sets `RUSTC_WRAPPER` by default" when `src/setup.ts` shows it does not (PR #179 sccache).
+> 3. **Presence of a dep in the current project** — "would add `parking_lot` as a new dep" when `cargo tree --invert parking_lot` shows it's already there (issue #440).
+>
+> See [`ai-docs/dependency-versions.md`](ai-docs/dependency-versions.md) for the per-dimension lookup recipes. Apply the pinning rule (below) to the **observed** version, never the remembered one.
+>
+> | If you're about to write... | Verify first with |
+> |---|---|
+> | A specific version of crate `X` | `curl -sS "https://crates.io/api/v1/crates/X" \| jq -r '.crate.max_stable_version'` |
+> | A claim that Action `X` sets / exports / defaults to `Y` | Read `action.yml` + `src/setup.ts` / `src/main.ts` per the recipe |
+> | A claim that `X` is / isn't / would-be-added-as a dep in this project | `grep -r '<X>' --include='Cargo.toml' .` AND `cargo tree --invert <X>` (the latter catches transitive presence) |
+>
+> If your draft contains substrings like *"would add"*, *"introduce X as a dep"*, *"pull in X"*, *"avoid X as a dep"*, *"X is not currently a dependency"* — STOP, run the grep + cargo-tree check, and either rewrite with the actual trade-off (perf / feature-gate / test-prod parity / binary-size) or drop the claim.
 
 When adding or editing dependencies in `Cargo.toml`:
 

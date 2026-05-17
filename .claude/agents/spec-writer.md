@@ -122,10 +122,10 @@ These are invariants. Violating any of them is a defect:
 
 <!-- mirrored from AGENTS.md / .claude/skills/interview/SKILL.md /interview Rule 5 — propagation-required -->
 
-If a draft question contains any of the substrings below (case-insensitive), **discard the question** and apply the documented rule silently. Mechanical check before returning `ask`:
+If a draft question OR a draft spec body contains any of the substrings below (case-insensitive), **discard the question / drop the body sentence** and apply the documented rule silently. Mechanical check before returning `ask` or `ready`:
 
 ```bash
-printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers'
+printf '%s\n' "<draft questions> <draft spec body>" | grep -iE 'backward.compat|back.?compat|compat.shim|deprecat|keep.old|should.*panic|panic.or.return|for.users|existing.callers|would add.*dep|introduce.*as.*dep|pull in .* as.*dep|avoid.*as.*dep|not currently a depend'
 ```
 
 | Forbidden substring (case-insensitive) | Documented answer to apply silently |
@@ -135,8 +135,9 @@ printf '%s\n' "<draft questions>" | grep -iE 'backward.compat|back.?compat|compa
 | `keep old`, `preserve existing`, `existing API stay`, `keep the old name` | AGENTS.md § *API Stability*: rename freely |
 | `should X panic`, `panic or return`, `should it panic`, `panic vs return`, `should this panic` | AGENTS.md § *API Naming* + *Library safety idioms*: non-panicking by default; `try_*` returning `Result`/`Option` |
 | `for users`, `for downstream`, `existing callers` | AGENTS.md § *API Stability*: no downstream clients yet |
+| `would add`, `introduce <X> as a dep`, `pull in <X>`, `avoid <X> as a dep`, `<X> is not currently a dependency` | AGENTS.md § *Dependency Versions* AXIOM (presence dimension): run `grep -r '<X>' --include='Cargo.toml' .` + `cargo tree --invert <X>` before writing. Drop the claim if hits exist; rewrite naming the actual concern. |
 
-Any hit → rewrite or drop the question. Do not return `ask` until grep returns empty against your draft. If the orchestrator reports a Rule-5 violation, a re-spawn will be requested.
+Any hit → rewrite or drop the question (for question-shape rules) or rewrite the body sentence (for the presence-of-dep rule, which can appear in any spec section). Do not return `ask` or `ready` until grep returns empty against your draft. If the orchestrator reports a Rule-5 violation, a re-spawn will be requested.
 
 ## Unresolvable categories
 
