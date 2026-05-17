@@ -753,7 +753,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **How to apply:** Before writing any implementation code under `/task`, confirm that `ai-docs/plans/YYYY-MM-DD-name.design.md` exists and carries a GO verdict. If it does not exist, run the design agent (Step 6) regardless of how simple the task appears. Only skip with explicit user approval.
 
-**Escalated?** no
+**Escalated?** skill:task, AGENTS.md
 
 ### 2026-05-07 — process — bench binaries are exempt from the `#[cfg(test)]` requirement
 
@@ -806,7 +806,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Whenever `ai-docs/plans/INDEX.md` is modified, run `bash scripts/gen-roadmap.sh` and stage `ROADMAP.md` in the same commit. The CI gate enforces this — ROADMAP.md must always be in sync with INDEX.md at commit time.
 
-**Escalated?** skill:task
+**Escalated?** skill:task, hook
 
 ### 2026-05-08 — code-style — generic-fn split (`fn inner`) requires a conversion-style generic param; don't apply it to parameter-less fns
 
@@ -839,7 +839,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Extract numeric literals that carry semantic meaning into named `const` values. The name documents the intent; the literal is an implementation detail. This applies to color values, sizes, timeouts, limits — any number that isn't self-evidently 0 or 1.
 
-**Escalated?** no
+**Escalated?** code-style, AGENTS.md, agent:self-review, agent:review-findings
 
 ### 2026-05-08 — process — learnings are append-only; never edit or remove existing entries
 
