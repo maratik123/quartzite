@@ -1,3 +1,5 @@
+//! Integration tests for the `#[derive(Extend)]` macro: `#[root]` trait generation and `#[base]` delegation.
+
 use quartzite::core::{AsObject, ObjectBase};
 use quartzite_macros::Extend;
 

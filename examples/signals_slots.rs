@@ -1,3 +1,5 @@
+//! Example demonstrating signal emission and slot connection patterns through the `quartzite` facade.
+
 use quartzite::prelude::*;
 
 #[derive(Extend, DeriveObject)]

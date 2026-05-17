@@ -1,3 +1,5 @@
+//! Integration tests for `ObjectTree`: insertion, lookup, signal connections, and traversal.
+
 use std::sync::Arc;
 
 use parking_lot::Mutex;

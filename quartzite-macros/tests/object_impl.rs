@@ -1,3 +1,5 @@
+//! Integration tests for the `#[object_impl]` and `#[object_part]` attribute macros across sole-mode and multi-block types.
+
 use quartzite::core::{Object, ObjectBase, Signal, Value};
 use quartzite_macros::{Extend, Object as ObjectDerive, object_impl, object_part};
 

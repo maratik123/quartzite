@@ -1,3 +1,4 @@
+//! Integration tests for object and tree snapshot capture/restore via the `serde` feature.
 #![cfg(feature = "serde")]
 
 use std::{collections::BTreeMap, sync::OnceLock};

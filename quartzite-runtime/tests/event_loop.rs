@@ -1,3 +1,5 @@
+//! Integration tests for `EventLoop`: cross-thread posting, loop-thread execution, and stop semantics.
+
 use std::{sync::Arc, thread, time::Duration};
 
 use parking_lot::Mutex;

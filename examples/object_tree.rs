@@ -1,3 +1,5 @@
+//! Example demonstrating `ObjectTree` insertion, named-child lookup, and traversal via the `quartzite` facade.
+
 use quartzite::prelude::*;
 
 #[derive(Extend, DeriveObject)]
