@@ -76,8 +76,9 @@ jobs:
         run: |
           sudo apt-get update
           # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys),
-          # reached via `cargo miri test --lib -p quartzite-widgets` from the
-          # v2 widening; ubuntu-latest runner does not include it.
+          # reached via the workspace-wide `cargo miri test --workspace`
+          # invocation pulled in via quartzite-widgets's lib; ubuntu-latest
+          # runner does not include it.
           sudo apt-get install -y libfontconfig1-dev
       # Why excluded: prod-dep FFI: winit/wgpu/vello reach quartzite-renderer's
       # lib by construction; no --lib/--test filter side-steps the dep graph.
