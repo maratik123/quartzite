@@ -16,15 +16,15 @@ quartzite-widgets      = { path = "../quartzite-widgets" }
 parking_lot            = "0.12"
 
 [dev-dependencies]
-serial_test        = "3"
-nv-flip            = "0.1"
-image              = "0.25"
-tempfile           = "3"
-peniko             = "0.6"
-quartzite-core     = { path = "../quartzite-core" }
-quartzite-geometry = { path = "../quartzite-geometry" }
-quartzite-macros   = { path = "../quartzite-macros" }
-quartzite-renderer = { path = "../quartzite-renderer" }
+quartzite-test-helpers = { path = "../quartzite-test-helpers" }
+nv-flip                = "0.1"
+image                  = "0.25"
+tempfile               = "3"
+peniko                 = "0.6"
+quartzite-core         = { path = "../quartzite-core" }
+quartzite-geometry     = { path = "../quartzite-geometry" }
+quartzite-macros       = { path = "../quartzite-macros" }
+quartzite-renderer     = { path = "../quartzite-renderer" }
 
 [features]
 ## Exposes `StyleRegistry::clear_for_test()` as a `pub` function for use in

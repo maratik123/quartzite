@@ -16,10 +16,10 @@ quartzite-widgets   = { path = "../quartzite-widgets" }
 tracing             = { version = "0.1", default-features = false }
 
 [dev-dependencies]
-quartzite-geometry  = { path = "../quartzite-geometry", default-features = false }
-quartzite-style     = { path = "../quartzite-style", features = ["test-support"] }
-serial_test         = "3"
-tracing-test        = "0.2"
+quartzite-geometry     = { path = "../quartzite-geometry", default-features = false }
+quartzite-style        = { path = "../quartzite-style", features = ["test-support"] }
+quartzite-test-helpers = { path = "../quartzite-test-helpers" }
+tracing-test           = "0.2"
 
 [lints]
 workspace = true

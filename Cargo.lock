@@ -1001,17 +1001,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e3450815272ef58cec6d564423f6e755e25379b217b0bc688e295ba24df6b1d"
 
 [[package]]
-name = "futures-executor"
-version = "0.3.32"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "baf29c38818342a3b26b5b923639e7b1f4a61fc5e76102d4b1981c6dc7a7579d"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
 name = "futures-intrusive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2637,8 +2626,8 @@ dependencies = [
  "quartzite-paint-api",
  "quartzite-runtime",
  "quartzite-style",
+ "quartzite-test-helpers",
  "quartzite-widgets",
- "serial_test",
 ]
 
 [[package]]
@@ -2653,10 +2642,10 @@ dependencies = [
  "indexmap",
  "itertools 0.14.0",
  "parking_lot",
+ "quartzite-test-helpers",
  "rstest",
  "serde",
  "serde_json",
- "serial_test",
  "thiserror 2.0.18",
  "tracing",
  "typetag",
@@ -2762,9 +2751,9 @@ dependencies = [
  "quartzite-core",
  "quartzite-event-types",
  "quartzite-macros",
+ "quartzite-test-helpers",
  "serde",
  "serde_json",
- "serial_test",
  "slotmap",
  "thiserror 2.0.18",
  "tracing",
@@ -2786,8 +2775,8 @@ dependencies = [
  "quartzite-paint-api",
  "quartzite-renderer",
  "quartzite-style-types",
+ "quartzite-test-helpers",
  "quartzite-widgets",
- "serial_test",
  "tempfile",
 ]
 
@@ -2799,8 +2788,8 @@ dependencies = [
  "quartzite-geometry",
  "quartzite-paint-api",
  "quartzite-style",
+ "quartzite-test-helpers",
  "quartzite-widgets",
- "serial_test",
  "tracing",
  "tracing-test",
 ]
@@ -3178,15 +3167,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "scc"
-version = "2.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46e6f046b7fef48e2660c57ed794263155d713de679057f2d0c169bfc6e756cc"
-dependencies = [
- "sdd",
-]
-
-[[package]]
 name = "scoped-tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3210,12 +3190,6 @@ dependencies = [
  "smithay-client-toolkit",
  "tiny-skia",
 ]
-
-[[package]]
-name = "sdd"
-version = "3.0.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "490dcfcbfef26be6800d11870ff2df8774fa6e86d047e3e8c8a76b25655e41ca"
 
 [[package]]
 name = "semver"
@@ -3264,32 +3238,6 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
-]
-
-[[package]]
-name = "serial_test"
-version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "911bd979bf1070a3f3aa7b691a3b3e9968f339ceeec89e08c280a8a22207a32f"
-dependencies = [
- "futures-executor",
- "futures-util",
- "log",
- "once_cell",
- "parking_lot",
- "scc",
- "serial_test_derive",
-]
-
-[[package]]
-name = "serial_test_derive"
-version = "3.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a7d91949b85b0d2fb687445e448b40d322b6b3e4af6b44a29b21d9a5f33e6d9"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
