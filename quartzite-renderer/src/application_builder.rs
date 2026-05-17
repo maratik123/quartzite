@@ -178,8 +178,14 @@ mod tests {
     #[cfg(target_os = "linux")]
     #[test]
     fn build_result_is_ok_or_already_exists() {
-        // Unit tests share a process, so the singleton may already be taken.
-        // Assert only the two expected outcomes (same pattern as application.rs).
+        // Three outcomes are acceptable; anything else is a real bug:
+        //   - Ok                          — happy path.
+        //   - Application(AlreadyExists)  — singleton already taken by
+        //     another test in this shared process (cargo test parallelism).
+        //   - EventLoop(_)                — no X11/Wayland display server
+        //     reachable (e.g. headless CI runner). Tripped PR #434 CI run
+        //     25978212074 on ubuntu-latest where winit returns
+        //     EventLoopError::Os.
         let result = WindowedApplicationBuilder::new()
             .with_any_thread(true)
             .build();
@@ -188,9 +194,10 @@ mod tests {
             result,
             Err(RendererError::Application(ApplicationError::AlreadyExists))
         );
+        let is_event_loop_error = matches!(result, Err(RendererError::EventLoop(_)));
         assert!(
-            is_ok || is_already_exists,
-            "build() must return Ok or Application(AlreadyExists)"
+            is_ok || is_already_exists || is_event_loop_error,
+            "build() must return Ok, Application(AlreadyExists), or EventLoop(_)"
         );
     }
 }
