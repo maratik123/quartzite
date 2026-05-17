@@ -685,8 +685,6 @@ pub(crate) mod tests {
     #[cfg(feature = "std")]
     use parking_lot::Mutex;
     #[cfg(feature = "std")]
-    use serial_test::serial;
-    #[cfg(feature = "std")]
     use std::sync::{
         Arc, OnceLock,
         atomic::{AtomicBool, AtomicI32, AtomicU32, Ordering},
@@ -957,8 +955,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn queued_slot_not_posted_after_receiver_destroyed() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -993,8 +991,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_same_thread_calls_slot_synchronously() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -1037,8 +1035,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_cross_thread_posts_to_dispatcher() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -1091,8 +1089,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_thread_id_same_thread_calls_directly() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -1135,8 +1133,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -1189,8 +1187,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_disconnect_removes_slot() {
+        let _lock = quartzite_test_helpers::test_lock();
         let dispatcher = install_test_dispatcher();
         let pre_len = dispatcher.posted.lock().len();
 
@@ -1226,8 +1224,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_same_thread_does_not_grow_dispatcher_queue_when_foreign_entry_exists() {
+        let _lock = quartzite_test_helpers::test_lock();
         let dispatcher = install_test_dispatcher();
 
         // Simulate a concurrent test having already posted to the shared dispatcher.
@@ -1257,8 +1255,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_same_thread_slot_not_called_after_receiver_destroyed() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();
@@ -1294,8 +1292,8 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[serial]
     fn auto_cross_thread_slot_not_posted_after_receiver_destroyed() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
 
         let dispatcher = install_test_dispatcher();

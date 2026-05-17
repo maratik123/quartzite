@@ -182,7 +182,6 @@ mod tests {
     use quartzite_widgets::{
         AsWidget, Button, Container, Label, ScrollArea, WidgetBase, WidgetExt,
     };
-    use serial_test::serial;
     use std::collections::HashMap;
 
     // ── fixtures ──────────────────────────────────────────────────────────────
@@ -297,8 +296,8 @@ mod tests {
     // ── AC1: single visible root → exactly one draw_widget call ──────────────
 
     #[test]
-    #[serial]
     fn dispatch_paint_invokes_draw_widget_once_per_visible_widget() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let root_id = ObjectId::new();
         let mut root = WidgetBase::new();
@@ -317,8 +316,8 @@ mod tests {
     // ── AC2: hidden root → zero events ───────────────────────────────────────
 
     #[test]
-    #[serial]
     fn hidden_root_produces_zero_paints() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let root_id = ObjectId::new();
         let root = WidgetBase::new(); // not shown → !visible
@@ -335,8 +334,8 @@ mod tests {
     // ── AC3: hidden non-root subtree → only outer paints ─────────────────────
 
     #[test]
-    #[serial]
     fn hidden_subtree_skipped_with_no_save_or_translate() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let outer_id = ObjectId::new();
         let inner_id = ObjectId::new();
@@ -371,8 +370,8 @@ mod tests {
     // ── AC4: depth-first parent-before-child order ────────────────────────────
 
     #[test]
-    #[serial]
     fn depth_first_parent_before_child_order() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let outer_id = ObjectId::new();
         let label_id = ObjectId::new();
@@ -424,8 +423,8 @@ mod tests {
     // ── AC5: save/translate/restore wraps each non-root child ────────────────
 
     #[test]
-    #[serial]
     fn save_translate_restore_wraps_each_non_root_child() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let outer_id = ObjectId::new();
         let label_id = ObjectId::new();
@@ -472,8 +471,8 @@ mod tests {
     // ── AC6a: ScrollArea without content → 1 paint ───────────────────────────
 
     #[test]
-    #[serial]
     fn scroll_area_without_content_paints_only_chrome() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let area_id = ObjectId::new();
 
@@ -493,8 +492,8 @@ mod tests {
     // ── AC6b: ScrollArea with visible content → 2 paints ─────────────────────
 
     #[test]
-    #[serial]
     fn scroll_area_with_content_paints_chrome_and_content() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let area_id = ObjectId::new();
         let label_id = ObjectId::new();
@@ -520,8 +519,8 @@ mod tests {
     // ── AC7: unknown widget type → 1 paint, no children ──────────────────────
 
     #[test]
-    #[serial]
     fn unknown_widget_type_paints_once_no_recursion() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let root_id = ObjectId::new();
 
@@ -541,8 +540,8 @@ mod tests {
     // ── AC8: no style installed → zero events ────────────────────────────────
 
     #[test]
-    #[serial]
     fn no_style_installed_is_noop() {
+        let _lock = quartzite_test_helpers::test_lock();
         quartzite_style::StyleRegistry::clear_for_test();
         let root_id = ObjectId::new();
 
@@ -561,9 +560,9 @@ mod tests {
     // ── AC10a: resolver miss mid-tree → subtree skipped + warn ───────────────
 
     #[test]
-    #[serial]
     #[tracing_test::traced_test]
     fn resolver_miss_mid_tree_skips_subtree_and_warns() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let outer_id = ObjectId::new();
         let present_id = ObjectId::new();
@@ -599,9 +598,9 @@ mod tests {
     // ── AC10b: resolver miss on root → zero paints + warn ────────────────────
 
     #[test]
-    #[serial]
     #[tracing_test::traced_test]
     fn resolver_miss_on_root_produces_zero_paints_and_warns() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let root_id = ObjectId::new();
         // root_id NOT inserted in resolver
@@ -617,8 +616,8 @@ mod tests {
     // ── Closure blanket impl ──────────────────────────────────────────────────
 
     #[test]
-    #[serial]
     fn closure_resolver_compiles_and_works() {
+        let _lock = quartzite_test_helpers::test_lock();
         install_mark_style();
         let root_id = ObjectId::new();
 

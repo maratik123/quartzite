@@ -1156,8 +1156,8 @@ mod tests {
     // AC6 — Auto cross-thread: callback is posted to the queued dispatcher.
     #[test]
     #[cfg(feature = "std")]
-    #[serial_test::serial]
     fn auto_cross_thread_posts_to_dispatcher() {
+        let _lock = quartzite_test_helpers::test_lock();
         use crate::signal::tests::install_test_dispatcher;
 
         let dispatcher = install_test_dispatcher();
