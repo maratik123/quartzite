@@ -33,7 +33,7 @@ fn button_idle_renders() {
     let mut w = Button::new("OK".into());
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_idle", &image);
 }
@@ -47,7 +47,7 @@ fn button_checked_renders() {
     w.set_geometry(canvas_rect());
     w.checked = true;
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_checked", &image);
 }
@@ -61,7 +61,7 @@ fn button_disabled_renders() {
     w.set_geometry(canvas_rect());
     w.set_enabled(false);
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_disabled", &image);
 }
@@ -74,7 +74,7 @@ fn label_renders() {
     let mut w = Label::new("hi".into());
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("label", &image);
 }
@@ -88,7 +88,7 @@ fn text_edit_plain_renders() {
     w.set_geometry(canvas_rect());
     w.plain_text = "abc".into();
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_plain", &image);
 }
@@ -103,7 +103,7 @@ fn text_edit_read_only_renders() {
     w.plain_text = "abc".into();
     w.read_only = true;
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_read_only", &image);
 }
@@ -117,7 +117,7 @@ fn button_hovered_renders() {
     w.set_geometry(canvas_rect());
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_hovered", &image);
 }
@@ -131,7 +131,7 @@ fn button_pressed_renders() {
     w.set_geometry(canvas_rect());
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_pressed", &image);
 }
@@ -145,7 +145,7 @@ fn button_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_focused", &image);
 }
@@ -158,7 +158,7 @@ fn scroll_area_chrome_renders() {
     let mut w = ScrollArea::new();
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle::default().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_chrome", &image);
 }

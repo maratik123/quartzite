@@ -30,7 +30,7 @@ impl ReceiverGuard {
     /// assert!(weak.upgrade().is_none());
     /// ```
     pub fn new_pair() -> (Arc<Self>, Weak<Self>) {
-        let arc = Arc::new(ReceiverGuard);
+        let arc = Arc::new(Self);
         let weak = Arc::downgrade(&arc);
         (arc, weak)
     }

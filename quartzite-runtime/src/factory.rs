@@ -77,7 +77,7 @@ impl ObjectFactory {
     ///
     /// ObjectFactory::install(ObjectFactory::new()).expect("factory already set");
     /// ```
-    pub fn install(factory: ObjectFactory) -> Result<(), FactoryAlreadySet> {
+    pub fn install(factory: Self) -> Result<(), FactoryAlreadySet> {
         FACTORY
             .set(Arc::new(RwLock::new(factory)))
             .map_err(|_| FactoryAlreadySet)
@@ -100,7 +100,7 @@ impl ObjectFactory {
     /// }
     /// ```
     #[inline]
-    pub fn global() -> Option<Arc<RwLock<ObjectFactory>>> {
+    pub fn global() -> Option<Arc<RwLock<Self>>> {
         FACTORY.get().cloned()
     }
 
@@ -164,7 +164,7 @@ mod tests {
 
     impl TestObj {
         fn new_boxed() -> Box<dyn Object> {
-            Box::new(TestObj {
+            Box::new(Self {
                 base: ObjectBase::new(),
             })
         }

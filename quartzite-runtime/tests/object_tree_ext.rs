@@ -23,14 +23,14 @@ struct Stub {
 
 impl Stub {
     fn named(name: &str) -> Box<dyn Object> {
-        Box::new(Stub {
+        Box::new(Self {
             base: ObjectBase::named(name),
         })
     }
 
     /// Creates a query-only stub with a specific `id`, not inserted into the tree.
     fn with_id(id: ObjectId) -> Self {
-        Stub {
+        Self {
             base: ObjectBase::new_with_id(id),
         }
     }

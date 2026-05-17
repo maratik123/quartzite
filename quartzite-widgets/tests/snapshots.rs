@@ -361,7 +361,7 @@ fn draw_text_in_center() {
         );
         return;
     }
-    let mid = (left_x + right_x) / 2;
+    let mid = left_x.midpoint(right_x);
     let expected = CANVAS / 2;
     assert!(
         mid.abs_diff(expected) <= 2,

@@ -177,7 +177,7 @@ impl Rect {
     /// assert!(!a.intersects(b));
     /// ```
     #[inline]
-    pub const fn intersects(self, other: Rect) -> bool {
+    pub const fn intersects(self, other: Self) -> bool {
         self.left() < other.right()
             && self.right() > other.left()
             && self.top() < other.bottom()
@@ -202,12 +202,12 @@ impl Rect {
     /// assert_eq!(u.size(), Size::new(8, 8));
     /// ```
     #[inline]
-    pub fn united(self, other: Rect) -> Rect {
+    pub fn united(self, other: Self) -> Self {
         let left = self.left().min(other.left());
         let top = self.top().min(other.top());
         let right = self.right().max(other.right());
         let bottom = self.bottom().max(other.bottom());
-        Rect::new(Point::new(left, top), Size::new(right - left, bottom - top))
+        Self::new(Point::new(left, top), Size::new(right - left, bottom - top))
     }
 
     /// Returns this rect translated by `offset`.
@@ -225,8 +225,8 @@ impl Rect {
     /// assert_eq!(r.translated(Point::new(3, -2)).origin(), Point::new(8, 3));
     /// ```
     #[inline]
-    pub fn translated(self, offset: Point) -> Rect {
-        Rect::new(self.origin + offset, self.size)
+    pub fn translated(self, offset: Point) -> Self {
+        Self::new(self.origin + offset, self.size)
     }
 
     /// Returns a rect expanded by `dx` on each horizontal side and `dy` on each vertical side.
@@ -251,12 +251,12 @@ impl Rect {
     /// assert_eq!(adjusted.size(), Size::new(24, 24));
     /// ```
     #[inline]
-    pub fn adjusted(self, dx1: i32, dy1: i32, dx2: i32, dy2: i32) -> Rect {
+    pub fn adjusted(self, dx1: i32, dy1: i32, dx2: i32, dy2: i32) -> Self {
         let left = self.left() + dx1;
         let top = self.top() + dy1;
         let right = self.right() + dx2;
         let bottom = self.bottom() + dy2;
-        Rect::new(Point::new(left, top), Size::new(right - left, bottom - top))
+        Self::new(Point::new(left, top), Size::new(right - left, bottom - top))
     }
 }
 
@@ -437,7 +437,7 @@ impl RectF {
     /// assert!(!a.intersects(b));
     /// ```
     #[inline]
-    pub const fn intersects(self, other: RectF) -> bool {
+    pub const fn intersects(self, other: Self) -> bool {
         self.left() < other.right()
             && self.right() > other.left()
             && self.top() < other.bottom()
@@ -462,12 +462,12 @@ impl RectF {
     /// assert_eq!(u.size(), SizeF::new(8.0, 8.0));
     /// ```
     #[inline]
-    pub fn united(self, other: RectF) -> RectF {
+    pub fn united(self, other: Self) -> Self {
         let left = self.left().min(other.left());
         let top = self.top().min(other.top());
         let right = self.right().max(other.right());
         let bottom = self.bottom().max(other.bottom());
-        RectF::new(
+        Self::new(
             PointF::new(left, top),
             SizeF::new(right - left, bottom - top),
         )
@@ -488,8 +488,8 @@ impl RectF {
     /// assert_eq!(r.translated(PointF::new(0.5, -0.5)).origin(), PointF::new(1.5, 0.5));
     /// ```
     #[inline]
-    pub fn translated(self, offset: PointF) -> RectF {
-        RectF::new(self.origin + offset, self.size)
+    pub fn translated(self, offset: PointF) -> Self {
+        Self::new(self.origin + offset, self.size)
     }
 
     /// Returns a rect expanded by `dx` on each horizontal side and `dy` on each vertical side.
@@ -514,12 +514,12 @@ impl RectF {
     /// assert_eq!(adjusted.size(), SizeF::new(5.0, 5.0));
     /// ```
     #[inline]
-    pub fn adjusted(self, dx1: f32, dy1: f32, dx2: f32, dy2: f32) -> RectF {
+    pub fn adjusted(self, dx1: f32, dy1: f32, dx2: f32, dy2: f32) -> Self {
         let left = self.left() + dx1;
         let top = self.top() + dy1;
         let right = self.right() + dx2;
         let bottom = self.bottom() + dy2;
-        RectF::new(
+        Self::new(
             PointF::new(left, top),
             SizeF::new(right - left, bottom - top),
         )
@@ -541,7 +541,7 @@ impl RectF {
 impl From<RectF> for Rect {
     #[inline]
     fn from(r: RectF) -> Self {
-        Rect::new(Point::from(r.origin), Size::from(r.size))
+        Self::new(Point::from(r.origin), Size::from(r.size))
     }
 }
 
@@ -560,7 +560,7 @@ impl From<RectF> for Rect {
 impl From<Rect> for RectF {
     #[inline]
     fn from(r: Rect) -> Self {
-        RectF::new(PointF::from(r.origin), SizeF::from(r.size))
+        Self::new(PointF::from(r.origin), SizeF::from(r.size))
     }
 }
 

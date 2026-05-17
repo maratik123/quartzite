@@ -111,7 +111,7 @@ fn main() {
 
     c.count_changed
         .connect(|args| println!("  count_changed → {}", args.0));
-    c.zeroed.connect(|_| println!("  zeroed!"));
+    c.zeroed.connect(|()| println!("  zeroed!"));
 
     println!("--- increment ×3 via invoke_method ---");
     c.invoke_method("increment", &[]);

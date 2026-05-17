@@ -188,7 +188,6 @@ fn ac7_builder_exists_and_build_works() {
             // No display server available in this environment (headless CI
             // without xvfb). The builder API is verified at compile time above.
             eprintln!("ac7: EventLoop build failed (no display); skipping runtime check.");
-            return;
         }
         Err(e) => panic!("builder().build() returned unexpected error: {e}"),
     }

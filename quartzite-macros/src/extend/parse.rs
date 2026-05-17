@@ -163,7 +163,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
     let mut mixin_fields: Vec<MixinField> = Vec::new();
     let mut widget_children_field: Option<WidgetChildrenField> = None;
 
-    for mut field in fields.named.into_iter() {
+    for mut field in fields.named {
         let is_base = extract_attr(&mut field.attrs, "base");
         let is_mixin = extract_attr(&mut field.attrs, "mixin");
         let wc_kind = extract_widget_children_kind(&mut field.attrs)?;

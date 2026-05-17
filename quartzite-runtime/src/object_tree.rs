@@ -337,7 +337,7 @@ impl ObjectTree {
             }
             // Update the object's name.
             this.with_mut(id, |obj| {
-                obj.object_base_mut().set_name_raw(Some(new_name.clone()))
+                obj.object_base_mut().set_name_raw(Some(new_name.clone()));
             });
             // Insert into new name bucket.
             this.by_name.entry(new_name.clone()).or_default().push(id);
@@ -350,7 +350,7 @@ impl ObjectTree {
                 obj.emit_signal("name_changed", &[old_val, Value::String(new_name)]);
             });
         }
-        inner(self, id, new_name.into())
+        inner(self, id, new_name.into());
     }
 
     /// Clears the name of object `id`, making it anonymous and removing it from the
@@ -416,7 +416,7 @@ impl ObjectTree {
 
     fn collect_post_order(&self, id: ObjectId, out: &mut Vec<ObjectId>) {
         if let Some(children) = self.children_map.get(&id) {
-            for &child in children.iter() {
+            for &child in children {
                 self.collect_post_order(child, out);
             }
         }

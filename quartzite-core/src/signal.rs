@@ -317,7 +317,7 @@ impl<Args: 'static> core::fmt::Debug for Signal<Args> {
 impl<Args: 'static> Default for Signal<Args> {
     // _Simple._
     fn default() -> Self {
-        Signal {
+        Self {
             #[cfg(feature = "std")]
             slots: IndexMap::new(),
             #[cfg(not(feature = "std"))]
@@ -800,9 +800,9 @@ pub(crate) mod tests {
         let l2 = Arc::clone(&log);
         let l3 = Arc::clone(&log);
 
-        sig.connect(move |_| l1.lock().push(1)); // slot A
-        let id_b = sig.connect(move |_| l2.lock().push(2)); // slot B
-        sig.connect(move |_| l3.lock().push(3)); // slot C
+        sig.connect(move |()| l1.lock().push(1)); // slot A
+        let id_b = sig.connect(move |()| l2.lock().push(2)); // slot B
+        sig.connect(move |()| l3.lock().push(3)); // slot C
 
         sig.disconnect(id_b);
         sig.emit_unconditionally(&());
@@ -831,12 +831,12 @@ pub(crate) mod tests {
         let d2 = Arc::clone(&direct_count);
 
         sig.connect_typed(
-            move |_| {
+            move |()| {
                 ss2.fetch_add(1, Ordering::Relaxed);
             },
             ConnectionType::SingleShot,
         );
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             d2.fetch_add(1, Ordering::Relaxed);
         });
 
@@ -867,7 +867,7 @@ pub(crate) mod tests {
         let count2 = Arc::clone(&count);
 
         sig.connect_typed(
-            move |_| {
+            move |()| {
                 count2.fetch_add(1, Ordering::Relaxed);
             },
             ConnectionType::SingleShot,
@@ -917,7 +917,7 @@ pub(crate) mod tests {
     #[cfg(feature = "std")]
     fn multiple_disconnects_do_not_panic() {
         let mut sig: Signal<()> = Signal::new();
-        let id = sig.connect(|_| {});
+        let id = sig.connect(|()| {});
         sig.disconnect(id);
         sig.disconnect(id); // second disconnect must be a no-op
         sig.emit_unconditionally(&());
@@ -931,10 +931,10 @@ pub(crate) mod tests {
         let c1 = Arc::clone(&count);
         let c2 = Arc::clone(&count);
 
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             c1.fetch_add(1, Ordering::Relaxed);
         });
-        sig.connect(move |_| {
+        sig.connect(move |()| {
             c2.fetch_add(1, Ordering::Relaxed);
         });
         sig.emit_unconditionally(&());
@@ -1059,7 +1059,9 @@ pub(crate) mod tests {
         // Drain only entries added by our emit; leave any foreign entries untouched.
         let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
-        posted.into_iter().for_each(|f| f());
+        for f in posted {
+            f();
+        }
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -1085,7 +1087,7 @@ pub(crate) mod tests {
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(std::thread::current().id(), guard_weak, move |_| {
+        sig.connect_auto(std::thread::current().id(), guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
         let _guard = guard_arc;
@@ -1123,7 +1125,7 @@ pub(crate) mod tests {
 
         let (guard_arc, guard_weak) = ReceiverGuard::new_pair();
         let mut sig: Signal<()> = Signal::new();
-        sig.connect_auto(foreign_id, guard_weak, move |_| {
+        sig.connect_auto(foreign_id, guard_weak, move |()| {
             called2.store(true, Ordering::SeqCst);
         });
         let _guard = guard_arc;
@@ -1139,7 +1141,9 @@ pub(crate) mod tests {
         // Drain only entries added by our emit; leave any foreign entries untouched.
         let posted: Vec<_> = dispatcher.posted.lock().drain(pre_len..).collect();
         assert_eq!(posted.len(), 1, "exactly one closure must be posted");
-        posted.into_iter().for_each(|f| f());
+        for f in posted {
+            f();
+        }
 
         assert!(
             called.load(Ordering::SeqCst),
@@ -1165,7 +1169,7 @@ pub(crate) mod tests {
         let id = sig.connect_auto(
             std::thread::current().id(),
             std::sync::Weak::new(),
-            move |_| {
+            move |()| {
                 called2.store(true, Ordering::SeqCst);
             },
         );

@@ -116,10 +116,10 @@ impl Paint<ThirdPartyWidget> for ThirdPartyStyle {
 
 impl Style for ThirdPartyStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
-        if let WidgetView::Other(other) = widget.widget_view() {
-            if let Some(w) = other.as_any().downcast_ref::<ThirdPartyWidget>() {
-                self.paint(w, painter, palette);
-            }
+        if let WidgetView::Other(other) = widget.widget_view()
+            && let Some(w) = other.as_any().downcast_ref::<ThirdPartyWidget>()
+        {
+            self.paint(w, painter, palette);
         }
         // Built-in variants are not handled — documented no-op per AC2.
     }

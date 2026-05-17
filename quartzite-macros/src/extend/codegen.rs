@@ -56,9 +56,8 @@ pub(crate) fn codegen(ir: ExtendInput) -> TokenStream {
 fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     let cr = crate_root();
     let self_ident = &ir.ident;
-    let self_trait = match as_trait_name(self_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(self_ident),
+    let Some(self_trait) = as_trait_name(self_ident) else {
+        return emit_degenerate_error(self_ident);
     };
     let acc = accessor_name(self_ident);
     let acc_mut = acc_mut_ident(&acc);
@@ -288,9 +287,8 @@ fn emit_delegation_impl(
     widget_view_variant: Option<&str>,
     widget_children_field: Option<&WidgetChildrenField>,
 ) -> TokenStream {
-    let parent_trait = match as_trait_name(&base.ty_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(&base.ty_ident),
+    let Some(parent_trait) = as_trait_name(&base.ty_ident) else {
+        return emit_degenerate_error(&base.ty_ident);
     };
     // Only emit for non-ObjectBase parents (AsObject is handled by emit_as_object_impl).
     if parent_trait == "AsObject" {
@@ -307,22 +305,21 @@ fn emit_delegation_impl(
     // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
     let (widget_view_method, children_method) = if base.ty_ident == "WidgetBase" {
         let wr = widgets_root();
-        let wv = match widget_view_variant {
-            Some(variant) => {
-                let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
-                quote! {
-                    #inline
-                    fn widget_view(&self) -> #wr::WidgetView<'_> {
-                        #wr::WidgetView::#variant_ident(self)
-                    }
+        let wv = if let Some(variant) = widget_view_variant {
+            let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
+            quote! {
+                #inline
+                fn widget_view(&self) -> #wr::WidgetView<'_> {
+                    #wr::WidgetView::#variant_ident(self)
                 }
             }
-            None => quote! {
+        } else {
+            quote! {
                 #inline
                 fn widget_view(&self) -> #wr::WidgetView<'_> {
                     #wr::WidgetView::Other(self)
                 }
-            },
+            }
         };
         let ch = match widget_children_field {
             Some(wc) => {
@@ -371,9 +368,8 @@ fn emit_mixin_impl(
     mixin: &MixinField,
     generics: &syn::Generics,
 ) -> TokenStream {
-    let mixin_trait = match as_trait_name(&mixin.ty_ident) {
-        Some(t) => t,
-        None => return emit_degenerate_error(&mixin.ty_ident),
+    let Some(mixin_trait) = as_trait_name(&mixin.ty_ident) else {
+        return emit_degenerate_error(&mixin.ty_ident);
     };
     let mixin_ty = &mixin.ty;
     let mixin_field = &mixin.ident;
@@ -394,15 +390,14 @@ fn emit_mixin_impl(
 }
 
 fn acc_mut_ident(acc: &Ident) -> Ident {
-    Ident::new(&format!("{}_mut", acc), acc.span())
+    Ident::new(&format!("{acc}_mut"), acc.span())
 }
 
 fn emit_degenerate_error(ident: &Ident) -> TokenStream {
     crate::util::emit_compile_error(
         ident.span(),
         &format!(
-            "type name '{}' alone is too generic after stripping 'Base'; choose a more descriptive name",
-            ident
+            "type name '{ident}' alone is too generic after stripping 'Base'; choose a more descriptive name"
         ),
     )
 }
