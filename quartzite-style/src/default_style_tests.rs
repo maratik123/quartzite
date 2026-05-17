@@ -14,7 +14,6 @@ use quartzite_widgets::{
     Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetBase,
     WidgetExt,
 };
-use serial_test::serial;
 
 use crate::{DefaultStyle, Style, StyleRegistry};
 
@@ -992,8 +991,8 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
 // ── AC10: StyleRegistry round-trip ────────────────────────────────────────
 
 #[test]
-#[serial]
 fn registry_round_trip_dispatches_default_style() {
+    let _lock = quartzite_test_helpers::test_lock();
     StyleRegistry::clear_for_test();
     StyleRegistry::set_style(Box::new(DefaultStyle));
 
