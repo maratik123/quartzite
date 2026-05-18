@@ -1271,3 +1271,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Related:** the broader AGENTS.md *Code Style* preference for Rust idioms over copy-paste-friendly C/C++ patterns; the spec-amendment recipe used to apply this learning before Step 8 began.
 
 **Escalated?** no
+
+### 2026-05-18 — process — forgot to regenerate ROADMAP.md after updating INDEX.md
+
+**What happened:** Added a new row to `ai-docs/plans/INDEX.md` in the Step 12 finalise commit (PR #475) but did not run `bash scripts/gen-roadmap.sh` to regenerate `ROADMAP.md`. The CI `ROADMAP sync` check (`roadmap-sync` job) failed on the first PR push because the generated file was stale.
+
+**Rule:** After any edit to `ai-docs/plans/INDEX.md` (or any file under `ai-docs/plans/done/`), always run `bash scripts/gen-roadmap.sh` and stage the updated `ROADMAP.md` in the same commit. The `/task` SKILL Step 12 sub-step 6 already mandates this ("Regenerate dependent artefacts … stage them with the same commit") — the rule is not new, but the step was silently skipped.
+
+**Escalated?** no
