@@ -37,10 +37,13 @@ pub(crate) fn hidden_mod_ident(type_ident: &Ident) -> Ident {
 
 /// Removes the first `#[name]` attribute from `attrs`; returns whether it was present.
 pub(crate) fn extract_attr(attrs: &mut Vec<syn::Attribute>, name: &str) -> bool {
-    attrs.iter().position(|a| a.path().is_ident(name)).is_some_and(|i| {
-        attrs.remove(i);
-        true
-    })
+    attrs
+        .iter()
+        .position(|a| a.path().is_ident(name))
+        .is_some_and(|i| {
+            attrs.remove(i);
+            true
+        })
 }
 
 /// Returns `#[inline]` when the user struct/enum is concrete (`generics.params` empty), else `{}`.

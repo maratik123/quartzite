@@ -13,7 +13,10 @@ pub(crate) struct ObjectInput {
 }
 
 #[cfg_attr(test, derive(Debug))]
-#[allow(clippy::struct_excessive_bools, reason = "config-style struct — independent bool fields are clearer than an enum here")]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "config-style struct — independent bool fields are clearer than an enum here"
+)]
 pub(crate) struct PropField {
     pub ident: Ident,
     pub ty: Type,

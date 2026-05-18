@@ -78,7 +78,10 @@ mod tests {
     use super::*;
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn new_stores_color_and_width() {
         let pen = Pen::new(Color::RED, 2.5);
         assert_eq!(pen.color(), Color::RED);
@@ -86,7 +89,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn default_is_black_one_pixel() {
         let pen = Pen::default();
         assert_eq!(pen.color(), Color::BLACK);

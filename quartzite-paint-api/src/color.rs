@@ -185,7 +185,10 @@ mod tests {
     use super::*;
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn new_round_trips_components() {
         let c = Color::new(0.1, 0.2, 0.3, 0.4);
         assert_eq!(c.r(), 0.1);
@@ -195,7 +198,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn black_has_correct_components() {
         assert_eq!(Color::BLACK.r(), 0.0);
         assert_eq!(Color::BLACK.g(), 0.0);
@@ -204,7 +210,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn white_has_correct_components() {
         assert_eq!(Color::WHITE.r(), 1.0);
         assert_eq!(Color::WHITE.g(), 1.0);
@@ -225,7 +234,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn with_alpha_replaces_alpha_only() {
         let translucent = Color::RED.with_alpha(0.5);
         assert_eq!(translucent.r(), 1.0);
@@ -235,7 +247,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn with_alpha_zero_makes_fully_transparent() {
         let invisible = Color::RED.with_alpha(0.0);
         assert_eq!(invisible.a(), 0.0);
@@ -243,7 +258,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn with_alpha_quarter_preserves_red_channel() {
         let quarter = Color::RED.with_alpha(0.25);
         assert_eq!(quarter.r(), 1.0);
@@ -251,7 +269,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn with_alpha_is_const_fn() {
         const TRANSLUCENT: Color = Color::RED.with_alpha(0.5);
         assert_eq!(TRANSLUCENT.r(), 1.0);
@@ -275,7 +296,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn blend_lerps_alpha_too() {
         let result = Color::new(0.0, 0.0, 0.0, 1.0).blend(Color::new(0.0, 0.0, 0.0, 0.0), 0.5);
         assert_eq!(result.a(), 0.5);

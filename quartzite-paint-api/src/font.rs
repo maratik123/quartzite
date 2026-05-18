@@ -274,7 +274,10 @@ mod tests {
     use super::*;
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn new_default_weight_normal_and_flags_off() {
         let f = Font::new("Arial", 12.0);
         assert_eq!(f.family(), "Arial");
@@ -312,7 +315,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn new_accepts_owned_string() {
         let owned = String::from("DejaVu Sans");
         let f = Font::new(owned, 10.5);
@@ -321,7 +327,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn default_is_sans_serif_12pt_normal() {
         let f = Font::default();
         assert_eq!(f.family(), "sans-serif");

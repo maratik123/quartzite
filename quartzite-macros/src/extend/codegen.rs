@@ -309,7 +309,10 @@ fn emit_delegation_impl(
     // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
     let (widget_view_method, children_method) = if base.ty_ident == "WidgetBase" {
         let wr = widgets_root();
-        #[allow(clippy::option_if_let_else, reason = "map_or_else here hurts readability")]
+        #[allow(
+            clippy::option_if_let_else,
+            reason = "map_or_else here hurts readability"
+        )]
         let wv = if let Some(variant) = widget_view_variant {
             let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
             quote! {
@@ -326,7 +329,10 @@ fn emit_delegation_impl(
                 }
             }
         };
-        #[allow(clippy::option_if_let_else, reason = "map_or_else here hurts readability")]
+        #[allow(
+            clippy::option_if_let_else,
+            reason = "map_or_else here hurts readability"
+        )]
         let ch = match widget_children_field {
             Some(wc) => {
                 let field_ident = &wc.ident;

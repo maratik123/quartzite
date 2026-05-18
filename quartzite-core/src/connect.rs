@@ -101,8 +101,14 @@ pub enum SignalConnectionError {
 /// let id = connect_signal_to_signal(from, "clicked", to, "clicked", ConnectionType::Direct);
 /// # }
 /// ```
-#[allow(clippy::needless_pass_by_value, reason = "stable cross-crate signal/slot API surface — signature change is breaking")]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "stable cross-crate signal/slot API surface — signature change is breaking"
+)]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 pub fn connect_signal_to_signal(
     from: &mut dyn Object,
     from_signal: &str,
@@ -262,8 +268,14 @@ pub fn connect_signal_to_signal(
 /// );
 /// # }
 /// ```
-#[allow(clippy::needless_pass_by_value, reason = "stable cross-crate signal/slot API surface — signature change is breaking")]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "stable cross-crate signal/slot API surface — signature change is breaking"
+)]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 pub fn connect_signals<From, To, Args>(
     from_obj: &mut From,
     from_signal_name: &str,
@@ -1160,7 +1172,10 @@ mod tests {
     // AC6 — Auto cross-thread: callback is posted to the queued dispatcher.
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_cross_thread_posts_to_dispatcher() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::signal::tests::install_test_dispatcher;

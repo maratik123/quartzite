@@ -105,7 +105,10 @@ fn solid(width: u32, height: u32, rgba: [u8; 4]) -> RgbaImage {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn backend_dir_name_maps_known_values() {
     let env = EnvGuard::new();
     env.set(BACKEND_ENV, "vulkan");
@@ -117,7 +120,10 @@ fn backend_dir_name_maps_known_values() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn backend_dir_name_falls_back_to_auto() {
     let env = EnvGuard::new();
     // unset → auto
@@ -128,7 +134,10 @@ fn backend_dir_name_falls_back_to_auto() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn skip_env_returns_without_io() {
     let env = EnvGuard::new();
     env.set(SKIP_ENV, "1");
@@ -146,7 +155,10 @@ fn skip_env_returns_without_io() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn regen_env_writes_golden() {
     let env = EnvGuard::new();
     env.set(REGEN_ENV, "1");
@@ -167,7 +179,10 @@ fn regen_env_writes_golden() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn missing_golden_panics_with_helpful_message() {
     let env = EnvGuard::new();
     env.set(BACKEND_ENV, "vulkan");
@@ -206,7 +221,10 @@ fn missing_golden_panics_with_helpful_message() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn shared_fallback_used_when_backend_dir_empty() {
     use std::fs;
     let env = EnvGuard::new();
@@ -228,7 +246,10 @@ fn shared_fallback_used_when_backend_dir_empty() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn backend_override_takes_precedence_over_shared() {
     use std::fs;
     let env = EnvGuard::new();
@@ -258,7 +279,10 @@ fn backend_override_takes_precedence_over_shared() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn matching_golden_passes() {
     let env = EnvGuard::new();
     env.set(BACKEND_ENV, "vulkan");
@@ -280,7 +304,10 @@ fn matching_golden_passes() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn mismatching_golden_writes_artifacts_and_panics() {
     let env = EnvGuard::new();
     env.set(BACKEND_ENV, "vulkan");
@@ -320,7 +347,10 @@ fn mismatching_golden_writes_artifacts_and_panics() {
 }
 
 #[test]
-#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn dimension_mismatch_panics_and_writes_actual() {
     let env = EnvGuard::new();
     env.set(BACKEND_ENV, "vulkan");

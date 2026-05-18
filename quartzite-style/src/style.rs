@@ -243,7 +243,10 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn draw_widget_dispatches_through_trait_object() {
         let style: Box<dyn Style> = Box::new(OnlyDraw);
         let mut painter = NullPainter;

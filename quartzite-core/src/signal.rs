@@ -955,7 +955,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn queued_slot_not_posted_after_receiver_destroyed() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -992,7 +995,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_same_thread_calls_slot_synchronously() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -1037,7 +1043,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_cross_thread_posts_to_dispatcher() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -1092,7 +1101,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_thread_id_same_thread_calls_directly() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -1137,7 +1149,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_thread_id_foreign_thread_posts_to_dispatcher() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -1260,7 +1275,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_same_thread_slot_not_called_after_receiver_destroyed() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
@@ -1298,7 +1316,10 @@ pub(crate) mod tests {
 
     #[test]
     #[cfg(feature = "std")]
-    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
+    #[allow(
+        clippy::items_after_statements,
+        reason = "nested helper placed after local setup is more readable here"
+    )]
     fn auto_cross_thread_slot_not_posted_after_receiver_destroyed() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::receiver_guard::ReceiverGuard;
