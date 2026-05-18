@@ -183,7 +183,7 @@ Trivial fixes (typo, rename, single-call rewrite, comment fix, test addition, do
   - `cargo build` — refreshes `Cargo.lock`.
   - `cargo test` — full suite.
   - `cargo fmt -- --check`.
-  - `cargo clippy --workspace -- -D warnings`.
+  - `cargo clippy --workspace --all-targets -- -D warnings`.
   - `cargo doc --no-deps --workspace --all-features` — only if public API changed.
   - `actionlint <changed-workflow-file>` — only if any `.github/workflows/*.yml` was modified.
 - Commit message format:
@@ -217,7 +217,7 @@ Trivial fixes (typo, rename, single-call rewrite, comment fix, test addition, do
 >
 > **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just a wording fix"* / *"the spec change is mechanical"* / *"self-review will catch it"* / *"only 3 lines changed"*. All forbidden — the recipe fires on **any** `.spec.md` line in the round's diff, regardless of size. The same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
 
-**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the fix count + commit SHA (one line, prefixed `Step 4:`). If the Spec Amendment recipe fired, append a second bullet recording the design / design-review verdicts (prefixed `Step 4 (spec amendment):`).
+**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the fix count + commit SHA (one line, prefixed `Step 4:`). If the Spec Amendment recipe fired, append a second bullet recording the design / design-review verdicts (prefixed `Step 4 (spec amendment):`).
 
 ### Step 5 — Self-review (loops with Step 4, cap 3)
 
@@ -331,7 +331,7 @@ Each invocation:
 | Step 0 | All four sources fetched; resolved threads kept for context |
 | Step 2 | Every thread has a category; `objection` rows have user confirmation; pause-triggered threads resolved |
 | Step 3 | No fix touches `*.design.md`; no fix > 5 files / > ~30 lines |
-| Step 4 | `cargo build` / `test` / `fmt --check` / `clippy --workspace -- -D warnings` clean; `cargo doc` clean if API changed; `actionlint` clean if workflows changed; single commit; staged explicitly |
+| Step 4 | `cargo build` / `test` / `fmt --check` / `clippy --workspace --all-targets -- -D warnings` clean; `cargo doc` clean if API changed; `actionlint` clean if workflows changed; single commit; staged explicitly |
 | Step 5 | `self-review` APPROVE (≤ 3 attempts) |
 | Step 6 | `git push` succeeded; `gh pr view` read; per-thread replies posted; only `fix` / `already-fixed` / uncontroversial `defer` resolved; `objection` / `clarify` unresolved |
 | Step 7 | Progress file closed for this round; summary printed |

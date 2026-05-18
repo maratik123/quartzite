@@ -96,7 +96,7 @@ cargo test --workspace
 ## Lint
 
 ```bash
-cargo clippy --workspace -- -D warnings
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ## Format

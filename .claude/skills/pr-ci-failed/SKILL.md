@@ -169,7 +169,7 @@ Classify the failure into exactly one class:
 | Class | Local reproducer |
 |---|---|
 | `fmt` | `cargo fmt -- --check` |
-| `clippy` | `cargo clippy --workspace -- -D warnings` |
+| `clippy` | `cargo clippy --workspace --all-targets -- -D warnings` |
 | `test` | `cargo test <name>` (substring), or `cargo test --test <integration-name>` |
 | `doc` | `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` |
 | `actionlint` | `actionlint .github/workflows/<file>.yml` |
@@ -249,7 +249,7 @@ Run gates **before** commit:
 - `cargo build` — refreshes `Cargo.lock`.
 - `cargo test` — full suite (or `cargo test <name>` if the fix is scoped to one test and `cargo test` would dwarf the change).
 - `cargo fmt -- --check`.
-- `cargo clippy --workspace -- -D warnings`.
+- `cargo clippy --workspace --all-targets -- -D warnings`.
 - `cargo doc --no-deps --workspace --all-features` — only if public API or any `pub` doc changed.
 - `actionlint <changed-workflow-file>` — only if any `.github/workflows/*.yml` was modified.
 
@@ -266,7 +266,7 @@ Local reproducer that re-ran green: <reproducer-command>
 
 Capture the commit SHA. Update the progress file's commit-SHA line.
 
-**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 6`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the commit SHA (one line, prefixed `Step 6:`).
+**Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 6`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the commit SHA (one line, prefixed `Step 6:`).
 
 ### Step 7 — Push + AXIOM-2 PR body read
 
@@ -351,7 +351,7 @@ Each invocation:
 | Step 3 | Local reproducer ran; PASS or NO-REPRODUCE explicitly recorded |
 | Step 4 | Fix applied (inline) OR delegation to `/bugfix` triggered; `actionlint` clean if any workflow YAML touched |
 | Step 5 | `self-review` APPROVE (≤ 3 attempts) |
-| Step 6 | `cargo build` / `test` / `fmt --check` / `clippy --workspace -- -D warnings` clean; `cargo doc` clean if API changed; single commit; staged explicitly |
+| Step 6 | `cargo build` / `test` / `fmt --check` / `clippy --workspace --all-targets -- -D warnings` clean; `cargo doc` clean if API changed; single commit; staged explicitly |
 | Step 7 | `git push` succeeded; `gh pr view` read; `gh pr edit` ran iff body contradicts diff |
 | Step 9 | Progress file closed for this round; summary printed |
 

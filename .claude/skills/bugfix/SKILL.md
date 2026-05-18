@@ -186,9 +186,9 @@ Now open Edit.
 
 1. Run the failing test from Step 3: `cargo test test_name` — must turn green
 2. Run the full suite: `cargo test` — confirm nothing else broke
-3. Run `cargo clippy --workspace -- -D warnings` for changed files
+3. Run `cargo clippy --workspace --all-targets -- -D warnings` for changed files
 4. Run `cargo fmt`
-5. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 6: Verify — green`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any non-trivial regressions caught and resolved (one line, prefixed `Step 6:`; omit the bullet if no decision was needed).
+5. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 6: Verify — green`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any non-trivial regressions caught and resolved (one line, prefixed `Step 6:`; omit the bullet if no decision was needed).
 
 > ⛔ **Do NOT delete the trace artifact yet — Step 6.5 still needs it as the spec-equivalent input for the self-review agent.**
 
