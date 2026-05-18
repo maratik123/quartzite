@@ -42,7 +42,7 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
   `clippy::pedantic` and `clippy::nursery` (both `warn`, `priority =
   -1` so specific `clippy::* = "allow"` entries override the group),
   plus `clippy::large_stack_frames` and `clippy::large_stack_arrays`
-  (both `warn`, listed separately so each survives a future
+  (both `deny`, listed separately so each survives a future
   per-group rollback).
 - **Size-aware thresholds** live in `clippy.toml` at the workspace
   root (`stack-size-threshold` / `array-size-threshold`). Clippy
@@ -134,7 +134,7 @@ Concrete forms of the "non-panicking APIs for libraries" rule (see
 ## Documentation
 
 - The workspace declares `missing_docs = "deny"` and
-  `clippy::undocumented_unsafe_blocks = "warn"` in
+  `clippy::undocumented_unsafe_blocks = "deny"` in
   `[workspace.lints.*]`; every crate opts in via
   `[lints] workspace = true` in its own `Cargo.toml`.
 - Every public item must have at least a one-line `///` doc comment.
@@ -408,7 +408,7 @@ lint listed below is a hard error in practice.
 - `missing_docs = "deny"` — every public item has at least a one-line
   doc. (Declared at workspace level in `[workspace.lints.rust]`; each
   crate opts in via `[lints] workspace = true`.) Owned by [Documentation](#documentation).
-- `clippy::undocumented_unsafe_blocks = "warn"` — every `unsafe`
+- `clippy::undocumented_unsafe_blocks = "deny"` — every `unsafe`
   block carries a `// SAFETY:` comment. (Declared at workspace level
   in `[workspace.lints.clippy]`; each crate opts in via
   `[lints] workspace = true`.) Owned by [Documentation](#documentation).
