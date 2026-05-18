@@ -256,6 +256,10 @@ fn read_only_overlay(palette: &Palette) -> Color {
 }
 
 /// Returns [`disabled`]`(color)` when `enabled` is `false`; otherwise `color` unchanged.
+#[allow(
+    clippy::doc_link_code,
+    reason = "adjacency-to-(args) pattern: renders disabled(color) with disabled intra-doc-linked; flattening to [disabled](path) would drop the surrounding code styling on (color)"
+)]
 fn maybe_disabled(color: Color, enabled: bool) -> Color {
     if enabled { color } else { disabled(color) }
 }

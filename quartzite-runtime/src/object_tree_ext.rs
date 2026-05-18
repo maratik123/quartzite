@@ -28,6 +28,10 @@ use crate::{
 /// let _children = obj.children()?;
 /// # Ok(()) }
 /// ```
+#[allow(
+    clippy::doc_link_code,
+    reason = "adjacency-to-(args) pattern: renders Err(TreeAccessError) with both identifiers intra-doc-linked; flattening to [Err]([TreeAccessError]) would drop the surrounding code styling"
+)]
 pub trait ObjectTreeExt: AsObject {
     /// Returns the [`ObjectId`] of this object's parent in the active tree, or
     /// `Ok(None)` when this object is a root.
