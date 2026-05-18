@@ -8,6 +8,14 @@
 
 > Read `ai-docs/context.md` for project purpose, entities, architecture, and design decisions — on demand.
 
+## Design system
+
+> Read [`design-system/SKILL.md`](design-system/SKILL.md) (manifest) and [`design-system/README.md`](design-system/README.md) (visual rules) on demand; explore `design-system/preview/`, `design-system/colors_and_type.css`, and `design-system/ui_kits/widgets/` as needed. Pointer-only — not auto-imported. Trigger conditions:
+> - When working on `quartzite-style` (any `Style` impl, including `DefaultStyle`)
+> - When working on `quartzite-widgets` paint paths, widget views, or any user-facing rendering
+> - When changing `Palette` / `ColorRole` semantics or seeds
+> - When adding or modifying snapshot tests under `quartzite-style/tests/snapshots/`
+
 ## Permissions
 
 Machine-enforced rules live in `.claude/settings.json` (allow/deny entries) and on `origin` (branch protection). Read those files for the authoritative list — duplicating them here lets the two sources drift.
@@ -264,6 +272,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `.claude/skills/pr-commented/SKILL.md` | `/pr-commented` skill — one round of reviewer-comment response |
 | `.claude/skills/pr-ci-failed/SKILL.md` | `/pr-ci-failed` skill — one round of CI-failure response on PR |
 | `.claude/skills/master-ci-failed/SKILL.md` | `/master-ci-failed` skill — one round of post-merge red-master fix |
+| `.claude/skills/design/SKILL.md` | `/design` skill — pointer to `design-system/` (Read manifest + visual rules on demand) |
 
 See [`ai-docs/agent-docs-index.md` → Agent doc rows](ai-docs/agent-docs-index.md#agent-doc-rows) for the verbose body of each row (writers, lifecycle, special cases).
 
