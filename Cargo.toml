@@ -38,17 +38,17 @@ large_stack_frames = "deny"
 large_stack_arrays = "deny"
 undocumented_unsafe_blocks = "deny"
 
-# Project does not treat omitted-return-value as a bug; opting in per-fn is noise relative to signal
+# 170 hits across public API; opt-in `#[must_use]` posture project-wide
 must_use_candidate = "allow"
-# Project convention: keep explicit `pub(crate)` even when the module is private — read-locally cheaper than re-deriving visibility
+# 60 hits, 31 in quartzite-macros/; keep explicit pub(crate) even in private modules — read-locally cheaper than re-deriving visibility
 redundant_pub_crate = "allow"
-# Nursery lint with churn; `const fn` proliferation is a design call we don't want lint-driven
+# 59 hits across 7 crates; nursery lint with churn — const fn proliferation is a design call, not lint-driven
 missing_const_for_fn = "allow"
 # Every hit is `assert_eq!(…, <exact f32/f64 literal>)` inside unit tests on representable values; allow workspace-wide rather than per-assert
 float_cmp = "allow"
 # Project pattern: small nested helper fn placed after local setup is more readable than hoisting to module scope
 items_after_statements = "allow"
-# Same family as `must_use_candidate`; same justification (`must_use` is opt-in here)
+# 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
 # Geometry crate intentionally crosses i32↔u32 with design-bounded ranges; per-cast `try_from` would obscure intent
 cast_possible_wrap = "allow"
@@ -60,11 +60,11 @@ needless_pass_by_value = "allow"
 cast_possible_truncation = "allow"
 # i32 → f32 widening in geometry is intentional (sub-pixel coords); precision loss is the API contract
 cast_precision_loss = "allow"
-# Project pattern: `match guard { … }` where `guard` is a `MutexGuard`; tightening here harms readability and the lock scope is already deliberately small
+# 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity
 significant_drop_in_scrutinee = "allow"
 # Same pattern as above — `MutexGuard`s are deliberately held to keep critical sections atomic; tightening would split the section
 significant_drop_tightening = "allow"
-# Complex generic types in `connect.rs` and `factory.rs` are intentional API surface (signal/slot family); extraction would couple unrelated callers
+# 5 hits in runtime/object_tree.rs (3) + renderer/wrapped_handler.rs (2); intentional complex generic API surface in those files
 type_complexity = "allow"
 # Flags struct with 3+ bools; existing call sites are config-style — bools are clearer than an enum at v1
 struct_excessive_bools = "allow"
