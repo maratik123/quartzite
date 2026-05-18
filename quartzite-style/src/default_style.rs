@@ -9,6 +9,16 @@ use quartzite_widgets::{
 
 use crate::{Paint, Style};
 
+/// Alpha applied to [`ColorRole::WindowText`] to form the read-only surface overlay.
+///
+/// Low enough to remain translucent, high enough to be visually distinct on any palette.
+const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
+
+/// Alpha applied to [`ColorRole::Text`] when a widget is in read-only mode.
+///
+/// Preserves legibility while visually conveying the non-editable state.
+const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
+
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
 /// `DefaultStyle` is a zero-sized, `Default`-implementing struct that ships
@@ -138,19 +148,25 @@ impl Paint<TextEdit> for DefaultStyle {
 
         painter.fill_rect(geom, &brush(palette, ColorRole::Base));
         if w.read_only {
-            let overlay = disabled(palette.color(ColorRole::Window));
-            painter.fill_rect(geom, &Brush::solid(overlay));
+            painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
         }
         painter.draw_rect(
             geom,
             &Pen::new(palette.color(ColorRole::Text), 1.0),
             &Brush::solid(Color::TRANSPARENT),
         );
+        let text_color = if w.read_only {
+            palette
+                .color(ColorRole::Text)
+                .with_alpha(READ_ONLY_TEXT_ALPHA)
+        } else {
+            palette.color(ColorRole::Text)
+        };
         painter.draw_text_in(
             geom,
             &w.plain_text,
             &font,
-            &brush(palette, ColorRole::Text),
+            &Brush::solid(text_color),
             Alignment::Left,
         );
     }
@@ -187,23 +203,26 @@ impl Paint<LineEdit> for DefaultStyle {
 
         painter.fill_rect(geom, &brush(palette, ColorRole::Base));
         if w.read_only {
-            painter.fill_rect(
-                geom,
-                &Brush::solid(disabled(palette.color(ColorRole::Window))),
-            );
+            painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
         }
         painter.draw_rect(
             geom,
             &Pen::new(palette.color(ColorRole::Text), 1.0),
             &Brush::solid(Color::TRANSPARENT),
         );
+        let text_role_color = palette.color(ColorRole::Text);
         let (text_arg, text_brush) = if w.text.is_empty() && !w.placeholder.is_empty() {
             (
                 w.placeholder.as_str(),
-                Brush::solid(disabled(palette.color(ColorRole::Text))),
+                Brush::solid(disabled(text_role_color)),
+            )
+        } else if w.read_only {
+            (
+                w.text.as_str(),
+                Brush::solid(text_role_color.with_alpha(READ_ONLY_TEXT_ALPHA)),
             )
         } else {
-            (w.text.as_str(), brush(palette, ColorRole::Text))
+            (w.text.as_str(), Brush::solid(text_role_color))
         };
         painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
     }
@@ -221,6 +240,19 @@ fn brush(palette: &Palette, role: ColorRole) -> Brush {
 #[inline]
 fn disabled(color: Color) -> Color {
     color.with_alpha(color.a() * 0.5)
+}
+
+/// Returns the read-only overlay colour for `palette`.
+///
+/// Tints the editable surface with [`ColorRole::WindowText`] at a low alpha.
+/// This guarantees a visible effect on every palette — even when `Window`
+/// and `Base` share a colour (as on `Palette::default`) — because
+/// `WindowText` always carries contrast against `Window` and `Base`.
+#[inline]
+fn read_only_overlay(palette: &Palette) -> Color {
+    palette
+        .color(ColorRole::WindowText)
+        .with_alpha(READ_ONLY_OVERLAY_ALPHA)
 }
 
 /// Returns [`disabled`]`(color)` when `enabled` is `false`; otherwise `color` unchanged.
