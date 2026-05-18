@@ -12,7 +12,6 @@
 use proc_macro::TokenStream;
 
 mod util;
-pub(crate) use util::make_expand;
 
 mod extend;
 mod meta_enum;
