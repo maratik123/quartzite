@@ -50,16 +50,10 @@ float_cmp = "allow"
 items_after_statements = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
-# Geometry crate intentionally crosses i32↔u32 with design-bounded ranges; per-cast `try_from` would obscure intent
-cast_possible_wrap = "allow"
 # `map_or_else` often hurts readability when the closures aren't trivial; case-by-case judgement during fix batch keeps the worth-fixing ones
 option_if_let_else = "allow"
 # Allowed at workspace level **but** with the macro `codegen(ir: IR)` family fixed in code per Subtask 5 (see below). Allow is for genuine-move sites elsewhere.
 needless_pass_by_value = "allow"
-# Geometry & rendering deliberately truncate within known bounds; per-call `try_from` adds noise without catching real bugs
-cast_possible_truncation = "allow"
-# i32 → f32 widening in geometry is intentional (sub-pixel coords); precision loss is the API contract
-cast_precision_loss = "allow"
 # 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity
 significant_drop_in_scrutinee = "allow"
 # Same pattern as above — `MutexGuard`s are deliberately held to keep critical sections atomic; tightening would split the section

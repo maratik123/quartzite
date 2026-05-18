@@ -395,6 +395,10 @@ impl IntoValue for f64 {
 }
 
 impl FromValue for f32 {
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "deliberate truncation within known bounds"
+    )]
     fn from_value(val: Value) -> Result<Self, TypeError> {
         match val {
             Value::Float(f) => Ok(f as Self),

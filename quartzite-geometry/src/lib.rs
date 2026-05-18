@@ -20,6 +20,10 @@ pub use size::{Size, SizeF};
 
 /// Rounds `x` to the nearest integer, half away from zero.
 #[inline]
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "deliberate truncation within known bounds"
+)]
 pub(crate) fn round_f32(x: f32) -> i32 {
     #[cfg(feature = "std")]
     {

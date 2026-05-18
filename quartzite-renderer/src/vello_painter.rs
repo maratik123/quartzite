@@ -520,6 +520,10 @@ impl Painter for VelloPainter<'_> {
         let s = f64::from(self.scale);
         let px = f64::from(rect.left()) * s;
         let py = f64::from(rect.top()) * s;
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "sub-pixel coordinate widening is intentional"
+        )]
         let max_advance = rect.size().width() as f32 * self.scale;
 
         let layout: Layout<[u8; 4]> = {

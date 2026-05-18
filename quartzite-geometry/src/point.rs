@@ -212,6 +212,10 @@ impl From<PointF> for Point {
 /// ```
 impl From<Point> for PointF {
     #[inline]
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "sub-pixel coordinate widening is intentional"
+    )]
     fn from(p: Point) -> Self {
         Self::new(p.x as f32, p.y as f32)
     }

@@ -233,6 +233,10 @@ impl From<SizeF> for Size {
 /// ```
 impl From<Size> for SizeF {
     #[inline]
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "sub-pixel coordinate widening is intentional"
+    )]
     fn from(s: Size) -> Self {
         Self::new(s.width as f32, s.height as f32)
     }

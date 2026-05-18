@@ -149,6 +149,10 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(entry) = self.registry.windows.get(&window_id) {
+                    #[allow(
+                        clippy::cast_possible_truncation,
+                        reason = "deliberate truncation within known bounds"
+                    )]
                     let scale = entry
                         .window
                         .as_ref()

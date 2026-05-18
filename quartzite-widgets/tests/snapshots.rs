@@ -60,6 +60,10 @@ fn harness_or_skip_with(
 }
 
 /// Count pixels that differ from the harness background colour (black).
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "deliberate truncation within known bounds"
+)]
 fn count_non_background(image: &image::RgbaImage) -> u32 {
     image.pixels().filter(|px| px.0 != BG).count() as u32
 }
@@ -194,6 +198,10 @@ fn draw_path_emits_curve() {
 /// Each source pixel occupies a 32×32 block; sampled near the corners of
 /// each block the dominant channel matches the source colour.
 #[test]
+#[allow(
+    clippy::cast_possible_wrap,
+    reason = "deliberate i32/usize casts within grid layout bounds"
+)]
 fn draw_image_quadrants() {
     let Some(mut harness) = harness_or_skip("draw_image_quadrants") else {
         return;
@@ -276,6 +284,10 @@ fn translate_save_restore() {
 
 /// AC6 — `save` / `clip_rect` / `fill_rect` / `restore` fills only inside the clip.
 #[test]
+#[allow(
+    clippy::cast_possible_wrap,
+    reason = "deliberate i32/usize casts within grid layout bounds"
+)]
 fn clip_rect_save_restore() {
     let Some(mut harness) = harness_or_skip("clip_rect_save_restore") else {
         return;
@@ -340,6 +352,10 @@ fn draw_text_basic() {
 /// rendered glyphs within the rect (midpoint of leftmost .. rightmost
 /// non-background pixel within ±2px of the rect centre).
 #[test]
+#[allow(
+    clippy::cast_possible_wrap,
+    reason = "deliberate i32/usize casts within grid layout bounds"
+)]
 fn draw_text_in_center() {
     let Some(mut harness) = harness_or_skip("draw_text_in_center") else {
         return;

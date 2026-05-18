@@ -52,6 +52,10 @@ pub(crate) fn mouse_button_from_winit(btn: WinitMouseButton) -> MouseButtons {
 }
 
 /// Constructs a quartzite [`MouseEvent`] from a winit `MouseInput` event.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "deliberate truncation within known bounds"
+)]
 pub(crate) fn mouse_event_from_winit(
     state: ElementState,
     button: WinitMouseButton,

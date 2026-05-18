@@ -238,6 +238,10 @@ impl Default for GridLayout {
 }
 
 impl Layout for GridLayout {
+    #[allow(
+        clippy::cast_possible_wrap,
+        reason = "deliberate i32/usize casts within grid layout bounds"
+    )]
     fn set_geometry(&mut self, resolver: &mut dyn WidgetResolver, rect: Rect) {
         if self.cells.is_empty() {
             return;
