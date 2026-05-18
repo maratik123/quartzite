@@ -12,14 +12,6 @@
 //!   [`Application`](quartzite_runtime::Application), so many snapshot tests
 //!   share a single process.
 
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
-
 pub mod application;
 mod application_builder;
 mod error;

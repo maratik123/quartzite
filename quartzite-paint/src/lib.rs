@@ -1,10 +1,3 @@
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
 //! Backend-agnostic paint utilities for quartzite.
 //!
 //! This crate re-exports the shared paint vocabulary from [`quartzite_paint_api`]

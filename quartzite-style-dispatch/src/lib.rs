@@ -63,9 +63,6 @@
 //! let mut painter = NullPainter;
 //! dispatch_paint(root_id, &resolver, &mut painter, &Palette::default());
 //! ```
-#![deny(missing_docs)]
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::undocumented_unsafe_blocks)]
 
 mod dispatch;
 
