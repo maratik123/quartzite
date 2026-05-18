@@ -163,7 +163,7 @@ gh run view <run-id> --log-failed --job <job-id> 2>&1 | tail -200
 | Class | Local reproducer |
 |---|---|
 | `fmt` | `cargo fmt -- --check` |
-| `clippy` | `cargo clippy --workspace -- -D warnings` |
+| `clippy` | `cargo clippy --workspace --all-targets -- -D warnings` |
 | `test` | `cargo test <name>` (substring), or `cargo test --test <integration-name>` |
 | `doc` | `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features` |
 | `actionlint` | `actionlint .github/workflows/<file>.yml` |
@@ -254,7 +254,7 @@ If **APPROVE** → Step 6.
 
 Run gates **before** commit (same set as `/pr-ci-failed` Step 6):
 
-- `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings`.
+- `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`.
 - `cargo doc --no-deps --workspace --all-features` — only if public API or any `pub` doc changed.
 - `actionlint <changed-workflow-file>` — only if any `.github/workflows/*.yml` was modified.
 
@@ -306,7 +306,7 @@ Capture the commit SHA; update the progress file.
    
    ## Test plan
    
-   - [x] `cargo build` / `cargo test` / `cargo fmt -- --check` / `cargo clippy --workspace -- -D warnings` clean
+   - [x] `cargo build` / `cargo test` / `cargo fmt -- --check` / `cargo clippy --workspace --all-targets -- -D warnings` clean
    - [x] `cargo doc --no-deps --workspace --all-features` clean (if API changed)
    - [x] `actionlint` clean on touched workflows (if applicable)
    - [x] `self-review` APPROVE round <R>

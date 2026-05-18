@@ -1,3 +1,5 @@
+//! Integration tests for `ObjectTreeExt` and `try_with_tree` against a live `Application`, covering all AC1–AC9 scenarios sequentially.
+
 // Each tests/*.rs file compiles as a separate binary — this file gets its own
 // OnceLock, required for Application singleton tests.
 //

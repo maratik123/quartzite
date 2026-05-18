@@ -1,3 +1,5 @@
+//! Integration test for `WindowedApplication::builder()` rejecting construction when a `quartzite_runtime::Application` is already live.
+
 // Each tests/*.rs file is compiled as a separate binary, giving this file
 // a fresh OnceLock — necessary for Application singleton tests.
 

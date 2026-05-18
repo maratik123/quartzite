@@ -1,3 +1,5 @@
+//! Integration test (AC11) verifying `Timer::single_shot` fires exactly once on the `AppDriver` backend, isolated in its own binary so the `Application` singleton is fresh.
+
 // Separate binary so the Application singleton is fresh (no conflict with timer.rs).
 // Tests AC11: single_shot fires exactly once when using AppDriver.
 

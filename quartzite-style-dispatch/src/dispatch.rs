@@ -567,29 +567,29 @@ mod tests {
         let outer_id = ObjectId::new();
         let present_id = ObjectId::new();
         let missing_id = ObjectId::new();
-        let present2_id = ObjectId::new();
+        let sibling_id = ObjectId::new();
 
         let mut outer = Container::new();
         outer.show();
         outer.add_child(present_id);
         outer.add_child(missing_id); // resolver will return None for this
-        outer.add_child(present2_id);
+        outer.add_child(sibling_id);
 
         let mut present = Label::new("A".into());
         present.show();
-        let mut present2 = Label::new("B".into());
-        present2.show();
+        let mut sibling = Label::new("B".into());
+        sibling.show();
 
         let mut resolver = StubResolver::new();
         resolver.insert(outer_id, outer);
         resolver.insert(present_id, present);
         // missing_id intentionally NOT inserted
-        resolver.insert(present2_id, present2);
+        resolver.insert(sibling_id, sibling);
 
         let mut painter = RecordingPainter::new();
         dispatch_paint(outer_id, &resolver, &mut painter, &Palette::default());
 
-        // outer + present + present2 = 3 paints; missing subtree skipped
+        // outer + present + sibling = 3 paints; missing subtree skipped
         assert_eq!(count_fill_rects(&painter.events), 3);
         assert!(saves_and_restores_balanced(&painter.events));
         assert!(logs_contain("dispatch_paint: resolver miss"));

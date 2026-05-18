@@ -105,7 +105,7 @@ pub fn build_test_app(quit_on_last_window_closed: bool) -> Option<WindowedApplic
     #[cfg(not(target_os = "linux"))]
     {
         let _ = quit_on_last_window_closed;
-        return None;
+        None
     }
     #[cfg(target_os = "linux")]
     {

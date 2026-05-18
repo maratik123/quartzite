@@ -1,3 +1,5 @@
+//! Integration tests for `Timer` across all three driver backends (Thread, App, Object-Tree), covering `signals_blocked` suppression and `single_shot` semantics.
+
 // Each tests/*.rs file is compiled as a separate binary, giving this file
 // a fresh OnceLock — necessary for the Application singleton used in AppDriver tests.
 //

@@ -35,9 +35,10 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
 
 - Strict clippy (enforced).
 - **Workspace-wide lint policy** lives in the root `Cargo.toml`
-  `[workspace.lints.clippy]` table; every member crate (13 leaves + the
-  root `quartzite` package) opts in via `[lints] workspace = true` in
-  its own `Cargo.toml`. The four group/lint enables in force are
+  `[workspace.lints.rust]` + `[workspace.lints.rustdoc]` +
+  `[workspace.lints.clippy]` tables; every member crate (13 leaves +
+  the root `quartzite` package) opts in via `[lints] workspace = true`
+  in its own `Cargo.toml`. The four group/lint enables in force are
   `clippy::pedantic` and `clippy::nursery` (both `warn`, `priority =
   -1` so specific `clippy::* = "allow"` entries override the group),
   plus `clippy::large_stack_frames` and `clippy::large_stack_arrays`
@@ -70,6 +71,37 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
   `Ord`/`PartialOrd` types. Reach for the stdlib method first; fall back
   to branching only when the comparison logic is genuinely non-trivial.
 
+## Magic numbers
+
+Numeric literals that carry semantic meaning belong in named
+`const` values, not inline at the use site. The name documents the
+intent; the literal is an implementation detail.
+
+- **Applies to:** colour-component values (`Color::new(0.94, 0.94,
+  0.94, 1.0)` → `const NEUTRAL_GREY: Color = …`), sizes, timeouts,
+  cache limits, magic offsets, retry counts — anything where the
+  reader has to ask "why this number?".
+- **Does not apply to:** self-evident constants (`0`, `1`, `-1`,
+  `2` for "next/prev", powers-of-two array bounds in obvious
+  doubling contexts), loop indices, and test fixtures where the
+  exact value carries no meaning beyond "some valid input".
+- **Placement:** module-private `const FOO: T = …;` at the top of
+  the module (after `use` statements). Public surface only when the
+  constant is genuinely part of the public API (e.g. a default
+  exposed for callers to inspect).
+- **Naming:** `SCREAMING_SNAKE_CASE` per Rust convention; the name
+  must describe the *role* (`PALETTE_LIGHT_BACKGROUND`), not the
+  shape (`COLOR_94`). If the role is unclear, the constant is
+  premature — wait until the use site clarifies it.
+
+History — this rule has fired twice on `Palette::default()` /
+`palette.rs` (2026-05-08 in `Palette::default()`, again 2026-05-13
+on `palette.rs:119`'s `Color::new(0.0, 0.5, 1.0, 1.0)` literal —
+the second occurrence reached a human reviewer post-push because
+`/bugfix` Step 6 lacked the self-review gate that would have caught
+it). Both `self-review` and `review-findings` checklists list this
+as a `minor` finding so the gate fires pre-push.
+
 ## Library safety idioms
 
 Concrete forms of the "non-panicking APIs for libraries" rule (see
@@ -101,8 +133,10 @@ Concrete forms of the "non-panicking APIs for libraries" rule (see
 
 ## Documentation
 
-- Every crate must have `#![deny(missing_docs)]` and
-  `#![warn(clippy::undocumented_unsafe_blocks)]` in its `lib.rs`.
+- The workspace declares `missing_docs = "deny"` and
+  `clippy::undocumented_unsafe_blocks = "warn"` in
+  `[workspace.lints.*]`; every crate opts in via
+  `[lints] workspace = true` in its own `Cargo.toml`.
 - Every public item must have at least a one-line `///` doc comment.
 - Every new public item with only a single-line doc must include a
   `# Examples` block. Proc-macro examples use `no_run`; runtime items
@@ -371,11 +405,13 @@ grouping of a struct + its `impl` blocks + related errors).
 CI runs `cargo clippy --all-targets -- -D warnings`, so every clippy
 lint listed below is a hard error in practice.
 
-- `#![deny(missing_docs)]` — every public item has at least a one-line
-  doc. (Already present in every crate.) Owned by [Documentation](#documentation).
-- `#![warn(clippy::undocumented_unsafe_blocks)]` — every `unsafe`
-  block carries a `// SAFETY:` comment. Owned by
-  [Documentation](#documentation).
+- `missing_docs = "deny"` — every public item has at least a one-line
+  doc. (Declared at workspace level in `[workspace.lints.rust]`; each
+  crate opts in via `[lints] workspace = true`.) Owned by [Documentation](#documentation).
+- `clippy::undocumented_unsafe_blocks = "warn"` — every `unsafe`
+  block carries a `// SAFETY:` comment. (Declared at workspace level
+  in `[workspace.lints.clippy]`; each crate opts in via
+  `[lints] workspace = true`.) Owned by [Documentation](#documentation).
 - `clippy::missing_errors_doc` — `# Errors` section on every
   `Result`-returning public fn. Primary owner is
   [`doc-convention.md`](doc-convention.md); cross-referenced from

@@ -1,3 +1,5 @@
+//! Integration test enforcing `Application` singleton semantics: first `new()` succeeds, second returns `AlreadyExists`, `global()` is `Some` afterwards.
+
 // Each tests/*.rs file is compiled as a separate binary, giving this file
 // a fresh OnceLock — necessary for Application singleton tests.
 

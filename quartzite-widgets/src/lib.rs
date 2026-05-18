@@ -14,13 +14,6 @@
 //!
 //! - [`widgets`] — all built-in concrete widgets ([`Label`], [`Button`], [`LineEdit`], …)
 //! - [`layout`] — layout types ([`BoxLayout`], [`GridLayout`])
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
 
 pub mod enums;
 pub mod layout;

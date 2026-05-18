@@ -121,8 +121,8 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 - After each subtask:
   1. `cargo build` — must compile
   2. `cargo test test_name` — if subtask adds tests
-  3. `cargo fmt`; `cargo clippy --workspace -- -D warnings`
-  4. Update `.progress.md` — **at this subtask boundary, rewrite `**current_step:**` to `Step 8 — subtask N of M complete`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any non-trivial choice made during this subtask (one line, prefixed `Step 8 subtask N:`; omit if none).**
+  3. `cargo fmt`; `cargo clippy --workspace --all-targets -- -D warnings`
+  4. Update `.progress.md` — **at this subtask boundary, rewrite `**current_step:**` to `Step 8 — subtask N of M complete`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any non-trivial choice made during this subtask (one line, prefixed `Step 8 subtask N:`; omit if none).**
   5. **Every-group handoff (binding, not optional).** During Step 8 the orchestrator NEVER executes subtask code in its own context — every group fans out through `/context-reset`, including the first group, and including designs whose total subtask count is M = 1. Spawn `/context-reset` at the start of each group per the design's `## Handoff plan` section (the per-group spec; required for every M ≥ 1 per `.claude/agents/design.md` § Rules → handoff-grouping). Between group returns the orchestrator reads the subagent's progress-file delta (`current_step`, `last_passed_gate`, tail of `## Decisions log`) and re-validates state — branch matches `**Branch:**`, `base_commit` unchanged in the progress header, no uncommitted dirt (`git diff --quiet` returns clean) — before spawning the next group's handoff. If the runtime delta disagrees with the design's `## Handoff plan` (e.g. extra subtasks completed, group boundary moved), trigger the **Design Amendment recipe** (`reference.md` § Design Amendment recipe) — do NOT silently advance. Orchestrator model is per-invocation; pinning was considered and rejected (Key Decision Q3 of the every-group redesign — see spec/design at `ai-docs/plans/done/2026-05-16-task-step-8-group-handoff.spec.md`). See `reference.md` § Every-group handoff (rationale) for the failure modes this prevents and `.claude/skills/context-reset/SKILL.md` for the handoff protocol.
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
@@ -131,7 +131,7 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 
 ### Step 9: Verify
 
-Run the full 11-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), unsafe-index sync (see `reference.md` § Step 9 — unsafe-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
+Run the full 11-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), unsafe-index sync (see `reference.md` § Step 9 — unsafe-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
 
 **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9 — Verify (ALL PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording panic-index additions and unsafe-index additions, if any (one line, prefixed `Step 9:`; omit if none).
 
@@ -157,31 +157,32 @@ Spawn the `self-review` agent with the spec, design, and progress paths (per `.c
 
 For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file: **fix** (mark `✅ Fixed`), **design-amend** (trigger the Design Amendment recipe, mark `✅ Fixed (design amended)`), or **object** (`nit`/`minor` autonomously; `major`/`blocker` only after user approval — mark `⚠️ Objected: <reason>`). See `reference.md` § Step 11 — review-fix narrative for the full procedure including the unconditional PR-body re-read and review-thread-resolution recipe.
 
-After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo clippy --workspace -- -D warnings`) and:
+After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`) and:
 
 1. Update `.progress.md`.
 2. **PR body sync (unconditional).** `gh pr view <N> --json title,body`, re-read, then `gh pr edit` only if the body contradicts the new commits. Never skip the read.
 3. **Resolve fixed review threads (unconditional).** GraphQL recipe per `reference.md` and [`ai-docs/workflow.md`](../../../ai-docs/workflow.md#pr-review-comment-resolution).
-4. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 11 — review fixes complete (Round N)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any `⚠️ Objected` rationale or Design-Amendment trigger (one line, prefixed `Step 11:`; omit if none).
+4. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 11 — review fixes complete (Round N)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any `⚠️ Objected` rationale or Design-Amendment trigger (one line, prefixed `Step 11:`; omit if none).
 5. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
 
-1. **Confirm `.progress.md` is NOT staged.** It is gitignored (`/ai-docs/plans/**/*.progress.md`); `git status` should not list it. If accidentally tracked or staged, unstage / `git rm --cached`. The file MUST stay in the working tree but MUST NOT enter the commit.
-2. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
-3. **Finalise INDEX.md and move plan files:**
+1. **Step-skip gate (binding, not optional).** Read `**current_step:**` from `ai-docs/plans/<spec-base>.progress.md`. It MUST be one of `Step 10 — self-review APPROVE (Round N)` or `Step 11 — review fixes complete (Round N)`. If it is anything else (e.g. `Step 9 — Verify (ALL PASS)`, `Step 9.5 — docs updated`, `Step 8 — subtask N of M complete`) — **STOP**, do not proceed to commit, surface the gap to the user, and loop back to the missing step. Rationale: Step 10 (self-review) has been silently skipped on "simple" tasks and post-compaction (recurrence pattern: 2026-05-07 design-skip, 2026-05-14 PR #339 Step-10 skip, 2026-05-14 PR #281 compaction-induced skip, 2026-05-16 PR #374 context-rot). The gate fires regardless of how trivial the diff appears — no "too simple" exemption (see [`ai-docs/learnings.md` 2026-05-07 entry](../../../ai-docs/learnings.md)). **Compaction-recovery exception:** if `**current_step:**` is unparseable or absent and the post-compaction summary suggests Step 10 ran, ask the user explicitly before treating Step 10 as satisfied — do NOT auto-pass the gate.
+2. **Confirm `.progress.md` is NOT staged.** It is gitignored (`/ai-docs/plans/**/*.progress.md`); `git status` should not list it. If accidentally tracked or staged, unstage / `git rm --cached`. The file MUST stay in the working tree but MUST NOT enter the commit.
+3. Confirm `git branch --show-current` is **not** `master`. If it is — stop, do not push, tell the user, apply the AGENTS.md recovery procedure.
+4. **Finalise INDEX.md and move plan files:**
    - Change the plan row status to `✅ implemented (N tests)`
    - Move spec/design files to `ai-docs/plans/done/`
    - Update dependency tree and **Suggested next steps**
-4. **Inbox propagation — parse the just-finalised spec (and its design if present) and append rows to `ai-docs/deferred/_inbox.md`.** Apply the file-level dedupe rule against the 8 thematic files in `ai-docs/deferred/`; emit a `WARN:` line on unrecognised body shapes and continue. Full per-shape parser + dedupe rules in `reference.md` § Step 12 — inbox propagation (detail) and in [`inbox-propagation.md`](inbox-propagation.md). The Step 12 commit (sub-step 7 below) stages `_inbox.md` alongside the existing artefacts.
-5. **Regenerate dependent artefacts** (e.g. `bash scripts/gen-roadmap.sh` → `ROADMAP.md` when `INDEX.md` or `done/**` changed) and stage them with the same commit. See `reference.md` § Step 12 — regenerate dependent artefacts (detail).
-6. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
-7. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), `ai-docs/deferred/_inbox.md` (rows appended in sub-step 4), and spec/design now in `done/`.
-8. Commit `feat(<crate>): <imperative summary>` with a 1–3 line body and `N new tests; all M tests green.`
-9. `git push -u origin <branch>`
-10. `gh pr create` with title + body — body must include **Summary** / **Tracking** (`Closes #N` for full-resolve or `Refs #N` for partial; omit if `Tracked in: none`) / **Test plan** (one line per AC + clippy/build). Full body template: `reference.md` § Step 12 — PR-body template (detail).
-11. Post the PR URL to the user.
-12. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 12 — PR opened (PR #<N>)`; append a `## Decisions log` bullet recording the PR number and the spec/design `done/` move (one line, prefixed `Step 12:`).
+5. **Inbox propagation — parse the just-finalised spec (and its design if present) and append rows to `ai-docs/deferred/_inbox.md`.** Apply the file-level dedupe rule against the 8 thematic files in `ai-docs/deferred/`; emit a `WARN:` line on unrecognised body shapes and continue. Full per-shape parser + dedupe rules in `reference.md` § Step 12 — inbox propagation (detail) and in [`inbox-propagation.md`](inbox-propagation.md). The Step 12 commit (sub-step 8 below) stages `_inbox.md` alongside the existing artefacts.
+6. **Regenerate dependent artefacts** (e.g. `bash scripts/gen-roadmap.sh` → `ROADMAP.md` when `INDEX.md` or `done/**` changed) and stage them with the same commit. See `reference.md` § Step 12 — regenerate dependent artefacts (detail).
+7. `cargo build` — ensures `Cargo.lock` is refreshed and included if changed.
+8. Stage all changed files: implementation files from `## Files touched`, `context.md`, `README.md`, `ai-docs/learnings.md` (if modified), updated `INDEX.md`, regenerated artefacts (e.g. `ROADMAP.md`), `ai-docs/deferred/_inbox.md` (rows appended in sub-step 5), and spec/design now in `done/`.
+9. Commit `feat(<crate>): <imperative summary>` with a 1–3 line body and `N new tests; all M tests green.`
+10. `git push -u origin <branch>`
+11. `gh pr create` with title + body — body must include **Summary** / **Tracking** (`Closes #N` for full-resolve or `Refs #N` for partial; omit if `Tracked in: none`) / **Test plan** (one line per AC + clippy/build). Full body template: `reference.md` § Step 12 — PR-body template (detail).
+12. Post the PR URL to the user.
+13. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 12 — PR opened (PR #<N>)`; append a `## Decisions log` bullet recording the PR number and the spec/design `done/` move (one line, prefixed `Step 12:`).
 
 After the PR is created, the unconditional PR-body re-read rule (AGENTS.md *Workflow*) applies to any subsequent push on this branch: `gh pr view <N>` first, then `gh pr edit` only if the body now contradicts the diff.
 

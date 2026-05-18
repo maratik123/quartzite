@@ -1,3 +1,5 @@
+//! Integration tests for the `#[derive(MetaEnum)]` macro: `IntoValue` / `FromValue` round-tripping over discriminants.
+
 use quartzite::core::{FromValue, IntoValue, TypeError, Value};
 use quartzite_macros::MetaEnum;
 
