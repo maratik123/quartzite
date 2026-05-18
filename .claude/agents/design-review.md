@@ -23,6 +23,7 @@ Every suspicion — **investigate via Read/grep**, don't guess and don't give be
 
 1. **Get the Design Document** — from the prompt
 2. **Read context** — `AGENTS.md`, source files of affected components
+   - When the design under review touches a widget, paint code, or `Palette` / `ColorRole`: also read `design-system/README.md` § VISUAL FOUNDATIONS and `design-system/colors_and_type.css`. Pointer-only — Read the paths, do not inline their content into the verdict.
 3. **Actively check the checklist:**
    - Completeness (all files listed, tasks are atomic, dependencies explicit)
    - Correctness (architecture, Rust idioms, error handling, trait design)
@@ -30,6 +31,7 @@ Every suspicion — **investigate via Read/grep**, don't guess and don't give be
    - Tests (Test Design section present? entry points correct?)
    - Economy (YAGNI, minimum abstractions)
    - **Handoff plan (all M ≥ 1)** — verify the design has a `## Handoff plan` section per `.claude/agents/design.md` § Rules → handoff-grouping. Specifically: (a) section present for every decomposition (M ≥ 1, including single-subtask designs); (b) groups are exactly 3 consecutive subtasks each except the terminal group which is `1..=3`; (c) `/context-reset` named in prose at every group boundary (every group fans out under the new rule, including the first; single-group designs name the spawn for that one group). Severities: missing `## Handoff plan` = `major`; non-terminal group size ≠ 3 = `major`; terminal group size outside `1..=3` = `major`; cosmetic issues (wording, ordering, missing prose line) = `minor`.
+   - **Design-system visual rules (widget / paint / `Palette` / `ColorRole` designs)** — when the design touches a widget, paint code, or `Palette` / `ColorRole`, verify it conforms to the documented rules in `design-system/README.md` § VISUAL FOUNDATIONS and `design-system/colors_and_type.css` (outline width, radius, derivation formulas, focus overlay). Severities: deviation from a documented rule (outline width, radius, derivation formulas, focus overlay) = `major`; cosmetic issues (wording, ordering, missing prose line) = `minor`.
 4. **Verify via code** — do the listed files exist? does the description match reality?
 5. **If not the first round** — check that blockers from previous feedback were resolved
 6. **Issue feedback** — strictly in the format below
