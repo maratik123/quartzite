@@ -72,6 +72,6 @@ mod tests {
 
         // Compile-time return-type check — enforces the public signature
         // stays stable across refactors.
-        let _: MutexGuard<'static, ()> = test_lock();
+        let _guard: MutexGuard<'static, ()> = test_lock();
     }
 }
