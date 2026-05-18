@@ -127,6 +127,7 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
     ///
     /// Separated from `dispatch_window_event` so the pure dispatch logic can be
     /// unit-tested without a live `ActiveEventLoop`.
+    #[allow(clippy::needless_pass_by_value, reason = "WindowEvent consumed by pattern match; changing to &WindowEvent requires ref-patterns throughout and degrades readability")]
     pub(crate) fn dispatch_window_event_inner(
         &mut self,
         window_id: WinitWindowId,

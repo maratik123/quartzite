@@ -53,6 +53,7 @@ impl LoopRegistry {
     /// Registers `loop_` for thread `id`.
     ///
     /// Returns `Err` without modifying the registry if an entry already exists for `id`.
+    #[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
     pub(crate) fn install(id: ThreadId, loop_: Arc<EventLoop>) -> Result<(), LoopAlreadyInstalled> {
         let mut map = REGISTRY.write();
         if map.contains_key(&id) {

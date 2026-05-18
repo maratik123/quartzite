@@ -101,6 +101,8 @@ pub enum SignalConnectionError {
 /// let id = connect_signal_to_signal(from, "clicked", to, "clicked", ConnectionType::Direct);
 /// # }
 /// ```
+#[allow(clippy::needless_pass_by_value, reason = "stable cross-crate signal/slot API surface — signature change is breaking")]
+#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
 pub fn connect_signal_to_signal(
     from: &mut dyn Object,
     from_signal: &str,
@@ -260,6 +262,8 @@ pub fn connect_signal_to_signal(
 /// );
 /// # }
 /// ```
+#[allow(clippy::needless_pass_by_value, reason = "stable cross-crate signal/slot API surface — signature change is breaking")]
+#[allow(clippy::significant_drop_tightening, reason = "MutexGuard held intentionally to keep critical section atomic")]
 pub fn connect_signals<From, To, Args>(
     from_obj: &mut From,
     from_signal_name: &str,

@@ -48,16 +48,10 @@ missing_const_for_fn = "allow"
 float_cmp = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
-# Allowed at workspace level **but** with the macro `codegen(ir: IR)` family fixed in code per Subtask 5 (see below). Allow is for genuine-move sites elsewhere.
-needless_pass_by_value = "allow"
 # 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity
 significant_drop_in_scrutinee = "allow"
-# Same pattern as above — `MutexGuard`s are deliberately held to keep critical sections atomic; tightening would split the section
-significant_drop_tightening = "allow"
 # 5 hits in runtime/object_tree.rs (3) + renderer/wrapped_handler.rs (2); intentional complex generic API surface in those files
 type_complexity = "allow"
-# Flags struct with 3+ bools; existing call sites are config-style — bools are clearer than an enum at v1
-struct_excessive_bools = "allow"
 
 [lints]
 workspace = true

@@ -30,6 +30,7 @@ use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
 /// ```
 #[derive(Extend)]
 #[root]
+#[allow(clippy::struct_excessive_bools, reason = "planned collapse into BitFlags<WidgetState> tracked in #316")]
 pub struct WidgetBase {
     #[base]
     object: ObjectBase,
