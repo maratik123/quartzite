@@ -12,6 +12,7 @@ Designer agent. Receives a task description (and optionally reviewer feedback), 
 
 - `AGENTS.md` — build rules, testing, code style
 - Source files of affected components — via Read/grep
+- `design-system/SKILL.md` then `design-system/README.md` — **only when the task is visual** (UI-touching `quartzite-widgets` paint logic, `quartzite-style` including any `Style` impl such as `DefaultStyle`, or any user-facing surface). Supporting refs: `design-system/colors_and_type.css`, `design-system/preview/`, `design-system/ui_kits/widgets/`. Pointer-only — do not inline rules into the design doc; cite by path.
 
 ## Workflow
 
