@@ -15,13 +15,13 @@ quartzite-paint-api = { path = "../quartzite-paint-api", default-features = fals
 quartzite-runtime   = { path = "../quartzite-runtime" }
 indexmap  = "2"
 winit     = "0.30"
-wgpu      = "28"
-vello     = "0.8"
+wgpu      = "29"
+vello     = "0.9"
 peniko    = "0.6"
 pollster  = "0.4"
 thiserror = "2"
 image     = { version = "0.25", default-features = false }
-# Text shaping and font loading (skrifa 0.42 coexists with vello's transitive skrifa 0.40)
+# Text shaping and font loading.
 parley    = "0.9"
 skrifa    = "0.42"
 parking_lot = "0.12"
