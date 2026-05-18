@@ -68,8 +68,6 @@ significant_drop_tightening = "allow"
 type_complexity = "allow"
 # Flags struct with 3+ bools; existing call sites are config-style — bools are clearer than an enum at v1
 struct_excessive_bools = "allow"
-# Stylistic; project doc convention currently does not normalise `[`code`]` link form, no value adds from forcing it
-doc_link_code = "allow"
 
 [lints]
 workspace = true
