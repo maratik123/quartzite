@@ -35,9 +35,10 @@ links, etc.) live in [`doc-convention.md`](doc-convention.md), not here.
 
 - Strict clippy (enforced).
 - **Workspace-wide lint policy** lives in the root `Cargo.toml`
-  `[workspace.lints.clippy]` table; every member crate (13 leaves + the
-  root `quartzite` package) opts in via `[lints] workspace = true` in
-  its own `Cargo.toml`. The four group/lint enables in force are
+  `[workspace.lints.rust]` + `[workspace.lints.rustdoc]` +
+  `[workspace.lints.clippy]` tables; every member crate (13 leaves +
+  the root `quartzite` package) opts in via `[lints] workspace = true`
+  in its own `Cargo.toml`. The four group/lint enables in force are
   `clippy::pedantic` and `clippy::nursery` (both `warn`, `priority =
   -1` so specific `clippy::* = "allow"` entries override the group),
   plus `clippy::large_stack_frames` and `clippy::large_stack_arrays`
@@ -132,8 +133,10 @@ Concrete forms of the "non-panicking APIs for libraries" rule (see
 
 ## Documentation
 
-- Every crate must have `#![deny(missing_docs)]` and
-  `#![warn(clippy::undocumented_unsafe_blocks)]` in its `lib.rs`.
+- The workspace declares `missing_docs = "deny"` and
+  `clippy::undocumented_unsafe_blocks = "warn"` in
+  `[workspace.lints.*]`; every crate opts in via
+  `[lints] workspace = true` in its own `Cargo.toml`.
 - Every public item must have at least a one-line `///` doc comment.
 - Every new public item with only a single-line doc must include a
   `# Examples` block. Proc-macro examples use `no_run`; runtime items
@@ -402,11 +405,13 @@ grouping of a struct + its `impl` blocks + related errors).
 CI runs `cargo clippy --all-targets -- -D warnings`, so every clippy
 lint listed below is a hard error in practice.
 
-- `#![deny(missing_docs)]` — every public item has at least a one-line
-  doc. (Already present in every crate.) Owned by [Documentation](#documentation).
-- `#![warn(clippy::undocumented_unsafe_blocks)]` — every `unsafe`
-  block carries a `// SAFETY:` comment. Owned by
-  [Documentation](#documentation).
+- `missing_docs = "deny"` — every public item has at least a one-line
+  doc. (Declared at workspace level in `[workspace.lints.rust]`; each
+  crate opts in via `[lints] workspace = true`.) Owned by [Documentation](#documentation).
+- `clippy::undocumented_unsafe_blocks = "warn"` — every `unsafe`
+  block carries a `// SAFETY:` comment. (Declared at workspace level
+  in `[workspace.lints.clippy]`; each crate opts in via
+  `[lints] workspace = true`.) Owned by [Documentation](#documentation).
 - `clippy::missing_errors_doc` — `# Errors` section on every
   `Result`-returning public fn. Primary owner is
   [`doc-convention.md`](doc-convention.md); cross-referenced from
