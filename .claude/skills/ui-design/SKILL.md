@@ -1,5 +1,5 @@
 ---
-name: design
+name: ui-design
 description: "Explicitly load the Quartzite design-system context for visual work — paint paths, Style impls, Palette / ColorRole changes, snapshot tests. Pointer-only; Reads the canonical design-system/ folder on demand. Distinct from design-system/SKILL.md (name: quartzite-design), which is not slash-discoverable."
 disable-model-invocation: true
 allowed-tools: Read
