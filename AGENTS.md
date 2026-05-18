@@ -27,7 +27,7 @@ cargo build
 cargo test                            # all tests
 cargo test test_name                  # filter by substring
 cargo test -- --nocapture             # show stdout
-cargo clippy --workspace -- -D warnings   # lint (strict; --workspace catches leaf crates outside the default dep tree)
+cargo clippy --workspace --all-targets -- -D warnings   # lint (strict; --all-targets covers benches, tests, examples in addition to lib+bins)
 cargo fmt                             # fix formatting
 cargo fmt -- --check                  # check only
 RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features   # doc gate (matches CI; --all-features so intra-doc links into every feature-gated module — `serde`-gated `snapshot`, `style`, `widgets`, … — resolve regardless of which feature gates them)
@@ -38,7 +38,7 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 > See [`ai-docs/miri-policy.md`](ai-docs/miri-policy.md) for the per-test `#[cfg_attr(miri, ignore = "…")]` default + per-file `#![cfg(not(miri))]` fallback + workflow-level exclusion-list contract.
 
 > **AXIOM — `actionlint` MUST pass before `git add` on any modified workflow file.**
-> Required gate, same status as `cargo build` and `cargo clippy --workspace -- -D warnings`. Skipped twice despite the rule existing — escalated to AGENTS.md after the second occurrence.
+> Required gate, same status as `cargo build` and `cargo clippy --workspace --all-targets -- -D warnings`. Skipped twice despite the rule existing — escalated to AGENTS.md after the second occurrence.
 >
 > | If you see... | Action |
 > |---|---|

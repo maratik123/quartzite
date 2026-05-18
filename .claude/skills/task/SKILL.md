@@ -121,8 +121,8 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 - After each subtask:
   1. `cargo build` — must compile
   2. `cargo test test_name` — if subtask adds tests
-  3. `cargo fmt`; `cargo clippy --workspace -- -D warnings`
-  4. Update `.progress.md` — **at this subtask boundary, rewrite `**current_step:**` to `Step 8 — subtask N of M complete`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any non-trivial choice made during this subtask (one line, prefixed `Step 8 subtask N:`; omit if none).**
+  3. `cargo fmt`; `cargo clippy --workspace --all-targets -- -D warnings`
+  4. Update `.progress.md` — **at this subtask boundary, rewrite `**current_step:**` to `Step 8 — subtask N of M complete`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any non-trivial choice made during this subtask (one line, prefixed `Step 8 subtask N:`; omit if none).**
   5. **Every-group handoff (binding, not optional).** During Step 8 the orchestrator NEVER executes subtask code in its own context — every group fans out through `/context-reset`, including the first group, and including designs whose total subtask count is M = 1. Spawn `/context-reset` at the start of each group per the design's `## Handoff plan` section (the per-group spec; required for every M ≥ 1 per `.claude/agents/design.md` § Rules → handoff-grouping). Between group returns the orchestrator reads the subagent's progress-file delta (`current_step`, `last_passed_gate`, tail of `## Decisions log`) and re-validates state — branch matches `**Branch:**`, `base_commit` unchanged in the progress header, no uncommitted dirt (`git diff --quiet` returns clean) — before spawning the next group's handoff. If the runtime delta disagrees with the design's `## Handoff plan` (e.g. extra subtasks completed, group boundary moved), trigger the **Design Amendment recipe** (`reference.md` § Design Amendment recipe) — do NOT silently advance. Orchestrator model is per-invocation; pinning was considered and rejected (Key Decision Q3 of the every-group redesign — see spec/design at `ai-docs/plans/done/2026-05-16-task-step-8-group-handoff.spec.md`). See `reference.md` § Every-group handoff (rationale) for the failure modes this prevents and `.claude/skills/context-reset/SKILL.md` for the handoff protocol.
 - Unknown API → read sources → grep codebase → ask user. Don't guess.
 - Bug report during impl → activate `/bugfix`, then return here.
@@ -131,7 +131,7 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 
 ### Step 9: Verify
 
-Run the full 11-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), unsafe-index sync (see `reference.md` § Step 9 — unsafe-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
+Run the full 11-step verify list in `reference.md` § Step 9 — verify list (full): `cargo build`, `cargo test`, `cargo fmt -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `actionlint` (only if workflows changed), panic-index sync (see `reference.md` § Step 9 — panic-index sync (detail) for the exact `rg` recipes), unsafe-index sync (see `reference.md` § Step 9 — unsafe-index sync (detail) for the exact `rg` recipes), then per-AC coverage check and a `| # | Criterion | Test / Verification | Status |` summary table. On ALL PASS → Step 9.5.
 
 **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 9 — Verify (ALL PASS)`; rewrite `**last_passed_gate:**` to `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording panic-index additions and unsafe-index additions, if any (one line, prefixed `Step 9:`; omit if none).
 
@@ -157,12 +157,12 @@ Spawn the `self-review` agent with the spec, design, and progress paths (per `.c
 
 For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file: **fix** (mark `✅ Fixed`), **design-amend** (trigger the Design Amendment recipe, mark `✅ Fixed (design amended)`), or **object** (`nit`/`minor` autonomously; `major`/`blocker` only after user approval — mark `⚠️ Objected: <reason>`). See `reference.md` § Step 11 — review-fix narrative for the full procedure including the unconditional PR-body re-read and review-thread-resolution recipe.
 
-After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo clippy --workspace -- -D warnings`) and:
+After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`) and:
 
 1. Update `.progress.md`.
 2. **PR body sync (unconditional).** `gh pr view <N> --json title,body`, re-read, then `gh pr edit` only if the body contradicts the new commits. Never skip the read.
 3. **Resolve fixed review threads (unconditional).** GraphQL recipe per `reference.md` and [`ai-docs/workflow.md`](../../../ai-docs/workflow.md#pr-review-comment-resolution).
-4. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 11 — review fixes complete (Round N)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any `⚠️ Objected` rationale or Design-Amendment trigger (one line, prefixed `Step 11:`; omit if none).
+4. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 11 — review fixes complete (Round N)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any `⚠️ Objected` rationale or Design-Amendment trigger (one line, prefixed `Step 11:`; omit if none).
 5. Return to Step 10.
 
 ### Step 12: Finalise docs, commit, and create PR
