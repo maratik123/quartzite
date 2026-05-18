@@ -301,12 +301,73 @@ fn text_edit_read_only_inserts_overlay_fill() {
         4,
         "expected 4 events for TextEdit (read_only=true)"
     );
-    let expected_overlay = super::disabled(palette.color(ColorRole::Window));
+    let expected_overlay = palette
+        .color(ColorRole::WindowText)
+        .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
     assert!(
         matches!(&painter.events[1],
             PaintEvent::FillRect { brush, .. }
                 if brush_color(brush) == expected_overlay),
         "second FillRect must be the read-only overlay"
+    );
+}
+
+#[test]
+fn text_edit_read_only_dims_text() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.read_only = true;
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.len(),
+        4,
+        "expected 4 events for read-only TextEdit with text"
+    );
+    assert!(
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+        "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
+    );
+}
+
+#[test]
+fn text_edit_writable_keeps_full_alpha_text() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.read_only = false;
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.len(),
+        3,
+        "expected 3 events for writable TextEdit"
+    );
+    assert!(
+        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush).a() == 1.0),
+        "writable TextEdit text brush must have full alpha"
+    );
+}
+
+#[test]
+fn read_only_overlay_derives_from_custom_window_text() {
+    let palette =
+        Palette::default().with_role(ColorRole::WindowText, Color::new(0.0, 0.5, 1.0, 1.0));
+    let mut edit = TextEdit::new();
+    edit.read_only = true;
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+
+    let expected_overlay = Color::new(0.0, 0.5, 1.0, super::READ_ONLY_OVERLAY_ALPHA);
+    assert!(
+        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == expected_overlay),
+        "overlay must derive from custom WindowText colour"
     );
 }
 
@@ -946,8 +1007,8 @@ fn line_edit_read_only_inserts_overlay() {
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == super::disabled(palette.color(ColorRole::Window))),
-        "events[1] must be FillRect(disabled(Window)) read-only overlay"
+            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+        "events[1] must be FillRect(WindowText @ READ_ONLY_OVERLAY_ALPHA) read-only overlay"
     );
     assert!(
         matches!(&painter.events[2], PaintEvent::DrawRect { .. }),
@@ -976,7 +1037,7 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == super::disabled(palette.color(ColorRole::Window))),
+            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
         "events[1] must be the read-only overlay"
     );
     assert!(
@@ -985,6 +1046,68 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
                 && *alignment == Alignment::Left
                 && brush_color(brush) == super::disabled(palette.color(ColorRole::Text))),
         "events[3] must be DrawTextIn('hint', Left, half-alpha Text) — placeholder path"
+    );
+}
+
+#[test]
+fn line_edit_read_only_dims_text() {
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.read_only = true;
+    let mut painter = RecordingPainter::default();
+    let palette = line_edit_read_only_palette();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.len(),
+        4,
+        "expected 4 events for read-only LineEdit with text"
+    );
+    assert!(
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+        "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
+    );
+}
+
+#[test]
+fn line_edit_read_only_empty_text_dims_text() {
+    let mut e = LineEdit::new();
+    e.read_only = true;
+    e.text = String::new();
+    e.placeholder = String::new();
+    let mut painter = RecordingPainter::default();
+    let palette = line_edit_read_only_palette();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    // Overlay brush check
+    assert!(
+        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+        "events[1] must be the read-only overlay"
+    );
+    // Text brush check — empty text, no placeholder → read-only text path
+    assert!(
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+        "events[3] DrawTextIn brush must be dimmed for read-only even with empty text"
+    );
+}
+
+#[test]
+fn line_edit_writable_keeps_full_alpha_text() {
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.read_only = false;
+    let mut painter = RecordingPainter::default();
+    let palette = line_edit_palette();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    assert!(
+        matches!(first_draw_text_in(&painter.events),
+            PaintEvent::DrawTextIn { brush, .. }
+                if brush_color(brush).a() == 1.0),
+        "writable LineEdit text brush must have full alpha"
     );
 }
 
