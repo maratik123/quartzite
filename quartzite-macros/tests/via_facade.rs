@@ -1,3 +1,5 @@
+//! Integration test verifying macros accessed via the `quartzite::macros` facade emit `::quartzite::core` paths (no direct `quartzite_macros` import needed).
+
 // Verifies that macros accessed via `quartzite::macros` emit `::quartzite::core` paths —
 // no direct `quartzite_macros` import is needed.
 use quartzite::core::{AsObject, Object, ObjectBase, Signal, Value};

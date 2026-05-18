@@ -536,20 +536,19 @@ The fixes are: change `Create` → `Creates` (third-person present); move
 
 ## Lints that mechanically enforce parts of this convention
 
-Each crate's `lib.rs` enables:
+The workspace declares (each crate opts in via `[lints] workspace = true`):
 
-- `#![deny(missing_docs)]` — every public item has at least a one-line
-  doc. (Already present in every crate.)
-- `#![deny(rustdoc::broken_intra_doc_links)]` — intra-doc links must
-  resolve.
-- `#![warn(clippy::missing_errors_doc)]` — `# Errors` section on every
-  `Result`-returning public fn.
-- `#![warn(clippy::missing_panics_doc)]` — `# Panics` section on every
-  fn that can panic.
-- `#![warn(clippy::missing_safety_doc)]` — `# Safety` section on every
-  `unsafe fn`.
-- `#![warn(clippy::doc_markdown)]` — flags un-backticked `CamelCase`
-  identifiers in prose. The lint's heuristic ignores pure all-caps
+- `missing_docs = "deny"` (in `[workspace.lints.rust]`) — every public
+  item has at least a one-line doc.
+- `rustdoc::broken_intra_doc_links = "deny"` (in
+  `[workspace.lints.rustdoc]`) — intra-doc links must resolve.
+- `clippy::pedantic = { level = "warn", priority = -1 }` (in
+  `[workspace.lints.clippy]`) — implies `clippy::missing_errors_doc`
+  (`# Errors` section on every `Result`-returning public fn),
+  `clippy::missing_panics_doc` (`# Panics` section on every fn that can
+  panic), `clippy::missing_safety_doc` (`# Safety` section on every
+  `unsafe fn`), and `clippy::doc_markdown` — flags un-backticked
+  `CamelCase` identifiers in prose. The lint's heuristic ignores pure all-caps
   acronyms (`GPU`, `JSON`, `URL` — even bare in prose), so they don't
   need allow-listing; only `CamelCase` brand names / proper nouns / type
   names that you genuinely want to write as plain prose would. **Project

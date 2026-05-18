@@ -1,3 +1,5 @@
+//! Integration tests for the `#[derive(Object)]` macro: property read/write, notify signals, and read-only flags.
+
 use std::sync::Arc;
 
 use quartzite::core::Mutex;

@@ -1,3 +1,5 @@
+//! Integration tests for `ObjectFactory` registration and the `FactoryAlreadySet` guard.
+
 use quartzite_core::{
     id::ConnectionId,
     meta::MetaObject,

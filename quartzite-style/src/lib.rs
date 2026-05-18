@@ -1,10 +1,3 @@
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
 //! Downstream styling crate for quartzite.
 //!
 //! Adds the [`Style`] trait and the global [`StyleRegistry`] on top of the

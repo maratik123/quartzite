@@ -1,3 +1,5 @@
+//! Example demonstrating `Timer` usage on a live `Application` event loop.
+
 use std::{
     sync::{
         Arc,

@@ -1,3 +1,5 @@
+//! Minimal example introducing the `Counter` object: property read/write and notify-signal wiring through the `quartzite` facade.
+
 use quartzite::prelude::*;
 
 #[derive(Extend, DeriveObject)]

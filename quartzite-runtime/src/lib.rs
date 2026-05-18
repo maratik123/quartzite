@@ -15,13 +15,6 @@
 //! env_logger::init(); // or any other log-compatible subscriber
 //! // … create Application, run event loop
 //! ```
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
 
 pub mod application;
 pub mod connection_table;

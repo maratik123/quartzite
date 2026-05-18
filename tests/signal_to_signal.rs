@@ -1,3 +1,5 @@
+//! Integration tests for signal-to-signal connections through the `quartzite` facade crate (AC1–AC11).
+
 // Integration tests for signal-to-signal connections (AC1–AC11).
 use std::sync::{
     Arc,

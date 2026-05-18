@@ -1,11 +1,4 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::missing_errors_doc)]
-#![warn(clippy::missing_panics_doc)]
-#![warn(clippy::missing_safety_doc)]
-#![warn(clippy::doc_markdown)]
-#![warn(clippy::undocumented_unsafe_blocks)]
-#![deny(missing_docs)]
 //! A GUI and object framework for Rust drawing on Qt's signals/slots and
 //! property/reflection model — implemented in idiomatic Rust with no native
 //! dependencies, no foreign ABI, and no codegen outside proc-macros.
