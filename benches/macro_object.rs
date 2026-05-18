@@ -1,3 +1,5 @@
+//! Benchmarks for the derive-macro `Object` implementation.
+
 use criterion::{Criterion, criterion_group, criterion_main};
 use quartzite::core::{Object, ObjectBase, Signal, Value};
 use quartzite::macros::Object as DeriveObject;

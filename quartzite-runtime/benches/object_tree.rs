@@ -1,3 +1,5 @@
+//! Benchmarks for object-tree traversal and runtime operations.
+
 use criterion::{Criterion, criterion_group, criterion_main};
 use quartzite_core::{
     AsObject, ObjectBase, Value,

@@ -1,3 +1,5 @@
+//! Benchmarks for signal emission and property read/write operations.
+
 use criterion::{Criterion, criterion_group, criterion_main};
 use quartzite_core::{
     AsObject, ObjectBase, Signal, Value,
