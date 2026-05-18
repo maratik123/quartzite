@@ -34,9 +34,9 @@ broken_intra_doc_links = "deny"
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
-large_stack_frames = "warn"
-large_stack_arrays = "warn"
-undocumented_unsafe_blocks = "warn"
+large_stack_frames = "deny"
+large_stack_arrays = "deny"
+undocumented_unsafe_blocks = "deny"
 
 # Project does not treat omitted-return-value as a bug; opting in per-fn is noise relative to signal
 must_use_candidate = "allow"

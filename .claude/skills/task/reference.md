@@ -230,7 +230,7 @@ For each new hit, add an entry to `ai-docs/panic-index.md` (location, trigger, i
 
 Scan new/modified production sources for `# Safety` doc sections and direct `unsafe` call sites; update `ai-docs/unsafe-index.md` if any new production unsafe sites were introduced:
 
-- `rg '^\s*///\s*#\s*Safety' <changed-files>` — `# Safety` doc-section signal on `unsafe fn` / `unsafe trait` declarations (primary signal; required by `#![warn(clippy::undocumented_unsafe_blocks)]` on every workspace crate)
+- `rg '^\s*///\s*#\s*Safety' <changed-files>` — `# Safety` doc-section signal on `unsafe fn` / `unsafe trait` declarations (primary signal; required by `#![deny(clippy::undocumented_unsafe_blocks)]` on every workspace crate)
 - `rg '\bunsafe\s*\{|\bunsafe\s+fn\b' --type rust <changed-files>` — direct `unsafe { … }` blocks and `unsafe fn` declarations (secondary catch-net; walk hits and skip those inside `#[cfg(test)]` modules or under `tests/` / `benches/` / `examples/`)
 
 For each new production hit, add an entry to `ai-docs/unsafe-index.md` (Location, Why unsafe, Safety invariant, Why not safe Rust, Preferred fix). Stage `unsafe-index.md` with the implementation commit. Skip when this task added no new production unsafe sites.
