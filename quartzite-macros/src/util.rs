@@ -6,11 +6,7 @@ use syn::Ident;
 /// Strips the `Base` suffix from `name` if it ends with `Base` (case-sensitive).
 /// Returns `""` for the degenerate input `"Base"` — callers must check and emit a compile error.
 pub(crate) fn strip_base_suffix(name: &str) -> &str {
-    if let Some(stripped) = name.strip_suffix("Base") {
-        stripped
-    } else {
-        name
-    }
+    name.strip_suffix("Base").unwrap_or(name)
 }
 
 /// Derives the `As{X}` trait ident from a struct type ident.
@@ -41,12 +37,10 @@ pub(crate) fn hidden_mod_ident(type_ident: &Ident) -> Ident {
 
 /// Removes the first `#[name]` attribute from `attrs`; returns whether it was present.
 pub(crate) fn extract_attr(attrs: &mut Vec<syn::Attribute>, name: &str) -> bool {
-    if let Some(i) = attrs.iter().position(|a| a.path().is_ident(name)) {
+    attrs.iter().position(|a| a.path().is_ident(name)).is_some_and(|i| {
         attrs.remove(i);
         true
-    } else {
-        false
-    }
+    })
 }
 
 /// Returns `#[inline]` when the user struct/enum is concrete (`generics.params` empty), else `{}`.

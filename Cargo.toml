@@ -46,12 +46,8 @@ redundant_pub_crate = "allow"
 missing_const_for_fn = "allow"
 # Every hit is `assert_eq!(…, <exact f32/f64 literal>)` inside unit tests on representable values; allow workspace-wide rather than per-assert
 float_cmp = "allow"
-# Project pattern: small nested helper fn placed after local setup is more readable than hoisting to module scope
-items_after_statements = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
-# `map_or_else` often hurts readability when the closures aren't trivial; case-by-case judgement during fix batch keeps the worth-fixing ones
-option_if_let_else = "allow"
 # Allowed at workspace level **but** with the macro `codegen(ir: IR)` family fixed in code per Subtask 5 (see below). Allow is for genuine-move sites elsewhere.
 needless_pass_by_value = "allow"
 # 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity

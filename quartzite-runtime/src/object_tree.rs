@@ -342,10 +342,7 @@ impl ObjectTree {
             // Insert into new name bucket.
             this.by_name.entry(new_name.clone()).or_default().push(id);
             // Emit name_changed after index is consistent. old = None means was anonymous.
-            let old_val = match old_name_opt {
-                Some(s) => Value::String(s),
-                None => Value::Null,
-            };
+            let old_val = old_name_opt.map_or(Value::Null, Value::String);
             this.with_mut(id, |obj| {
                 obj.emit_signal("name_changed", &[old_val, Value::String(new_name)]);
             });

@@ -1156,6 +1156,7 @@ mod tests {
     // AC6 — Auto cross-thread: callback is posted to the queued dispatcher.
     #[test]
     #[cfg(feature = "std")]
+    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
     fn auto_cross_thread_posts_to_dispatcher() {
         let _lock = quartzite_test_helpers::test_lock();
         use crate::signal::tests::install_test_dispatcher;

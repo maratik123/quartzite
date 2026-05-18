@@ -250,6 +250,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::items_after_statements, reason = "nested helper placed after local setup is more readable here")]
     fn registered_style_dispatches_draw_widget() {
         let _lock = quartzite_test_helpers::test_lock();
         StyleRegistry::clear_for_test();

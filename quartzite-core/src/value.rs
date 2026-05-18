@@ -501,10 +501,7 @@ impl IntoValue for Option<String> {
     /// ```
     #[inline]
     fn into_value(self) -> Value {
-        match self {
-            None => Value::Null,
-            Some(s) => Value::String(s),
-        }
+        self.map_or(Value::Null, Value::String)
     }
 }
 
