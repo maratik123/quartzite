@@ -44,8 +44,6 @@ must_use_candidate = "allow"
 redundant_pub_crate = "allow"
 # 59 hits across 7 crates; nursery lint with churn — const fn proliferation is a design call, not lint-driven
 missing_const_for_fn = "allow"
-# Every hit is `assert_eq!(…, <exact f32/f64 literal>)` inside unit tests on representable values; allow workspace-wide rather than per-assert
-float_cmp = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
 # 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity

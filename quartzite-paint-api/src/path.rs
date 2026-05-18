@@ -262,6 +262,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
     fn cubic_and_arc_round_trip() {
         let c1 = Point::new(1, 2);
         let c2 = Point::new(3, 4);

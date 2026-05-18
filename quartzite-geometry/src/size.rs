@@ -278,6 +278,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
     fn sizef_new_and_accessors() {
         let s = SizeF::new(1.5, 2.5);
         assert_eq!(s.width(), 1.5);

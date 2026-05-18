@@ -334,6 +334,7 @@ fn text_edit_read_only_dims_text() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn text_edit_writable_keeps_full_alpha_text() {
     let mut edit = TextEdit::new();
     edit.plain_text = "abc".into();
@@ -465,6 +466,7 @@ fn checked_button_uses_highlight_colour() {
 // ── AC8: Disabled button halves fill and text alpha ───────────────────────
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn disabled_button_halves_fill_and_text_alpha() {
     let enabled_btn = Button::new("x".into());
     let mut disabled_btn = Button::new("x".into());
@@ -613,6 +615,7 @@ fn pressed_button_uses_highlight_roles() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn focused_button_uses_2px_highlight_outline() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
@@ -650,6 +653,7 @@ fn focused_button_uses_2px_highlight_outline() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn precedence_disabled_pressed_focused() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
@@ -753,6 +757,7 @@ fn precedence_pressed_checked_both_map_to_highlight() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn precedence_focused_hovered_blend_plus_outline() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
@@ -791,6 +796,7 @@ fn precedence_focused_hovered_blend_plus_outline() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn idle_button_three_events_unchanged() {
     let btn = Button::new("OK".into());
     let mut painter = RecordingPainter::default();
@@ -830,6 +836,7 @@ fn container_palette() -> Palette {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn container_records_fill_and_outline() {
     let c = Container::new();
     let mut painter = RecordingPainter::default();
@@ -892,6 +899,7 @@ fn line_edit_read_only_palette() -> Palette {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn line_edit_records_fill_outline_and_empty_text() {
     let e = LineEdit::new();
     let mut painter = RecordingPainter::default();
@@ -1095,6 +1103,7 @@ fn line_edit_read_only_empty_text_dims_text() {
 }
 
 #[test]
+#[allow(clippy::float_cmp, reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction")]
 fn line_edit_writable_keeps_full_alpha_text() {
     let mut e = LineEdit::new();
     e.text = "abc".into();
