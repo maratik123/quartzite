@@ -1,0 +1,94 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Wordmark</title>
+<style>
+/* Card chrome — shared by every file under /preview.
+   Cards target ~700×<height>px and render the swatches / specimens
+   /tokens directly with minimal decoration. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #FFFFFF;
+  color: #000000;
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+svg { shape-rendering: geometricPrecision; }
+
+.card {
+  width: 700px;
+  box-sizing: border-box;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 12pt;
+}
+
+/* swatch primitives */
+.sw-row    { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.sw-col    { display: flex; flex-direction: column; gap: 6px; }
+.sw-grid   { display: grid; gap: 12px; }
+.sw        {
+  width: 64px; height: 64px;
+  border: 1px solid #000000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10pt;
+}
+.sw.lg     { width: 96px; height: 96px; }
+.sw.sm     { width: 48px; height: 48px; }
+.sw .mono  { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; }
+.cap       { font-size: 9pt; color: #000000; letter-spacing: 0.02em; }
+.mono      { font-family: 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace; }
+.note      { font-size: 9.5pt; color: rgba(0,0,0,0.65); }
+.kbd       { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; padding: 1px 5px; border: 1px solid #000; background: #fff; }
+
+/* meta info pair */
+.kv        { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; font-size: 10pt; }
+.kv .k     { font-family: 'DejaVu Sans Mono', monospace; }
+.kv .v     { font-family: 'DejaVu Sans Mono', monospace; color: rgba(0,0,0,0.7); }
+
+/* mirrors of DefaultStyle */
+.qz-button {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 6px 16px;
+  font: inherit; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 64px; min-height: 32px;
+}
+.qz-button.hover    { background: #BFDFFF; }
+.qz-button.pressed,
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.focused  {
+  /* additive 2px highlight outline over idle */
+  box-shadow: inset 0 0 0 2px #0080FF;
+}
+.qz-button.disabled { opacity: 0.5; }
+
+.qz-line-edit, .qz-text-edit {
+  background: #FFFFFF; color: #000000;
+  border: 1px solid #000000; border-radius: 0;
+  padding: 4px 6px; font: inherit;
+  display: inline-block;
+}
+.qz-line-edit { min-width: 180px; min-height: 28px; }
+.qz-text-edit { min-width: 220px; min-height: 72px; white-space: pre-wrap; vertical-align: top; }
+.qz-line-edit.read-only, .qz-text-edit.read-only {
+  background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5));
+}
+.qz-line-edit.placeholder { color: rgba(0,0,0,0.5); }
+
+.qz-container, .qz-scroll-area {
+  background: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 0;
+}
+.qz-scroll-area { background: #FFFFFF; }
+
+</style></head>
+<body><div class="card" style="height:140px;display:flex;align-items:center;gap:32px;flex-direction:column;justify-content:center;">
+  <img src="data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20240%2064%22%20width%3D%22240%22%20height%3D%2264%22%20role%3D%22img%22%20aria-label%3D%22quartzite%22%20shape-rendering%3D%22geometricPrecision%22%3E%0A%20%20%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%22240%22%20height%3D%2264%22%20fill%3D%22%23FFFFFF%22%3E%3C%2Frect%3E%0A%20%20%3Cg%20transform%3D%22translate(4%2C0)%22%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2232%2C6%2010%2C20%2010%2C44%2032%2C32%22%20fill%3D%22%230080FF%22%3E%3C%2Fpolygon%3E%0A%20%20%20%20%3Cpolygon%20points%3D%2232%2C6%2054%2C20%2032%2C32%22%20fill%3D%22%23BFDFFF%22%3E%3C%2Fpolygon%3E%0A%20%20%20%20%3Cpath%20d%3D%22M%2032%206%20L%2054%2020%20L%2054%2044%20L%2032%2058%20L%2010%2044%20L%2010%2020%20Z%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20%20%20M%2032%206%20%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20%20%20M%2054%2020%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20%20%20M%2054%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20%20%20M%2010%2044%20L%2032%2032%26%23xA%3B%20%20%20%20%20%20%20%20%20%20%20%20%20M%2032%2058%20L%2032%2032%22%20fill%3D%22none%22%20stroke%3D%22%23000000%22%20stroke-width%3D%221%22%20stroke-linejoin%3D%22miter%22%20stroke-linecap%3D%22butt%22%3E%3C%2Fpath%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Ctext%20x%3D%2274%22%20y%3D%2242%22%20font-family%3D%22%26%2339%3BDejaVu%20Sans%26%2339%3B%2C%26%2339%3BLiberation%20Sans%26%2339%3B%2C%26%2339%3BHelvetica%20Neue%26%2339%3B%2CArial%2Csans-serif%22%20font-size%3D%2228%22%20font-weight%3D%22400%22%20fill%3D%22%23000000%22%20letter-spacing%3D%220.5%22%3Equartzite%3C%2Ftext%3E%0A%3C%2Fsvg%3E" width="480" height="128" alt="quartzite">
+  <div class="cap mono" style="margin-top:-24px">all-lowercase, DejaVu&nbsp;Sans 28pt, 4&nbsp;px from the mark</div>
+</div></body></html>
