@@ -6,7 +6,7 @@
 //! `design-system/colors_and_type.css` `[data-theme="dark"]`.
 
 use crate::color::{
-    BITTERSWEET, DODGER_BLUE, HELIOTROPE, MAYA_BLUE, NERO, ONYX, OUTER_SPACE, PLATINUM,
+    CHAROITE, DODGER_BLUE, ECLIPSE, LIGHT_DODGER_BLUE, MERCURY, MINE_SHAFT, NERO, PASTEL_RED,
 };
 use crate::{ColorRole, Palette};
 use quartzite_paint_api::Color;
@@ -32,17 +32,17 @@ use quartzite_paint_api::Color;
 /// );
 /// ```
 pub const DARK_PALETTE: Palette = Palette::new()
-    .with_role(ColorRole::Window, OUTER_SPACE)
-    .with_role(ColorRole::WindowText, PLATINUM)
-    .with_role(ColorRole::Button, ONYX)
-    .with_role(ColorRole::ButtonText, PLATINUM)
+    .with_role(ColorRole::Window, MINE_SHAFT)
+    .with_role(ColorRole::WindowText, MERCURY)
+    .with_role(ColorRole::Button, ECLIPSE)
+    .with_role(ColorRole::ButtonText, MERCURY)
     .with_role(ColorRole::Base, NERO)
-    .with_role(ColorRole::Text, PLATINUM)
+    .with_role(ColorRole::Text, MERCURY)
     .with_role(ColorRole::Highlight, DODGER_BLUE)
     .with_role(ColorRole::HighlightedText, Color::WHITE)
-    .with_role(ColorRole::Link, MAYA_BLUE)
-    .with_role(ColorRole::LinkVisited, HELIOTROPE)
-    .with_role(ColorRole::BrightText, BITTERSWEET);
+    .with_role(ColorRole::Link, LIGHT_DODGER_BLUE)
+    .with_role(ColorRole::LinkVisited, CHAROITE)
+    .with_role(ColorRole::BrightText, PASTEL_RED);
 
 #[cfg(test)]
 mod tests {
