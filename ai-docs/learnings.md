@@ -1306,7 +1306,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
-**Superseded by:** PR #491 — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution).
+**Superseded by:** PR #492 — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution).
 
 ### 2026-05-19 — process — reinforce with carrot and stick: record positive validations, not only violations
 

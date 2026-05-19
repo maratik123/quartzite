@@ -16,7 +16,7 @@ This page extracts the field-level glossary and exception bodies from [`AGENTS.m
 >
 > All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
 
-> **One-off carve-out — 2026-05-19 *compaction-recovery protocol in skill files works* entry.** This entry was retro-tagged `**Kind:** validation` via PR #491 (Phase 1) to demonstrate the newly-introduced `Kind:` field on an existing entry. The carve-out is recorded in the entry's own `**Superseded by:**` line as the durable audit trail. **Named, narrow, audit-traced; NOT a precedent.** Bulk retro-tagging of older entries is explicitly out of scope — `Kind:` defaults to `correction` when omitted, so legacy entries need no rewrite. Any future schema migration touching `learnings.md` requires its own named carve-out here.
+> **One-off carve-out — 2026-05-19 *compaction-recovery protocol in skill files works* entry.** This entry was retro-tagged `**Kind:** validation` via PR #492 (Phase 1) to demonstrate the newly-introduced `Kind:` field on an existing entry. The carve-out is recorded in the entry's own `**Superseded by:**` line as the durable audit trail. **Named, narrow, audit-traced; NOT a precedent.** Bulk retro-tagging of older entries is explicitly out of scope — `Kind:` defaults to `correction` when omitted, so legacy entries need no rewrite. Any future schema migration touching `learnings.md` requires its own named carve-out here.
 
 ## Boundary rule 2 Exception
 
