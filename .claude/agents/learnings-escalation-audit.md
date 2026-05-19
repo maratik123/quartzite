@@ -1,6 +1,6 @@
 ---
 name: learnings-escalation-audit
-description: "Verifies that every entry in ai-docs/learnings.md has accurate `Escalated?` and `Superseded by:` fields — `Escalated?` targets contain the rule; `Superseded by:` references resolve to a real later entry or merged PR. Fixes drift in-place (edits only the `Escalated?` and `Superseded by:` lines of affected entries; never touches date, category, description, what-happened, or rule text). Authorised by AGENTS.md § Corrections Log Boundary rule 1 Exception. Invoked by /ai-audit Phase 1. Does not write project code."
+description: "Verifies that every entry in ai-docs/learnings.md has accurate `Escalated?` and `Superseded by:` fields — `Escalated?` targets contain the rule; `Superseded by:` references resolve to a real later entry or merged PR. Fixes drift in-place (edits only the `Escalated?` and `Superseded by:` lines of affected entries; never touches date, category, description, what-happened, or rule text). Authorised by AGENTS.md § Learning Log Boundary rule 1 Exception. Invoked by /ai-audit Phase 1. Does not write project code."
 model: opus
 ---
 
@@ -14,14 +14,14 @@ Reactive audit subagent. Walks every entry in `ai-docs/learnings.md` and checks 
 
 Read up front:
 
-1. `ai-docs/learnings.md` — full corrections log (entries are append-only; do not delete).
+1. `ai-docs/learnings.md` — full learning log (entries are append-only; do not delete).
 2. `AGENTS.md` — current project rules.
 3. `.claude/settings.json` — hooks + permissions.
 4. Every `.claude/skills/*/SKILL.md` and `.claude/agents/*.md` — the targets that entries may point at.
 
 ## What `Escalated?` can say
 
-Per AGENTS.md "Corrections Log":
+Per AGENTS.md "Learning Log":
 
 | Value | Means | Verification |
 |---|---|---|
@@ -93,7 +93,7 @@ Always surface category 3.
 
 ### Step 4: Apply approved field corrections
 
-For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` or `**Superseded by:**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. Do **not** add a `**Superseded by:**` line where none was present — that is `/improve`'s job. This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only); typo fixes within either value are in scope of the same exception.
+For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` or `**Superseded by:**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. Do **not** add a `**Superseded by:**` line where none was present — that is `/improve`'s job. This edit is authorised by **AGENTS.md § Learning Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only); typo fixes within either value are in scope of the same exception.
 
 ### Step 5: Cross-checks
 
@@ -134,4 +134,4 @@ Produce a structured report back to the calling skill:
 - **Do NOT auto-merge duplicate entries.** Surface.
 - **Do NOT touch `.claude/settings.local.json`.** User-local.
 - **Do NOT commit.** The calling skill bundles Phase 1 + Phase 2 changes into one commit.
-- **Do NOT flag in-flow `/task` learning entries as Boundary Rule 2 violations.** AGENTS.md § Corrections Log Boundary rule 2 Exception (added 2026-05-13) authorises `/task` Steps 8–12 — **and any sub-skill (e.g., `/bugfix`, `/context-reset`) invoked from within that range** — to append a NEW entry in the same turn as instruction-file edits when the entry is marked `Escalated? no` and documents an in-flight insight. Such entries are normal candidates for `/improve` escalation, not corpus violations — surface them under "Cross-check signals (for /improve, not for this skill)" if they look ripe, never under "Auto-applied fixes" or "Needs user judgment / Boundary Rule 2 violation".
+- **Do NOT flag in-flow `/task` learning entries as Boundary Rule 2 violations.** AGENTS.md § Learning Log Boundary rule 2 Exception (added 2026-05-13) authorises `/task` Steps 8–12 — **and any sub-skill (e.g., `/bugfix`, `/context-reset`) invoked from within that range** — to append a NEW entry in the same turn as instruction-file edits when the entry is marked `Escalated? no` and documents an in-flight insight. Such entries are normal candidates for `/improve` escalation, not corpus violations — surface them under "Cross-check signals (for /improve, not for this skill)" if they look ripe, never under "Auto-applied fixes" or "Needs user judgment / Boundary Rule 2 violation".

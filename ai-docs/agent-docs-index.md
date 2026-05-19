@@ -18,7 +18,7 @@ Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment r
 
 ### ai-docs/corrections-log.md
 
-Extracted carve-outs from `AGENTS.md` § *Corrections Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand.
+Extracted carve-outs from `AGENTS.md` § *Learning Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand.
 
 ### ai-docs/key-decisions.md
 
