@@ -70,6 +70,7 @@ Record each entry's status:
 - ⚠️ **Mismatch** — claimed target exists but rule absent (rule was removed or never landed there).
 - ❌ **Broken** — claimed target file/skill/agent does not exist at all (renamed/deleted).
 - ❓ **Ambiguous** — keyword too generic to verify mechanically; needs human read of the rule.
+- 🌱 **Stale-validation** — `Kind: validation` entry whose `Escalated?` is `no`, whose entry-date is **> 30 days** old, AND whose targeted surface has had **≥1 instruction-file commit since the validation date** (see Step 2b). Signal for `/improve` (the validation has aged without project-level promotion despite ongoing instruction-file churn near its surface), not an auto-fix.
 
 For each entry that has a `**Superseded by:**` line, ALSO verify the reference resolves:
 
@@ -78,6 +79,22 @@ For each entry that has a `**Superseded by:**` line, ALSO verify the reference r
 - **Both date and PR comma-separated** — both must resolve.
 
 Entries WITHOUT a `Superseded by:` line are not flagged here — absence is the default; only presence-with-broken-ref is drift.
+
+### Step 2b: Stale-validation sweep
+
+For every entry whose `**Kind:**` line says `validation`, evaluate three conjuncts:
+
+1. **Age conjunct.** Entry-date age **> 30 days** from today (use the date in the entry's `### YYYY-MM-DD — ...` header).
+2. **Escalation conjunct.** `Escalated?` is `no`.
+3. **Instruction-file activity conjunct.** ≥1 commit touching the audited instruction-surface corpus since the entry-date.
+
+Compute the activity conjunct with `git log --since=<entry-date> --pretty=oneline -- AGENTS.md ai-docs/ .claude/` — count the commits in the output; non-zero satisfies the conjunct. Constrain the path list to the surface the validation entry's `Rule:` line names when a specific skill / agent is named (e.g., `Rule:` names `/context-reset` → constrain to `.claude/skills/context-reset/`); fall back to the whole corpus path list above when the `Rule:` line is ambiguous.
+
+If **all three** conjuncts hold → emit `🌱 Stale-validation`. If the entry is `Kind: validation` but **fewer than three** conjuncts hold → no flag. Legacy entries (`Kind:` omitted → default `correction`) are out of scope for this sweep.
+
+If the `Rule:` line is ambiguous (no specific skill/agent named AND no AGENTS.md section named) AND the entry would otherwise flag → fall back to `❓ Ambiguous` instead of `🌱 Stale-validation` (the audit cannot mechanically narrow the surface; user judgment needed).
+
+🌱 entries are surfaced to `/improve`; the audit does NOT auto-fix them (the promotion is a Step 2b Carrot-pass decision in `self-improve`, not an `Escalated?` field correction).
 
 ### Step 3: Categorise + propose fixes
 
@@ -115,12 +132,16 @@ Produce a structured report back to the calling skill:
 - ⚠️ Mismatch: N (auto-fixed: M, surfaced: K)
 - ❌ Broken: N (auto-fixed: M, surfaced: K)
 - ❓ Ambiguous: N (all surfaced)
+- 🌱 Stale-validation: N (all surfaced — signals for /improve)
 
 ## Auto-applied fixes
 - [date] [description] — `Escalated?` was `X`, changed to `Y`. Reason: ...
 
 ## Needs user judgment
 - [date] [description] — [problem]. Suggested options: A / B / C.
+
+## Stale-validation signals (🌱 — for /improve, not for this skill)
+- [date] [description] — `Kind: validation`, age N days, ≥M instruction-file commits since entry-date on surface [skill:foo | agent:bar | AGENTS.md | whole corpus]. Suggested: route through `self-improve` Carrot pass Step 2b.
 
 ## Cross-check signals (for /improve, not for this skill)
 - ...
