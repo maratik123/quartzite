@@ -97,14 +97,10 @@ pub enum SignalConnectionError {
 /// use parking_lot::Mutex;
 /// use quartzite_core::{Object, connect::{connect_signal_to_signal, SignalConnectionError}};
 /// use quartzite_core::signal::ConnectionType;
-/// # fn example(from: &mut impl Object, to: Arc<Mutex<impl Object + Send + 'static>>) {
+/// # fn example(from: &mut impl Object, to: &Arc<Mutex<dyn Object>>) {
 /// let id = connect_signal_to_signal(from, "clicked", to, "clicked", ConnectionType::Direct);
 /// # }
 /// ```
-#[allow(
-    clippy::needless_pass_by_value,
-    reason = "stable cross-crate signal/slot API surface — signature change is breaking"
-)]
 #[allow(
     clippy::significant_drop_tightening,
     reason = "MutexGuard held intentionally to keep critical section atomic"
@@ -112,7 +108,7 @@ pub enum SignalConnectionError {
 pub fn connect_signal_to_signal(
     from: &mut dyn Object,
     from_signal: &str,
-    to: Arc<Mutex<dyn Object>>,
+    to: &Arc<Mutex<dyn Object>>,
     to_signal: &str,
     conn_type: ConnectionType,
 ) -> Result<ConnectionId, SignalConnectionError> {
@@ -157,7 +153,7 @@ pub fn connect_signal_to_signal(
     }
 
     let to_thread_id = to.lock().object_base().thread_id;
-    let to_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(&to);
+    let to_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(to);
 
     let callback: SignalCallback = match conn_type {
         ConnectionType::Direct => Box::new(move |args: &[Value]| {
@@ -256,7 +252,7 @@ pub fn connect_signal_to_signal(
 /// # use quartzite_core::Object;
 /// # fn example<From: Object, To: Object + Send + 'static>(
 /// #     from: &mut From,
-/// #     to: Arc<Mutex<To>>,
+/// #     to: &Arc<Mutex<To>>,
 /// # ) where
 /// #     (i32,): quartzite_core::connect::ArgsToValues + Clone + Send + 'static,
 /// # {
@@ -269,10 +265,6 @@ pub fn connect_signal_to_signal(
 /// # }
 /// ```
 #[allow(
-    clippy::needless_pass_by_value,
-    reason = "stable cross-crate signal/slot API surface — signature change is breaking"
-)]
-#[allow(
     clippy::significant_drop_tightening,
     reason = "MutexGuard held intentionally to keep critical section atomic"
 )]
@@ -280,7 +272,7 @@ pub fn connect_signals<From, To, Args>(
     from_obj: &mut From,
     from_signal_name: &str,
     from_signal_field: fn(&mut From) -> &mut Signal<Args>,
-    to: Arc<Mutex<To>>,
+    to: &Arc<Mutex<To>>,
     to_signal_name: &str,
     conn_type: ConnectionType,
 ) -> Result<ConnectionId, SignalConnectionError>
@@ -335,7 +327,7 @@ where
 
     let id = match conn_type {
         ConnectionType::Direct | ConnectionType::SingleShot => {
-            let to_weak = Arc::downgrade(&to);
+            let to_weak = Arc::downgrade(to);
             let ct = conn_type;
             sig.connect_typed(
                 move |args: &Args| {
@@ -353,7 +345,7 @@ where
                 let guard = to.lock();
                 let w: Weak<ReceiverGuard> = Arc::downgrade(guard.object_base().receiver_guard());
                 let tid = guard.object_base().thread_id;
-                (Arc::downgrade(&to), w, tid)
+                (Arc::downgrade(to), w, tid)
             };
             sig.connect_queued(
                 thread_id,
@@ -372,7 +364,7 @@ where
                 let guard = to.lock();
                 let w: Weak<ReceiverGuard> = Arc::downgrade(guard.object_base().receiver_guard());
                 let tid = guard.object_base().thread_id;
-                (Arc::downgrade(&to), w, tid)
+                (Arc::downgrade(to), w, tid)
             };
             sig.connect_auto(thread_id, guard_weak, move |args: Args| {
                 let Some(arc) = to_weak.upgrade() else {
@@ -603,7 +595,7 @@ mod tests {
         let err = connect_signal_to_signal(
             &mut sender,
             "nonexistent",
-            to,
+            &to,
             "sig_b",
             ConnectionType::Direct,
         )
@@ -621,7 +613,7 @@ mod tests {
         let err = connect_signal_to_signal(
             &mut sender,
             "sig_a",
-            to,
+            &to,
             "nonexistent",
             ConnectionType::Direct,
         )
@@ -703,8 +695,9 @@ mod tests {
             _sig: Signal::new(),
         };
         let to = Arc::new(Mutex::new(nr)) as Arc<Mutex<dyn Object>>;
-        let err = connect_signal_to_signal(&mut sender, "sig_a", to, "sig", ConnectionType::Direct)
-            .unwrap_err();
+        let err =
+            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig", ConnectionType::Direct)
+                .unwrap_err();
         assert_eq!(err, SignalConnectionError::ArityMismatch { from: 1, to: 0 });
     }
 
@@ -780,8 +773,9 @@ mod tests {
             _sig: Signal::new(),
         };
         let to = Arc::new(Mutex::new(br)) as Arc<Mutex<dyn Object>>;
-        let err = connect_signal_to_signal(&mut sender, "sig_a", to, "sig", ConnectionType::Direct)
-            .unwrap_err();
+        let err =
+            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig", ConnectionType::Direct)
+                .unwrap_err();
         assert_eq!(
             err,
             SignalConnectionError::TypeMismatch {
@@ -805,7 +799,7 @@ mod tests {
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
         let id =
-            connect_signal_to_signal(&mut sender, "sig_a", to, "sig_b", ConnectionType::Direct)
+            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Direct)
                 .expect("connection must succeed");
 
         sender.sig_a.emit_unconditionally(&(42,));
@@ -841,7 +835,7 @@ mod tests {
         connect_signal_to_signal(
             &mut sender,
             "sig_a",
-            to,
+            &to,
             "sig_b",
             ConnectionType::SingleShot,
         )
@@ -874,12 +868,13 @@ mod tests {
             });
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(&mut sender, "sig_a", to, "sig_b", ConnectionType::Direct)
+        connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Direct)
             .unwrap();
         // Verify it fires before drop.
         sender.sig_a.emit_unconditionally(&(1,));
         assert_eq!(counter.load(Ordering::Relaxed), 1);
-        // Drop the strong Arc — Weak inside the callback now returns None.
+        // Drop all strong Arcs — Weak inside the callback now returns None.
+        drop(to);
         drop(receiver);
         // AC7: no panic, connection silently skipped.
         sender.sig_a.emit_unconditionally(&(2,));
@@ -905,7 +900,7 @@ mod tests {
             &mut sender,
             "sig_a",
             |obj: &mut Sender| &mut obj.sig_a,
-            Arc::clone(&receiver),
+            &receiver,
             "sig_b",
             ConnectionType::Direct,
         )
@@ -937,7 +932,7 @@ mod tests {
             &mut sender,
             "sig_a",
             |obj: &mut Sender| &mut obj.sig_a,
-            Arc::clone(&receiver),
+            &receiver,
             "sig_b",
             ConnectionType::Direct,
         )
@@ -967,7 +962,7 @@ mod tests {
                 .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(&mut sender, "sig_a", to, "sig_b", ConnectionType::Auto).unwrap();
+        connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Auto).unwrap();
 
         sender.sig_a.emit_unconditionally(&(55,));
         assert_eq!(
@@ -1069,7 +1064,7 @@ mod tests {
             &mut s2,
             "sig",
             |obj: &mut Sender2| &mut obj.sig,
-            Arc::clone(&receiver),
+            &receiver,
             "sig_b",
             ConnectionType::Direct,
         )
@@ -1154,7 +1149,7 @@ mod tests {
             &mut sender,
             "sig_a",
             |obj: &mut Sender| &mut obj.sig_a,
-            Arc::clone(&br2),
+            &br2,
             "sig",
             ConnectionType::Direct,
         )
@@ -1204,7 +1199,7 @@ mod tests {
                 .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
         }
         let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(&mut sender, "sig_a", to, "sig_b", ConnectionType::Auto).unwrap();
+        connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Auto).unwrap();
 
         // Emit from THIS thread (which differs from the receiver's thread_id).
         sender.sig_a.emit_unconditionally(&(77,));
