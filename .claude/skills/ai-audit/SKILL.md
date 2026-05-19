@@ -53,6 +53,7 @@ After the subagent reports back:
 1. Surface its summary to the user.
 2. If the subagent left any entry as **needs user judgment** — present each one and ask how to resolve before continuing to Phase 2.
 3. If the subagent applied edits to `ai-docs/learnings.md` or other files, do **not** auto-commit yet — Phase 2 may add more changes; bundle into one commit at the end.
+4. If the subagent emitted any `🌱 Stale-validation` flags, surface them to the user as a **signal for `/improve`** — NOT an auto-fix. Each flag identifies a `Kind: validation` entry that is > 30 days old AND `Escalated? no` AND has ≥1 instruction-file commit since its validation date. The audit does not promote the pattern (promotion is a `self-improve` Carrot-pass Step 2b decision); it only surfaces the candidate so the user can decide whether to invoke `/improve` in a follow-up turn. Per AGENTS.md § Learning Log threshold line, a single `🌱` flag (alongside the ≥3-correction / ≥2-validation thresholds) is sufficient to justify an `/improve` invocation.
 
 ---
 
@@ -166,6 +167,17 @@ When AGENTS.md § Learning Log's *Entry format* block lists a field maintained b
 
 A field added to the entry format without parallel coverage in all four targets → `major` finding (rules diverge across the surface; one of the two gates fails silently). The historical proof point: F1 in this PR — Boundary rule 2 Exception text lagged behind Boundary rule 1 Exception after the `Superseded by:` field landed, leaving Boundary rule 2 under-describing the contract.
 
+**Declared-schema fields (no `/improve`-time mutation).** Some Entry-format fields are *declared* by AGENTS.md and *parsed* by the two agents but are **never** mutated by `/improve` or `/ai-audit` after the entry is written (currently: `Kind:`). For each such field, verify coverage in this analogous 4-location list:
+
+| Location | Required content |
+|---|---|
+| AGENTS.md `## Learning Log` *Entry format* block | Declaration of the field name, allowed values, and default-when-omitted semantics |
+| `.claude/agents/self-improve.md` Step 5 (Commit B backfill site) | Mention of the field where the workflow branches on its value (e.g., Step 5 / Step 6 routing on `Kind:`) |
+| `.claude/agents/learnings-escalation-audit.md` Steps 2/3/4 | Parse-site usage of the field (verdict routing, sweep predicates) |
+| `ai-docs/corrections-log.md` field glossary | Declaration mirror — same allowed-values list, same default-when-omitted note |
+
+The Exception-body locations used by the `Escalated?` / `Superseded by:` rows do not literally apply since declared-schema fields have no `/improve`-time mutation. A declared-schema field added to the entry format without parallel coverage in all four locations above → `major` finding (the field's allowed values or default semantics drift across the surface; the two agents disagree on how to interpret it).
+
 #### M. `agent-writing-style.md` conformance
 
 `ai-docs/agent-writing-style.md` is the canonical style reference for fail-loud rules in instruction files. Checklist M sweeps the audited corpus for drift against the 7 Patterns + Anti-patterns table. **Audited corpus** (named inline; do NOT defer to Step 2.2's inventory which omits some of these): `AGENTS.md` + every `.claude/skills/**/SKILL.md` + every `.claude/agents/**.md` + `ai-docs/code-style.md` + `ai-docs/doc-convention.md` + `ai-docs/agent-writing-style.md` + `ai-docs/corrections-log.md`.
@@ -182,6 +194,7 @@ A field added to the entry format without parallel coverage in all four targets 
 | 8 | **Anti-patterns table audit** — no row of the Anti-patterns table (`ai-docs/agent-writing-style.md § Anti-patterns, lines 157–167`) should appear verbatim as a positive rule anywhere in the audited corpus. | For each anti-pattern row's left-column text (e.g., `"Every paragraph in caps"`, `"AXIOM blockquote without action table"`), grep the audited corpus for matches NOT inside the style guide itself. Flag matches. | `major` |
 | 9 | **Pattern 8 (file-size AXIOM conformance)** — every covered instruction file must stay below the 40,000-char hard cap; the 35,000-char band is an early warning. Rule-of-truth: `ai-docs/agent-writing-style.md § 8. 40k char-cap on instruction files`; source AXIOM: `AGENTS.md § Build & Test`. | Run the verbatim `wc -c` invocation below against the covered file set, apply the three-band severity table. See § *Sub-check 9 — file-size AXIOM conformance* below for the recipe + severity bands. | see body |
 | 10 | **Style-guide audit coverage map** — every `## ` (level-2) heading in `ai-docs/agent-writing-style.md` must map to either an existing Checklist M sub-check or to the explicit exclusion list of non-rule-bearing meta-sections. Unmapped headings produce `nit` "audit coverage gap" findings. | Parse ATX `## ` headings from the **live** `ai-docs/agent-writing-style.md` (re-grep at audit time; do NOT use a baked-in snapshot). Apply the inline coverage map below. See § *Sub-check 10 — style-guide audit coverage map* below for the parser recipe + map + finding format. | `nit` |
+| 11 | **Cross-shape verbs** — carrot-shaped rules (entries in a `## Patterns` section) MUST NOT use stick verbs; stick-shaped rules (AGENTS.md AXIOM blockquotes or fail-loud bodies) MUST NOT use carrot verbs. The verb asymmetry IS the asymmetric-promotion contract — a wrong-shape verb either underweights a real obligation or locks in a brittle default as a hard rule. | (a) **Carrot block with stick verb:** for each `### N. <Name>` entry under a `## Patterns` section in the audited corpus, grep the entry body for `**MUST**` / `**NEVER**` / `**MUST NOT**` / `**FORBIDDEN**` — any match flags the entry. (b) **Stick block with carrot verb:** for each `> **AXIOM —` blockquote (and its action-table body) outside `## Patterns` sections, grep for `Default to` / `Prefer` — any match flags the blockquote. Both directions flagged at the same severity. The detection cross-checks the Kind shape (Patterns block ↔ Kind: validation entry; AXIOM block ↔ Kind: correction entry) against the verb pattern. | `major` |
 
 After running Checklist M, surface findings using the same severity-driven apply-or-ask pattern as Checklists A–L (Step 2.5). Pattern 6 noise-management fallback: if AC5's demonstrator run shows > 50% false-positive rate on Pattern 6 findings, record the rate and tighten the heuristic in a follow-up `/improve` cycle (the heuristic itself is encoded here, not in a separate config file — design choice to keep the audit self-contained).
 
@@ -239,6 +252,28 @@ Unmatched-heading rule. For every parsed `## ` heading NOT in the coverage map a
 - **Severity:** `nit`
 
 When a future PR adds a new `## ` heading to `agent-writing-style.md`, Sub-check 10 fires at the next `/ai-audit` run with the gap; the operator either adds a corresponding sub-check or extends the exclusion list in the same follow-up.
+
+#### N. Bidirectional `## Patterns` ↔ `Kind: validation` coherence
+
+The carrot-side analog of Checklist C (dead references). Every promoted-from-validation carrot must round-trip in both directions:
+
+**Forward direction.** Every `### N. <Name>` entry under a `## Patterns` section in the audited corpus (`.claude/skills/**/SKILL.md`, `.claude/agents/**.md`, `AGENTS.md`) whose **body uses carrot verbs** (`Default to` / `Prefer`) MUST back-link to at least one `Kind: validation` entry in `ai-docs/learnings.md`. Detection recipe: for each `### N. <Name>` block, grep its body for `Default to` or `Prefer`; if found, also grep for a `learnings.md` back-link (path + date-slug citation) within the same block. Carrot-verb present AND no back-link → flag.
+
+**Forward-sweep carrier-vs-template exemption.** Entries WITHOUT carrot verbs (template scaffolding, non-promoted prose, structural placeholders) are out of scope for the forward sweep — the audit greps for carrot-verb presence within each `### N. <Name>` block **before** requiring a back-link. The named exempt source is `ai-docs/agent-writing-style.md § Patterns` (template source, not a promoted-from-validation carrier). Other `## Patterns` sections that grow in future PRs are subject to the same carrot-verb-presence filter — no further per-file exemptions.
+
+**Reverse direction.** Every `Kind: validation` entry in `ai-docs/learnings.md` whose `Escalated?` ≠ `no` MUST have a corresponding `## Patterns` block in each named target file (skill / agent / AGENTS.md). Detection recipe: parse each `Kind: validation` entry's `Escalated?` line; for each comma-separated target value, confirm the named file contains a `## Patterns` block AND that block contains an entry back-linking to this validation entry. Predicate gate: entries with `Escalated? no` are NOT subject to reverse-direction enforcement — only entries the operator has promoted (`Escalated? ≠ no`) require a paired `## Patterns` block.
+
+Multi-target reverse direction. The `Escalated?` field may name multiple comma-separated targets (e.g., `skill:context-reset, AGENTS.md`). The reverse sweep iterates each value independently — a validation entry escalated to two targets must have a `## Patterns` block in BOTH files; missing in either flags.
+
+| Direction | Trigger | Action |
+|---|---|---|
+| Forward | `### N. <Name>` block in `## Patterns` uses `Default to` / `Prefer` AND no `learnings.md` back-link in the same block | flag (severity `major`) |
+| Forward (exemption) | `### N. <Name>` block has no carrot verb in its body | no flag (carrier-vs-template exemption) |
+| Forward (named exempt source) | The audited file is `ai-docs/agent-writing-style.md` | no flag (template source) |
+| Reverse | `Kind: validation` entry with `Escalated? ≠ no` AND named target file lacks a `## Patterns` block OR lacks a back-linking entry | flag (severity `major`) |
+| Reverse (predicate gate) | `Kind: validation` entry with `Escalated? no` | no flag (not promoted; pattern block not required) |
+
+Severity `major` — dead-reference class. The bidirectional shape mirrors Checklist C: every reference resolves AND every target has a back-reference.
 
 ### Step 2.4: Categorise findings
 
