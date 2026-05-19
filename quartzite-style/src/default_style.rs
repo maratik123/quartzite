@@ -45,7 +45,7 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// ```
 /// use quartzite_style::{DefaultStyle, StyleRegistry};
 ///
-/// StyleRegistry::set_style(Box::new(DefaultStyle));
+/// StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 /// assert!(StyleRegistry::try_style().is_some());
 /// ```
 ///
@@ -53,10 +53,42 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// use quartzite_style::{DefaultStyle, Style};
 ///
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
-/// let _: Box<dyn Style> = Box::new(DefaultStyle);
+/// let _: Box<dyn Style> = Box::new(DefaultStyle::new());
 /// ```
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct DefaultStyle;
+
+impl DefaultStyle {
+    /// Creates a new [`DefaultStyle`].
+    ///
+    /// This is a `const fn` so a `DefaultStyle` can be used as a compile-time constant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::DefaultStyle;
+    ///
+    /// const STYLE: DefaultStyle = DefaultStyle::new();
+    /// ```
+    #[inline]
+    pub const fn new() -> Self {
+        Self
+    }
+}
+
+/// Returns a default [`DefaultStyle`].
+///
+/// Delegates to [`DefaultStyle::new`].
+#[allow(
+    clippy::derivable_impls,
+    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
+)]
+impl Default for DefaultStyle {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Style for DefaultStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
