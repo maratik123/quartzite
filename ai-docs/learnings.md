@@ -1295,3 +1295,19 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** When `/context-reset` hands off a group of subtasks, spawn ONE agent responsible for completing all subtasks in that group (the agent runs them sequentially, one at a time, committing after each). Do not spawn a separate agent for each subtask. One `/context-reset` invocation = one Agent call that owns the entire group.
 
 **Escalated?** skill:context-reset (commit 1da36b0)
+
+### 2026-05-19 — process — compaction-recovery protocol in skill files works — follow it exactly
+
+**What happened:** During a 4-round `/pr-commented` session on PR #490, multiple context compressions occurred. Each time, following the `⚡ Compaction recovery check` at the top of the skill file — locating the progress file, reading it end-to-end, re-entering the skill from the top of its body — fully preserved workflow state (current round, thread classifications, gates passed, commit SHAs). User explicitly confirmed focus was maintained throughout all 4 rounds and all compressions.
+
+**Rule:** Follow the compaction-recovery callouts in skill files exactly — they work. On re-entry after compaction in any orchestrating skill (`/task`, `/pr-commented`, `/code-review`, `/bugfix`, `/interview`): (1) run the active-state probe first, (2) read the durable-state file completely in one pass before any tool call, (3) re-enter the skill from the top of its body — never jump directly to the recorded `current_step`. Trust the protocol; do not shortcut it even when context seems thin.
+
+**Escalated?** no
+
+### 2026-05-19 — process — reinforce with carrot and stick: record positive validations, not only violations
+
+**What happened:** The corrections log (`learnings.md`) and the auto-memory system were used mainly for violations and restrictions ("stick"). User pointed out that effective behavioral reinforcement requires both restrictions AND rewards ("carrot"): when a user explicitly confirms an approach worked well, that confirmation is also a learning worth preserving — otherwise the system drifts away from validated approaches while avoiding past mistakes.
+
+**Rule:** When a user confirms a non-obvious approach worked well, record it — in the auto-memory system as a `feedback` type entry (capturing confirmed-working approaches for future sessions) and/or as a `learnings.md` entry with "what to keep doing" in the Rule field. Do not rely on stick (violation correction) alone. Positive validation is reinforcement too.
+
+**Escalated?** no
