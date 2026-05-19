@@ -54,7 +54,7 @@ The workspace may grow more such relationships (e.g., a future tool that generat
 
 **How to apply:** in the `/task` Step 12 checklist (or its skill prose), add a *Regenerate dependent artefacts* sub-step that lists the known auto-generation triggers. Today: "if `ai-docs/plans/INDEX.md` or `ai-docs/plans/done/**` changed in this commit, run `./scripts/gen-roadmap.sh` and stage `ROADMAP.md`". When new generators land, append to the list.
 
-**Escalated?** skill:task
+**Escalated?** skill:task, hook (commit 1da36b0)
 
 ### 2026-05-07 — documentation — `document_features::document_features!()` invocation must sit inline within the `//!` crate doc, immediately after a `## Feature flags` heading; main vs diagnostic features must be sectioned in Cargo.toml
 
@@ -806,7 +806,7 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Rule:** Whenever `ai-docs/plans/INDEX.md` is modified, run `bash scripts/gen-roadmap.sh` and stage `ROADMAP.md` in the same commit. The CI gate enforces this — ROADMAP.md must always be in sync with INDEX.md at commit time.
 
-**Escalated?** skill:task, hook
+**Escalated?** skill:task, hook (commit 1da36b0 — auto-fix at commit time)
 
 ### 2026-05-08 — code-style — generic-fn split (`fn inner`) requires a conversion-style generic param; don't apply it to parameter-less fns
 
@@ -1098,7 +1098,7 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Rule:** After updating `ai-docs/plans/INDEX.md` (or any other source file that feeds into `ROADMAP.md`), run `./scripts/gen-roadmap.sh` and stage the resulting `ROADMAP.md` in the same commit, before pushing to the PR branch.
 
-**Escalated?** hook
+**Escalated?** hook (commit 1da36b0 — auto-fix at commit time)
 
 ### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
 
@@ -1278,7 +1278,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** After any edit to `ai-docs/plans/INDEX.md` (or any file under `ai-docs/plans/done/`), always run `bash scripts/gen-roadmap.sh` and stage the updated `ROADMAP.md` in the same commit. The `/task` SKILL Step 12 sub-step 6 already mandates this ("Regenerate dependent artefacts … stage them with the same commit") — the rule is not new, but the step was silently skipped.
 
-**Escalated?** no
+**Escalated?** hook (commit 1da36b0)
 
 ### 2026-05-18 — tooling — Cargo [lints] workspace = true and per-crate [lints.clippy] are mutually exclusive
 
@@ -1294,4 +1294,4 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** When `/context-reset` hands off a group of subtasks, spawn ONE agent responsible for completing all subtasks in that group (the agent runs them sequentially, one at a time, committing after each). Do not spawn a separate agent for each subtask. One `/context-reset` invocation = one Agent call that owns the entire group.
 
-**Escalated?** no
+**Escalated?** skill:context-reset (commit 1da36b0)
