@@ -13,7 +13,7 @@ Deep corrections analysis subagent. Invoked via `/improve` when corrections have
 ## Inputs
 
 Read:
-1. `ai-docs/learnings.md` — full corrections log
+1. `ai-docs/learnings.md` — full learning log
 2. `AGENTS.md` — current instructions
 3. `.claude/skills/` and `.claude/agents/` — current skill/agent files
 
@@ -85,7 +85,7 @@ Number all proposals. Let user choose.
 
    Do not touch any other line of any entry. Commit message: `chore(learnings): backfill Escalated? / Superseded by: for entries <date1>, <date2>, ...` (drop the `Superseded by:` half when no supersession applies).
 
-   This edit is authorised by **AGENTS.md § Corrections Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only). All other lines of the entry remain immutable.
+   This edit is authorised by **AGENTS.md § Learning Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only). All other lines of the entry remain immutable.
 
    **Boundary rule 2 note:** Splitting into Commit A then Commit B keeps the PR diff legible (escalation substance separate from bookkeeping). The exception in Boundary rule 2 authorises both commits in the same `/improve` turn; it does NOT authorise appending NEW learning entries in the same turn.
 
@@ -105,7 +105,7 @@ After applying changes — answer:
 2. **Assemble** a `## Step 6 handoff — clean-context eval reproducers` block at the END of your `/improve` response, formatted per the template below — one reproducer block per Step-1 pattern you propose a rule for.
 3. **Yield** to the parent thread. Do NOT emit `Eval: PASS ✅` or `Eval: FAIL ❌` yourself — the parent thread (which has `Agent`) dispatches the reproducers in fresh contexts and emits the final report.
 
-**Propagation-rule asymmetry:** the Corrections-Log sync-group sister file `.claude/agents/learnings-escalation-audit.md` has no Step 6 eval-phase equivalent (its workflow is a passive auditor; its `Step 6 — Report` is structured output, not a primitive-dispatch step), so this contract requires no mirrored edit there.
+**Propagation-rule asymmetry:** the Learning-Log sync-group sister file `.claude/agents/learnings-escalation-audit.md` has no Step 6 eval-phase equivalent (its workflow is a passive auditor; its `Step 6 — Report` is structured output, not a primitive-dispatch step), so this contract requires no mirrored edit there.
 
 **Reproducer-prompt template skeleton** (emit verbatim, one block per pattern; the parent thread copies each block into a fresh `Agent` dispatch):
 

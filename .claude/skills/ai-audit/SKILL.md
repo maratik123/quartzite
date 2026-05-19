@@ -153,9 +153,9 @@ Per the [Claude Code skill-directory pattern](https://code.claude.com/docs/en/sk
 
    **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the agent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the agent to call a helper for guidance it can express inline. Skip those.
 
-#### L. Corrections-Log field coherence
+#### L. Learning-Log field coherence
 
-When AGENTS.md § Corrections Log's *Entry format* block lists a field maintained by `/improve` and `/ai-audit` (currently `Escalated?` and `Superseded by:`), verify each field is covered in **all four** mandatory locations:
+When AGENTS.md § Learning Log's *Entry format* block lists a field maintained by `/improve` and `/ai-audit` (currently `Escalated?` and `Superseded by:`), verify each field is covered in **all four** mandatory locations:
 
 | Location | Required content |
 |---|---|
@@ -258,7 +258,7 @@ Show the user a numbered list of findings with proposed fixes (concrete diffs fo
 - `blocker` / `major`: ask user to confirm before applying.
 - `minor` / `nit`: may apply autonomously if the fix is mechanical and obvious; otherwise ask.
 
-Apply approved fixes via `Edit` / `Write`. Update `ai-docs/learnings.md` with a new entry per AGENTS.md "Corrections Log" format **only if** the audit revealed a *new* class of mistake worth tracking — do not log routine cleanup.
+Apply approved fixes via `Edit` / `Write`. Update `ai-docs/learnings.md` with a new entry per AGENTS.md "Learning Log" format **only if** the audit revealed a *new* class of mistake worth tracking — do not log routine cleanup.
 
 ### Step 2.6: Verify
 

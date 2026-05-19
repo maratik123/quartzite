@@ -213,7 +213,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `.claude/agents/triage-runner.md` | `.claude/skills/triage/SKILL.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
 > | `.claude/skills/next/SKILL.md` | `.claude/skills/triage/SKILL.md` AND `.claude/agents/triage-runner.md` (Triage group) |
 > | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md ai-docs/agent-writing-style.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
-> | `AGENTS.md` "Corrections Log" section (Boundary rules 1 / 2, entry format, `Escalated?` semantics) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Corrections-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
+> | `AGENTS.md` "Learning Log" section (Boundary rules 1 / 2, entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Learning-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
 > | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, task SKILL Step 8's every-group `/context-reset` handoff contract, and context-reset's own trigger / `allowed-tools` / write-contract wording all co-evolve) |
 > | `.claude/agents/design.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group) |
 > | `.claude/agents/design-review.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group) |
@@ -248,7 +248,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
 | `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
-| `ai-docs/corrections-log.md` | Extracted § Corrections Log carve-outs + field glossary |
+| `ai-docs/corrections-log.md` | Extracted § Learning Log carve-outs + field glossary |
 | `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
 | `ai-docs/dependency-versions.md` | Live Cargo / GitHub Action version lookup + behaviour recipes |
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
@@ -276,7 +276,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 
 See [`ai-docs/agent-docs-index.md` → Agent doc rows](ai-docs/agent-docs-index.md#agent-doc-rows) for the verbose body of each row (writers, lifecycle, special cases).
 
-## Corrections Log
+## Learning Log
 
 On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/learnings.md` — there is no "obvious", "minor", "trivial", "already-known", or "duplicate" disposition. The history (including recurrences and superseded entries) is the artefact `/improve` audits to decide escalation fan-out. See [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write) for the enumerated list of skip-reasons that have been used in violation of this rule and are therefore explicitly disallowed. **Read the two boundary rules below before you write — both have been violated multiple times.**
 
@@ -290,6 +290,8 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
 >
 > **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** These two lines of an existing entry MAY be updated in-place by the `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) — see [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-agent contract. All other lines of an entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are **NOT** authorised by this exception — invoke `/ai-audit` or explicitly request the change.
+>
+> **One-off carve-out — 2026-05-19 compaction-recovery-protocol entry.** The 2026-05-19 *compaction-recovery protocol in skill files works* entry was retro-tagged `**Kind:** validation` per PR #491 Phase 1, with the carve-out recorded in that entry's own `Superseded by:` line as the durable audit trail. Named, narrow, audit-traced; **NOT a precedent** for further bulk edits to existing entries. Every future schema-migration touch of `learnings.md` requires its own named carve-out under this Exception block.
 
 ### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
 
@@ -320,11 +322,14 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 ### YYYY-MM-DD — [category] — [short description]
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
+**Kind:** correction | validation    (optional; defaults to `correction` when omitted)
 **Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style (comma-separate multiple)
 **Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
 ```
 
-See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/corrections-log.md#entry-format--field-glossary) for the semantics of each field (`Escalated?` values, `doc-convention` vs `code-style`, `Superseded by:` reference format).
+`Kind:` defaults to `correction` when omitted — existing entries need NO rewrite. Write `Kind: validation` for entries that document a working protocol / pattern the agent should keep doing (carrot signal); write `Kind: correction` (or omit) for entries that document a violation to stop doing (stick signal).
+
+See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/corrections-log.md#entry-format--field-glossary) for the semantics of each field (`Kind:` values, `Escalated?` values, `doc-convention` vs `code-style`, `Superseded by:` reference format).
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
