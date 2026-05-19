@@ -7,10 +7,14 @@
 
 ### Chosen solution
 
-Replace `#[derive(Default)]` (and the runtime-construction hand-written
-`Default` impls) on every Group **(A)** type with an explicit
-`impl Default for T { #[inline] fn default() -> Self { Self::new() } }`,
-backed by a `pub const fn new() -> Self` zero-arg constructor.
+Add `pub const fn new() -> Self` to every Group **(A)** type.  Keep
+`#[derive(Default)]` when the derived body produces the correct default
+value (Path, CloseEvent, DefaultStyle) — no `#[allow(clippy::derivable_impls)]`
+wrapper needed.  Use an explicit
+`impl Default for T { #[inline] fn default() -> Self { Self::new() } }`
+only for `Palette`, whose hand-written body
+(`[Color::WHITE; ROLE_COUNT]` + 8 index overrides) cannot be expressed
+by `#[derive(Default)]`.
 
 The spec § *Scope* item 4 (amended) classifies types that already expose
 *any* `pub const fn new(…)` as already conformant — the spec's payoff
@@ -43,6 +47,15 @@ cannot drop without semantic breakage).
   renames pre-publish, but the rename produces churn in every call-site
   (Point::new is used pervasively) for zero functional gain — the
   const-construction path already exists.
+- **Replace `#[derive(Default)]` with explicit `impl Default { Self::new() }`
+  on Path / CloseEvent / DefaultStyle and suppress `clippy::derivable_impls`
+  with `#[allow(..., reason = "…")]`.** Rejected (design-amendment round 1,
+  user request): the derive produces a byte-identical result; the `#[allow]`
+  is a noise annotation that signals intent but suppresses a lint that is
+  correctly firing.  Keeping `#[derive(Default)]` and adding only the
+  `pub const fn new()` is cleaner — callers gain the const-construction path
+  without any lint suppression.  For `Palette` the derive cannot produce the
+  correct body, so the explicit `impl Default` is retained there.
 - **Shape 2 — replace `#[derive(Default)]` on geometry types with explicit
   `impl Default { Self::new(0, 0) }`.** Rejected (design-review round 1,
   spec amendment): callers already get `const P: Point = Point::new(0, 0)`
@@ -70,12 +83,12 @@ cannot drop without semantic breakage).
 
 ### Group (A) — rewrite targets (4 types)
 
-| # | Type | Crate | File:Line | New `default()` body | Notes |
-|---|------|-------|-----------|----------------------|-------|
-| 1 | `Path` | `quartzite-paint-api` | `src/path.rs:69` | `Self::new()` | `Vec::new()` is const since 1.39. Existing `pub const fn new()` covers the const-construction path. Remove `#[derive(Default)]`; add explicit `impl Default`. |
-| 2 | `CloseEvent` | `quartzite-events` | `src/window.rs:100` | `Self::new()` | Existing `pub const fn new() -> Self` constructs `Self { accepted: false }` — already const. Remove `#[derive(Default)]`; add explicit `impl Default`. |
-| 3 | `Palette` | `quartzite-style-types` | `src/palette.rs:86` | `Self::new()` | Existing hand-written `Default::default()` body: `[Color::WHITE; ROLE_COUNT]` then index assignment for 8 specific roles. Array `[Copy; N]` literal is const; index assignment on a mutable local is const since Rust 1.83 (`const_mut_refs`). **Add `pub const fn new() -> Self` containing the lifted body, mark `#[inline]`, doctest with `const PAL: Palette = Palette::new();`.** |
-| 4 | `DefaultStyle` | `quartzite-style` | `src/default_style.rs:58` | `Self::new()` | Unit struct. `pub const fn new() -> Self { Self }`. Marker-only type for `Style` registry; no visual semantics change. |
+| # | Type | Crate | File:Line | `Default` form | Notes |
+|---|------|-------|-----------|----------------|-------|
+| 1 | `Path` | `quartzite-paint-api` | `src/path.rs:69` | Keep `#[derive(Default)]` | `Vec::new()` is const since 1.39. `pub const fn new()` already existed; update its doctest to a `const` binding (AC3). No explicit `impl Default`. |
+| 2 | `CloseEvent` | `quartzite-events` | `src/window.rs:100` | Keep `#[derive(Default)]` | Existing `pub const fn new() -> Self` constructs `Self { accepted: false }`. Update its doctest to a `const` binding (AC3). No explicit `impl Default`. |
+| 3 | `Palette` | `quartzite-style-types` | `src/palette.rs:86` | Explicit `impl Default { Self::new() }` | Hand-written body (`[Color::WHITE; ROLE_COUNT]` + 8 index overrides) cannot be expressed by derive. **Already done (initial impl, commit 5b10a286):** `pub const fn new() -> Self` with `#[inline]` and `const PAL: Palette = Palette::new();` doctest. No amendment work. |
+| 4 | `DefaultStyle` | `quartzite-style` | `src/default_style.rs:58` | Keep `#[derive(Default)]` | Unit struct — derive is correct. Add `pub const fn new() -> Self { Self }` with `#[inline]` and const-binding doctest. No explicit `impl Default`. |
 
 ### Group (B) — left untouched (18 types)
 
@@ -148,53 +161,34 @@ can spell directly.
 
 | # | Task | Files | Depends on |
 |---|------|-------|------------|
-| 1 | Rewrite `Path` in `quartzite-paint-api` — remove `#[derive(Default)]`; add explicit `#[inline] impl Default for Path { fn default() -> Self { Self::new() } }` with doc + `# Examples`. Run `cargo test -p quartzite-paint-api`. | `quartzite-paint-api/src/path.rs` | — |
-| 2 | Rewrite `CloseEvent` in `quartzite-events` — remove `#[derive(Default)]`; add explicit `#[inline] impl Default for CloseEvent { fn default() -> Self { Self::new() } }` with doc + `# Examples`. Run `cargo test -p quartzite-events`. | `quartzite-events/src/window.rs` | — |
-| 3 | Rewrite `Palette` in `quartzite-style-types` — add `pub const fn new() -> Self` lifting the existing `[Color::WHITE; ROLE_COUNT]` + 8 role overrides into the const body (`#[inline]`, doc + `# Examples` block including `const PAL: Palette = Palette::new();`); rewrite `impl Default for Palette { #[inline] fn default() -> Self { Self::new() } }`. Move existing detailed doc-prose about the colour seeds from `Default::default` into the new `new()` doc; keep `Default::default` doc terse ("returns `Self::new()`"). Run `cargo test -p quartzite-style-types`. | `quartzite-style-types/src/palette.rs` | — |
-| 4 | Rewrite `DefaultStyle` in `quartzite-style` — remove `#[derive(Default)]` from the `pub struct DefaultStyle;` unit struct; add `impl DefaultStyle { /// … # Examples ... #[inline] pub const fn new() -> Self { Self } }` with const-binding doctest; add explicit `#[inline] impl Default for DefaultStyle { fn default() -> Self { Self::new() } }`. Run `cargo test -p quartzite-style`, then `cargo insta test -p quartzite-style` to confirm no snapshot drift. | `quartzite-style/src/default_style.rs` | — |
-| 5 | Workspace-wide validation gates — `cargo fmt -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace --all-features`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `cargo build -p quartzite --no-default-features --features libm`, and confirm `quartzite-style/tests/snapshots/` is byte-identical. Fix any lint surfaced by `clippy::needless_const_for_fn`, `clippy::derivable_impls`, or related. | (no edits — gates) | 1, 2, 3, 4 |
+| 1 | Fix `Path` + `CloseEvent` — add `Default` back to the existing `#[derive(Clone, Debug, PartialEq)]` on `Path` (`path.rs:69`) and to `#[derive(Clone, Debug, PartialEq, Eq)]` on `CloseEvent` (`window.rs:100`); remove the `#[allow(clippy::derivable_impls, …)]` block at `path.rs:237–240` and the `impl Default for Path` block at `path.rs:241–256`; remove the `#[allow(…)]` block at `window.rs:155–158` and the `impl Default for CloseEvent` block at `window.rs:159–175`. Const-binding doctests on `new()` already in place — no doctest edits needed. Run `cargo test -p quartzite-paint-api` + `cargo test -p quartzite-events`. | `quartzite-paint-api/src/path.rs`, `quartzite-events/src/window.rs` | — |
+| 2 | Fix `DefaultStyle` — add `Default` back to `#[derive(Clone, Copy, Debug)]` at `default_style.rs:58`; remove the `#[allow(clippy::derivable_impls, …)]` block at `default_style.rs:82–85` and the `impl Default for DefaultStyle` block at `default_style.rs:86–91`. Keep `pub const fn new()` and its const-binding doctest unchanged. Run `cargo test -p quartzite-style`, then `cargo insta test -p quartzite-style` to confirm no snapshot drift. | `quartzite-style/src/default_style.rs` | — |
+| 3 | Workspace-wide validation gates — `cargo fmt -- --check`; `cargo clippy --workspace --all-targets -- -D warnings` (MUST pass; no `derivable_impls` allow should remain — verify with `! grep -rn "clippy::derivable_impls" --include="*.rs" .`); `cargo test --workspace --all-features`; `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`; `cargo build -p quartzite --no-default-features --features libm`; confirm snapshots byte-identical. | (no edits — gates) | 1, 2 |
 
-Note on atomicity: subtasks 1–4 are independent at the file level (no
-import cross-edits, no shared traits being modified, no cross-crate
-signature changes).  Their `Depends on` column is `—` because each
-subtask compiles standalone — the workspace-wide gate (subtask 5)
-batches the final validation per AGENTS.md § *Build & Test*.
+Note on atomicity: subtasks 1–2 are independent at the file level.
 
 ## Handoff plan
 
-The decomposition has `M = 5` subtasks → two groups, sized 3 + 2 (both
-within the 1..=3 cap; the second is terminal at exactly 2).
+The decomposition has `M = 3` subtasks → single terminal group of 3 (within
+the 1..=3 cap).
 
 - **Entry into Group A:** spawn `/context-reset` per
   `.claude/skills/context-reset/SKILL.md` § *Compaction recovery
   (re-entry)*.  The `/task` parent resumes inside the fresh subagent
   for Group A.
-- **Group A:** subtasks 1–3 — three independent crate-local rewrites
-  (`quartzite-paint-api`, `quartzite-events`, `quartzite-style-types`).
-  Each crate's local test command is run inside the subtask.  At end of
-  Group A, the paint-api / events / style-types crates compile and test
-  green in isolation.
-- **Handoff after Group A:** spawn `/context-reset` per
-  `.claude/skills/context-reset/SKILL.md` § *Compaction recovery
-  (re-entry)*.  The `/task` parent resumes in Group B with fresh
-  context.
-- **Group B:** subtasks 4–5 — DefaultStyle rewrite (touches the only
-  `Style` impl, requires snapshot test pass-through) and the
-  workspace-wide validation gate.  Terminal group, size 2 (within the
-  1..=3 range).  Subtask 5 closes AC4 / AC5 / AC7 / AC9 in one pass.
+- **Group A:** subtasks 1–3 (terminal, size 3).  Subtask 1 reverts the
+  two paint-api / events derive patterns.  Subtask 2 reverts DefaultStyle.
+  Subtask 3 runs the workspace-wide gate confirming zero `derivable_impls`
+  suppression and all other gates green.  Subtask 3 verifies AC1 (via grep)
+  and closes AC4 / AC5 / AC7 / AC9.
 
 ## Risks
 
-- **Risk:** `clippy::derivable_impls` lint may fire on the explicit
-  `impl Default for T { fn default() -> Self { Self::new() } }` after
-  the rewrite — clippy can synthesise the body and complain that
-  `#[derive(Default)]` would have done the same.  **Mitigation:** for
-  the 4 Group (A) types, `Self::new()` carries a const-eligibility
-  intent the derive cannot express (`#[derive(Default)]` produces a
-  non-const `default()`).  If clippy fires, add
-  `#[allow(clippy::derivable_impls, reason = "explicit impl preserves
-  const-construction semantics; derive defeats AC1 const-eligibility
-  goal")]` at the impl site.
+- **Risk (resolved):** `clippy::derivable_impls` previously fired on the
+  explicit `impl Default for Path/CloseEvent/DefaultStyle`.  Resolved by
+  the design amendment: keep `#[derive(Default)]` for those three types;
+  only `Palette` uses an explicit `impl Default` (which is not derivable
+  and therefore does not trigger the lint).
 - **Risk:** `clippy::needless_const_for_fn` may fire on Palette's new
   `const fn new()` if clippy decides the body is trivially const-able
   via derive.  **Mitigation:** unlikely — Palette's body contains
@@ -205,8 +199,8 @@ within the 1..=3 cap; the second is terminal at exactly 2).
   system* row 1: "any `Style` impl, including `DefaultStyle`").  The
   rewrite here is purely structural (unit struct, no behaviour change
   in `Style::draw_widget` or any `Paint<W>` impl), so snapshots should
-  not drift.  **Mitigation:** subtask 5 runs `cargo insta test
-  -p quartzite-style` explicitly; subtask 5 re-confirms.  If a
+  not drift.  **Mitigation:** subtask 2 runs `cargo insta test
+  -p quartzite-style` explicitly; subtask 3 re-confirms.  If a
   snapshot drifts, the rewrite has hidden a behavioural change that
   needs investigation — do NOT auto-accept the new snapshot.
 - **Risk:** `Arc<Palette>` semantics — `WidgetBase` stores
@@ -216,107 +210,54 @@ within the 1..=3 cap; the second is terminal at exactly 2).
   (the `Arc::new` is the non-const piece; Palette construction itself
   is now const-eligible but the surrounding context isn't, which is
   Group-B's correct skip behaviour — no caller update required, AC6).
-- **Risk:** `pub const fn new()` on Palette and `pub const fn new()` on
-  DefaultStyle add new public items — `missing_docs = "deny"` requires
-  `///` + `# Examples` on each.  **Mitigation:** subtasks 4 and 5
-  explicitly call out the doctest with `const X: T = T::new();` so the
-  doc gate and AC3 close together.
-- **Risk:** Doc-link breakage — moving Palette's existing prose about
-  colour seeds from `Default::default`'s `///` block onto the new
-  `new()`'s `///` block may break intra-doc links if any external
-  reference points at `Palette::default`.  **Mitigation:** keep a
-  terse `Default::default` `///` block that says "returns
-  `[Self::new]`" with the bracketed link, so `Palette::default`
-  remains documented and any intra-doc link resolves.
+- **Risk (resolved):** `pub const fn new()` on Palette and `pub const fn new()` on
+  DefaultStyle required `///` + `# Examples` each.  Resolved in the initial
+  implementation (commit 5b10a286) — doctests already in place; the amendment
+  (subtasks 1–2) makes no changes to public API surface.
+- **Risk (resolved):** Doc-link breakage from moving Palette's doc prose.
+  Resolved in the initial implementation — `Palette::default`'s `///` block
+  delegates to `[Self::new]`; intra-doc links resolve correctly.
 - **Risk:** `no_std` / `libm` derive-free path — `quartzite-paint-api`
   is `no_std`-friendly via `alloc`.  `Path::new` uses `Vec::new()`
-  which IS const in `alloc::vec::Vec`.  Subtask 2's local test plus
-  subtask 5's `cargo build -p quartzite --no-default-features
+  which IS const in `alloc::vec::Vec`.  Subtask 1's local test plus
+  subtask 3's `cargo build -p quartzite --no-default-features
   --features libm` command verify the no_std path stays green.
 
 ## Test Design
 
-### Subtask 1 — Path
+### Subtask 1 — Path + CloseEvent
 
 - Location: existing `#[cfg(test)] mod tests` in
-  `quartzite-paint-api/src/path.rs`.
-- Entry point: existing tests assert `Path::default()` and
-  `Path::new()` produce equivalent paths.  Preserved by the rewrite.
+  `quartzite-paint-api/src/path.rs` and `quartzite-events/src/window.rs`.
+- Entry point: existing tests assert `Path::default()` / `Path::new()`
+  equivalence; `CloseEvent::default().accepted() == false`.  Both preserved
+  by restoring `#[derive(Default)]`.
+- Const-binding doctests on `Path::new()` and `CloseEvent::new()` already
+  in place from the initial implementation — no doctest edits needed.
 - Scenarios: identical to today — no new test required.
 
-### Subtask 2 — CloseEvent
+### Subtask 2 — DefaultStyle
 
-- Location: existing `#[cfg(test)] mod tests` in
-  `quartzite-events/src/window.rs` if present; otherwise the existing
-  doctest on `CloseEvent::new` covers the construction.
-- Entry point: `CloseEvent::default().accepted() == false`; preserved.
-- Scenarios: identical to today.
-
-### Subtask 3 — Palette
-
-- Location: existing `#[cfg(test)] mod tests` in
-  `quartzite-style-types/src/palette.rs`.
-- Entry point:
-  - existing `default_has_non_transparent_color_for_every_role` —
-    must still pass against the rewritten `Palette::default()` (which
-    now delegates to `Palette::new()`).
-  - existing `default_highlight_differs_from_highlighted_text` —
-    must still pass.
-  - **new doctest** on `pub const fn new()`:
-    ```
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_paint_api::Color;
-    /// use quartzite_style_types::{ColorRole, Palette};
-    ///
-    /// const PAL: Palette = Palette::new();
-    /// assert_eq!(PAL.color(ColorRole::Window), Color::WHITE);
-    /// ```
-    ```
-    The `const PAL` binding is what proves const-eligibility per AC3.
-- Scenarios: happy path covered by existing tests; AC3 doctest closes
-  the const-binding scenario.
-- Fixtures / helpers needed: none.
-
-### Subtask 4 — DefaultStyle
-
-- Location: `quartzite-style/src/default_style.rs` — add a small
-  `#[cfg(test)] mod tests` block (the file currently has no inline
-  tests for `DefaultStyle` itself; existing visual tests live in
-  `default_style_tests.rs` as integration-style files).
-- Entry point:
-  - **new test** `default_style_new_constructs` — `let _: DefaultStyle
-    = DefaultStyle::new();` — trivial, but the file gains its first
-    `#[cfg(test)]` block.  Note that AGENTS.md § *Workflow* allows
-    skipping the block when the file's logic is <50 lines or trivial;
-    DefaultStyle file IS > 50 lines but most of it is `Paint<W>` impls
-    (covered by `default_style_tests.rs`).  Adding the block is
-    optional; the **new doctest** on `pub const fn new() -> Self`
-    suffices to close AC3.
-  - **new doctest** on `pub const fn new()`:
-    ```
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_style::DefaultStyle;
-    ///
-    /// const STYLE: DefaultStyle = DefaultStyle::new();
-    /// let _ = STYLE; // const-binding compiles
-    /// ```
-    ```
-- Snapshot tests under `quartzite-style/tests/snapshots/` must remain
+- Location: `quartzite-style/src/default_style.rs`.
+- Entry point: const-binding doctest `const STYLE: DefaultStyle =
+  DefaultStyle::new()` already in place from the initial implementation;
+  snapshot tests under `quartzite-style/tests/snapshots/` must remain
   byte-identical (AC7).
-- Scenarios: const-binding compiles (AC3); snapshot pass-through (AC7).
+- The amendment makes no change to observable behaviour — only the derive
+  attribute is restored and the `#[allow]` + explicit `impl Default` are
+  removed.
+- Run `cargo test -p quartzite-style` then `cargo insta test -p quartzite-style`
+  to confirm no snapshot drift.
+- Scenarios: existing snapshot pass-through (AC7); no new test required.
 - Fixtures / helpers needed: none.
 
-### Subtask 5 — workspace validation
+### Subtask 3 — workspace validation
 
 - Location: workspace root; no source edits.
 - Entry point: AGENTS.md § *Build & Test* command list.
 - Scenarios:
   - happy path — every gate green (AC4 / AC5).
-  - failure path — any gate red surfaces a defect from subtasks 1–5
+  - failure path — any gate red surfaces a defect from subtasks 1–2
     that must be fixed before merge.
 - Fixtures / helpers needed: none.
 
