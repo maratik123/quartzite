@@ -1302,7 +1302,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Rule:** Follow the compaction-recovery callouts in skill files exactly — they work. On re-entry after compaction in any orchestrating skill (`/task`, `/pr-commented`, `/code-review`, `/bugfix`, `/interview`): (1) run the active-state probe first, (2) read the durable-state file completely in one pass before any tool call, (3) re-enter the skill from the top of its body — never jump directly to the recorded `current_step`. Trust the protocol; do not shortcut it even when context seems thin.
 
+**Kind:** validation
+
 **Escalated?** no
+
+**Superseded by:** PR #491 — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution).
 
 ### 2026-05-19 — process — reinforce with carrot and stick: record positive validations, not only violations
 
