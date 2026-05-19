@@ -37,6 +37,52 @@ Group by **topic / target surface** (skill / agent / AGENTS.md section). Topic i
 
 The Correction pass (Step 1 → Step 2a) and the Carrot pass (Step 1b → Step 2b) produce independent groupings; an entry's `Kind:` field is what assigns it to a pass.
 
+### Step 1c: Auto-memory companion sweep
+
+Runs **alongside** Step 1 and Step 1b — a third parallel signal source, **NOT** a follow-on to either pass. The user-local auto-memory layer at `~/.claude/projects/<project-path-encoded>/memory/` (where `<project-path-encoded>` replaces `/` with `-` in the project's absolute path — for this repo: `-home-syt-RustroverProjects-quartzite`) feeds in as a **companion signal**. The sweep is **read-only** against that directory.
+
+Read **both**:
+
+1. `~/.claude/projects/<project-path-encoded>/memory/MEMORY.md` (the index) first — fast enumeration of memory filenames; avoids a blind `ls`.
+2. Each individual `~/.claude/projects/<project-path-encoded>/memory/feedback_*.md` file — the detection rule below operates on each file's `name:` frontmatter, `description:` frontmatter, or first sentence, so per-file content is required.
+
+For each `feedback_*.md`, decide whether it **names a workflow primitive**. The recognised primitives form a closed enumerated set:
+
+<!-- anchor: auto-memory-primitive-keywords -->
+```
+Slash commands:
+  /task, /improve, /pr-commented, /bugfix, /interview, /context-reset,
+  /code-review, /ai-audit, /triage, /master-ci-failed, /pr-ci-failed, /pr-merged
+
+Agent stems (file stems under .claude/agents/):
+  self-improve, design, design-review, review-findings, self-review,
+  spec-writer, learnings-escalation-audit, triage-runner
+
+AGENTS.md section headings:
+  ## Workflow, ## Propagation Rule, ## Learning Log, ## Code Style
+
+Verb-phrase keywords:
+  compaction recovery, propagation rule, lock-step, worked-example carve-out,
+  boundary rule
+```
+
+A new skill / agent / section heading / verb-phrase keyword added to the project requires an **additive update** to this block. The set is not auto-generated from `.claude/` listings (over-broad — would match incidental references).
+
+**Cross-check against `ai-docs/learnings.md`.** A `feedback_*.md` is a **candidate** iff BOTH hold:
+
+1. It names ≥ 1 primitive from the block above, AND
+2. There is **no** `Kind: validation` entry in `ai-docs/learnings.md` whose `### YYYY-MM-DD — [category] — [short description]` heading OR `Rule:` field mentions the same primitive (substring match, case-insensitive — agent judgement applies for fuzzy topical matches).
+
+A single `feedback_*.md` naming N primitives can be a candidate if **any** subset of the named primitives is uncovered; the per-feedback-file collapse rule applies (one candidate row per file, listing the uncovered primitive(s) in the cross-check column — see Step 2c).
+
+**Prohibitions (the privacy boundary — read carefully):**
+
+- **DO NOT** write to `~/.claude/projects/<project-path-encoded>/memory/*` from this step or any other step. The user-local auto-memory layer is read-only from this agent's perspective.
+- **DO NOT** paraphrase, quote, or import auto-memory text into instruction-file edits based on a Step-1c candidate alone — a matching `Kind: validation` entry in `learnings.md` must exist (then it would have been picked up by Step 1b, not Step 1c), OR the user must explicitly approve via the `/improve` parent-thread consent prompt described in Step 2c. Step-1c output is **pre-consent**.
+- **DO NOT** execute any routing decision (no `## Patterns` edit, no AGENTS.md edit) based on a Step-1c candidate without parent-thread `Surface` consent. The candidate ROW goes into the report's `## Auto-memory candidates` section (Step 2c); the parent thread holds the consent dispatch.
+
+The candidate set produced here feeds Step 2c (the paired routing decision). Step 1c does NOT itself emit `## Carrots proposed` rows.
+
 ### Step 2a: Determine actions (Correction pass)
 
 | Occurrences | Current status | Action |
