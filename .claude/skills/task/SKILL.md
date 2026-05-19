@@ -75,7 +75,15 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 
 > **Guard sentence.** This preamble fires only when `$ARGUMENTS` is **non-empty** (a bare integer). On a lost-arguments re-entry (empty `$ARGUMENTS` after compaction), do NOT enter this preamble — fall through to `⚡ First`'s active-task probe instead. See `⚡ First`'s lost-arguments clause.
 
-> **AXIOM — When `$ARGUMENTS` is a bare gh issue number, search deferred specs for `**Tracked in:** #N` BEFORE launching the interview.** A bare integer does NOT trigger the keyword preamble (`⚡ Second`), so `/task 47` would otherwise spin up a spurious interview state file even when a deferred spec already carries `**Tracked in:** #47`. See `reference.md` § ⚡ Third — bare-issue activation decision table (detail) for the resolution table.
+> **AXIOM — When `$ARGUMENTS` is a bare gh issue number, search deferred specs for `**Tracked in:** #N` BEFORE launching the interview.**
+>
+> | If gh issue #N has... | Action |
+> |---|---|
+> | Zero deferred specs with `Tracked in: #N` | Fall through to Steps 1–5 (fresh interview) |
+> | Exactly one matching deferred spec | Move spec + design + progress into `ai-docs/plans/`, update INDEX.md, surface ACs for confirmation, jump to Step 6 |
+> | Multiple matches | Surface to user |
+>
+> A bare integer does NOT trigger the keyword preamble (`⚡ Second`), so `/task 47` would otherwise spin up a spurious interview state file even when a deferred spec already carries `**Tracked in:** #47`. See `reference.md` § ⚡ Third — bare-issue activation decision table (detail) for the full resolution recipe.
 
 Activation sequence (bare-issue → matching deferred spec): parse `$ARGUMENTS` (strip leading `#`), load `gh issue view <N> --json title,body,state,labels`, grep `ai-docs/plans/deferred/*.spec.md` for `**Tracked in:** #N`. **Zero matches** → fall through to Steps 1–5. **One match** → move the spec (and `*.design.md` / `*.progress.md` siblings if present) into `ai-docs/plans/`, update `INDEX.md`, surface the spec's ACs for user confirmation, do NOT re-run interview, do NOT create `*.state.md`, then jump to Step 6 (or RESUME if a `.progress.md` came along). **Multiple matches** → surface to user. Full sequence: `reference.md` § ⚡ Third — bare-issue activation sequence (full).
 

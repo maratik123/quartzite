@@ -116,13 +116,13 @@ The callout exists because Sonnet-mode sessions in the Claude Code harness auto-
 
 | Variant | Probe shape | Distinguishing phrase (verbatim) | Skills using it |
 |---|---|---|---|
-| A | Preamble-glob — the skill's `⚡ First` (or equivalent) preamble runs a `ls <glob>` probe that doubles as path discovery and RESUME/fresh routing | `"Locate the durable-state file via this skill's active-state probe"` | `/task`, `/code-review`, `/pr-commented` |
+| A | Preamble-glob — the skill's `⚡ First` (or equivalent) preamble runs a `ls <glob>` probe that doubles as path discovery and RESUME/fresh routing | `"Locate the durable-state file via this skill's active-state probe"` | `/task`, `/code-review`, `/pr-commented`, `/master-ci-failed`, `/pr-ci-failed` |
 | B | Fixed-glob single in-flight artefact — the durable state is a single named file under a known directory | `"If exactly one in-flight artefact exists"` | `/bugfix`, `/interview` |
 | C | Parent-routing — the skill has no own durable surface; it inherits whichever parent skill is active | `"Identify the **parent workflow**"` | `/context-reset` (also the canonical cross-link target) |
 
 Variants A and B share the invariant phrase `"re-enter this skill from the top of its body"`. Variant C uses the equivalent phrasing `"Run the parent skill's own compaction-recovery callout"`.
 
-The canonical cross-link target — every callout body ends with a `See ... § Compaction recovery (re-entry)` link — is the singular h2 `## Compaction recovery (re-entry)` in `.claude/skills/context-reset/SKILL.md`. The locked full bodies for all three variants (the source-of-truth wording the six skill files carry verbatim) live in the archival design doc at `ai-docs/plans/done/2026-05-14-sonnet-skill-reentry-protocol.design.md`; treat that doc as read-only history.
+The canonical cross-link target — every callout body ends with a `See ... § Compaction recovery (re-entry)` link — is the singular h2 `## Compaction recovery (re-entry)` in `.claude/skills/context-reset/SKILL.md`. The locked full bodies for all three variants (the source-of-truth wording the eight skill files carry verbatim) live in the archival design doc at `ai-docs/plans/done/2026-05-14-sonnet-skill-reentry-protocol.design.md`; treat that doc as read-only history.
 
 **Variant A — trimmed example** (see `.claude/skills/task/SKILL.md` for the full body):
 
