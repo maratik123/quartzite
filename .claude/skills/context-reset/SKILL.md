@@ -96,3 +96,13 @@ The full format spec lives in the shared-templates directory: **[`ai-docs/templa
 2. On context reset: pass file path in Agent prompt: `"Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue"`
 3. `cargo build` BEFORE handoff — don't pass broken code
 4. Maximum 3 design-defined groups per task. If more needed — the task is too large, decompose into separate issues.
+
+## Patterns
+
+### 1. Trust the compaction-recovery callout
+
+*Default to* following the compaction-recovery callout at the top of every code-side orchestrator SKILL.md exactly — locate the durable-state file via the parent skill's active-state probe, read it end-to-end before any tool call, re-enter the skill from the top of its body. *Prefer* the protocol over shortcut paths even when context feels thin or the recorded `current_step` looks like a clear instruction to jump.
+
+**Why.** Claude Code's per-skill 5,000-token truncation after auto-compaction keeps the start of `SKILL.md` and drops the rest — the callout therefore lives at the very top of the body so it survives compaction. The full-read-on-re-entry invariant (see § *The Full-read-on-re-entry invariant* above) is what preserves workflow correctness across compression events; jumping to a recorded step would skip the parent skill's active-state probe (three of six skills) or re-trace already-confirmed state (`/bugfix`).
+
+Validated by [`ai-docs/learnings.md`](../../../ai-docs/learnings.md) 2026-05-19 *compaction-recovery protocol in skill files works* — 4 rounds of `/pr-commented` on PR #490 plus multiple compressions, user explicitly confirmed workflow state preserved end-to-end.
