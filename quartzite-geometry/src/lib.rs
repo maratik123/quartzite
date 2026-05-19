@@ -24,6 +24,10 @@ pub use size::{Size, SizeF};
     clippy::cast_possible_truncation,
     reason = "deliberate truncation within known bounds"
 )]
+#[allow(
+    clippy::missing_const_for_fn,
+    reason = "libm::roundf is not const fn on the no_std path"
+)]
 pub(crate) fn round_f32(x: f32) -> i32 {
     #[cfg(feature = "std")]
     {

@@ -19,12 +19,12 @@ struct Widget {
 #[object_impl]
 impl Widget {
     #[slot]
-    fn set_value(&mut self, v: i32) {
+    const fn set_value(&mut self, v: i32) {
         self.value = v;
     }
 
     #[invokable]
-    fn doubled(&self) -> i32 {
+    const fn doubled(&self) -> i32 {
         self.value * 2
     }
 }
@@ -44,7 +44,7 @@ struct MultiBlock {
 #[object_part]
 impl MultiBlock {
     #[slot]
-    fn via_part(&mut self) {
+    const fn via_part(&mut self) {
         self.value += 1;
     }
 }
@@ -53,7 +53,7 @@ impl MultiBlock {
 #[object_impl]
 impl MultiBlock {
     #[invokable]
-    fn via_impl(&self) -> i32 {
+    const fn via_impl(&self) -> i32 {
         self.value * 3
     }
 }
@@ -84,7 +84,7 @@ impl Resettable for TraitPartWidget {
 #[object_impl]
 impl TraitPartWidget {
     #[slot]
-    fn increment(&mut self) {
+    const fn increment(&mut self) {
         self.value += 1;
     }
 }

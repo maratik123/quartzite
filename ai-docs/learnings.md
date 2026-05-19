@@ -1287,3 +1287,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** When a crate uses `[lints] workspace = true`, you CANNOT add per-crate `[lints.clippy]` overrides in a separate table. Per-crate lint overrides require either (a) removing `workspace = true` and manually re-specifying all workspace lints, or (b) using per-item `#[allow(clippy::lint_name, reason = "…")]` at each call site. In this project, (b) is always preferred — preserving `workspace = true` is more important than avoiding per-item annotations. When a design says "per-crate allow" for a lint, verify Cargo supports it given the workspace = true constraint before committing to that approach; if not, fall back to per-item allows.
 
 **Escalated?** no
+
+### 2026-05-19 — process — context-reset group should spawn one agent for the whole group, not one per subtask
+
+**What happened:** During `/task` Step 8 Group A and Group B, the context-reset orchestrator spawned one Agent per subtask (3 separate agent calls for a 3-subtask group). The user corrected this: a group of N subtasks should be handled by a single agent spawn, not N separate spawns.
+
+**Rule:** When `/context-reset` hands off a group of subtasks, spawn ONE agent responsible for completing all subtasks in that group (the agent runs them sequentially, one at a time, committing after each). Do not spawn a separate agent for each subtask. One `/context-reset` invocation = one Agent call that owns the entire group.
+
+**Escalated?** no

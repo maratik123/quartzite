@@ -52,7 +52,7 @@ impl GridCell {
     /// assert_eq!(cell.col_span, 1);
     /// ```
     #[inline]
-    pub fn new(widget: ObjectId, row: u32, col: u32) -> Self {
+    pub const fn new(widget: ObjectId, row: u32, col: u32) -> Self {
         Self {
             widget,
             row,
@@ -199,7 +199,7 @@ impl GridLayout {
     /// assert_eq!(layout.cell_count(), 0);
     /// ```
     #[inline]
-    pub fn cell_count(&self) -> usize {
+    pub const fn cell_count(&self) -> usize {
         self.cells.len()
     }
 

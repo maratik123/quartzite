@@ -468,7 +468,7 @@ impl Timer {
     /// assert!(!timer.signals_blocked());
     /// ```
     #[inline]
-    pub fn signals_blocked(&self) -> bool {
+    pub const fn signals_blocked(&self) -> bool {
         self.base.signals_blocked()
     }
 

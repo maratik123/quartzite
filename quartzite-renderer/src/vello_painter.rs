@@ -280,7 +280,7 @@ impl<'a> VelloPainter<'a> {
         }
     }
 
-    fn brush_color(brush: &Brush) -> Option<peniko::Color> {
+    const fn brush_color(brush: &Brush) -> Option<peniko::Color> {
         match LocalBrushKind::from_brush_kind(brush.kind()) {
             LocalBrushKind::Solid(c) => Some(Self::color_to_peniko(*c)),
             LocalBrushKind::LinearGradient { .. }
@@ -291,7 +291,7 @@ impl<'a> VelloPainter<'a> {
     }
 
     #[inline]
-    fn pen_color(pen: &Pen) -> peniko::Color {
+    const fn pen_color(pen: &Pen) -> peniko::Color {
         Self::color_to_peniko(pen.color())
     }
 

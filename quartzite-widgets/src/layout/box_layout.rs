@@ -108,7 +108,7 @@ impl BoxLayout {
     /// assert_eq!(layout.child_count(), 0);
     /// ```
     #[inline]
-    pub fn child_count(&self) -> usize {
+    pub const fn child_count(&self) -> usize {
         self.children.len()
     }
 }

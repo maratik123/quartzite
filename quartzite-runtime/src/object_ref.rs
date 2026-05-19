@@ -70,7 +70,7 @@ impl<T> ObjectRef<T> {
     /// let r: ObjectRef<()> = ObjectRef::new(id);
     /// assert_eq!(r.id(), id);
     /// ```
-    pub fn id(&self) -> ObjectId {
+    pub const fn id(&self) -> ObjectId {
         self.id
     }
 
@@ -183,7 +183,7 @@ impl<T> WeakRef<T> {
     /// let w: WeakRef<()> = WeakRef::new(id);
     /// assert_eq!(w.id(), id);
     /// ```
-    pub fn id(&self) -> ObjectId {
+    pub const fn id(&self) -> ObjectId {
         self.id
     }
 

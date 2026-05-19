@@ -48,7 +48,7 @@ impl WindowedApplication {
     /// let app = WindowedApplication::builder().build().unwrap();
     /// ```
     #[inline]
-    pub fn builder() -> WindowedApplicationBuilder {
+    pub const fn builder() -> WindowedApplicationBuilder {
         WindowedApplicationBuilder::new()
     }
 

@@ -16,7 +16,7 @@ struct Counter {
 #[object_impl]
 impl Counter {
     #[slot]
-    fn reset(&mut self) {
+    const fn reset(&mut self) {
         self.count = 0;
     }
 }
