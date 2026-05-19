@@ -42,8 +42,6 @@ undocumented_unsafe_blocks = "deny"
 must_use_candidate = "allow"
 # 60 hits, 31 in quartzite-macros/; keep explicit pub(crate) even in private modules — read-locally cheaper than re-deriving visibility
 redundant_pub_crate = "allow"
-# 59 hits across 7 crates; nursery lint with churn — const fn proliferation is a design call, not lint-driven
-missing_const_for_fn = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
 # 5 hits — MutexGuard match-arm patterns in runtime/timer_drivers.rs (3), runtime/connection_table.rs (1), runtime/tests/timer.rs (1); deliberately held for atomicity
