@@ -66,7 +66,7 @@ pub enum Segment {
 /// p.move_to(Point::new(0, 0)).line_to(Point::new(10, 0)).close();
 /// assert_eq!(p.segments().len(), 3);
 /// ```
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Path {
     segments: Vec<Segment>,
 }
@@ -231,27 +231,6 @@ impl Path {
     pub fn close(&mut self) -> &mut Self {
         self.segments.push(Segment::Close);
         self
-    }
-}
-
-#[allow(
-    clippy::derivable_impls,
-    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
-)]
-impl Default for Path {
-    /// Returns an empty [`Path`], identical to [`Path::new`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_paint_api::Path;
-    ///
-    /// let p = Path::default();
-    /// assert!(p.segments().is_empty());
-    /// ```
-    #[inline]
-    fn default() -> Self {
-        Self::new()
     }
 }
 

@@ -97,7 +97,7 @@ impl<T: 'static + Send + Sync> Event<T> for ResizeEvent {
 /// e.accept();
 /// assert!(e.accepted());
 /// ```
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CloseEvent {
     accepted: bool,
 }
@@ -149,28 +149,6 @@ impl CloseEvent {
     #[inline]
     pub const fn accept(&mut self) {
         self.accepted = true;
-    }
-}
-
-#[allow(
-    clippy::derivable_impls,
-    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
-)]
-impl Default for CloseEvent {
-    /// Returns a new [`CloseEvent`] in the non-accepted state, identical to
-    /// [`CloseEvent::new`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_events::CloseEvent;
-    ///
-    /// let e = CloseEvent::default();
-    /// assert!(!e.accepted());
-    /// ```
-    #[inline]
-    fn default() -> Self {
-        Self::new()
     }
 }
 
