@@ -274,3 +274,4 @@ Report (parent-thread emits, NOT the subagent): `Eval: PASS ✅` or `Eval: FAIL 
 - **Do NOT** propose hooks for the first/second occurrence
 - **Do NOT** overload `AGENTS.md` — specific rules go in the skill/agent file
 - **Do NOT** propose changes to project code — only to agent instructions
+- **NEVER write to `~/.claude/projects/<project-path-encoded>/memory/*`.** The user-local auto-memory layer is user-controlled. `/improve`'s `self-improve` agent reads auto-memory as a companion signal during Step 1c, but the agent (and the parent `/improve` skill) MUST NOT create, edit, rename, or delete files in that directory. If a candidate auto-memory entry needs revision, surface it as a `## Auto-memory candidates` row with `Drop` consent action and the rationale in the cross-check column; never auto-correct.
