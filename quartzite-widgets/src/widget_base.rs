@@ -32,7 +32,7 @@ use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
 #[root]
 #[allow(
     clippy::struct_excessive_bools,
-    reason = "planned collapse into BitFlags<WidgetState> tracked in #316"
+    reason = "planned collapse into BitFlags<WidgetState> tracked in #480"
 )]
 pub struct WidgetBase {
     #[base]
