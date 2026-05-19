@@ -112,7 +112,35 @@ Asymmetric routing — positive signal is rarer, so the threshold is lower (≥1
 2. Only if no specialized skill/agent → add to `AGENTS.md`
 3. Don't default everything to `AGENTS.md`
 
-Both passes produce independent report entries; the final `/improve` report has separate `## Corrections proposed` and `## Carrots proposed` sections so the asymmetry stays visible to the user.
+Both passes produce independent report entries; the final `/improve` report has separate `## Corrections proposed`, `## Carrots proposed`, and `## Auto-memory candidates` sections so the asymmetry stays visible to the user.
+
+### Step 2c: Auto-memory routing
+
+Pairs with Step 1c the way Step 2b pairs with Step 1b — takes the candidate set produced by Step 1c and routes each candidate into the report's **third** section, `## Auto-memory candidates`. The routing decision itself is **single-row** (auto-memory has only one signal shape — named primitive without matching `Kind: validation` cross-check):
+
+| Candidate shape | Action |
+|---|---|
+| 1 + named workflow primitive + no matching `Kind: validation` entry in `learnings.md` | Emit a `## Auto-memory candidates` row; **needs parent-thread `Surface` consent before any routing decision** |
+
+**Per-feedback-file collapse rule.** One row per `feedback_*.md`, NOT one row per uncovered primitive. If a single `feedback_*.md` names multiple uncovered primitives, list them comma-separated in the *Workflow primitive named* column and combine their cross-check verdicts in the *Cross-check verdict* column. This keeps the consent UI legible (the user sees one prompt per memory file, not per primitive).
+
+**Report-section shape.** The `## Auto-memory candidates` section is the third section in the Step 6 report, after `## Corrections proposed` and `## Carrots proposed`. Row format:
+
+```
+## Auto-memory candidates
+
+| Auto-memory file | Workflow primitive named | Cross-check verdict | Consent action |
+|---|---|---|---|
+| `feedback_<name>.md` | `<primitive>` (comma-separated if multiple) | no `Kind: validation` in `learnings.md` mentions `<primitive>` | (awaiting user) |
+```
+
+**Consent action column** records the parent thread's `AskUserQuestion` result. Initial value is `(awaiting user)`. After the parent thread dispatches the consent prompt and the user picks one option:
+
+- **`Surface`** — the row migrates into `## Carrots proposed` and routes through normal Step 2b (the `1 + named workflow primitive` row of Step 2b's table fires; seed wording uses *Default to*).
+- **`Drop`** — the row is removed from the report. No project-side write, no auto-memory write.
+- **`Defer`** — the row's consent action becomes `(deferred; held for this invocation)`. The row remains in the report for visibility but does NOT route in this `/improve` run; re-surfaces on the next invocation.
+
+**The parent thread holds the consent dispatch via `AskUserQuestion`**; this subagent emits the table and yields. Do NOT issue any `AskUserQuestion` from this subagent — it is structurally unfulfillable in the subagent tool exposure (same primitive-absence model as the Step 6 `Agent` dispatch), and even if it were available, the design splits consent into the parent thread to mirror `interview/SKILL.md`'s structured-output-plus-parent-surfacing pattern.
 
 ### Promotion verbs
 
