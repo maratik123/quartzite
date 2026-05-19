@@ -1,210 +1,192 @@
-# Design: Carrot Pass for `/improve` and `/ai-audit` — PR 1 (Phase 1)
+# Design: Carrot Pass for `/improve` and `/ai-audit` — PR 2 (Phases 2 + 3 + 4 + AC12)
 
 **Issue:** #491
 **Spec:** `ai-docs/plans/2026-05-19-carrot-pass-improve-ai-audit.spec.md`
 **Date:** 2026-05-19
+**Prior PR (merged):** #492 — Phase 1 (schema migration, section rename to *Learning Log*, worked-example retro-tag). Phase-1 design preserved at `ai-docs/plans/2026-05-19-carrot-pass-improve-ai-audit.phase1.design.md`.
 
 ## Approach
 
-PR 1 lands Phase 1 only — the schema migration plus the section rename plus the worked-example carve-out plus the Propagation-Rule row update plus the sync-group fan-out. It is the hard prerequisite for Phases 2–4 (PR 2) and for Phase 5 (PR 3).
+PR-2 finishes the asymmetric Carrot/Stick harness on top of the Phase-1 schema. Four phases co-land in one PR (they cite each other: Phase 4's threshold names Phase 3's verdict; Phase 3's audit grows around Phase 2's verbs; AC12 demonstrates Phase 2's flow end-to-end on a real entry). Phase 5 stays as PR-3 — its consent-UX surface is independent from Phases 2–4.
 
-The design centers on five mechanical, additive edits that respect Boundary Rule 1 (append-only `learnings.md`) and Boundary Rule 2 (no instruction-file fan-out triggered by a fresh learning entry). All edits are instruction-surface only; no Rust code changes. The merge contract still requires the four Rust gates (`cargo build` / `cargo clippy --workspace --all-targets -- -D warnings` / `cargo fmt -- --check` / `RUSTDOCFLAGS="…" cargo doc --no-deps --workspace --all-features`) to pass, per AC18.
+The Carrot pass is added **alongside** the existing Correction pass in `.claude/agents/self-improve.md` (parallel — same Step-1 walk, separate Step-2 routing tables, shared apply/eval skeleton with an inverted prompt). The audit gains one new verdict (`🌱 Stale-validation`), one new Checklist row (L gets `Kind:`), one Checklist sub-check (M's cross-shape verb sweep), and one new Checklist (N — bidirectional `## Patterns` ↔ `Kind: validation`). The threshold reframe lands in lock-step in `AGENTS.md` and `.claude/skills/improve/SKILL.md`. AC12 is the worked-example demonstrator — a `## Patterns` block lands in `.claude/skills/context-reset/SKILL.md` (the most-local skill for the 2026-05-19 *compaction-recovery protocol in skill files works* entry; the entry's `Rule:` names `/task`, `/pr-commented`, `/code-review`, `/bugfix`, `/interview` as the recovery-protocol surfaces, but `/context-reset` is the canonical-rationale home and Variant-C parent — back-linking there places the pattern at the singular skill that owns the cross-link target).
 
-**Chosen approach.** Five-piece additive edit, committed as a single feature-branch commit (or split into 2 commits if the worked-example retro-add is staged separately for diff legibility — see Risks). All five pieces fan out in lock-step per the Propagation Rule, with the rename's reach enumerated by a programmatic `grep -rn -E 'Corrections.Log|corrections-log' AGENTS.md ai-docs/ .claude/` sweep before the commit (AC14).
+### Chosen alternatives
 
-The five pieces:
+**Carrot pass as parallel Step (not interleaved).** Two parallel passes — Correction and Carrot — each with its own Step 1 grouping rule (Correction groups by `Kind: correction` ⊕ omitted; Carrot groups by `Kind: validation`) and its own Step 2 routing table. They share Steps 3–5 skeleton (Propose / Hooks / Apply) and Step 6 with a **branching prompt** (correction = "does the violation still happen?"; carrot = "does the pattern still hold under edge case X?"). Rejected: a single fused pass that switches on `Kind` per-entry — couples reasoning across signal directions and makes the routing table illegible.
 
-1. **`AGENTS.md` schema + section rename.**
-   - Rename `## Corrections Log` → `## Learning Log` (line 279).
-   - Add `**Kind:** correction | validation` row to the *Entry format* block (line 319 region), with a paragraph noting the default (`correction` when omitted) and that existing entries need NO rewrite.
-   - Update the Propagation-Rule row at line 216 from *"Corrections Log section (Boundary rules 1 / 2, entry format, `Escalated?` semantics)"* to *"Learning Log section (Boundary rules 1 / 2, entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`)"*. **Decision (was O3):** update the existing row IN-PLACE rather than adding a second row. Sync-group membership (`self-improve.md` + `learnings-escalation-audit.md`) is unchanged; only the keyword set expands. A second row would create row-duplication confusion.
-   - Update the internal cross-references that point at `ai-docs/corrections-log.md` (lines 251, 281, 292, 313, 315, 327) — wording stays substantively the same; the file-name reference `ai-docs/corrections-log.md` stays (file not renamed); only the prose phrase *"§ Corrections Log"* becomes *"§ Learning Log"* where it appears. Line 251 is the Agent Docs table row body (`Extracted § Corrections Log carve-outs + field glossary`) — caught by Subtask 5's grep sweep anyway, but listed explicitly here for exhaustiveness at design time.
-   - Add a narrow named call-out under Boundary rule 1 documenting the worked-example carve-out: *"One-off carve-out — 2026-05-19 compaction-recovery-protocol entry retro-tagged `Kind: validation` per PR #491 Phase 1; recorded in that entry's `Superseded by:` line. Named, narrow, audit-traced; NOT a precedent for further bulk edits."* (AC13). **Decision (was O2):** the call-out is rendered as a one-paragraph text-form callout — a third indented paragraph under Boundary rule 1, consistent with the existing AXIOM-blockquote + indented Exception-paragraph shape at AGENTS.md ~283–292. NOT a table row, NOT a separate AXIOM block.
-   - Trigger threshold line at line 331 (*"Run `/improve` when ≥3 unescalated entries accumulate"*) stays **unchanged** in PR 1. Phase 4 (PR 2) rewords it to cover both `Kind`s and the 🌱 flag. The Phase-4 sync-group lock-step with `improve/SKILL.md` is recorded in the spec; PR 1 does NOT touch the threshold.
+**Carrot pass: dedicated `### Step 1b: Carrot pass` section.** Inserted directly after the existing routing table in Step 2, NOT as a new Step 7. Reason: Steps 3 (Propose) / 4 (Hooks) / 5 (Apply) / 6 (Eval) all need to handle BOTH passes; a sequential Step-7 would force Step 6 to re-fire after Step-7 finishes, breaking the existing pause-and-surface protocol. Inserting the Carrot pass at Step 2 keeps it parallel — the Step-2 routing tables fork; Steps 3+ converge.
 
-2. **`ai-docs/corrections-log.md` field glossary + carve-out trail + section-name references.**
-   - Add a `Kind:` paragraph to the *Entry format — field glossary* section (matches the AGENTS.md addition), naming the two values + the default-when-omitted rule + the bi-directional supersession convention (validation disconfirmed → new `Kind: correction` whose `Superseded by:` references the original validation — per spec Key Decisions row *Validation supersession semantics*).
-   - Under *Boundary rule 1 Exception* (or its referenced section, per AC13), add a named-carve-out paragraph mirroring the AGENTS.md call-out. Includes the entry date, slug, the commit hash placeholder (filled at commit time), and a one-line rationale.
-   - Update the two `[`AGENTS.md` § Corrections Log](../AGENTS.md#corrections-log)` references at lines 3 and 45 to `[`AGENTS.md` § Learning Log](../AGENTS.md#learning-log)`. The H1 `# Corrections Log — reference` at line 1 becomes `# Learning Log — reference`. The phrase "corrections log" in body prose is updated to "learning log" where it refers to the section by name; passages referring to the artefact category (e.g., "the corrections log records corrected behaviour") may stay or be updated per editorial taste — design defers to the most-local readable wording at edit time.
-   - **File name stays `corrections-log.md`.** Renaming the file would force git-side churn across every cross-reference and risk breaking anchor links from the three `pr-*-failed` SKILL files. The section header rename is sufficient per the spec.
+**Step 6 inverted-eval as a branching prompt, not a separate Step 6b.** The reproducer template gains a `correction | carrot` parameter selecting one of two `**Scenario:**` line forms. Same pause-and-surface protocol, same `Eval: PASS ✅` / `Eval: FAIL ❌` parent-thread emission. Rejected: separate Step 6b — duplicates the pause-and-surface contract (which already has documented primitive-absence semantics), forcing every future eval-protocol edit to fan out.
 
-3. **`.claude/agents/self-improve.md` section-name references + entry-format reference.**
-   - Step 1 (Inputs / Patterns): line 16 reference *"full corrections log"* → *"full learning log"*; section-name references in Step 5 backfill rules (line 88) *"AGENTS.md § Corrections Log → Boundary rule 1 → Exception"* → *"AGENTS.md § Learning Log → Boundary rule 1 → Exception"*; line 108 *"Corrections-Log sync-group sister file"* → *"Learning-Log sync-group sister file"*.
-   - **No Carrot pass added here in PR 1.** That is Phase 2 / PR 2. The agent file is touched in PR 1 ONLY for the rename + (optionally) a forward-pointer comment noting Phase 2 will add the Carrot pass. The forward-pointer is OPTIONAL — recommend skipping per YAGNI.
+**Verb-set enumeration: dedicated `## Promotion verbs` section near the routing tables.** Block-level enumeration (not inline in prose) so the audit's Checklist-M sub-check can target a stable anchor (`#promotion-verbs`). Rejected: inline mention scattered through Step 2 prose — harder to audit, easier to drift.
 
-4. **`.claude/agents/learnings-escalation-audit.md` section-name references.**
-   - Frontmatter `description` (line 3) *"AGENTS.md § Corrections Log Boundary rule 1 Exception"* → *"AGENTS.md § Learning Log Boundary rule 1 Exception"*.
-   - Body references at lines 17 (*"full corrections log"*), 24 (*"Per AGENTS.md "Corrections Log":"*), 96 (*"AGENTS.md § Corrections Log → Boundary rule 1 → Exception"*), 137 (*"AGENTS.md § Corrections Log Boundary rule 2 Exception"*) — all updated.
-   - **No `🌱` verdict added here in PR 1.** That is Phase 3 / PR 2.
+**`🌱 Stale-validation` verdict: 30-day age + `Escalated? no` + ≥1 instruction-file commit since validation date.** All three conjuncts required. The age threshold matches the spec's Phase 3 body verbatim. The instruction-file-commit clause uses `git log --since=<validation-date> -- AGENTS.md ai-docs/ .claude/` (constrained to the *audited corpus*, not the whole tree — keeps the signal high-quality). Rejected: only age + `no` (too noisy — any unescalated validation auto-flags after 30 days); only ≥1 commit + `no` (no time-decay — validations escalated weeks after writing don't surface).
 
-5. **Worked-example carve-out commit (Boundary-Rule-1 named exception).**
-   - Append `**Kind:** validation` line to the 2026-05-19 *compaction-recovery protocol in skill files works* entry between the `**Rule:**` line (1303) and the `**Escalated?**` line (1305). **Decision (was O1):** `**Kind:**` is placed BETWEEN `**Rule:**` and `**Escalated?**`. Rationale: this groups content fields (What happened, Rule, Kind) before metadata fields (Escalated, Superseded by). The entry-format definition added to AGENTS.md (piece 1) and to `ai-docs/corrections-log.md` field glossary (piece 2) MUST reflect this ordering: *date heading → **What happened:** → **Rule:** → **Kind:** → **Escalated?** → **Superseded by:** (optional)*.
-   - Insert a new `**Superseded by:** PR #<N> — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution).` line after the `Escalated?` line, matching the field-glossary's `Superseded by:` placement rule (after `Escalated?`).
-   - The PR number `<N>` is filled at commit time; the commit hash referenced in the carve-out call-out (pieces 1 + 2) is back-filled in a follow-up amend or — preferred — written as `PR #<N>` (forward-referencing the merged PR) so no amend is needed. **Recommend `PR #<N>`** — date+slug supersession references the carve-out itself is satisfied by the PR-ref.
+**Checklist L `Kind:` row — 4-location selection (spec-leaving-open reconciliation).** Spec AC7 wording says "Checklist L grows a `Kind:` row enforcing 4-location coverage"; the 4 locations are not enumerated in AC7. Spec Phase 3 body explains the *existing* Checklist L's 4 locations (for `Escalated?` / `Superseded by:`) and says the same coverage discipline must apply to `Kind:`. The reconciliation chosen here is: `Kind:` is a declared-schema field with no `/improve`-time mutation; the Exception-body 4-location list for `Escalated?` / `Superseded by:` does not literally apply (Boundary Rule 1+2 Exception bodies cover `/improve`-mutated fields, which `Kind:` is not). The Checklist L `Kind:` row uses an analogous 4-location list — entry-format declaration site (AGENTS.md `## Learning Log` Entry-format block) + each backfill/parse site (`self-improve.md` Step 5 Commit-B backfill / `learnings-escalation-audit.md` Steps 2/3/4 parse / `ai-docs/corrections-log.md` field glossary). Spec AC7's "4-location coverage" wording is preserved; the location selection is an implementation choice the spec leaves open. This is NOT a spec amendment — same Checklist L PATTERN of cross-location tracking, applied to a different relevant set. Subtask 4's body carries the four locations verbatim.
 
-### Rejected alternatives
+**Checklist N (carrot-side bidirectional analog of Checklist C).** Severity `major` per spec; mirrors C's "every reference resolves AND every target has a back-reference" shape. Detection: a forward sweep grepping every `## Patterns` section in skills/agents/AGENTS.md for `learnings.md` anchor links AND a reverse sweep walking every `Kind: validation` entry whose `Escalated?` ≠ `no` and confirming the named target contains a `## Patterns` block. Rejected: one-way Checklist (only `## Patterns` → `learnings.md`) — the asymmetry would let escalated validations rot without back-links and the audit would never catch it.
 
-- **Rename the file `ai-docs/corrections-log.md` → `ai-docs/learning-log.md`.** Rejected. Three downstream SKILL files (`pr-commented`, `pr-ci-failed`, `master-ci-failed`) anchor-link into `corrections-log.md#forbidden-reasoning-…`. A file rename multiplies the fan-out diff and risks breaking anchors. The spec explicitly says *"rename the section, propagate to cross-references"* — the file name is not in the fan-out target list.
-- **Bulk retro-tag every existing entry with `Kind: correction`.** Rejected. Spec § *Out of scope* explicitly forbids backfill; default-when-omitted handles legacy entries. Bulk edit also violates Boundary Rule 1.
-- **Add the Carrot pass to `self-improve.md` in PR 1.** Rejected. The spec's PR-slicing decision keeps Phase 2 (pass), Phase 3 (verdict + checklists), Phase 4 (threshold) as a co-dependent stacked PR 2. Mixing them into PR 1 couples the schema migration with the workflow change and bloats the diff. PR 1 lands the schema + rename ONLY.
-- **Defer the worked-example carve-out to PR 2.** Rejected. The spec's AC12 + AC13 explicitly land the carve-out in Phase 1 to demonstrate the new schema. The retro-add IS the schema's adoption signal.
-- **Split PR 1 into "rename" + "schema" sub-PRs.** Rejected. The schema (Kind:) is what the rename enables; splitting introduces an intermediate state where the section is renamed but no `Kind` field exists, confusing future readers.
+**Checklist M sub-check 11 (cross-shape verbs).** Severity `major` per spec. Added as sub-check 11 (current max is 10). Detection: in every audited corpus file, find `## Patterns` sections AND grep their bodies for `**MUST**` / `**NEVER**` / `**MUST NOT**` / `**FORBIDDEN**` (carrot-shaped rule with stick verb = flag); separately, walk every fail-loud AXIOM blockquote outside `## Patterns` sections and grep for `Default to` / `Prefer` (stick-shaped rule with carrot verb = flag). Both directions flagged at the same severity per spec. Rejected: a single-direction sub-check — the cross-shape asymmetry only protects half the contract.
+
+**Sub-check 10 coverage-map update.** `agent-writing-style.md`'s `## Patterns` heading maps to "sub-checks 1–7" in the current map. After PR-2, Checklist M has sub-check 11; the map needs no edit — Pattern entries themselves are still audited by sub-checks 1–7, and sub-check 11 audits **carrier files** (skills/agents/AGENTS.md), not the style-guide itself. Verified explicitly to avoid a phantom coverage-gap finding.
+
+**AC12 home: `.claude/skills/context-reset/SKILL.md`.** Three candidates were considered:
+
+| Candidate | Pro | Con | Decision |
+|---|---|---|---|
+| `.claude/skills/context-reset/SKILL.md` | Owns the canonical rationale (`## Compaction recovery (re-entry)` cross-link target); Variant-C parent; AGENTS.md's Propagation Rule already names it as the context-reset sync-group member | None — singular natural home | **Chosen** |
+| `.claude/skills/task/SKILL.md` | One of the orchestrating skills the validation entry names | Validation isn't `/task`-specific — would arbitrarily privilege one orchestrator | Rejected |
+| Spread across all six callout-carrying skills (`/task`, `/pr-commented`, `/code-review`, `/bugfix`, `/interview`, `/context-reset`) | Maximum coverage | Six near-identical `## Patterns` blocks; pattern-promotion churn on every validation | Rejected — `/context-reset`'s ownership of the canonical rationale is the singular point |
+
+**`## Patterns` block shape — mirrors `ai-docs/agent-writing-style.md § Patterns`.** Heading-level discipline: `## Patterns` (level 2) → `### N. <Name>` (level 3, numbered). Per-entry body: one-sentence rule (carrot-shaped using *Default to* / *Prefer* verbs), back-link to the validation entry, and a short "why" or "what to do" paragraph. Back-link form: `See [`ai-docs/learnings.md`](../../../ai-docs/learnings.md) 2026-05-19 *compaction-recovery protocol in skill files works*` (path-relative + date-slug — same style as existing cross-references in skill files; anchor links are fragile since `learnings.md` headings auto-collide on shared dates, so a path + date + quoted-slug citation is the durable form).
+
+**AGENTS.md threshold reframe — char-cap impact.** AGENTS.md is at 37,564 chars post-PR-1. The threshold line rewrite adds ~150 chars (line 336: 51 chars → ~200 chars). Net post-PR-2 AGENTS.md: ~37,714 chars — still in the 35,000–39,999 early-warning band, but no breach of the 40,000 hard cap. No extraction needed in this PR. Recorded as a Risk row.
+
+**Phase 5 NOT folded into PR-2.** Per the spec's PR-slicing key decision, the design agent may recommend folding Phase 5 if the implementation diff is small. Phase 5's consent-UX (AskUserQuestion shape; opt-in flag in `~/.claude/projects/.../memory/` or `.claude/settings.local.json`) is non-trivial to design AND has a privacy boundary that warrants its own design-review pass. Recommend: keep Phase 5 as PR-3. AC17 satisfied by this design recommendation being recorded here.
 
 ## Decomposition
 
 | # | Task | Files | Depends on |
 |---|------|-------|------------|
-| 1 | `AGENTS.md` § Corrections Log → § Learning Log rename + add `Kind:` to entry format + add Boundary-Rule-1 named carve-out call-out + update Propagation-Rule row (line 216) + update internal `§ Corrections Log` prose references. **NO threshold-line change** (deferred to Phase 4 / PR 2). | `AGENTS.md` | — |
-| 2 | `ai-docs/corrections-log.md` H1 + section-name prose rename + add `Kind:` paragraph to field glossary + add Boundary-Rule-1 carve-out paragraph (mirrors AGENTS.md) + document the bi-directional `Superseded by:` convention for disconfirmed validations + update `#corrections-log` anchor refs (lines 3, 45) → `#learning-log`. | `ai-docs/corrections-log.md` | 1 |
-| 3 | `.claude/agents/self-improve.md` + `.claude/agents/learnings-escalation-audit.md` + `ai-docs/agent-docs-index.md` + `.claude/skills/ai-audit/SKILL.md` rename-only references (line-by-line per § Approach pieces 3 + 4 + the prose-only fan-out targets in the file-touch map); NO behavioural change. The latter two files are mandatory fan-out per the Propagation Rule — included in PR 1 to keep the rename atomic. | `.claude/agents/self-improve.md`, `.claude/agents/learnings-escalation-audit.md`, `ai-docs/agent-docs-index.md`, `.claude/skills/ai-audit/SKILL.md` | 1 |
-| 4 | Worked-example carve-out: append `**Kind:** validation` line + new `**Superseded by:** PR #<N> — …` line to the 2026-05-19 *compaction-recovery protocol in skill files works* entry in `ai-docs/learnings.md`. **Boundary-Rule-1 named exception**; this is the ONLY entry edited. | `ai-docs/learnings.md` | 1, 2 |
-| 5 | Verification sweep: run `grep -rn -E 'Corrections.Log\|corrections.log\|Correction.Log' AGENTS.md ai-docs/ .claude/` and confirm every remaining hit is either (a) the file-name reference `ai-docs/corrections-log.md` (intentionally preserved) OR (b) an updated prose reference. Run `wc -c` on AGENTS.md to confirm < 40,000 chars (35,000 early-warning band acknowledged). Run the four Rust gates (AC18). | (read-only verification; no edits) | 1, 2, 3, 4 |
-
-Total: 5 subtasks. Below the 7-task split-into-multiple-issues threshold; within tolerance for a single PR.
+| 1 | **Phase 2a — Carrot pass body in `self-improve.md`.** Insert a `### Step 1b — Carrot pass` section directly after the existing Step 2 (Determine actions) routing table. The Carrot section contains (a) Step 1 grouping rule for `Kind: validation` entries, (b) the asymmetric routing table (1 → seed `## Patterns` entry + back-link; ≥2 → promote within the same `## Patterns` section using stronger verb wording; 1 + workflow-primitive → hold for second confirmation), (c) explicit prose naming the most-local-target routing (skill > agent > AGENTS.md). Header the existing Step 2 as `### Step 2a — Correction pass routing` for symmetry. Carrot routing table goes immediately after as `### Step 2b — Carrot pass routing`. | `.claude/agents/self-improve.md` | — |
+| 2 | **Phase 2b — Promotion-verb enumeration + Step 6 inverted-eval prompt in `self-improve.md`.** Add a new `## Promotion verbs` section near the routing tables (between Step 2b and Step 3): two tables — *Carrot promotion verbs* (`Default to` / `Prefer`) and *Stick promotion verbs* (`MUST` / `NEVER` / `MUST NOT` / `FORBIDDEN`) — with one-sentence rationale. Update Step 6's reproducer template skeleton to carry both `Scenario:` line variants (Correction: *"You are about to violate rule X — what's the expected behaviour?"*; Carrot: *"In scenario X (edge case from the original learning's surface), does pattern P still hold?"*). PASS / FAIL criteria split per direction. | `.claude/agents/self-improve.md` | 1 |
+| 3 | **Phase 3a — `🌱 Stale-validation` verdict in `learnings-escalation-audit.md`.** Add `🌱 Stale-validation` to the verdict set in Step 2 (immediately after the existing `❓ Ambiguous` row). Document the trigger: `Kind: validation` entry whose entry-date is > 30 days old AND `Escalated? no` AND `git log --since=<entry-date> -- AGENTS.md ai-docs/ .claude/` returns ≥1 commit. Add a new sub-step under Step 2 (between current `Step 2` body and `Step 3 — Categorise + propose fixes`) titled *"Step 2b — Stale-validation sweep"* with the trigger logic verbatim. Update Step 6 (Report) template to include a new line `- 🌱 Stale-validation: N (surfaced)` under the summary. | `.claude/agents/learnings-escalation-audit.md` | — |
+| 4 | **Phase 3b — `🌱` verdict prose + Checklist L `Kind:` row + Checklist M sub-check 11 + new Checklist N in `ai-audit/SKILL.md`.** (a) `§ Phase 1` orchestration prose: add one paragraph after the existing "If the subagent left any entry as **needs user judgment**" item describing how `🌱 Stale-validation` items surface to the user (signal for `/improve`, not auto-fix). (b) Checklist L gains a fourth row for `Kind:` with an analogous 4-location list (per the *Chosen alternatives* reconciliation — Spec AC7 leaves location selection open): **AGENTS.md `## Learning Log` Entry-format declaration block** + `self-improve.md` Step 5 Commit-B backfill (parse site) + `learnings-escalation-audit.md` Steps 2/3/4 (parse site) + `ai-docs/corrections-log.md` field glossary (declaration mirror). The Exception-body locations used by the `Escalated?` / `Superseded by:` rows do not literally apply since `Kind:` is a declared-schema field with no `/improve`-time mutation. (c) Checklist M adds sub-check 11 (cross-shape verbs); update the table row count and severity table after the row. (d) New Checklist N added after Checklist M with severity `major`; bidirectional detection (forward: `## Patterns` → `Kind: validation` back-link; reverse: `Kind: validation` with `Escalated?` ≠ `no` → `## Patterns` in named target). **Forward-sweep carrier-vs-template exemption:** the forward sweep filters by entry-body verb content — only `## Patterns` entries whose body uses carrot verbs (*Default to* / *Prefer*) are required to back-link to a `Kind: validation` entry. Explicitly exempt: `ai-docs/agent-writing-style.md § Patterns` (template source, not a promoted-from-validation carrier). The audit recipe greps for carrot-verb presence within each `### N. <Name>` block before requiring a back-link; entries without carrot verbs (template scaffolding, non-promoted prose) are out of scope. | `.claude/skills/ai-audit/SKILL.md` | 3 |
+| 5 | **Phase 4 — Threshold reframe in AGENTS.md + `improve/SKILL.md` lock-step.** Edit AGENTS.md line 336 from `Run /improve when ≥3 unescalated entries accumulate.` to the spec's rewrite: `Run /improve when ≥3 unescalated correction entries, ≥2 unescalated validation entries, or a 🌱 Stale-validation flag from /ai-audit accumulates.` In `.claude/skills/improve/SKILL.md`, update the body to add a one-line restate consistent with the new threshold (current SKILL.md body has no threshold restate; add as a new line after the 6-numbered list, before the `See also:` link). | `AGENTS.md`, `.claude/skills/improve/SKILL.md` | 2, 4 |
+| 6 | **AC12 — `## Patterns` block in `.claude/skills/context-reset/SKILL.md`.** Add a new `## Patterns` section near the end of the file (after `## Rules`, before EOF if EOF is plain — verify position during implementation). Single entry: `### 1. Trust the compaction-recovery callout`. One-paragraph rule using carrot verb (*Default to following the callout exactly — locate, read end-to-end, re-enter from the top of the body — even when context feels thin*). Back-link to `ai-docs/learnings.md` 2026-05-19 *compaction-recovery protocol in skill files works* entry. | `.claude/skills/context-reset/SKILL.md` | — |
+| 7 | **Verification sweep + Rust gates.** Run AC18's four Rust gates (`cargo build`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt -- --check`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`). Run `wc -c AGENTS.md` to confirm the threshold-line rewrite did not breach 40,000 chars. Run the Checklist N bidirectional check by hand: forward `grep -rn "## Patterns" .claude/skills/ .claude/agents/ AGENTS.md` finds the context-reset block; reverse `grep -A2 "Kind: validation" ai-docs/learnings.md` finds the compaction-recovery entry — confirm `Escalated?` remains `no` per Open Question 1 Resolution (a); Checklist N's reverse direction predicate (`Escalated? ≠ no`) is therefore false for this entry, and the lack of reverse-direction firing is the expected pass condition. Run the AGENTS.md Propagation Rule grep: `grep -rn "≥3 unescalated" .claude/ AGENTS.md ai-docs/` — confirm AGENTS.md + `improve/SKILL.md` are both updated; no stale matches. | (verification, no edits) | 1–6 |
 
 ## Handoff plan
 
-The design defines **M = 5 subtasks**, grouped into two consecutive groups of 3 + 2 (per `.claude/agents/design.md` § Rules → handoff-grouping: non-terminal groups MUST be exactly 3; terminal group within `1..=3`).
+7 subtasks → groups of 3 + 3 + 1.
 
-- **Group A:** subtasks 1–3 — initial implementation chunk (AGENTS.md schema + rename + Propagation-Rule row; `corrections-log.md` glossary + carve-out trail; rename-only edits to both Corrections-Log sync-group agents). Spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry) at the start of Group A (per the every-group handoff contract).
-- **Handoff after Group A:** spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). Parent /task resumes in Group B with fresh context.
-- **Group B:** subtasks 4–5 — terminal group (2 subtasks; within the 1..=3 range). The worked-example carve-out (Boundary-Rule-1 named exception) plus the verification sweep + char-count + Rust gates.
+- **Entry into Group A:** spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). The parent `/task` resumes Step 8 in Group A's fresh-context subagent.
+- **Group A:** subtasks 1–3 — Carrot-pass body + verb enumeration + Step 6 inverted prompt in `self-improve.md`, AND `🌱 Stale-validation` verdict in `learnings-escalation-audit.md`. (3 subtasks, equal to the cap.)
+- **Handoff after Group A:** spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). The parent `/task` resumes Step 8 in Group B with fresh context.
+- **Group B:** subtasks 4–6 — `ai-audit/SKILL.md` checklist edits (Phase 3b), AGENTS.md + `improve/SKILL.md` threshold reframe (Phase 4), AC12 worked-example `## Patterns` block in `/context-reset`. (3 subtasks, equal to the cap.)
+- **Handoff after Group B:** spawn `/context-reset` per `.claude/skills/context-reset/SKILL.md` § Compaction recovery (re-entry). The parent `/task` resumes Step 8 in Group C with fresh context.
+- **Group C:** subtask 7 — verification sweep (Rust gates, char-cap check, Propagation-Rule grep). Terminal group (1 subtask; within the 1..=3 range).
 
 ## File-touch map
 
-| File | Edit shape | Subtask |
-|---|---|---|
-| `AGENTS.md` | Section header rename; entry-format addition; carve-out call-out; Propagation-Rule row update; internal prose `§ Corrections Log` → `§ Learning Log` references | 1 |
-| `ai-docs/corrections-log.md` | H1 rename; field-glossary `Kind:` paragraph; Boundary-Rule-1 carve-out paragraph; `Superseded by:` bi-directional convention paragraph; `#corrections-log` anchor refs → `#learning-log` | 2 |
-| `.claude/agents/self-improve.md` | Section-name references at lines 16, 88, 108 (rename-only) | 3 |
-| `.claude/agents/learnings-escalation-audit.md` | Frontmatter `description` + body references at lines 17, 24, 96, 137 (rename-only) | 3 |
-| `ai-docs/learnings.md` | Append `**Kind:** validation` + new `**Superseded by:**` line to the 2026-05-19 *compaction-recovery protocol* entry ONLY. Boundary-Rule-1 named exception (AC13) | 4 |
-| `ai-docs/agent-docs-index.md` | Line 19 `### ai-docs/corrections-log.md` + line 21 `*Corrections Log*` prose reference (file-name stays). **Mandatory** — include in PR 1 to keep the rename atomic per the Propagation Rule's fan-out discipline. | 3 |
-| `ai-docs/context.md` | OPTIONAL — line 200 `corrections-log.md` reference is historical context (PR #324 narrative) and should NOT be rewritten (the rename happens AFTER PR #324). Leave as-is. | — |
-| `ai-docs/agent-writing-style.md` | Line 173 `ai-docs/corrections-log.md` (covered-file-set bullet) — file name; stays. | — |
-| `.claude/skills/ai-audit/SKILL.md` | Lines 156 (`#### L. Corrections-Log field coherence`), 158 (`AGENTS.md § Corrections Log's *Entry format*`), 171 + 195 (file-name `ai-docs/corrections-log.md` references), 261 (`AGENTS.md "Corrections Log" format`). **Mandatory — PR 1 scope: update prose references** (`Corrections-Log` → `Learning-Log`, `§ Corrections Log` → `§ Learning Log`). File-name `ai-docs/corrections-log.md` references stay. Include in PR 1 to keep the rename atomic per the Propagation Rule's fan-out discipline. The `Kind:` row addition to Checklist L is Phase 3 / PR 2. | 3 |
+| File | What changes | Phase | AC coverage |
+|---|---|---|---|
+| `.claude/agents/self-improve.md` | New `### Step 1b — Carrot pass` body, `### Step 2b — Carrot pass routing` table, `## Promotion verbs` section, Step 6 reproducer template variants | 2 | AC3, AC4 |
+| `.claude/agents/learnings-escalation-audit.md` | New `🌱 Stale-validation` verdict row in Step 2, new `Step 2b — Stale-validation sweep` body, Step 6 report-template addition | 3 | AC5 |
+| `.claude/skills/ai-audit/SKILL.md` | `§ Phase 1` orchestration prose for `🌱` verdict; Checklist L gains `Kind:` row; Checklist M gains sub-check 11 (cross-shape verbs); new Checklist N (bidirectional `## Patterns` ↔ `Kind: validation`) | 3 | AC6, AC7, AC8, AC9 |
+| `AGENTS.md` | Line 336 threshold-line rewrite (~150-char addition) | 4 | AC10 |
+| `.claude/skills/improve/SKILL.md` | One-line threshold restate consistent with AGENTS.md | 4 | AC11 |
+| `.claude/skills/context-reset/SKILL.md` | New `## Patterns` section with single entry; back-link to 2026-05-19 *compaction-recovery protocol* entry | AC12 | AC12 |
+| (none — verification only) | Rust gates, char-cap check, Propagation-Rule grep | AC18 | AC18 |
 
-Total instruction-surface files edited in PR 1: **7 mandatory** (5 core + `ai-docs/agent-docs-index.md` + `.claude/skills/ai-audit/SKILL.md` for prose-only renames). The latter two are mandatory per the Propagation Rule's fan-out discipline; included in PR 1 to keep the rename atomic and to minimise grep-sweep noise in Phase 3 / PR 2.
+**Sync-group fan-out (Phase 4 lock-step):** AGENTS.md `§ Learning Log` threshold line ↔ `improve/SKILL.md` body restate are paired in Subtask 5 (both edits in one subtask + one commit, per the Propagation Rule).
 
-**Files NOT touched in PR 1** (Phase 2/3/4 territory):
+**Sync-group fan-out (Learning-Log group, AGENTS.md line 216):** Phase-3 edits to `self-improve.md` (Subtask 1–2) AND `learnings-escalation-audit.md` (Subtask 3) are sister-file edits under the Learning-Log group. AGENTS.md `§ Learning Log` section was already amended in PR-1 to declare the `Kind:` field; no further AGENTS.md edit is triggered by Subtasks 1–3 except the Phase-4 threshold line in Subtask 5. The two agent files co-evolve in this PR but do not require an AGENTS.md mirror edit beyond Subtask 5's threshold line — the Propagation Rule row at AGENTS.md line 216 *already* anticipates this fan-out shape (it names both agents as the sync targets, not AGENTS.md itself).
 
-- `.claude/skills/improve/SKILL.md` — threshold restate is Phase 4.
-- `.claude/agents/self-improve.md` Step 2 routing table + Step 6 inverted eval — Phase 2.
-- `.claude/agents/learnings-escalation-audit.md` verdict set extension — Phase 3.
-- `.claude/skills/ai-audit/SKILL.md` Checklist L row addition + Checklist M sub-check + Checklist N — Phase 3.
-
-## Test Design
-
-This task touches instruction-surface only. There are no Rust code changes and therefore no `#[cfg(test)]` modules to add or modify. The verification surface is mechanical and grep-based, per AC14 + AC18.
-
-For each non-trivial subtask:
-
-### Subtask 1 — AGENTS.md edits
-
-- **Location:** N/A (instruction-file edit).
-- **Verification:** `grep -n '## Learning Log' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns exactly one hit. `grep -n '## Corrections Log' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns zero hits. `grep -n 'Kind:' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns ≥1 hit inside the entry-format block. `wc -c /home/syt/RustroverProjects/quartzite/AGENTS.md` returns < 40,000.
-- **Scenarios:** happy path (section renamed, Kind added, char count under cap); edge case (char count crosses 40k — surface to user, propose extraction per Pattern 8).
-
-### Subtask 2 — corrections-log.md edits
-
-- **Location:** N/A.
-- **Verification:** `grep -n '^# Learning Log' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns one hit. `grep -n '#corrections-log\b' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns zero hits. `grep -n '#learning-log\b' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns ≥2 hits (the two updated cross-refs). `grep -n 'Kind:' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns ≥1 hit inside the field-glossary section.
-- **Scenarios:** happy path; edge (an anchor link inside the file was missed by the rename).
-
-### Subtask 3 — agent file rename-only edits + optional fan-out (`agent-docs-index.md`, `ai-audit/SKILL.md`)
-
-- **Verification:** for each edited file, `grep -n 'Corrections Log\|Corrections-Log' <file>` returns zero hits AFTER the edit, EXCEPT file-name references `ai-docs/corrections-log.md` (which stay).
-- **Scenarios:** rename-only diff (no behavioural lines touched); the grep sweep at subtask 5 catches any miss.
-
-### Subtask 4 — worked-example carve-out
-
-- **Location:** `ai-docs/learnings.md`, the 2026-05-19 *compaction-recovery protocol in skill files works* entry (line 1299).
-- **Verification:** the entry has a `**Kind:** validation` line AND a `**Superseded by:** PR #<N> — …` line. NO other entry in `learnings.md` has been edited (`git diff` shows exactly one entry-region modified, two new lines appended within it). `Escalated?` line remains `no` (the carve-out does NOT escalate the entry; that is Phase 3+4 territory after the verdict + threshold land).
-- **Scenarios:** happy path (entry edited, no others touched); failure mode (rename caused a cascading edit elsewhere in `learnings.md`).
-
-### Subtask 5 — verification sweep
-
-- **Detection mechanism:**
-  ```
-  grep -rn -E 'Corrections.Log|corrections.log|Correction.Log' \
-       /home/syt/RustroverProjects/quartzite/AGENTS.md \
-       /home/syt/RustroverProjects/quartzite/ai-docs/ \
-       /home/syt/RustroverProjects/quartzite/.claude/
-  ```
-  Every remaining hit must be one of:
-  - the file-name `ai-docs/corrections-log.md` (intentionally preserved).
-  - an explicit historical reference in `ai-docs/context.md` line 200 (PR #324 narrative — preserved).
-  - a PR-history reference in `ai-docs/learnings.md` (historical entries — preserved per Boundary Rule 1).
-- **Char-count gate:** `wc -c AGENTS.md` returns < 40,000. The estimated delta from PR 1 edits is +400 to +900 chars (rename: ~0; `Kind:` row: ~50; Propagation-Rule update: ~150; carve-out call-out: ~250–500). Starting from 36,598 chars, the post-edit count is projected at ≤ 37,500 — well under the 40,000 cap but above the 35,000 early-warning band. Acceptable per AGENTS.md § Build & Test (35k–39,999 is "proactive extraction pass; do not let next /task push over 40k") — Phase 2/PR 2's Carrot-pass additions to AGENTS.md must be sized accordingly.
-- **Rust gates (AC18):** `cargo build`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt -- --check`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`. All four must pass. No Rust files are edited; gates should be green by default.
+**No char-cap breach.** Pre-PR: 37,564 chars in AGENTS.md. Post-Subtask-5 estimate: ~37,714 (still in early-warning band; no breach of 40,000). All other touched files (`self-improve.md` 10,778; `learnings-escalation-audit.md` 9,650; `ai-audit/SKILL.md` 27,073; `improve/SKILL.md` 1,058; `context-reset/SKILL.md` 8,286) gain at most ~2,000 chars each — none approach 35,000.
 
 ## Risks
 
-- **Risk:** AGENTS.md crosses 40,000 chars due to the carve-out call-out length.
-  **Mitigation:** measure before commit (`wc -c`). If close to cap, move the carve-out detail body into `ai-docs/corrections-log.md` § Boundary rule 1 Exception (already referenced from AGENTS.md) and keep AGENTS.md's call-out to one sentence + the cross-reference. Char-count projection (above) shows ≤ 37,500 — risk is low but real.
+- **Risk:** AGENTS.md char-cap drift — Subtask 5 adds ~150 chars to a 37,564-char file. **Mitigation:** Subtask 7 explicitly runs `wc -c AGENTS.md` and confirms < 40,000. If a later subtask in this PR (e.g., a Phase-3 sync edit) inflates AGENTS.md unexpectedly, the verification sweep flags it before commit.
+- **Risk:** Checklist N forward-direction false positives — a `## Patterns` section may carry an entry that references a `Kind: correction` entry (legitimately — patterns can reference correction history), OR may be a template-source file (e.g., `ai-docs/agent-writing-style.md § Patterns`) that defines the pattern shape rather than carrying a promoted-from-validation carrot. **Mitigation:** Checklist N's forward direction is scoped to `## Patterns` entries whose body uses carrot verbs (*Default to* / *Prefer*); correction-shaped references and non-carrot entries are out of scope. The audit greps for carrot-verb presence within each `### N. <Name>` block before requiring a back-link. `ai-docs/agent-writing-style.md § Patterns` is explicitly exempt as a template source. Operationalised in Subtask 4's Checklist N edit shape.
+- **Risk:** `🌱` verdict false-positive rate — a `Kind: validation` entry > 30 days old with `Escalated? no` and an unrelated commit to AGENTS.md will flag. **Mitigation:** the per-validation surface (skill/agent named in the `Rule:` line) narrows the commit-search path; if no specific surface is named, fall back to whole-corpus `git log` and surface as `❓ Ambiguous` instead of `🌱`. Recorded in Subtask 3's body.
+- **Risk:** Step 6 inverted-eval primitive-absence — the `self-improve` subagent still lacks the `Agent` primitive (per the 2026-05-15 *primitive genuinely lacks* entry). The Carrot-pass eval reuses the existing pause-and-surface protocol → no new primitive dependency. **Mitigation:** Subtask 2 emits the reproducer block in the SAME `## Step 6 handoff` block (one block per pattern across BOTH passes), preserving the protocol.
+- **Risk:** AC12 back-link rot — if the 2026-05-19 compaction-recovery entry is later superseded, the `## Patterns` back-link in `/context-reset` becomes stale. **Mitigation:** Checklist N's reverse direction catches this (the validation entry would still exist by Boundary Rule 1; if `Escalated?` later changes to remove `skill:context-reset`, Checklist N flags the orphan). No additional guard needed.
+- **Risk:** PR-2 size — 7 subtasks across 6 files; could feel "wide". **Mitigation:** Subtasks are small (each file gains < 100 net lines); the per-group cap of 3 subtasks fits the design's handoff contract.
+- **Risk:** Concurrent edit conflict if `/improve` runs on the branch after PR-2 lands but before PR-3 (Phase 5). **Mitigation:** out of scope — PR-3 starts from PR-2's merged master commit; no in-flight branch sharing.
 
-- **Risk:** A `Corrections Log` / `corrections-log` reference is missed in the rename, leaving silent drift between AGENTS.md and a downstream consumer.
-  **Mitigation:** subtask 5's grep sweep is a hard gate. Every remaining hit must be classified (file-name / historical / fixable). The sweep runs against the full instruction surface, not just the touched files.
+## Test Design
 
-- **Risk:** The worked-example carve-out (subtask 4) is the FIRST authorised edit to an existing `learnings.md` entry's non-`Escalated?`-non-`Superseded by:` lines in the project's history. A future agent reading `learnings.md` may treat this as precedent for further bulk edits.
-  **Mitigation:** the carve-out call-out in AGENTS.md AND in `corrections-log.md` explicitly names this entry as the named, narrow, audit-traced exception — NOT a precedent. AC13 binds. The carve-out's audit trail (entry's own `Superseded by:` line referencing the PR) is the durable record.
+Instruction-surface changes — no Rust code changes — so "tests" are grep + structural checks. AC18 is the four Rust gates which must pass even though no `.rs` file changed.
 
-- **Risk:** The anchor `#learning-log` (post-rename) does not match the slug GitHub-Flavoured-Markdown will generate from `## Learning Log`.
-  **Mitigation:** GFM slug for `## Learning Log` is `learning-log` (lowercase, spaces→hyphens, no other special chars). Verified by GFM slug rules; matches the manual references.
+### Subtask 1 (Carrot-pass body)
+- **Location:** `.claude/agents/self-improve.md` § Step 1b / Step 2b
+- **Verification:** `grep -n "Step 1b — Carrot pass\|Step 2b — Carrot pass routing" .claude/agents/self-improve.md` returns ≥2 hits; the routing table contains exactly three rows matching the spec (`1`, `≥2`, `1 + workflow primitive`); the asymmetric-promotion preconditions are spelled out.
+- **Scenarios:** happy path (Carrot pass triggers on `Kind: validation` entry); edge (`Kind:` omitted → falls through to Correction pass); mixed (entry with both `Kind: validation` + recurrence ≥ 2 → routes via Carrot ≥2 row, not Correction's recurrence row).
 
-- **Risk:** The threshold-line update in AGENTS.md (line 331) is forgotten in PR 1 and Phase 4 (PR 2) tries to update an unrelated reference shape.
-  **Mitigation:** the spec's PR-slicing decision is explicit — threshold-line update is Phase 4 / PR 2 territory. Design § Approach piece 1 calls this out: *"Trigger threshold line at line 331 stays unchanged in PR 1."* The PR 2 design (when it lands) will pick up the threshold edit + `improve/SKILL.md` body restate as a lock-step pair.
+### Subtask 2 (Promotion-verb enumeration + Step 6 inverted prompt)
+- **Location:** `.claude/agents/self-improve.md` § Promotion verbs / § Step 6
+- **Verification:** `grep -E '(Default to|Prefer)' .claude/agents/self-improve.md` returns hits inside the Carrot promotion verb block; `grep -E '(MUST|NEVER)' .claude/agents/self-improve.md` returns hits inside the Stick promotion verb block; Step 6 reproducer template contains both `Scenario:` line variants.
+- **Scenarios:** Step 6 emits a Carrot reproducer for a `Kind: validation` pattern; the reproducer's PASS criterion names "pattern survives edge case X" not "violation absent".
 
-- **Risk:** The Propagation-Rule row update at AGENTS.md line 216 is too narrow — it names "entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`" but the 🌱 verdict does not yet exist in PR 1 (Phase 3 territory).
-  **Mitigation:** the Propagation-Rule row update is a FORWARD-LOOKING fan-out trigger — naming the future shape so Phase 2/3/4 edits can be detected by the row's keyword. Acceptable per AC2 (*"names entry-format / `Kind:` / `🌱` semantics as triggers for fan-out"*). Alternative: include only `Kind:` in PR 1's row update and add `🌱` in PR 2 — but that doubles the AGENTS.md edit count. Recommend including both keywords in PR 1's row, with a parenthetical *"(🌱 verdict lands in Phase 3)"* for legibility.
+### Subtask 3 (`🌱` verdict)
+- **Location:** `.claude/agents/learnings-escalation-audit.md` § Step 2 / § Step 2b / § Step 6
+- **Verification:** `grep -n "🌱 Stale-validation" .claude/agents/learnings-escalation-audit.md` returns ≥3 hits (Step 2 verdict table, Step 2b sweep body, Step 6 report template); the trigger logic names all three conjuncts (age > 30d, `Escalated? no`, ≥1 instruction-file commit).
+- **Scenarios:** age-only (≤ 30d → no flag); `Escalated?` ≠ `no` (→ no flag); both conjuncts but zero commits since validation date (→ no flag); all three → `🌱` flag emitted; ambiguous surface (no specific skill/agent named in `Rule:`) → `❓ Ambiguous` fallback per the Risk mitigation.
 
-- **Risk:** PR 1 lands but never triggers Phase 2/3/4 (PR 2) because the spec's PR slicing requires explicit PR-2 invocation.
-  **Mitigation:** out of scope for this design — PR sequencing is the user's responsibility. PR 1's body should explicitly cite the follow-up PR (#491 Phase 2/3/4) so the dependency chain is visible.
+### Subtask 4 (`ai-audit/SKILL.md` checklists)
+- **Location:** `.claude/skills/ai-audit/SKILL.md` § Phase 1 orchestration; § Step 2.3 Checklists L / M / N
+- **Verification:**
+  - **Phase 1 prose:** `grep -n "🌱 Stale-validation" .claude/skills/ai-audit/SKILL.md` returns ≥1 hit in the Phase 1 section.
+  - **Checklist L:** the table has 4 rows (`Escalated?`, `Superseded by:`, `Kind:`, plus the existing fourth — confirm count post-edit); the `Kind:` row names the four coverage locations from the Subtask-4 reconciliation (AGENTS.md Entry-format block + `self-improve.md` Step 5 + `learnings-escalation-audit.md` Steps 2/3/4 + `ai-docs/corrections-log.md` field glossary).
+  - **Checklist M:** sub-check 11 exists; `grep -nE 'sub-check 11|cross-shape' .claude/skills/ai-audit/SKILL.md` returns hits; severity `major`.
+  - **Checklist N:** appears between Checklist M and Checklist L (verify ordering matches existing alphabetical sequence); bidirectional detection mechanism documented; severity `major`.
+- **Scenarios:**
+  - Forward Checklist N: a `## Patterns` entry whose body uses a carrot verb (*Default to* / *Prefer*) with no `learnings.md` back-link → flag. A `## Patterns` entry without any carrot verb (template scaffolding) → no flag (carrier-vs-template exemption). `ai-docs/agent-writing-style.md § Patterns` is the named exempt template source.
+  - Reverse Checklist N: a `Kind: validation` entry whose `Escalated?` names `skill:foo` but `.claude/skills/foo/SKILL.md` has no `## Patterns` block → flag.
+  - Sub-check 11: a `## Patterns` block using `MUST` in an entry body → flag (carrot rule, stick verb); a fail-loud AXIOM blockquote using `Default to` → flag (stick rule, carrot verb).
 
-- **Risk:** Subtask 3's mandatory fan-out touchpoints (`ai-docs/agent-docs-index.md`, `.claude/skills/ai-audit/SKILL.md` prose-only renames) are accidentally skipped in PR 1, leaving drift that the Phase 2/3/4 PR must also clean up.
-  **Mitigation:** the file-touch map (above) marks both as **Mandatory** per the Propagation Rule's fan-out discipline (was design-review round 1 note #2; promoted from optional). The diff cost is ≤ 6 lines across the two files; Subtask 5's grep sweep catches any miss.
+### Subtask 5 (threshold reframe)
+- **Location:** `AGENTS.md` line 336; `.claude/skills/improve/SKILL.md` body
+- **Verification:** `grep -n '≥3 unescalated correction\|≥2 unescalated validation\|🌱 Stale-validation flag' AGENTS.md .claude/skills/improve/SKILL.md` returns ≥1 hit per phrase per file (i.e., both files updated); `wc -c AGENTS.md` reports < 40,000.
+- **Scenarios:** count three accumulated `Kind: correction` entries → `/improve` triggers per the new line; count two accumulated `Kind: validation` entries → `/improve` triggers; emit a single `🌱` flag from `/ai-audit` → `/improve` triggers.
+
+### Subtask 6 (AC12 `## Patterns` block)
+- **Location:** `.claude/skills/context-reset/SKILL.md` § Patterns (new section)
+- **Verification:**
+  - `grep -n '^## Patterns' .claude/skills/context-reset/SKILL.md` returns exactly 1 hit.
+  - The single entry uses a carrot verb (*Default to* / *Prefer*); a `MUST` / `NEVER` in the entry body → grep flags.
+  - Back-link line resolves: `grep -F '2026-05-19' .claude/skills/context-reset/SKILL.md` returns the back-link AND `grep -n 'compaction-recovery protocol in skill files works' ai-docs/learnings.md` returns the entry.
+- **Scenarios:** Checklist N's reverse-direction predicate requires `Escalated? ≠ no`; per Open Question 1 Resolution (a), the field stays `no`, so Checklist N does not fire on this entry. The `🌱 Stale-validation` verdict requires age > 30d (entry is < 30d post-AC12 landing) so cannot fire until ~2026-06-18 regardless of `Escalated?` state. Both audit gates are inert by design — that is the expected behaviour for the worked example until the next `/improve` cycle backfills `Escalated?`.
+
+### Subtask 7 (verification sweep)
+- **Entry point:** Rust gates + grep recipes; no edits, just confirmations.
+- **Scenarios:** all four AC18 commands return 0; AGENTS.md char count < 40,000; `grep -rn "## Patterns" .claude/skills/ .claude/agents/ AGENTS.md` returns the context-reset block as the only `## Patterns` block in the audited surface (since other skills/agents will gain `## Patterns` blocks as carrots accumulate; in PR-2, only `/context-reset` has one).
 
 ## Open questions
 
-All notes from design-review round 1 (GO with notes) are resolved; ready for Step 8.
+All three resolved during this design's design-review round (GO with 4 notes, folded back). Resolutions captured inline below; design-review verdict carries Resolution (a) for Q1, "yes" for Q2, "no" for Q3 as the binding decisions Subtasks 4 / 6 / 7 implement.
 
-Resolution audit trail:
+1. **Should Subtask 6 (the AC12 `## Patterns` block landing) ALSO update the 2026-05-19 *compaction-recovery protocol in skill files works* entry's `Escalated?` field from `no` to `skill:context-reset` in the same PR?** **RESOLVED — (a)**: leave `Escalated? no`, document the deferred update as a follow-up `/improve` invocation. Three considerations:
+   - **Pro:** Without this update, the 2026-05-19 entry remains `Escalated? no` after the `## Patterns` block lands — which means `/improve`'s ≥2-validation threshold would fire on the next unescalated validation (since this one stays `no`). The AGENTS.md threshold reframe in Subtask 5 says "≥2 unescalated validation entries" — leaving this entry `no` while a back-link exists in `/context-reset/SKILL.md` is a logical inconsistency.
+   - **Con:** Per AGENTS.md Boundary Rule 1 Exception, `Escalated?` updates are `self-improve`-agent-driven (via `/improve`'s Commit B backfill) OR `learnings-escalation-audit`-agent-driven (via `/ai-audit` Phase 1). A PR-2 implementer manually editing the field would technically violate the Exception's "agent-driven only" clause. The worked-example carve-out in PR-1 covered the `Kind:` retro-add — it did NOT extend to `Escalated?` mutation.
+   - **Resolution candidates:** (a) leave `Escalated? no`, document the deferred update as a follow-up `/improve` invocation; (b) extend the Boundary-Rule-1 carve-out one more time to cover the `Escalated?` update as part of the worked-example completion (would require an AGENTS.md text edit clarifying the extended carve-out — adds ~80 chars); (c) trigger a one-shot `/improve` invocation as part of the PR-2 acceptance flow, recording the Commit-B backfill on the same branch as a separate commit. **Design recommendation: (a)** — keep the carve-out narrow, do NOT extend; document the deferred `/improve` invocation as a one-line note at the bottom of Subtask 6's body.
 
-- **O1 — `Kind:` field position.** Resolved: placed BETWEEN `**Rule:**` and `**Escalated?**` (groups content fields before metadata fields). Recorded in § Approach piece 5.
-- **O2 — Boundary-Rule-1 carve-out call-out shape.** Resolved: one-paragraph text-form callout — third indented paragraph under Boundary rule 1, consistent with existing AXIOM-blockquote + indented Exception-paragraph shape (AGENTS.md ~283–292). Recorded in § Approach piece 1.
-- **O3 — Propagation-Rule row update strategy.** Resolved: update the existing row IN-PLACE. Sync-group membership unchanged (`self-improve.md` + `learnings-escalation-audit.md`); only the keyword set expands. Recorded in § Approach piece 1.
-- **O4 — Phase 5 effort estimate.** Deferred to PR-2 design per spec PR-slicing decision; AC17 binds the recommendation to PR-2's design agent, not PR-1's. Not a PR-1 open question.
+2. **Should Checklist N's reverse direction account for `Escalated?` field listing multiple targets (e.g., `skill:context-reset, AGENTS.md`)?** **RESOLVED — yes**: the reverse direction iterates each comma-separated `Escalated?` value independently. A validation entry escalated to two targets should have `## Patterns` blocks in BOTH. The forward direction (every `## Patterns` block needs a back-link) is unaffected. Captured in Subtask 4's body.
+
+3. **Should the AGENTS.md Propagation Rule row (line 216, Learning-Log group) be amended to name `## Patterns` ↔ `Kind: validation` coherence as a fan-out trigger?** **RESOLVED — NO**: adding it would conflate the entry-format sync (which is about the two agents reading `learnings.md`) with the carrier-file ownership (which is about whatever skill claims a carrot). Today's row names "entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`". The `## Patterns` ↔ `Kind: validation` link is one level removed — it's a carrier-file relationship, not an entry-format change. Checklist N is the audit-side gate; the Propagation Rule row stays at its current scope.
+
+## Phase 5 sketch (NOT part of PR-2)
+
+For continuity only. PR-3 implements Phase 5 (cross-feed with `~/.claude/projects/.../memory/feedback_*.md`). PR-3's design must specify:
+
+- **(a) Consent UX.** `AskUserQuestion` shape: "auto-memory entry `feedback_X.md` names a workflow primitive (`<primitive>`) and has no matching `Kind: validation` in `learnings.md`. Surface as a `/improve` candidate? [yes / no / never-this-entry]". The third option writes an opt-out flag to `~/.claude/projects/.../memory/.improve_optout` (user-local, not project-side).
+- **(b) Project-side write guard.** `self-improve` MUST NOT write to AGENTS.md / skills / agents based solely on an auto-memory entry; auto-memory is a *companion signal* surfaced during `/improve`'s Step 2 routing, never a primary source. If consent is declined, the signal is dropped — not silently retained.
+
+PR-3 adds (a) a new `### Step 1c — Auto-memory companion sweep` to `self-improve.md` AND (b) a new `## Privacy boundary` section to `improve/SKILL.md`. No changes to `learnings-escalation-audit.md` or `ai-audit/SKILL.md` — auto-memory is not in the audit corpus.
 
 ## Quality checklist self-verification
 
-- **Completeness:** all 7 mandatory files listed (AGENTS.md, corrections-log.md, self-improve.md, learnings-escalation-audit.md, learnings.md, agent-docs-index.md, ai-audit/SKILL.md — the latter two promoted from optional to mandatory per design-review round 1 note #2 / Propagation Rule fan-out discipline). All 5 subtasks atomic. Fan-out is bounded and enumerated.
-- **Correctness:** Boundary Rule 1 honoured (only one entry edited, via named carve-out, two new lines appended). Boundary Rule 2 honoured (the learnings.md edit is the worked-example carve-out — Boundary Rule 1 Exception authorises it, AND the carve-out is the FIRST learnings.md edit of its kind, NOT a pre-emptive escalation triggered by a fresh entry). Propagation Rule honoured (sync-group fan-out covered in subtask 3 + optional 3-extra). AC1–AC18 covered (AC3–AC11 + AC16–AC17 are Phase 2/3/4/5 territory — NOT in PR 1's scope).
-- **Tests:** no Rust code touched; verification is grep + `wc -c` + Rust-gate checks per subtask 5.
-- **Risks:** char-cap risk + rename-miss risk + carve-out precedent risk + forward-looking-row risk — all surfaced + mitigated.
-- **Economy:** YAGNI — no Carrot-pass machinery added in PR 1; no Phase-4 threshold update; no Phase-3 verdict extension. PR 1 stays minimal-additive. Phase 2/3/4 design is the PR-2 design agent's territory.
-
-## Phase 2–5 sketch (NOT part of PR 1 implementation)
-
-For context only — the implementing agent should NOT touch any of these in PR 1.
-
-- **PR 2 — Phases 2 + 3 + 4 (co-dependent).**
-  - Phase 2: add Step 2 routing table to `.claude/agents/self-improve.md` Carrot pass + Step 6 inverted eval prompt + enumerate Carrot promotion verbs (*Default to* / *Prefer*) + Stick verbs (*MUST* / *NEVER*).
-  - Phase 3: extend verdict set in `.claude/agents/learnings-escalation-audit.md` (add 🌱 Stale-validation, trigger: age > 30d AND `Escalated? no` AND ≥1 instruction-file commit since validation date). Add Checklist N to `.claude/skills/ai-audit/SKILL.md` § Step 2.3 (bidirectional `## Patterns` ↔ `Kind: validation`, severity `major`). Add `Kind:` row to Checklist L. Add cross-shape-verb sub-check to Checklist M (severity `major`). Document `🌱` verdict in `/ai-audit § Phase 1` orchestration prose.
-  - Phase 4: AGENTS.md threshold line at line 331 rewritten — *"Run `/improve` when ≥3 unescalated correction entries, ≥2 unescalated validation entries, or a 🌱 Stale-validation flag from `/ai-audit` accumulates."* + `.claude/skills/improve/SKILL.md` body restate (sync-group lock-step).
-  - **Worked example completion** (AC12): add a `## Patterns` block to the targeted skill (Inline Patterns home per Q3 — design-review at PR 2 time identifies the targeted skill; likely `.claude/skills/context-reset/SKILL.md` since the validation is about compaction recovery), back-linked to the 2026-05-19 entry. (The entry retro-tag itself lands in PR 1.)
-
-- **PR 3 — Phase 5 (follow-up).**
-  - Cross-feed with auto-memory: `self-improve` reads `~/.claude/projects/.../memory/feedback_*.md` as a companion signal. Design MUST specify (a) consent UX (explicit user approval) AND (b) project-side write guard (no auto-writes from auto-memory alone). Per spec AC16 + AC17.
+- **Completeness:** all six target files listed in the File-touch map; AC1–AC2 already covered by PR-1; AC3–AC12 + AC18 covered by PR-2 subtasks 1–7; AC16–AC17 covered by the Phase 5 sketch above (AC17 explicitly recommends the follow-up-PR default). Tasks are atomic — each subtask touches at most 2 files, each subtask is a logically complete edit.
+- **Correctness:** the Carrot pass sits parallel to the Correction pass (verified by reading the existing `self-improve.md` Step 2 routing table — adding `Step 1b` / `Step 2b` parallel sections is structurally clean); the `🌱` verdict slots into the existing 4-verdict set without disrupting the existing flow (verified by reading `learnings-escalation-audit.md` § Step 2 — verdicts are a flat list, not a state machine); Checklist N follows Checklist C's bidirectional-resolution shape (verified by reading `ai-audit/SKILL.md` § C — same severity, same bidirectional language).
+- **Tests:** every non-trivial edit has a verification recipe in the Test Design section (grep keywords, scenarios per AC); AC18 is the Rust-gate suite which fires unconditionally.
+- **Risks:** char-cap breach, false-positive rates on Checklist N + `🌱`, primitive-absence in Step 6 inverted eval, AC12 back-link rot — all identified with mitigations.
+- **Economy:** no new files, no new abstractions, no new agents. The Carrot pass reuses the existing `self-improve.md` skeleton (Steps 3 / 4 / 5 / 6); the `🌱` verdict reuses the existing verdict-emission protocol; AC12 reuses the existing `## Patterns` shape from `agent-writing-style.md`. YAGNI honoured.
+- **Handoff plan:** 7 subtasks → 3 + 3 + 1, all groups within `1..=3`, non-terminal groups exactly 3, `/context-reset` named at every boundary including Group A entry. Compliant with the design's handoff-grouping contract.
 
 ## References
 
-- Spec: `ai-docs/plans/2026-05-19-carrot-pass-improve-ai-audit.spec.md` (read in full during investigation).
-- AGENTS.md § Corrections Log (current, lines 279–331) — the schema target.
-- AGENTS.md § Propagation Rule (current, lines 200–232) — the fan-out trigger; row at line 216 is the update target.
-- `ai-docs/corrections-log.md` — the extracted-reference target for the field glossary + carve-out trail.
-- `.claude/agents/self-improve.md` (current, lines 16, 88, 108) — rename-only touchpoints in PR 1.
-- `.claude/agents/learnings-escalation-audit.md` (current, lines 3, 17, 24, 96, 137) — rename-only touchpoints in PR 1.
-- `ai-docs/learnings.md` 2026-05-19 *compaction-recovery protocol* entry (line 1299–1305) — the worked-example carve-out target.
-- `ai-docs/agent-writing-style.md` § Patterns (current, lines 23–186) — the precedent for the `## Patterns` section convention adopted for promoted carrots in Phase 2 (out of PR 1 scope; cited for context).
-- `ai-docs/agent-writing-style.md` § Pattern 8 (lines 146–185) — the 40k char-cap AXIOM the AGENTS.md edits must respect.
-- `.claude/skills/ai-audit/SKILL.md` § Step 2.3 Checklists L + M (lines 156–186) — the integrity gates that grow in Phase 3 (out of PR 1 scope except for the prose-only rename pass; cited for context).
+- Spec: `ai-docs/plans/2026-05-19-carrot-pass-improve-ai-audit.spec.md`
+- PR-1 design (historical): `ai-docs/plans/2026-05-19-carrot-pass-improve-ai-audit.phase1.design.md`
+- AGENTS.md § Learning Log (lines 279–336) — the schema home for the threshold reframe (Subtask 5).
+- AGENTS.md § Propagation Rule (line 216) — Learning-Log sync-group row (already amended in PR-1; no further edit in PR-2).
+- `ai-docs/corrections-log.md` § Entry format — field glossary (`Kind:` line added in PR-1) — no edit in PR-2.
+- `.claude/agents/self-improve.md` (10,778 chars) — Carrot-pass + Step-6 inverted-prompt host (Subtasks 1–2).
+- `.claude/agents/learnings-escalation-audit.md` (9,650 chars) — `🌱 Stale-validation` host (Subtask 3).
+- `.claude/skills/ai-audit/SKILL.md` (27,073 chars) — Phase 1 prose + Checklist L/M/N edits (Subtask 4).
+- `.claude/skills/improve/SKILL.md` (1,058 chars) — threshold restate (Subtask 5, lock-step with AGENTS.md).
+- `.claude/skills/context-reset/SKILL.md` (8,286 chars) — AC12 `## Patterns` host (Subtask 6).
+- `ai-docs/agent-writing-style.md` § Patterns (lines 23–186) — the per-pattern block shape AC12 mirrors.
+- `ai-docs/agent-writing-style.md` § Pattern 8 (40k char-cap) — the cap the AGENTS.md edit in Subtask 5 must respect.
+- `ai-docs/learnings.md` lines 1299–1309 — the 2026-05-19 *compaction-recovery protocol in skill files works* entry that AC12 back-links.
