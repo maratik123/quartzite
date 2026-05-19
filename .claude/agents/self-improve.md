@@ -68,6 +68,28 @@ Asymmetric routing — positive signal is rarer, so the threshold is lower (≥1
 
 Both passes produce independent report entries; the final `/improve` report has separate `## Corrections proposed` and `## Carrots proposed` sections so the asymmetry stays visible to the user.
 
+### Promotion verbs
+
+The verb chosen for a promoted rule encodes its shape. Carrot rules (`Kind: validation`) use soft verbs; stick rules (`Kind: correction`) use fail-loud verbs. Verb choice is not enforceable by hook — `/ai-audit` Phase 2 Checklist M sub-check 11 audits cross-shape drift.
+
+**Carrot promotion verbs** (Step 2b only):
+
+| Verb | When |
+|---|---|
+| *Default to* | Seed wording when ≥1 validation; the soft default the agent is expected to follow absent contrary evidence |
+| *Prefer* | Strengthened wording when ≥2 validations on the same topic; still soft — narrows the default further without forbidding alternatives |
+
+**Stick promotion verbs** (Step 2a only):
+
+| Verb | When |
+|---|---|
+| *MUST* | Hard positive obligation; rule is enforced and a violation is a correction event |
+| *NEVER* | Hard negative prohibition; same enforcement shape, opposite polarity |
+| *MUST NOT* | Synonym of *NEVER* — pick whichever reads better in context |
+| *FORBIDDEN* | Same shape as *NEVER*; reserved for AXIOM-blockquote tone |
+
+**Cross-shape is FORBIDDEN.** A carrot rule (promoted from a `Kind: validation` entry, living in a `## Patterns` section) MUST NOT use a stick verb. A stick rule (promoted from a `Kind: correction` entry, living in AGENTS.md / skill / agent body or a fail-loud AXIOM blockquote) MUST NOT use a carrot verb. The verb asymmetry IS the asymmetric-promotion contract — wrong-shape verb either underweights a real obligation or locks in a brittle default as a hard rule. `/ai-audit` Phase 2 Checklist M sub-check 11 flags cross-shape violations at severity `major`.
+
 ### Step 3: Propose concrete changes
 
 For each pattern show:
@@ -133,18 +155,25 @@ After applying changes — answer:
 
 **Propagation-rule asymmetry:** the Learning-Log sync-group sister file `.claude/agents/learnings-escalation-audit.md` has no Step 6 eval-phase equivalent (its workflow is a passive auditor; its `Step 6 — Report` is structured output, not a primitive-dispatch step), so this contract requires no mirrored edit there.
 
-**Reproducer-prompt template skeleton** (emit verbatim, one block per pattern; the parent thread copies each block into a fresh `Agent` dispatch):
+**Reproducer-prompt template skeleton** (emit verbatim, one block per pattern; the parent thread copies each block into a fresh `Agent` dispatch). The `Scenario:` line **branches on the audited entry's `Kind:`** — the same skeleton serves both passes:
 
 ```
 ### Reproducer R<pattern_id> — <pattern_summary>
 
-**Scenario:** <original_error_repro>
+**Kind:** correction | validation
+
+**Scenario (Kind: correction):** <original_error_repro> — you are about to violate rule X; what is the expected behaviour?
+**Scenario (Kind: validation):** <edge_case_from_validation_surface> — in this scenario, does pattern P still hold?
 
 **Expected fixed output:** <expected_fixed_output>
 
-**PASS criterion:** <PASS_criterion>
-**FAIL criterion:** <FAIL_criterion>
+**PASS criterion (Kind: correction):** the violation does NOT happen in the reproducer — rule fired.
+**PASS criterion (Kind: validation):** the pattern still holds under the edge — pattern survives.
+**FAIL criterion (Kind: correction):** the violation still happens — rule not strong enough.
+**FAIL criterion (Kind: validation):** the pattern overfits or breaks under the edge — downgrade the promotion verb (*Prefer* → *Default to*) or do not promote.
 ```
+
+Emit only the line variant matching the audited entry's `Kind:`; leave the other variants as the template skeleton for reference. Kind-branching applies ONLY to the `Scenario:` / `PASS criterion:` / `FAIL criterion:` lines — the pause-and-surface protocol, the parent-thread dispatch, and the `Eval: PASS ✅` / `Eval: FAIL ❌` emission are identical across both passes.
 
 **Worked example** (anchor the skeleton — illustrative only; substitute real Step-1 patterns at runtime):
 
