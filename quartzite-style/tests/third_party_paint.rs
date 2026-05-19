@@ -44,7 +44,7 @@ struct RecordingPainter {
 }
 
 impl RecordingPainter {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { paint_calls: 0 }
     }
 }

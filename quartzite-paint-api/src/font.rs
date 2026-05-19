@@ -163,7 +163,7 @@ impl Font {
     /// assert!(!f2.italic());
     /// ```
     #[inline]
-    pub fn with_italic(mut self, v: bool) -> Self {
+    pub const fn with_italic(mut self, v: bool) -> Self {
         self.italic = v;
         self
     }
@@ -185,7 +185,7 @@ impl Font {
     /// assert!(!f2.underline());
     /// ```
     #[inline]
-    pub fn with_underline(mut self, v: bool) -> Self {
+    pub const fn with_underline(mut self, v: bool) -> Self {
         self.underline = v;
         self
     }
@@ -207,7 +207,7 @@ impl Font {
     /// assert!(!f2.strikethrough());
     /// ```
     #[inline]
-    pub fn with_strikethrough(mut self, v: bool) -> Self {
+    pub const fn with_strikethrough(mut self, v: bool) -> Self {
         self.strikethrough = v;
         self
     }

@@ -34,7 +34,7 @@ const CANVAS: u32 = 64;
     clippy::cast_possible_wrap,
     reason = "snapshot test index arithmetic within known u16 range"
 )]
-fn canvas_rect() -> Rect {
+const fn canvas_rect() -> Rect {
     Rect::new(Point::new(0, 0), Size::new(CANVAS as i32, CANVAS as i32))
 }
 
