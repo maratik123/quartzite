@@ -2,12 +2,60 @@
 
 use std::sync::Arc;
 
+use enumflags2::{BitFlags, bitflags};
 use quartzite_core::{ObjectBase, ObjectId};
 use quartzite_geometry::{Rect, Size};
 use quartzite_macros::Extend;
 
 use crate::widgets::{Button, Container, Label, LineEdit, ScrollArea, TextEdit};
 use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
+
+/// A single observable state flag for a widget.
+///
+/// Combine multiple flags into a [`WidgetStates`] set with `|`.
+/// Use [`WidgetStates::empty()`] to represent no active states.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_widgets::{WidgetState, WidgetStates};
+///
+/// let active: WidgetStates = WidgetState::Visible | WidgetState::Enabled;
+/// assert!(active.contains(WidgetState::Visible));
+/// assert!(active.contains(WidgetState::Enabled));
+/// assert!(!active.contains(WidgetState::Hovered));
+/// ```
+#[bitflags]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum WidgetState {
+    /// The widget is currently visible.
+    Visible = 0b0000_0001,
+    /// The widget is currently enabled (accepts input).
+    Enabled = 0b0000_0010,
+    /// A repaint has been requested; consumed by the renderer.
+    PendingUpdate = 0b0000_0100,
+    /// The mouse cursor is over the widget's bounding rectangle.
+    Hovered = 0b0000_1000,
+    /// A mouse button is held with press-initiated state on this widget.
+    Pressed = 0b0001_0000,
+    /// This widget owns keyboard focus.
+    Focused = 0b0010_0000,
+}
+
+/// A set of [`WidgetState`] flags.
+///
+/// Constructed by OR-ing [`WidgetState`] variants. Use [`BitFlags::empty()`] for no active states.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_widgets::{WidgetState, WidgetStates};
+///
+/// let active: WidgetStates = WidgetState::Visible | WidgetState::Enabled;
+/// assert!(active.contains(WidgetState::Visible));
+/// ```
+pub type WidgetStates = BitFlags<WidgetState>;
 
 /// Hierarchy root for all quartzite widgets.
 ///
