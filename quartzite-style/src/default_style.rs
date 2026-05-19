@@ -55,7 +55,7 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
 /// let _: Box<dyn Style> = Box::new(DefaultStyle::new());
 /// ```
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct DefaultStyle;
 
 impl DefaultStyle {
@@ -73,20 +73,6 @@ impl DefaultStyle {
     #[inline]
     pub const fn new() -> Self {
         Self
-    }
-}
-
-/// Returns a default [`DefaultStyle`].
-///
-/// Delegates to [`DefaultStyle::new`].
-#[allow(
-    clippy::derivable_impls,
-    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
-)]
-impl Default for DefaultStyle {
-    #[inline]
-    fn default() -> Self {
-        Self::new()
     }
 }
 
