@@ -88,7 +88,7 @@ impl<'a> LocalBrushKind<'a> {
     /// The single `_ => Self::Unknown` arm is the only place in the renderer
     /// that carries a wildcard over `BrushKind`, satisfying AC4.
     #[inline]
-    fn from_brush_kind(k: &'a BrushKind) -> Self {
+    const fn from_brush_kind(k: &'a BrushKind) -> Self {
         match k {
             BrushKind::Solid(c) => Self::Solid(c),
             BrushKind::LinearGradient {
@@ -171,7 +171,7 @@ impl<'a> VelloPainter<'a> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn with_scale(mut self, scale: f32) -> Self {
+    pub const fn with_scale(mut self, scale: f32) -> Self {
         self.scale = scale;
         self
     }
@@ -195,7 +195,7 @@ impl<'a> VelloPainter<'a> {
     /// ```
     #[inline]
     #[must_use]
-    pub fn with_fonts(mut self, fonts: &'a mut FontCache) -> Self {
+    pub const fn with_fonts(mut self, fonts: &'a mut FontCache) -> Self {
         self.fonts = Some(fonts);
         self
     }
@@ -223,7 +223,7 @@ impl<'a> VelloPainter<'a> {
     }
 
     #[inline]
-    fn color_to_peniko(c: quartzite_paint_api::Color) -> peniko::Color {
+    const fn color_to_peniko(c: quartzite_paint_api::Color) -> peniko::Color {
         peniko::Color::new([c.r(), c.g(), c.b(), c.a()])
     }
 

@@ -55,7 +55,7 @@ impl WindowedApplication {
     /// Constructs from already-initialised parts. Used only by
     /// [`WindowedApplicationBuilder::build`].
     #[inline]
-    pub(crate) fn from_parts(
+    pub(crate) const fn from_parts(
         app: Application,
         event_loop: EventLoop<AppEvent>,
         instance: wgpu::Instance,
