@@ -19,16 +19,25 @@ Read:
 
 ## Workflow
 
-### Step 1: Find patterns
+### Step 1: Find patterns (Correction pass)
 
-Go through `ai-docs/learnings.md` and group entries:
+Go through `ai-docs/learnings.md` and group entries **whose `Kind:` field is `correction`** (default when `Kind:` is omitted — legacy entries pre-Phase-1 are implicitly `correction` and stay in the Correction pass's scope):
+
 - By category (`code-style`, `process`, `architecture`, `testing`, `search`, `other`)
 - By recurrence (how many times the same mistake)
 - By escalation status:
   - **Unescalated** (`no`): no project-level rule was added. The entry may also have been saved to user-local persistence (`~/.claude/.../MEMORY.md`, `settings.local.json`), but neither counts as project-level escalation — those are private to one developer.
   - **Escalated** (`AGENTS.md`, `skill:[name]`, `hook`, `settings`, `agent:[name]`, `doc-convention`, `code-style`): rule is in project instructions visible to every contributor.
 
-### Step 2: Determine actions
+### Step 1b: Find patterns (Carrot pass)
+
+Runs **alongside** Step 1, not after it. Scan `ai-docs/learnings.md` a second time for entries whose `**Kind:** validation` line is **explicitly present** (the default-when-omitted rule leaves legacy entries OUT of carrot-pass scope — they belong to the Correction pass).
+
+Group by **topic / target surface** (skill / agent / AGENTS.md section). Topic is derived from the `**Rule:**` line's named surface (e.g., a validation entry whose `Rule:` names `/context-reset` groups under `skill:context-reset`). Count validation entries per topic — the count drives Step 2b routing.
+
+The Correction pass (Step 1 → Step 2a) and the Carrot pass (Step 1b → Step 2b) produce independent groupings; an entry's `Kind:` field is what assigns it to a pass.
+
+### Step 2a: Determine actions (Correction pass)
 
 | Occurrences | Current status | Action |
 |---|---|---|
@@ -41,6 +50,23 @@ Go through `ai-docs/learnings.md` and group entries:
 1. Find the skill/agent file responsible for the behavior with the error — update that
 2. Only if no specialized skill/agent → update `AGENTS.md`
 3. Don't default everything to `AGENTS.md`
+
+### Step 2b: Determine actions (Carrot pass)
+
+Asymmetric routing — positive signal is rarer, so the threshold is lower (≥1 seeds, ≥2 promotes) and the promotion verbs are softer (*Default to* / *Prefer*, never *MUST* / *NEVER*).
+
+| Validation entries on same topic | Action |
+|---|---|
+| 1 | Add a `## Patterns` entry to the most-local skill / agent / AGENTS.md (mirrors `ai-docs/agent-writing-style.md § Patterns`); back-link to the validation entry |
+| ≥2 | Promote within the same `## Patterns` section in the targeted file — strengthen verb wording (*Default to* / *Prefer*), never escalate to *MUST* / *NEVER*. Promotion is a wording / verb edit within the section, not a file relocation. |
+| 1 + names a workflow primitive | Hold for second confirmation; surface as candidate in the report |
+
+**Routing — which file to update (same most-local rule as Step 2a):**
+1. Find the skill/agent file named by the validation entry's `Rule:` line — update its `## Patterns` section
+2. Only if no specialized skill/agent → add to `AGENTS.md`
+3. Don't default everything to `AGENTS.md`
+
+Both passes produce independent report entries; the final `/improve` report has separate `## Corrections proposed` and `## Carrots proposed` sections so the asymmetry stays visible to the user.
 
 ### Step 3: Propose concrete changes
 
