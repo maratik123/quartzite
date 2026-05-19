@@ -37,8 +37,8 @@ When triggered (every design-defined group OR compaction detected):
 
 1. `cargo build` — ensure code compiles
 2. Update `ai-docs/plans/YYYY-MM-DD-name.progress.md` (format below)
-3. Launch: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and continue")`
-4. Remaining subtasks — one per Agent call, not batched
+3. Launch ONE Agent per **group** (per the design's `## Handoff plan`). The agent owns all subtasks in its group and runs them sequentially in-context, committing after each: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and complete Group <X>'s subtasks <N>–<M>, then return")`
+4. Do NOT spawn one Agent per subtask. The group is the unit of fan-out; the subtask is the unit of commit.
 5. Do NOT continue in current context
 
 The per-group subagent inherits the canonical schema at [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md) verbatim and writes `current_step` / `last_passed_gate` / `Decisions log` entries at the same subtask boundaries the orchestrator writes them at today. No new per-group section is introduced.
@@ -79,11 +79,12 @@ The variant-distinguishing phrases that the char-cap / variant-identity audit gr
 
 Concentrating the rationale in one place keeps the per-skill callouts short (each is ~25 lines). The cross-link `See .claude/skills/context-reset/SKILL.md § Compaction recovery (re-entry)` resolves to this exact anchor in every Variant-A and Variant-B callout. Variant C punts to the parent's callout instead of cross-linking back to this section (the chain terminates at the parent's active subtask).
 
-## Checkpoint handoff: 1 Agent = 1 subtask
+## Checkpoint handoff: 1 Agent = 1 group
 
-- Do NOT ask "continue?" between subtasks — just proceed
-- Each Agent = 1 subtask, ending with `cargo build`
-- Update progress.md after each Agent
+- Do NOT ask "continue?" between subtasks within a group — just proceed
+- Each Agent = 1 design-defined group; the agent commits after each subtask inside the group
+- Update progress.md after each subtask (current_step, last_passed_gate, Decisions log)
+- The next group's Agent is spawned by the orchestrator only after the current group's Agent returns
 
 ## `.progress.md` format (canonical)
 
