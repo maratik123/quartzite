@@ -102,13 +102,13 @@ For each non-trivial subtask:
 ### Subtask 1 — AGENTS.md edits
 
 - **Location:** N/A (instruction-file edit).
-- **Verification:** `grep -n '## Learning Log' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns exactly one hit. `grep -n '## Corrections Log' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns zero hits. `grep -n 'Kind:' /home/syt/RustroverProjects/quartzite/AGENTS.md` returns ≥1 hit inside the entry-format block. `wc -c /home/syt/RustroverProjects/quartzite/AGENTS.md` returns < 40,000.
+- **Verification:** `grep -n '## Learning Log' AGENTS.md` returns exactly one hit. `grep -n '## Corrections Log' AGENTS.md` returns zero hits. `grep -n 'Kind:' AGENTS.md` returns ≥1 hit inside the entry-format block. `wc -c AGENTS.md` returns < 40,000.
 - **Scenarios:** happy path (section renamed, Kind added, char count under cap); edge case (char count crosses 40k — surface to user, propose extraction per Pattern 8).
 
 ### Subtask 2 — corrections-log.md edits
 
 - **Location:** N/A.
-- **Verification:** `grep -n '^# Learning Log' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns one hit. `grep -n '#corrections-log\b' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns zero hits. `grep -n '#learning-log\b' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns ≥2 hits (the two updated cross-refs). `grep -n 'Kind:' /home/syt/RustroverProjects/quartzite/ai-docs/corrections-log.md` returns ≥1 hit inside the field-glossary section.
+- **Verification:** `grep -n '^# Learning Log' ai-docs/corrections-log.md` returns one hit. `grep -n '#corrections-log\b' ai-docs/corrections-log.md` returns zero hits. `grep -n '#learning-log\b' ai-docs/corrections-log.md` returns ≥2 hits (the two updated cross-refs). `grep -n 'Kind:' ai-docs/corrections-log.md` returns ≥1 hit inside the field-glossary section.
 - **Scenarios:** happy path; edge (an anchor link inside the file was missed by the rename).
 
 ### Subtask 3 — agent file rename-only edits + optional fan-out (`agent-docs-index.md`, `ai-audit/SKILL.md`)
@@ -127,9 +127,9 @@ For each non-trivial subtask:
 - **Detection mechanism:**
   ```
   grep -rn -E 'Corrections.Log|corrections.log|Correction.Log' \
-       /home/syt/RustroverProjects/quartzite/AGENTS.md \
-       /home/syt/RustroverProjects/quartzite/ai-docs/ \
-       /home/syt/RustroverProjects/quartzite/.claude/
+       AGENTS.md \
+       ai-docs/ \
+       .claude/
   ```
   Every remaining hit must be one of:
   - the file-name `ai-docs/corrections-log.md` (intentionally preserved).

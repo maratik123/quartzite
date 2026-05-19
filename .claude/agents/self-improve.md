@@ -39,7 +39,7 @@ The Correction pass (Step 1 → Step 2a) and the Carrot pass (Step 1b → Step 2
 
 ### Step 1c: Auto-memory companion sweep
 
-Runs **alongside** Step 1 and Step 1b — a third parallel signal source, **NOT** a follow-on to either pass. The user-local auto-memory layer at `~/.claude/projects/<project-path-encoded>/memory/` (where `<project-path-encoded>` replaces `/` with `-` in the project's absolute path — for this repo: `-home-syt-RustroverProjects-quartzite`) feeds in as a **companion signal**. The sweep is **read-only** against that directory.
+Runs **alongside** Step 1 and Step 1b — a third parallel signal source, **NOT** a follow-on to either pass. The user-local auto-memory layer at `~/.claude/projects/<project-path-encoded>/memory/` (where `<project-path-encoded>` is the project's absolute path with `/` replaced by `-`, derived from `pwd` at run-time — do NOT hardcode any specific developer's path) feeds in as a **companion signal**. The sweep is **read-only** against that directory.
 
 Read **both**:
 

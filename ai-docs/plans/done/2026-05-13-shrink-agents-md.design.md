@@ -113,7 +113,7 @@ Verification is mechanical greps + `wc -c`. No Rust code is modified; `cargo` ga
 ### AC1 — `wc -c AGENTS.md ≤ 32000`
 
 - **Location:** shell.
-- **Command:** `wc -c < /home/syt/RustroverProjects/quartzite/AGENTS.md`
+- **Command:** `wc -c < AGENTS.md`
 - **Expected before:** `40572`
 - **Expected after:** `≤ 32000` (target band: `28000`–`30000` based on projection).
 - **Strict assertion:** `[ "$(wc -c < AGENTS.md)" -le 32000 ]`.
@@ -121,7 +121,7 @@ Verification is mechanical greps + `wc -c`. No Rust code is modified; `cargo` ga
 ### AC2 — every AXIOM preserved verbatim-in-intent
 
 - **Location:** shell, paired before/after greps.
-- **Before-snapshot:** `grep -nE '^\s*> \*\*AXIOM' /home/syt/RustroverProjects/quartzite/AGENTS.md > /tmp/axioms-before.txt`
+- **Before-snapshot:** `grep -nE '^\s*> \*\*AXIOM' AGENTS.md > /tmp/axioms-before.txt`
 - **After-snapshot:** same command → `/tmp/axioms-after.txt`.
 - **Expected before count:** **8** AXIOM lines (lines 38 / 52 / 65 / 98 / 127 / 171 / 183 / 195).
 - **Expected after count:** **8** (no AXIOM moved out per the dedup table — all 8 stay in `AGENTS.md`).
@@ -137,12 +137,12 @@ Verification is mechanical greps + `wc -c`. No Rust code is modified; `cargo` ga
 
 ### AC4 — Propagation sync-group table header preserved
 
-- **Command:** `grep -nE '^> \| If you edit\.\.\. \| You MUST also check / update\.\.\. \|' /home/syt/RustroverProjects/quartzite/AGENTS.md`
+- **Command:** `grep -nE '^> \| If you edit\.\.\. \| You MUST also check / update\.\.\. \|' AGENTS.md`
 - **Expected:** exactly one match (line 198 ± natural drift from removed lines above).
 
 ### AC5 — external anchored references still resolve
 
-- **Command:** `grep -rn 'AGENTS.md#' /home/syt/RustroverProjects/quartzite/.claude/ /home/syt/RustroverProjects/quartzite/ai-docs/`
+- **Command:** `grep -rn 'AGENTS.md#' .claude/ ai-docs/`
 - **Expected before:** one match — `ai-docs/code-style.md:57` → `AGENTS.md#api-naming`.
 - **Expected after:** same one match (since `## API Naming` is untouched). If a new external anchored reference appears in a `git diff master --` of this PR's instruction-file edits, validate its target H2 still exists in `AGENTS.md`.
 
@@ -163,7 +163,7 @@ Verification is mechanical greps + `wc -c`. No Rust code is modified; `cargo` ga
 
 ### AC8 — propagation grep
 
-- **Command:** `grep -rn "PR review comment resolution\|Boundary rule 1 Exception\|Boundary rule 2 Exception\|Sync groups (canonical)\|Query the registry before pinning" /home/syt/RustroverProjects/quartzite/.claude/ /home/syt/RustroverProjects/quartzite/ai-docs/`
+- **Command:** `grep -rn "PR review comment resolution\|Boundary rule 1 Exception\|Boundary rule 2 Exception\|Sync groups (canonical)\|Query the registry before pinning" .claude/ ai-docs/`
 - **Expected matches and per-ref decisions** (identified at design time — verify each post-edit):
   - `.claude/skills/task/SKILL.md:269` — "follow the GraphQL recipe in AGENTS.md *Workflow* → 'PR review comment resolution' verbatim" — **UPDATE** to reference `ai-docs/workflow.md` (the recipe body moved). Suggested replacement: "follow the GraphQL recipe in `ai-docs/workflow.md` → 'PR review comment resolution' verbatim".
   - `.claude/skills/pr-commented/SKILL.md:183` — "Mechanics — verbatim per AGENTS.md \"PR review comment resolution\"" — **UPDATE** to "Mechanics — verbatim per `ai-docs/workflow.md` → 'PR review comment resolution'" (the recipe body moved).
@@ -178,7 +178,7 @@ Verification is mechanical greps + `wc -c`. No Rust code is modified; `cargo` ga
 This task has no functions or modules; "test entry point" = the four AC verification scripts above, runnable as a single shell block:
 
 ```bash
-cd /home/syt/RustroverProjects/quartzite
+cd "$(git rev-parse --show-toplevel)"
 echo "AC1: $(wc -c < AGENTS.md) chars"
 diff <(grep -E '^\s*> \*\*AXIOM' AGENTS.md) <(git show master:AGENTS.md | grep -E '^\s*> \*\*AXIOM') && echo "AC2: AXIOMs identical" || echo "AC2: FAIL"
 grep -nE '^> \| If you edit\.\.\. \| You MUST also check / update\.\.\. \|' AGENTS.md && echo "AC4: table header present" || echo "AC4: FAIL"
