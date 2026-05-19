@@ -198,4 +198,27 @@ mod tests {
         let palette = Palette::default().with_role(ColorRole::Button, Color::BLUE);
         assert_eq!(palette, palette.clone());
     }
+
+    #[test]
+    fn dark_palette_has_non_transparent_color_for_every_role() {
+        use crate::DARK_PALETTE;
+        for role in ColorRole::ALL {
+            assert_ne!(
+                DARK_PALETTE.color(*role),
+                Color::TRANSPARENT,
+                "role {role:?} is transparent in DARK_PALETTE"
+            );
+        }
+    }
+
+    #[test]
+    fn dark_palette_highlight_differs_from_highlighted_text() {
+        use crate::DARK_PALETTE;
+        assert_ne!(
+            DARK_PALETTE.color(ColorRole::Highlight),
+            DARK_PALETTE.color(ColorRole::HighlightedText),
+            "Highlight must be visually distinct from HighlightedText so that \
+             HighlightedText remains legible against the Highlight background"
+        );
+    }
 }
