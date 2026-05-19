@@ -64,6 +64,30 @@ impl Color {
     /// Fully transparent black (`#00000000`).
     pub const TRANSPARENT: Self = Self::new(0.0, 0.0, 0.0, 0.0);
 
+    /// Mine Shaft dark gray (`#2b2b2bff`).
+    pub const MINE_SHAFT: Self = Self::new(0.169, 0.169, 0.169, 1.0);
+
+    /// Mercury light gray (`#e8e8e8ff`).
+    pub const MERCURY: Self = Self::new(0.910, 0.910, 0.910, 1.0);
+
+    /// Eclipse dark gray (`#3c3c3cff`).
+    pub const ECLIPSE: Self = Self::new(0.235, 0.235, 0.235, 1.0);
+
+    /// Nero near-black (`#1e1e1eff`).
+    pub const NERO: Self = Self::new(0.118, 0.118, 0.118, 1.0);
+
+    /// Dodger blue (`#1e90ffff`).
+    pub const DODGER_BLUE: Self = Self::new(0.118, 0.564, 1.000, 1.0);
+
+    /// Light Dodger blue (`#5bb0ffff`).
+    pub const LIGHT_DODGER_BLUE: Self = Self::new(0.357, 0.690, 1.000, 1.0);
+
+    /// Charoite purple (`#c58affff`).
+    pub const CHAROITE: Self = Self::new(0.773, 0.541, 1.000, 1.0);
+
+    /// Pastel red (`#ff6b6bff`).
+    pub const PASTEL_RED: Self = Self::new(1.000, 0.420, 0.420, 1.0);
+
     /// Returns the red component.
     ///
     /// # Examples

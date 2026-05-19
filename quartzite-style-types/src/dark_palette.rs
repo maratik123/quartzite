@@ -5,9 +5,6 @@
 //! `design-system/README.md` § *Dark theme* and
 //! `design-system/colors_and_type.css` `[data-theme="dark"]`.
 
-use crate::color::{
-    CHAROITE, DODGER_BLUE, ECLIPSE, LIGHT_DODGER_BLUE, MERCURY, MINE_SHAFT, NERO, PASTEL_RED,
-};
 use crate::{ColorRole, Palette};
 use quartzite_paint_api::Color;
 
@@ -32,17 +29,17 @@ use quartzite_paint_api::Color;
 /// );
 /// ```
 pub const DARK_PALETTE: Palette = Palette::new()
-    .with_role(ColorRole::Window, MINE_SHAFT)
-    .with_role(ColorRole::WindowText, MERCURY)
-    .with_role(ColorRole::Button, ECLIPSE)
-    .with_role(ColorRole::ButtonText, MERCURY)
-    .with_role(ColorRole::Base, NERO)
-    .with_role(ColorRole::Text, MERCURY)
-    .with_role(ColorRole::Highlight, DODGER_BLUE)
+    .with_role(ColorRole::Window, Color::MINE_SHAFT)
+    .with_role(ColorRole::WindowText, Color::MERCURY)
+    .with_role(ColorRole::Button, Color::ECLIPSE)
+    .with_role(ColorRole::ButtonText, Color::MERCURY)
+    .with_role(ColorRole::Base, Color::NERO)
+    .with_role(ColorRole::Text, Color::MERCURY)
+    .with_role(ColorRole::Highlight, Color::DODGER_BLUE)
     .with_role(ColorRole::HighlightedText, Color::WHITE)
-    .with_role(ColorRole::Link, LIGHT_DODGER_BLUE)
-    .with_role(ColorRole::LinkVisited, CHAROITE)
-    .with_role(ColorRole::BrightText, PASTEL_RED);
+    .with_role(ColorRole::Link, Color::LIGHT_DODGER_BLUE)
+    .with_role(ColorRole::LinkVisited, Color::CHAROITE)
+    .with_role(ColorRole::BrightText, Color::PASTEL_RED);
 
 #[cfg(test)]
 mod tests {

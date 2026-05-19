@@ -13,7 +13,6 @@
 
 extern crate alloc;
 
-mod color;
 mod color_role;
 mod dark_palette;
 mod palette;
