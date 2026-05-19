@@ -50,6 +50,7 @@ pub struct RecordingRoot {
 
 impl RecordingRoot {
     /// Creates a new recording root sharing the given event log.
+    #[inline]
     pub const fn new(records: Arc<Mutex<Vec<RootEvent>>>) -> Self {
         Self {
             records,
