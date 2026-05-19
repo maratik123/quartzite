@@ -126,7 +126,7 @@ impl Margins {
     /// assert_eq!(shrunk.size(), Size::new(90, 90));
     /// ```
     #[inline]
-    pub fn apply(self, rect: Rect) -> Rect {
+    pub const fn apply(self, rect: Rect) -> Rect {
         rect.adjusted(self.left, self.top, -self.right, -self.bottom)
     }
 }

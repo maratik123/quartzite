@@ -145,7 +145,7 @@ impl CloseEvent {
     /// assert!(e.accepted());
     /// ```
     #[inline]
-    pub fn accept(&mut self) {
+    pub const fn accept(&mut self) {
         self.accepted = true;
     }
 }

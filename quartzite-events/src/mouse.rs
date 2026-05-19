@@ -140,7 +140,7 @@ impl MouseEvent {
     /// assert!(e.buttons_state().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub fn new(
+    pub const fn new(
         position: Point,
         global_position: Point,
         event_button: MouseButtons,
@@ -202,7 +202,7 @@ impl MouseEvent {
     /// assert!(e.event_button().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub fn event_button(&self) -> MouseButtons {
+    pub const fn event_button(&self) -> MouseButtons {
         self.event_button
     }
 
@@ -219,7 +219,7 @@ impl MouseEvent {
     /// assert!(e.buttons_state().contains(MouseButton::Right));
     /// ```
     #[inline]
-    pub fn buttons_state(&self) -> MouseButtons {
+    pub const fn buttons_state(&self) -> MouseButtons {
         self.buttons_state
     }
 
@@ -235,7 +235,7 @@ impl MouseEvent {
     /// assert!(e.modifiers().contains(KeyModifier::Ctrl));
     /// ```
     #[inline]
-    pub fn modifiers(&self) -> KeyModifiers {
+    pub const fn modifiers(&self) -> KeyModifiers {
         self.modifiers
     }
 

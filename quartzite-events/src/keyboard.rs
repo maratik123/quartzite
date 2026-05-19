@@ -261,7 +261,7 @@ impl KeyEvent {
     /// assert_eq!(e.kind(), KeyEventKind::Press);
     /// ```
     #[inline]
-    pub fn new(
+    pub const fn new(
         key: Key,
         text: String,
         modifiers: KeyModifiers,
@@ -288,7 +288,7 @@ impl KeyEvent {
     /// assert_eq!(e.key(), Key::Escape);
     /// ```
     #[inline]
-    pub fn key(&self) -> Key {
+    pub const fn key(&self) -> Key {
         self.key
     }
 
@@ -318,7 +318,7 @@ impl KeyEvent {
     /// assert!(e.modifiers().contains(KeyModifier::Shift));
     /// ```
     #[inline]
-    pub fn modifiers(&self) -> KeyModifiers {
+    pub const fn modifiers(&self) -> KeyModifiers {
         self.modifiers
     }
 
@@ -333,7 +333,7 @@ impl KeyEvent {
     /// assert!(e.is_repeat());
     /// ```
     #[inline]
-    pub fn is_repeat(&self) -> bool {
+    pub const fn is_repeat(&self) -> bool {
         self.is_repeat
     }
 
@@ -348,7 +348,7 @@ impl KeyEvent {
     /// assert_eq!(e.kind(), KeyEventKind::Release);
     /// ```
     #[inline]
-    pub fn kind(&self) -> KeyEventKind {
+    pub const fn kind(&self) -> KeyEventKind {
         self.kind
     }
 }
