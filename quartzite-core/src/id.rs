@@ -50,7 +50,7 @@ impl ObjectId {
     /// assert!(id.raw() > 0);
     /// ```
     #[inline]
-    pub fn raw(self) -> u64 {
+    pub const fn raw(self) -> u64 {
         self.0
     }
 }
@@ -111,7 +111,7 @@ impl ConnectionId {
     /// assert!(id.raw() > 0);
     /// ```
     #[inline]
-    pub fn raw(self) -> u64 {
+    pub const fn raw(self) -> u64 {
         self.0
     }
 }

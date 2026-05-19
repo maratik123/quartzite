@@ -350,7 +350,7 @@ impl EnumEntry {
 /// assert!(noop_lookup_entry_by_name("anything").is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_entry_by_name(_: &str) -> Option<EnumEntry> {
+pub const fn noop_lookup_entry_by_name(_: &str) -> Option<EnumEntry> {
     None
 }
 
@@ -369,7 +369,7 @@ pub fn noop_lookup_entry_by_name(_: &str) -> Option<EnumEntry> {
 /// assert!(noop_lookup_entry_by_value(42).is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_entry_by_value(_: i64) -> Option<EnumEntry> {
+pub const fn noop_lookup_entry_by_value(_: i64) -> Option<EnumEntry> {
     None
 }
 
@@ -511,7 +511,7 @@ impl EnumMeta {
 /// assert!(noop_lookup_property("anything").is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_property(_: &str) -> Option<PropertyMeta> {
+pub const fn noop_lookup_property(_: &str) -> Option<PropertyMeta> {
     None
 }
 
@@ -530,7 +530,7 @@ pub fn noop_lookup_property(_: &str) -> Option<PropertyMeta> {
 /// assert!(noop_lookup_signal("anything").is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_signal(_: &str) -> Option<SignalMeta> {
+pub const fn noop_lookup_signal(_: &str) -> Option<SignalMeta> {
     None
 }
 
@@ -549,7 +549,7 @@ pub fn noop_lookup_signal(_: &str) -> Option<SignalMeta> {
 /// assert!(noop_lookup_method("anything").is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_method(_: &str) -> Option<MethodMeta> {
+pub const fn noop_lookup_method(_: &str) -> Option<MethodMeta> {
     None
 }
 
@@ -568,7 +568,7 @@ pub fn noop_lookup_method(_: &str) -> Option<MethodMeta> {
 /// assert!(noop_lookup_enum("anything").is_none());
 /// ```
 #[inline]
-pub fn noop_lookup_enum(_: &str) -> Option<EnumMeta> {
+pub const fn noop_lookup_enum(_: &str) -> Option<EnumMeta> {
     None
 }
 

@@ -206,7 +206,7 @@ impl Value {
     /// assert_eq!(Value::Bool(true).type_name(), "Bool");
     /// assert_eq!(Value::Duration(core::time::Duration::from_secs(1)).type_name(), "Duration");
     /// ```
-    pub fn type_name(&self) -> &'static str {
+    pub const fn type_name(&self) -> &'static str {
         match self {
             Self::Null => "Null",
             Self::Bool(_) => "Bool",
