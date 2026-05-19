@@ -105,13 +105,15 @@ pub struct CloseEvent {
 impl CloseEvent {
     /// Creates a new close event in the non-accepted state.
     ///
+    /// This is a `const fn` so a `CloseEvent` can be used as a compile-time constant.
+    ///
     /// # Examples
     ///
     /// ```
     /// use quartzite_events::CloseEvent;
     ///
-    /// let e = CloseEvent::new();
-    /// assert!(!e.accepted());
+    /// const E: CloseEvent = CloseEvent::new();
+    /// assert!(!E.accepted());
     /// ```
     #[inline]
     pub const fn new() -> Self {

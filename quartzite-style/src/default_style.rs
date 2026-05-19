@@ -55,7 +55,7 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
 /// let _: Box<dyn Style> = Box::new(DefaultStyle);
 /// ```
-#[derive(Default, Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct DefaultStyle;
 
 impl Style for DefaultStyle {

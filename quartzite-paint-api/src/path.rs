@@ -74,13 +74,15 @@ pub struct Path {
 impl Path {
     /// Creates an empty path.
     ///
+    /// This is a `const fn` so a `Path` can be used as a compile-time constant.
+    ///
     /// # Examples
     ///
     /// ```
     /// use quartzite_paint_api::Path;
     ///
-    /// let p = Path::new();
-    /// assert!(p.segments().is_empty());
+    /// const P: Path = Path::new();
+    /// assert!(P.segments().is_empty());
     /// ```
     #[inline]
     pub const fn new() -> Self {
