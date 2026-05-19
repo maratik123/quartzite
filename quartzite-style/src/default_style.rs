@@ -45,7 +45,7 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// ```
 /// use quartzite_style::{DefaultStyle, StyleRegistry};
 ///
-/// StyleRegistry::set_style(Box::new(DefaultStyle::new()));
+/// StyleRegistry::set_style(Box::new(DefaultStyle));
 /// assert!(StyleRegistry::try_style().is_some());
 /// ```
 ///
@@ -53,28 +53,10 @@ const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 /// use quartzite_style::{DefaultStyle, Style};
 ///
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
-/// let _: Box<dyn Style> = Box::new(DefaultStyle::new());
+/// let _: Box<dyn Style> = Box::new(DefaultStyle);
 /// ```
 #[derive(Clone, Copy, Debug, Default)]
 pub struct DefaultStyle;
-
-impl DefaultStyle {
-    /// Creates a new [`DefaultStyle`].
-    ///
-    /// This is a `const fn` so a `DefaultStyle` can be used as a compile-time constant.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use quartzite_style::DefaultStyle;
-    ///
-    /// const STYLE: DefaultStyle = DefaultStyle::new();
-    /// ```
-    #[inline]
-    pub const fn new() -> Self {
-        Self
-    }
-}
 
 impl Style for DefaultStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
