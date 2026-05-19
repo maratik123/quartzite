@@ -342,10 +342,7 @@ impl ObjectTree {
             // Insert into new name bucket.
             this.by_name.entry(new_name.clone()).or_default().push(id);
             // Emit name_changed after index is consistent. old = None means was anonymous.
-            let old_val = match old_name_opt {
-                Some(s) => Value::String(s),
-                None => Value::Null,
-            };
+            let old_val = old_name_opt.map_or(Value::Null, Value::String);
             this.with_mut(id, |obj| {
                 obj.emit_signal("name_changed", &[old_val, Value::String(new_name)]);
             });
@@ -927,6 +924,10 @@ mod tests {
     // --- name_changed signal emission tests (AC4–AC9) ---
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn rename_emits_name_changed_with_old_and_new() {
         // AC5: rename(id, new) emits (Some(old), Some(new)).
         let mut tree = ObjectTree::new();
@@ -943,6 +944,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn rename_noop_does_not_emit() {
         // AC7: same-name rename does not emit.
         let mut tree = ObjectTree::new();
@@ -957,6 +962,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn rename_anonymous_emits_null_old() {
         // AC8: anonymous → named emits (None, Some(new)).
         let mut tree = ObjectTree::new();
@@ -972,6 +981,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn clear_name_emits_name_changed_with_old_and_null() {
         // AC6: clear_name emits (Some(old), None).
         let mut tree = ObjectTree::new();
@@ -988,6 +1001,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn clear_name_already_anonymous_does_not_emit() {
         // Already-anonymous clear_name must not emit.
         let mut tree = ObjectTree::new();
@@ -1002,6 +1019,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn destroy_does_not_emit_name_changed() {
         // AC9: destroy must not emit name_changed.
         let mut tree = ObjectTree::new();

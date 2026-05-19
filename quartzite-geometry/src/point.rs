@@ -212,6 +212,10 @@ impl From<PointF> for Point {
 /// ```
 impl From<Point> for PointF {
     #[inline]
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "sub-pixel coordinate widening is intentional"
+    )]
     fn from(p: Point) -> Self {
         Self::new(p.x as f32, p.y as f32)
     }
@@ -258,6 +262,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn pointf_new_and_accessors() {
         let p = PointF::new(1.5, 2.5);
         assert_eq!(p.x(), 1.5);

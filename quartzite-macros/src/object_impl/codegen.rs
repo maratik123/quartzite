@@ -35,6 +35,10 @@ pub(crate) fn emit_impl_block(
     self_ty: &syn::Type,
     other_items: &[syn::ImplItem],
 ) -> TokenStream {
+    #[allow(
+        clippy::option_if_let_else,
+        reason = "map_or_else here hurts readability"
+    )]
     if let Some(tp) = trait_path {
         quote! { impl #tp for #self_ty { #(#other_items)* } }
     } else {

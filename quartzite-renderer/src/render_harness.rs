@@ -477,6 +477,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn builder_default_scale_factor_is_1_0() {
         // Validates builder default without GPU — zero-extent error fires first.
         let harness = RenderHarnessBuilder::new(0, 64).build().unwrap_err();
@@ -491,6 +495,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn builder_explicit_scale_factor_round_trips() {
         let builder = RenderHarnessBuilder::new(64, 64).scale_factor(2.0);
         assert_eq!(builder.scale_factor, 2.0);
@@ -498,6 +506,10 @@ mod tests {
 
     // R10 — accessor + Debug tests (GPU-gated like the snapshot test below)
     #[test]
+    #[allow(
+        clippy::float_cmp,
+        reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+    )]
     fn render_harness_accessors_and_debug() {
         if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some() {
             eprintln!(

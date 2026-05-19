@@ -30,6 +30,10 @@ use support::{harness_or_skip, snapshot_assert};
 /// Canvas size shared by all snapshot tests. 64 keeps committed PNGs small.
 const CANVAS: u32 = 64;
 
+#[allow(
+    clippy::cast_possible_wrap,
+    reason = "snapshot test index arithmetic within known u16 range"
+)]
 fn canvas_rect() -> Rect {
     Rect::new(Point::new(0, 0), Size::new(CANVAS as i32, CANVAS as i32))
 }

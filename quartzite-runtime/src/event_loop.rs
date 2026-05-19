@@ -289,6 +289,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::significant_drop_tightening,
+        reason = "MutexGuard held intentionally to keep critical section atomic"
+    )]
     fn post_from_other_thread_executes_on_loop_thread() {
         let el = Arc::new(EventLoop::new());
         let loop_thread_id: Arc<Mutex<Option<thread::ThreadId>>> = Arc::new(Mutex::new(None));

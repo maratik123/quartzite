@@ -52,14 +52,14 @@ fn from_stored(stored: StoredMethod) -> MethodItem {
             }
         })
         .collect();
-    let ret_ty = match stored.ret_ty {
-        None => syn::ReturnType::Default,
-        Some(ty_str) => {
+    let ret_ty = stored.ret_ty.map_or_else(
+        || syn::ReturnType::Default,
+        |ty_str| {
             let ty: syn::Type =
                 syn::parse_str(&ty_str).expect("stored return type string should be parseable");
             syn::ReturnType::Type(syn::token::RArrow { spans: [cs, cs] }, Box::new(ty))
-        }
-    };
+        },
+    );
     MethodItem {
         ident: Ident::new(&stored.name, cs),
         params,

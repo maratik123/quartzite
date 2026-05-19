@@ -87,7 +87,7 @@ fn connect_signal_to_signal_unknown_from_signal_returns_error() {
     let err = connect_signal_to_signal(
         &mut emitter,
         "unknown",
-        relay,
+        &relay,
         "value_received",
         ConnectionType::Direct,
     )
@@ -105,7 +105,7 @@ fn connect_signal_to_signal_arity_mismatch_returns_error() {
     let err = connect_signal_to_signal(
         &mut emitter,
         "value_sent",
-        relay,
+        &relay,
         "clicked",
         ConnectionType::Direct,
     )
@@ -131,7 +131,7 @@ fn direct_connection_forwards_synchronously() {
     connect_signal_to_signal(
         &mut emitter,
         "value_sent",
-        to,
+        &to,
         "value_received",
         ConnectionType::Direct,
     )
@@ -163,7 +163,7 @@ fn liveness_after_target_drop() {
     connect_signal_to_signal(
         &mut emitter,
         "value_sent",
-        to,
+        &to,
         "value_received",
         ConnectionType::Direct,
     )
@@ -172,6 +172,7 @@ fn liveness_after_target_drop() {
     emitter.value_sent.emit_unconditionally(&(1,));
     assert_eq!(captured.load(Ordering::Relaxed), 1);
 
+    drop(to);
     drop(relay);
     emitter.value_sent.emit_unconditionally(&(2,));
     assert_eq!(
@@ -199,7 +200,7 @@ fn disconnect_stops_forwarding() {
     let id = connect_signal_to_signal(
         &mut emitter,
         "value_sent",
-        to,
+        &to,
         "value_received",
         ConnectionType::Direct,
     )
@@ -239,7 +240,7 @@ fn chain_emitter_to_relay_a_to_relay_b() {
         connect_signal_to_signal(
             &mut emitter,
             "value_sent",
-            a,
+            &a,
             "value_received",
             ConnectionType::Direct,
         )
@@ -253,7 +254,7 @@ fn chain_emitter_to_relay_a_to_relay_b() {
         connect_signal_to_signal(
             &mut *guard,
             "value_received",
-            b,
+            &b,
             "value_received",
             ConnectionType::Direct,
         )
@@ -286,7 +287,7 @@ fn connect_signals_typed_api_direct() {
         &mut emitter,
         "value_sent",
         |obj: &mut Emitter| &mut obj.value_sent,
-        Arc::clone(&relay),
+        &relay,
         "value_received",
         ConnectionType::Direct,
     )
@@ -352,7 +353,7 @@ fn auto_cross_thread_posts_to_dispatcher() {
     connect_signal_to_signal(
         &mut emitter,
         "value_sent",
-        to,
+        &to,
         "value_received",
         ConnectionType::Auto,
     )

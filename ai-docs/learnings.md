@@ -1279,3 +1279,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** After any edit to `ai-docs/plans/INDEX.md` (or any file under `ai-docs/plans/done/`), always run `bash scripts/gen-roadmap.sh` and stage the updated `ROADMAP.md` in the same commit. The `/task` SKILL Step 12 sub-step 6 already mandates this ("Regenerate dependent artefacts … stage them with the same commit") — the rule is not new, but the step was silently skipped.
 
 **Escalated?** no
+
+### 2026-05-18 — tooling — Cargo [lints] workspace = true and per-crate [lints.clippy] are mutually exclusive
+
+**What happened:** The design for subtask 3 (cast family Narrow) specified adding a `[lints.clippy]` per-crate allow block to `quartzite-widgets/Cargo.toml` alongside the existing `[lints] workspace = true`. Cargo rejected this with "cannot override `workspace.lints` in `lints`, either remove the overrides or `lints.workspace = true` and manually specify the lints". All crates in this project use `[lints] workspace = true`.
+
+**Rule:** When a crate uses `[lints] workspace = true`, you CANNOT add per-crate `[lints.clippy]` overrides in a separate table. Per-crate lint overrides require either (a) removing `workspace = true` and manually re-specifying all workspace lints, or (b) using per-item `#[allow(clippy::lint_name, reason = "…")]` at each call site. In this project, (b) is always preferred — preserving `workspace = true` is more important than avoiding per-item annotations. When a design says "per-crate allow" for a lint, verify Cargo supports it given the workspace = true constraint before committing to that approach; if not, fall back to per-item allows.
+
+**Escalated?** no

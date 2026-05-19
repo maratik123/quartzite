@@ -98,6 +98,10 @@ impl Object for Stub {
     clippy::similar_names,
     reason = "Test fixture names `child_a`/`child_b` and `child_a_id`/`child_b_id` mirror the AC scenarios; renaming would obscure the symmetry"
 )]
+#[allow(
+    clippy::significant_drop_tightening,
+    reason = "MutexGuard held intentionally to keep critical section atomic"
+)]
 fn parent_children_accessors_all_acs() {
     // ──────────────────────────────────────────────────────────────────────────
     // Phase 0 — before Application::new() (AC9 pre-new)

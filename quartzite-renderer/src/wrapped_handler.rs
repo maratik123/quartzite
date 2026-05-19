@@ -127,6 +127,10 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
     ///
     /// Separated from `dispatch_window_event` so the pure dispatch logic can be
     /// unit-tested without a live `ActiveEventLoop`.
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "WindowEvent consumed by pattern match; changing to &WindowEvent requires ref-patterns throughout and degrades readability"
+    )]
     pub(crate) fn dispatch_window_event_inner(
         &mut self,
         window_id: WinitWindowId,
@@ -149,6 +153,10 @@ impl<H: WindowedAppHandler> WrappedHandler<H> {
             }
             WindowEvent::RedrawRequested => {
                 if let Some(entry) = self.registry.windows.get(&window_id) {
+                    #[allow(
+                        clippy::cast_possible_truncation,
+                        reason = "deliberate truncation within known bounds"
+                    )]
                     let scale = entry
                         .window
                         .as_ref()

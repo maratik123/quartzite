@@ -395,6 +395,10 @@ impl IntoValue for f64 {
 }
 
 impl FromValue for f32 {
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "deliberate truncation within known bounds"
+    )]
     fn from_value(val: Value) -> Result<Self, TypeError> {
         match val {
             Value::Float(f) => Ok(f as Self),
@@ -497,10 +501,7 @@ impl IntoValue for Option<String> {
     /// ```
     #[inline]
     fn into_value(self) -> Value {
-        match self {
-            None => Value::Null,
-            Some(s) => Value::String(s),
-        }
+        self.map_or(Value::Null, Value::String)
     }
 }
 
