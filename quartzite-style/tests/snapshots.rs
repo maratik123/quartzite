@@ -21,8 +21,9 @@
 mod support;
 
 use quartzite_geometry::{Point, Rect, Size};
+use quartzite_paint_api::Painter;
 use quartzite_style::{DefaultStyle, Style};
-use quartzite_style_types::Palette;
+use quartzite_style_types::{DARK_PALETTE, Palette};
 use quartzite_widgets::{AsWidget, Button, Label, ScrollArea, TextEdit, WidgetExt};
 
 use support::{harness_or_skip, snapshot_assert};
@@ -174,4 +175,121 @@ fn scroll_area_chrome_renders() {
         DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_chrome", &image);
+}
+
+// ---------------------------------------------------------------------------
+// Dark-theme snapshot tests
+// ---------------------------------------------------------------------------
+
+/// Runs a dark-palette snapshot test: boots a harness, renders via `build`,
+/// and asserts the result against the golden named `name` in
+/// `tests/snapshots/shared/dark_<name>.png`.
+///
+/// Lives here (not in `support/mod.rs`) so the snapshot-helper sync group
+/// (`quartzite-style/tests/support/mod.rs` ↔ `quartzite-widgets/tests/support/mod.rs`)
+/// stays untouched — the widgets side has no dark-theme use case.
+fn render_dark<F: FnOnce(&mut dyn Painter)>(name: &str, build: F) {
+    let Some(mut harness) = harness_or_skip(name) else {
+        return;
+    };
+    let image = harness.render_widget(build);
+    snapshot_assert(name, &image);
+}
+
+#[test]
+fn dark_button_idle_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    render_dark("dark_button_idle", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_button_hovered_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_hovered(true);
+    render_dark("dark_button_hovered", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_button_pressed_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_pressed(true);
+    render_dark("dark_button_pressed", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_button_checked_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.checked = true;
+    render_dark("dark_button_checked", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_button_focused_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    render_dark("dark_button_focused", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_button_disabled_renders() {
+    let mut w = Button::new("OK".into());
+    w.set_geometry(canvas_rect());
+    w.set_enabled(false);
+    render_dark("dark_button_disabled", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_label_renders() {
+    let mut w = Label::new("hi".into());
+    w.set_geometry(canvas_rect());
+    render_dark("dark_label", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_scroll_area_chrome_renders() {
+    let mut w = ScrollArea::new();
+    w.set_geometry(canvas_rect());
+    render_dark("dark_scroll_area_chrome", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_text_edit_plain_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    render_dark("dark_text_edit_plain", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_text_edit_read_only_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    w.read_only = true;
+    render_dark("dark_text_edit_read_only", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
 }
