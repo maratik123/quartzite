@@ -81,6 +81,24 @@ Activation sequence (bare-issue → matching deferred spec): parse `$ARGUMENTS` 
 
 ---
 
+## ⚡ Fourth: blocked-label reconciliation
+
+> **Guard sentence.** Fires when the resolved input is a gh issue — bare-number `/task <N>` (whether `⚡ Third` matched a deferred spec or fell through), OR `⚡ Second`/`⚡ Third` activated a deferred spec whose `**Tracked in:** #N` points to a real issue. Free-text `/task` invocations with no issue reference skip this preamble entirely. Runs AFTER `⚡ Third` and BEFORE Steps 1–5 / Step 6.
+
+If the resolved issue's `labels` array (already fetched by `⚡ Third` step 2) contains `blocked`, reconcile before proceeding:
+
+1. Enumerate blockers from the issue body — `Blocked by #M` / `Depends on #M` references. Treat any free-text blocker ("blocked on the auth rewrite") with no `#M` form as an unresolvable open blocker for step 4.
+2. Query each `#M` blocker: `gh issue view <M> --json state`.
+3. **All blockers CLOSED** → `gh issue edit <N> --remove-label blocked` (the stale label removal is part of the deliverable; it keeps `/next` / `/triage` filter accuracy honest), then continue with the normal flow.
+4. **At least one blocker OPEN, or any unresolvable free-text reference** → pause and ask the user one of:
+   - which blockers to wait on (do **not** start work);
+   - which blockers to disregard for this issue (closed-as-not-planned, unrelated cross-ref) — if zero open blockers remain after the user's answer, proceed with step 3 (remove the label);
+   - or whether to start work anyway accepting the risk — in this case do **NOT** remove the label (the issue is still semantically blocked; the user is overriding the gate explicitly).
+
+Never proceed silently when any blocker is open. The `blocked` label is the project's gate signal; starting `/task` past it without reconciliation defeats the gate and risks producing a spec/design that hits the unresolved dependency mid-implementation.
+
+---
+
 ### Steps 1–5: Spec creation (delegated to `/interview`)
 
 `/task` does not duplicate the interview workflow. Treat Steps 1–5 as a single delegated phase. If a saved spec already exists under `ai-docs/plans/`, confirm with the user and skip to Step 6. Otherwise invoke `Skill(skill="interview", args="$ARGUMENTS")` — the interview handles entry-mode detection, scope confirmation, clarifying-question rounds, tracking-issue resolution, spec writing, and the cross-link comment. Spec-only runs move the spec to `ai-docs/plans/deferred/` and stop. **Before Step 6:** confirm the spec exists at `ai-docs/plans/YYYY-MM-DD-name.spec.md` and the user has approved its `## Acceptance Criteria`. Full delegation narrative: `reference.md` § Steps 1–5 — spec creation delegation (detail).

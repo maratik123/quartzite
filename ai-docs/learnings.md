@@ -983,7 +983,7 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **How to apply:** add a Phase 0.5 step to `.claude/skills/task/SKILL.md` (between the branch check and the issue-body fetch) running the four-step reconciliation above. The check fires only when the resolved input is a gh issue (bare-number `/task <N>` or deferred-spec activation with a populated `**Tracked in:** #N`); free-text `/task` invocations with no issue reference skip the check entirely. Propagate the change through the Task/Design sync group per AGENTS.md's Propagation Rule, and add the matching pre-resolved-rule entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent does not surface the `blocked`-label question.
 
-**Escalated?** no
+**Escalated?** skill:task, agent:spec-writer
 
 ### 2026-05-13 — process — stale `.progress.md` after a merge mis-routes the next `/task` into the RESUME path
 

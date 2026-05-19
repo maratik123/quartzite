@@ -42,7 +42,7 @@ If `$ARGUMENTS` contains words like "activate", "start", "proceed" **and** a mat
 Activation sequence (bare-issue → matching deferred spec):
 
 1. Parse `$ARGUMENTS` — strip leading `#`, confirm it's a positive integer `N`.
-2. Load issue body: `gh issue view <N> --json title,body,state,labels` (also used to surface the issue's `blocked` label per the separate AGENTS.md learning, when that rule fires).
+2. Load issue body: `gh issue view <N> --json title,body,state,labels`. The `labels` field feeds `⚡ Fourth` (blocked-label reconciliation) on the next preamble.
 3. Grep deferred specs for the tracking reference:
    ```bash
    grep -l "^\*\*Tracked in:\*\* #<N>\b" ai-docs/plans/deferred/*.spec.md
