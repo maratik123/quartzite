@@ -66,7 +66,7 @@ pub enum Segment {
 /// p.move_to(Point::new(0, 0)).line_to(Point::new(10, 0)).close();
 /// assert_eq!(p.segments().len(), 3);
 /// ```
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Path {
     segments: Vec<Segment>,
 }
@@ -74,13 +74,15 @@ pub struct Path {
 impl Path {
     /// Creates an empty path.
     ///
+    /// This is a `const fn` so a `Path` can be used as a compile-time constant.
+    ///
     /// # Examples
     ///
     /// ```
     /// use quartzite_paint_api::Path;
     ///
-    /// let p = Path::new();
-    /// assert!(p.segments().is_empty());
+    /// const P: Path = Path::new();
+    /// assert!(P.segments().is_empty());
     /// ```
     #[inline]
     pub const fn new() -> Self {
@@ -229,6 +231,27 @@ impl Path {
     pub fn close(&mut self) -> &mut Self {
         self.segments.push(Segment::Close);
         self
+    }
+}
+
+#[allow(
+    clippy::derivable_impls,
+    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
+)]
+impl Default for Path {
+    /// Returns an empty [`Path`], identical to [`Path::new`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Path;
+    ///
+    /// let p = Path::default();
+    /// assert!(p.segments().is_empty());
+    /// ```
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }
 

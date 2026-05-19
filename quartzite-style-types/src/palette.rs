@@ -15,7 +15,7 @@ const ROLE_COUNT: usize = ColorRole::ALL.len();
 /// array reads; updates via [`with_role`](Self::with_role) are builder-style
 /// (consume `self`, return the modified palette).
 ///
-/// [`Palette::default`] installs a sensible non-transparent value for every
+/// [`Palette::new`] installs a sensible non-transparent value for every
 /// role — concrete styles override the slots they care about via
 /// [`with_role`](Self::with_role).
 ///
@@ -25,7 +25,7 @@ const ROLE_COUNT: usize = ColorRole::ALL.len();
 /// use quartzite_paint_api::Color;
 /// use quartzite_style_types::{ColorRole, Palette};
 ///
-/// let palette = Palette::default().with_role(ColorRole::Window, Color::RED);
+/// let palette = Palette::new().with_role(ColorRole::Window, Color::RED);
 /// assert_eq!(palette.color(ColorRole::Window), Color::RED);
 /// ```
 #[derive(Clone, Debug, PartialEq)]
@@ -34,6 +34,47 @@ pub struct Palette {
 }
 
 impl Palette {
+    /// Returns a palette where every [`ColorRole`] resolves to a
+    /// non-transparent colour.
+    ///
+    /// The defaults are intentionally minimal — the goal is to satisfy the
+    /// `default != Color::TRANSPARENT` invariant for every role rather than
+    /// to produce a polished theme. Backgrounds resolve to [`Color::WHITE`]
+    /// and foregrounds (text, link colours, bright text) resolve to
+    /// [`Color::BLACK`] except [`ColorRole::BrightText`] and
+    /// [`ColorRole::HighlightedText`], which use [`Color::WHITE`] so they
+    /// remain legible against highlighted backgrounds. [`ColorRole::Highlight`]
+    /// is seeded to [`Color::SKY_BLUE`] so checked / selected widgets render
+    /// visibly under the default palette. Concrete `Style` implementations
+    /// override these via [`Palette::with_role`].
+    ///
+    /// This is a `const fn` so a `Palette` can be used as a compile-time constant.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Color;
+    /// use quartzite_style_types::{ColorRole, Palette};
+    ///
+    /// const PAL: Palette = Palette::new();
+    /// for role in ColorRole::ALL {
+    ///     assert_ne!(PAL.color(*role), Color::TRANSPARENT);
+    /// }
+    /// ```
+    #[inline]
+    pub const fn new() -> Self {
+        let mut colors = [Color::WHITE; ROLE_COUNT];
+        colors[ColorRole::WindowText as usize] = Color::BLACK;
+        colors[ColorRole::ButtonText as usize] = Color::BLACK;
+        colors[ColorRole::Text as usize] = Color::BLACK;
+        colors[ColorRole::HighlightedText as usize] = Color::WHITE;
+        colors[ColorRole::Highlight as usize] = Color::SKY_BLUE;
+        colors[ColorRole::Link as usize] = Color::BLUE;
+        colors[ColorRole::LinkVisited as usize] = Color::BLUE;
+        colors[ColorRole::BrightText as usize] = Color::WHITE;
+        Self { colors }
+    }
+
     /// Returns the colour assigned to `role`.
     ///
     /// # Parameters
@@ -84,19 +125,7 @@ impl Palette {
 }
 
 impl Default for Palette {
-    /// Returns a palette where every [`ColorRole`] resolves to a
-    /// non-transparent colour.
-    ///
-    /// The defaults are intentionally minimal — the goal is to satisfy the
-    /// `default != Color::TRANSPARENT` invariant for every role rather than
-    /// to produce a polished theme. Backgrounds resolve to [`Color::WHITE`]
-    /// and foregrounds (text, link colours, bright text) resolve to
-    /// [`Color::BLACK`] except [`ColorRole::BrightText`] and
-    /// [`ColorRole::HighlightedText`], which use [`Color::WHITE`] so they
-    /// remain legible against highlighted backgrounds. [`ColorRole::Highlight`]
-    /// is seeded to [`Color::SKY_BLUE`] so checked / selected widgets render
-    /// visibly under the default palette. Concrete `Style` implementations
-    /// override these via [`Palette::with_role`].
+    /// Returns [`Self::new`].
     ///
     /// # Examples
     ///
@@ -109,17 +138,9 @@ impl Default for Palette {
     ///     assert_ne!(palette.color(*role), Color::TRANSPARENT);
     /// }
     /// ```
+    #[inline]
     fn default() -> Self {
-        let mut colors = [Color::WHITE; ROLE_COUNT];
-        colors[ColorRole::WindowText as usize] = Color::BLACK;
-        colors[ColorRole::ButtonText as usize] = Color::BLACK;
-        colors[ColorRole::Text as usize] = Color::BLACK;
-        colors[ColorRole::HighlightedText as usize] = Color::WHITE;
-        colors[ColorRole::Highlight as usize] = Color::SKY_BLUE;
-        colors[ColorRole::Link as usize] = Color::BLUE;
-        colors[ColorRole::LinkVisited as usize] = Color::BLUE;
-        colors[ColorRole::BrightText as usize] = Color::WHITE;
-        Self { colors }
+        Self::new()
     }
 }
 

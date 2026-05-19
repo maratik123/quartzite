@@ -97,7 +97,7 @@ impl<T: 'static + Send + Sync> Event<T> for ResizeEvent {
 /// e.accept();
 /// assert!(e.accepted());
 /// ```
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CloseEvent {
     accepted: bool,
 }
@@ -105,13 +105,15 @@ pub struct CloseEvent {
 impl CloseEvent {
     /// Creates a new close event in the non-accepted state.
     ///
+    /// This is a `const fn` so a `CloseEvent` can be used as a compile-time constant.
+    ///
     /// # Examples
     ///
     /// ```
     /// use quartzite_events::CloseEvent;
     ///
-    /// let e = CloseEvent::new();
-    /// assert!(!e.accepted());
+    /// const E: CloseEvent = CloseEvent::new();
+    /// assert!(!E.accepted());
     /// ```
     #[inline]
     pub const fn new() -> Self {
@@ -147,6 +149,28 @@ impl CloseEvent {
     #[inline]
     pub const fn accept(&mut self) {
         self.accepted = true;
+    }
+}
+
+#[allow(
+    clippy::derivable_impls,
+    reason = "explicit impl preserves const-construction semantics; derive defeats AC1 const-eligibility goal"
+)]
+impl Default for CloseEvent {
+    /// Returns a new [`CloseEvent`] in the non-accepted state, identical to
+    /// [`CloseEvent::new`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_events::CloseEvent;
+    ///
+    /// let e = CloseEvent::default();
+    /// assert!(!e.accepted());
+    /// ```
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }
 
