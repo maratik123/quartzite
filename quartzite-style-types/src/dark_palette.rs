@@ -9,7 +9,7 @@ use quartzite_paint_api::Color;
 
 use crate::{ColorRole, Palette};
 
-/// Dark-theme colour seed for the quartzite styling system.
+/// Dark-theme color seed for the quartzite styling system.
 ///
 /// Every [`ColorRole`] slot is set to the RGBA value that `design-system/README.md`
 /// § *Dark theme* specifies for that role, converted from sRGB hex to 3-decimal
