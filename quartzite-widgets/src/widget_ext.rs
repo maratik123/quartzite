@@ -5,7 +5,7 @@ use quartzite_paint_api::Painter;
 
 use quartzite_events::{KeyEvent, MouseEvent};
 
-use crate::widget_base::AsWidget;
+use crate::widget_base::{AsWidget, WidgetState};
 
 /// Convenience extension trait blanket-implemented for every [`AsWidget`] type.
 ///
@@ -143,7 +143,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn show(&mut self) {
-        self.widget_base_mut().visible = true;
+        self.widget_base_mut().state.insert(WidgetState::Visible);
     }
 
     /// Hides the widget by setting `visible = false`.
@@ -160,7 +160,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn hide(&mut self) {
-        self.widget_base_mut().visible = false;
+        self.widget_base_mut().state.remove(WidgetState::Visible);
     }
 
     /// Returns `true` when the widget is visible.
@@ -175,7 +175,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn is_visible(&self) -> bool {
-        self.widget_base().visible
+        self.widget_base().state.contains(WidgetState::Visible)
     }
 
     /// Sets the visibility flag directly.
@@ -195,7 +195,9 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn set_visible(&mut self, visible: bool) {
-        self.widget_base_mut().visible = visible;
+        self.widget_base_mut()
+            .state
+            .set(WidgetState::Visible, visible);
     }
 
     // ── enabled ───────────────────────────────────────────────────────────────
@@ -212,7 +214,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn is_enabled(&self) -> bool {
-        self.widget_base().enabled
+        self.widget_base().state.contains(WidgetState::Enabled)
     }
 
     /// Enables or disables the widget.
@@ -232,7 +234,9 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn set_enabled(&mut self, enabled: bool) {
-        self.widget_base_mut().enabled = enabled;
+        self.widget_base_mut()
+            .state
+            .set(WidgetState::Enabled, enabled);
     }
 
     // ── hovered / pressed / focused ───────────────────────────────────────────
@@ -251,7 +255,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn is_hovered(&self) -> bool {
-        self.widget_base().hovered
+        self.widget_base().state.contains(WidgetState::Hovered)
     }
 
     /// Sets the hovered state flag.
@@ -271,7 +275,9 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn set_hovered(&mut self, value: bool) {
-        self.widget_base_mut().hovered = value;
+        self.widget_base_mut()
+            .state
+            .set(WidgetState::Hovered, value);
     }
 
     /// Returns `true` while a mouse button is held with press-initiated state on this widget.
@@ -288,7 +294,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn is_pressed(&self) -> bool {
-        self.widget_base().pressed
+        self.widget_base().state.contains(WidgetState::Pressed)
     }
 
     /// Sets the pressed state flag.
@@ -308,7 +314,9 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn set_pressed(&mut self, value: bool) {
-        self.widget_base_mut().pressed = value;
+        self.widget_base_mut()
+            .state
+            .set(WidgetState::Pressed, value);
     }
 
     /// Returns `true` while this widget owns keyboard focus.
@@ -325,7 +333,7 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn is_focused(&self) -> bool {
-        self.widget_base().focused
+        self.widget_base().state.contains(WidgetState::Focused)
     }
 
     /// Sets the focused state flag.
@@ -345,27 +353,31 @@ pub trait WidgetExt: AsWidget {
     /// ```
     #[inline]
     fn set_focused(&mut self, value: bool) {
-        self.widget_base_mut().focused = value;
+        self.widget_base_mut()
+            .state
+            .set(WidgetState::Focused, value);
     }
 
     // ── repaint ───────────────────────────────────────────────────────────────
 
     /// Marks the widget as needing a repaint on the next render pass.
     ///
-    /// Sets `WidgetBase::pending_update` to `true`; the renderer consumes this flag.
+    /// Sets [`WidgetState::PendingUpdate`] in the widget's state; the renderer consumes this flag.
     ///
     /// # Examples
     ///
     /// ```
-    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt};
+    /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt, WidgetState};
     ///
     /// let mut w = WidgetBase::new();
     /// w.update();
-    /// assert!(w.widget_base().pending_update);
+    /// assert!(w.widget_base().state.contains(WidgetState::PendingUpdate));
     /// ```
     #[inline]
     fn update(&mut self) {
-        self.widget_base_mut().pending_update = true;
+        self.widget_base_mut()
+            .state
+            .insert(WidgetState::PendingUpdate);
     }
 
     // ── size hints ────────────────────────────────────────────────────────────
@@ -598,7 +610,7 @@ mod tests {
     fn update_sets_pending_update() {
         let mut w = WidgetBase::new();
         w.update();
-        assert!(w.widget_base().pending_update);
+        assert!(w.widget_base().state.contains(WidgetState::PendingUpdate));
     }
 
     #[test]
@@ -709,7 +721,7 @@ mod tests {
     fn on_mouse_press_default_sets_pressed() {
         let mut w = WidgetBase::new();
         w.on_mouse_press(&fake_mouse_event(MouseEventKind::Press));
-        assert!(w.widget_base().pressed);
+        assert!(w.widget_base().state.contains(WidgetState::Pressed));
     }
 
     #[test]
@@ -717,14 +729,14 @@ mod tests {
         let mut w = WidgetBase::new();
         w.set_pressed(true);
         w.on_mouse_release(&fake_mouse_event(MouseEventKind::Release));
-        assert!(!w.widget_base().pressed);
+        assert!(!w.widget_base().state.contains(WidgetState::Pressed));
     }
 
     #[test]
     fn on_focus_in_default_sets_focused() {
         let mut w = WidgetBase::new();
         w.on_focus_in();
-        assert!(w.widget_base().focused);
+        assert!(w.widget_base().state.contains(WidgetState::Focused));
     }
 
     #[test]
@@ -732,6 +744,6 @@ mod tests {
         let mut w = WidgetBase::new();
         w.set_focused(true);
         w.on_focus_out();
-        assert!(!w.widget_base().focused);
+        assert!(!w.widget_base().state.contains(WidgetState::Focused));
     }
 }
