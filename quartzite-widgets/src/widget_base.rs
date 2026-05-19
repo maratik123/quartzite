@@ -2,12 +2,60 @@
 
 use std::sync::Arc;
 
+use enumflags2::{BitFlags, bitflags};
 use quartzite_core::{ObjectBase, ObjectId};
 use quartzite_geometry::{Rect, Size};
 use quartzite_macros::Extend;
 
 use crate::widgets::{Button, Container, Label, LineEdit, ScrollArea, TextEdit};
 use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
+
+/// A single observable state flag for a widget.
+///
+/// Combine multiple flags into a [`WidgetStates`] set with `|`.
+/// Use [`WidgetStates::empty()`] to represent no active states.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_widgets::{WidgetState, WidgetStates};
+///
+/// let active: WidgetStates = WidgetState::Visible | WidgetState::Enabled;
+/// assert!(active.contains(WidgetState::Visible));
+/// assert!(active.contains(WidgetState::Enabled));
+/// assert!(!active.contains(WidgetState::Hovered));
+/// ```
+#[bitflags]
+#[repr(u8)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum WidgetState {
+    /// The widget is currently visible.
+    Visible = 0b0000_0001,
+    /// The widget is currently enabled (accepts input).
+    Enabled = 0b0000_0010,
+    /// A repaint has been requested; consumed by the renderer.
+    PendingUpdate = 0b0000_0100,
+    /// The mouse cursor is over the widget's bounding rectangle.
+    Hovered = 0b0000_1000,
+    /// A mouse button is held with press-initiated state on this widget.
+    Pressed = 0b0001_0000,
+    /// This widget owns keyboard focus.
+    Focused = 0b0010_0000,
+}
+
+/// A set of [`WidgetState`] flags.
+///
+/// Constructed by OR-ing [`WidgetState`] variants. Use [`BitFlags::empty()`] for no active states.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_widgets::{WidgetState, WidgetStates};
+///
+/// let active: WidgetStates = WidgetState::Visible | WidgetState::Enabled;
+/// assert!(active.contains(WidgetState::Visible));
+/// ```
+pub type WidgetStates = BitFlags<WidgetState>;
 
 /// Hierarchy root for all quartzite widgets.
 ///
@@ -21,7 +69,7 @@ use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
 /// # Examples
 ///
 /// ```
-/// use quartzite_widgets::{WidgetBase, WidgetExt};
+/// use quartzite_widgets::{WidgetBase, WidgetExt, WidgetState};
 ///
 /// let mut w = WidgetBase::new();
 /// assert!(!w.is_visible());
@@ -30,19 +78,13 @@ use crate::{CursorShape, FocusPolicy, Font, Palette, SizePolicy};
 /// ```
 #[derive(Extend)]
 #[root]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "planned collapse into BitFlags<WidgetState> tracked in #480"
-)]
 pub struct WidgetBase {
     #[base]
     object: ObjectBase,
     /// Bounding rectangle of the widget in parent coordinates.
     pub geometry: Rect,
-    /// Whether the widget is currently visible.
-    pub visible: bool,
-    /// Whether the widget is currently enabled (accepts input).
-    pub enabled: bool,
+    /// Combined widget state flags (visibility, enabled, hover, etc.).
+    pub state: BitFlags<WidgetState>,
     /// Keyboard focus policy for this widget.
     pub focus_policy: FocusPolicy,
     /// Size policy controlling how the widget participates in layout.
@@ -57,50 +99,34 @@ pub struct WidgetBase {
     pub layout: Option<ObjectId>,
     /// [`ObjectId`]s of installed event filters (dispatch deferred to plan #47).
     pub event_filters: Vec<ObjectId>,
-    /// Set to `true` by [`crate::WidgetExt::update`]; consumed by the renderer.
-    pub pending_update: bool,
     /// Minimum size hint returned by [`crate::WidgetExt::minimum_size`].
     pub min_size: Size,
     /// Maximum size hint returned by [`crate::WidgetExt::maximum_size`].
     pub max_size: Size,
-    /// `true` while the mouse cursor is over the widget's [`Self::geometry`].
-    ///
-    /// Updated by the input-plumbing pass via [`crate::WidgetExt::set_hovered`].
-    pub hovered: bool,
-    /// `true` while a mouse button is held with press-initiated state on this widget.
-    ///
-    /// Set to `true` by the [`crate::WidgetExt::on_mouse_press`] default and cleared
-    /// by [`crate::WidgetExt::on_mouse_release`].
-    pub pressed: bool,
-    /// `true` while this widget owns keyboard focus.
-    ///
-    /// Set to `true` by the [`crate::WidgetExt::on_focus_in`] default and cleared
-    /// by [`crate::WidgetExt::on_focus_out`].
-    pub focused: bool,
 }
 
 impl WidgetBase {
     /// Creates a new anonymous [`WidgetBase`] with default values.
     ///
-    /// The widget starts hidden (`visible = false`), enabled, with zero geometry and
-    /// default font/palette shared instances.
+    /// The widget starts hidden ([`WidgetState::Visible`] not set), enabled
+    /// ([`WidgetState::Enabled`] set), with zero geometry and default font/palette
+    /// shared instances.
     ///
     /// # Examples
     ///
     /// ```
-    /// use quartzite_widgets::WidgetBase;
+    /// use quartzite_widgets::{WidgetBase, WidgetState};
     ///
     /// let w = WidgetBase::new();
-    /// assert!(!w.visible);
-    /// assert!(w.enabled);
+    /// assert!(!w.state.contains(WidgetState::Visible));
+    /// assert!(w.state.contains(WidgetState::Enabled));
     /// ```
     #[inline]
     pub fn new() -> Self {
         Self {
             object: ObjectBase::new(),
             geometry: Rect::default(),
-            visible: false,
-            enabled: true,
+            state: WidgetState::Enabled.into(),
             focus_policy: FocusPolicy::default(),
             size_policy: SizePolicy::default(),
             cursor: CursorShape::default(),
@@ -108,12 +134,8 @@ impl WidgetBase {
             palette: Arc::new(Palette::default()),
             layout: None,
             event_filters: Vec::new(),
-            pending_update: false,
             min_size: Size::default(),
             max_size: Size::default(),
-            hovered: false,
-            pressed: false,
-            focused: false,
         }
     }
 }
@@ -124,10 +146,10 @@ impl Default for WidgetBase {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_widgets::WidgetBase;
+    /// use quartzite_widgets::{WidgetBase, WidgetState};
     ///
     /// let w = WidgetBase::default();
-    /// assert!(!w.visible);
+    /// assert!(!w.state.contains(WidgetState::Visible));
     /// ```
     #[inline]
     fn default() -> Self {
@@ -244,15 +266,15 @@ mod tests {
     #[test]
     fn new_widget_base_defaults() {
         let w = WidgetBase::new();
-        assert!(!w.visible);
-        assert!(w.enabled);
+        assert!(!w.state.contains(WidgetState::Visible));
+        assert!(w.state.contains(WidgetState::Enabled));
         assert_eq!(w.geometry, Rect::default());
         assert!(w.layout.is_none());
         assert!(w.event_filters.is_empty());
-        assert!(!w.pending_update);
-        assert!(!w.hovered);
-        assert!(!w.pressed);
-        assert!(!w.focused);
+        assert!(!w.state.contains(WidgetState::PendingUpdate));
+        assert!(!w.state.contains(WidgetState::Hovered));
+        assert!(!w.state.contains(WidgetState::Pressed));
+        assert!(!w.state.contains(WidgetState::Focused));
     }
 
     #[test]
@@ -260,7 +282,7 @@ mod tests {
         let w = WidgetBase::new();
         // AsWidget::widget_base() returns &self
         let r: &WidgetBase = w.widget_base();
-        assert!(!r.visible);
+        assert!(!r.state.contains(WidgetState::Visible));
     }
 
     #[test]
@@ -274,17 +296,17 @@ mod tests {
     fn show_hide() {
         let mut w = WidgetBase::new();
         w.show();
-        assert!(w.visible);
+        assert!(w.state.contains(WidgetState::Visible));
         w.hide();
-        assert!(!w.visible);
+        assert!(!w.state.contains(WidgetState::Visible));
     }
 
     #[test]
     fn update_sets_pending() {
         let mut w = WidgetBase::new();
-        assert!(!w.pending_update);
+        assert!(!w.state.contains(WidgetState::PendingUpdate));
         w.update();
-        assert!(w.pending_update);
+        assert!(w.state.contains(WidgetState::PendingUpdate));
     }
 
     #[test]

@@ -2800,6 +2800,7 @@ dependencies = [
 name = "quartzite-widgets"
 version = "0.1.0"
 dependencies = [
+ "enumflags2",
  "image",
  "nv-flip",
  "parking_lot",
