@@ -5,7 +5,7 @@ use quartzite_paint_api::Painter;
 use quartzite_style::Palette;
 use quartzite_style::Style;
 use quartzite_style::StyleRegistry;
-use quartzite_widgets::AsWidget;
+use quartzite_widgets::{AsWidget, WidgetState};
 
 /// Maps an [`ObjectId`] to the widget it refers to.
 ///
@@ -149,7 +149,7 @@ fn visit(
         tracing::warn!(?id, "dispatch_paint: resolver miss");
         return;
     };
-    if !widget.widget_base().visible {
+    if !widget.widget_base().state.contains(WidgetState::Visible) {
         return;
     }
 
@@ -160,7 +160,7 @@ fn visit(
             tracing::warn!(id = ?child_id, "dispatch_paint: resolver miss");
             continue;
         };
-        if !child.widget_base().visible {
+        if !child.widget_base().state.contains(WidgetState::Visible) {
             continue;
         }
         let origin = child.widget_base().geometry.origin();
