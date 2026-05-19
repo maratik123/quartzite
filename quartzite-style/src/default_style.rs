@@ -230,7 +230,7 @@ impl Paint<LineEdit> for DefaultStyle {
 
 /// Returns a solid [`Brush`] using the colour at `role` in `palette`.
 #[inline]
-fn brush(palette: &Palette, role: ColorRole) -> Brush {
+const fn brush(palette: &Palette, role: ColorRole) -> Brush {
     Brush::solid(palette.color(role))
 }
 
@@ -249,7 +249,7 @@ fn disabled(color: Color) -> Color {
 /// and `Base` share a colour (as on `Palette::default`) — because
 /// `WindowText` always carries contrast against `Window` and `Base`.
 #[inline]
-fn read_only_overlay(palette: &Palette) -> Color {
+const fn read_only_overlay(palette: &Palette) -> Color {
     palette
         .color(ColorRole::WindowText)
         .with_alpha(READ_ONLY_OVERLAY_ALPHA)

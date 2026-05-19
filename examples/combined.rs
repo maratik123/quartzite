@@ -69,7 +69,7 @@ impl Resettable for Counter {
 #[object_impl]
 impl Counter {
     #[invokable]
-    fn value(&self) -> i32 {
+    const fn value(&self) -> i32 {
         self.count
     }
 }

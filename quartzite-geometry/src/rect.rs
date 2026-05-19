@@ -251,7 +251,7 @@ impl Rect {
     /// assert_eq!(adjusted.size(), Size::new(24, 24));
     /// ```
     #[inline]
-    pub fn adjusted(self, dx1: i32, dy1: i32, dx2: i32, dy2: i32) -> Self {
+    pub const fn adjusted(self, dx1: i32, dy1: i32, dx2: i32, dy2: i32) -> Self {
         let left = self.left() + dx1;
         let top = self.top() + dy1;
         let right = self.right() + dx2;

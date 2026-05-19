@@ -212,7 +212,7 @@ impl Brush {
     /// assert!(matches!(brush.kind(), BrushKind::Custom(_)));
     /// ```
     #[inline]
-    pub fn custom_gradient(gradient: peniko::Gradient) -> Self {
+    pub const fn custom_gradient(gradient: peniko::Gradient) -> Self {
         Self {
             kind: BrushKind::Custom(gradient),
         }
@@ -228,7 +228,7 @@ impl Brush {
     /// assert_eq!(Brush::solid(Color::WHITE).kind(), &BrushKind::Solid(Color::WHITE));
     /// ```
     #[inline]
-    pub fn kind(&self) -> &BrushKind {
+    pub const fn kind(&self) -> &BrushKind {
         &self.kind
     }
 }

@@ -57,7 +57,7 @@ impl WindowedApplicationBuilder {
     ///
     /// Default: `quit_on_last_window_closed = true`.
     #[inline]
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             quit_on_last_window_closed: true,
             #[cfg(target_os = "linux")]
@@ -88,7 +88,7 @@ impl WindowedApplicationBuilder {
     /// ```
     #[cfg(target_os = "linux")]
     #[inline]
-    pub fn with_any_thread(mut self, any_thread: bool) -> Self {
+    pub const fn with_any_thread(mut self, any_thread: bool) -> Self {
         self.any_thread = any_thread;
         self
     }
@@ -110,7 +110,7 @@ impl WindowedApplicationBuilder {
     ///     .unwrap();
     /// ```
     #[inline]
-    pub fn quit_on_last_window_closed(mut self, quit: bool) -> Self {
+    pub const fn quit_on_last_window_closed(mut self, quit: bool) -> Self {
         self.quit_on_last_window_closed = quit;
         self
     }

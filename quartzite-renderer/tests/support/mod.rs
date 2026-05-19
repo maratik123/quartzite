@@ -50,7 +50,8 @@ pub struct RecordingRoot {
 
 impl RecordingRoot {
     /// Creates a new recording root sharing the given event log.
-    pub fn new(records: Arc<Mutex<Vec<RootEvent>>>) -> Self {
+    #[inline]
+    pub const fn new(records: Arc<Mutex<Vec<RootEvent>>>) -> Self {
         Self {
             records,
             _painted: Cell::new(false),
@@ -101,22 +102,32 @@ pub fn proxy_send_exit(proxy: &EventLoopProxy<AppEvent>) {
 /// Non-Linux platforms always return `None` — the xvfb pattern is
 /// Linux-only.
 #[allow(dead_code)]
+#[inline]
+#[cfg(not(target_os = "linux"))]
+pub const fn build_test_app(_quit_on_last_window_closed: bool) -> Option<WindowedApplication> {
+    None
+}
+
+/// Builds a [`WindowedApplication`] using the `with_any_thread` X11/Wayland
+/// extensions so the call succeeds from a `cargo test` worker thread.
+///
+/// Returns `None` when:
+/// - `SKIP_RENDER_SNAPSHOT` is set (CI bailout without display).
+/// - The `Application` singleton is already held by another test.
+/// - The event loop fails to build (no display server available).
+///
+/// Non-Linux platforms always return `None` — the xvfb pattern is
+/// Linux-only.
+#[allow(dead_code)]
+#[cfg(target_os = "linux")]
 pub fn build_test_app(quit_on_last_window_closed: bool) -> Option<WindowedApplication> {
-    #[cfg(not(target_os = "linux"))]
-    {
-        let _ = quit_on_last_window_closed;
-        None
+    if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some_and(|v| !v.is_empty()) {
+        eprintln!("multi_window: SKIP_RENDER_SNAPSHOT set; skipping");
+        return None;
     }
-    #[cfg(target_os = "linux")]
-    {
-        if std::env::var_os("SKIP_RENDER_SNAPSHOT").is_some_and(|v| !v.is_empty()) {
-            eprintln!("multi_window: SKIP_RENDER_SNAPSHOT set; skipping");
-            return None;
-        }
-        WindowedApplication::builder()
-            .quit_on_last_window_closed(quit_on_last_window_closed)
-            .with_any_thread(true)
-            .build()
-            .ok()
-    }
+    WindowedApplication::builder()
+        .quit_on_last_window_closed(quit_on_last_window_closed)
+        .with_any_thread(true)
+        .build()
+        .ok()
 }

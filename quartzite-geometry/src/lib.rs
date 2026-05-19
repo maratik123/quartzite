@@ -24,13 +24,18 @@ pub use size::{Size, SizeF};
     clippy::cast_possible_truncation,
     reason = "deliberate truncation within known bounds"
 )]
+#[cfg(feature = "std")]
+pub(crate) const fn round_f32(x: f32) -> i32 {
+    x.round() as i32
+}
+
+/// Rounds `x` to the nearest integer, half away from zero.
+#[inline]
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "deliberate truncation within known bounds"
+)]
+#[cfg(not(feature = "std"))]
 pub(crate) fn round_f32(x: f32) -> i32 {
-    #[cfg(feature = "std")]
-    {
-        x.round() as i32
-    }
-    #[cfg(not(feature = "std"))]
-    {
-        libm::roundf(x) as i32
-    }
+    libm::roundf(x) as i32
 }

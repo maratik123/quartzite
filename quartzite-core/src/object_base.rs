@@ -189,7 +189,7 @@ impl ObjectBase {
     /// assert!(base.id().raw() > 0);
     /// ```
     #[inline]
-    pub fn id(&self) -> ObjectId {
+    pub const fn id(&self) -> ObjectId {
         self.id
     }
 
@@ -205,7 +205,7 @@ impl ObjectBase {
     /// assert_eq!(std::sync::Arc::strong_count(guard), 1);
     /// ```
     #[inline]
-    pub fn receiver_guard(&self) -> &Arc<ReceiverGuard> {
+    pub const fn receiver_guard(&self) -> &Arc<ReceiverGuard> {
         &self.receiver_guard
     }
 
@@ -224,7 +224,7 @@ impl ObjectBase {
     /// assert!(base.signals_blocked());
     /// ```
     #[inline]
-    pub fn block_signals(&mut self) {
+    pub const fn block_signals(&mut self) {
         self.signals_blocked = true;
     }
 
@@ -243,7 +243,7 @@ impl ObjectBase {
     /// assert!(!base.signals_blocked());
     /// ```
     #[inline]
-    pub fn unblock_signals(&mut self) {
+    pub const fn unblock_signals(&mut self) {
         self.signals_blocked = false;
     }
 
@@ -258,7 +258,7 @@ impl ObjectBase {
     /// assert!(!base.signals_blocked());
     /// ```
     #[inline]
-    pub fn signals_blocked(&self) -> bool {
+    pub const fn signals_blocked(&self) -> bool {
         self.signals_blocked
     }
 
