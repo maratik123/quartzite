@@ -333,7 +333,7 @@ See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/c
 
 Categories: `code-style` | `process` | `architecture` | `testing` | `documentation` | `tooling` | `search` | `other`
 
-Run `/improve` when ≥3 unescalated entries accumulate.
+Run `/improve` when **≥3 unescalated correction entries**, **≥2 unescalated validation entries**, or a `🌱 Stale-validation` flag from `/ai-audit` accumulates.
 
 ## Rust Test Conventions
 
