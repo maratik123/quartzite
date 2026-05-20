@@ -71,7 +71,13 @@ Per the official docs:
 
 Per the [Claude Code skill-directory pattern](https://code.claude.com/docs/en/skills#add-supporting-files), a skill directory may contain SKILL.md plus supporting files (reference docs loaded on demand, scripts the skill executes, examples Claude can read). Audit checks:
 
-1. **Oversized SKILL.md (reference material embedded in workflow).** Identify any `SKILL.md` > 200 lines. For each, scan for *reference content* sections (format specs, parser rules, lookup tables, long checklists, embedded templates) — material that is referenced once or twice in the workflow but loaded into context on every invocation. Propose extraction to a supporting file. Severity `minor`.
+1. **Oversized SKILL.md — exemption check + drift detection.** Two additive findings fire from the same pass; both severity `minor`. Source of truth for exemptions: `ai-docs/skill-size-exemptions.md` (each `### <path>` block under `## Active entries` carries the SKILL path + a `wc -l at audit time` field).
+
+   - (a) **Parse the index.** Read `ai-docs/skill-size-exemptions.md` and extract, for each `### <path>` block, the SKILL path and the cited `wc -l at audit time` numeric value.
+   - (b) **Oversized + no exemption.** Run `wc -l .claude/skills/*/SKILL.md` against the live tree. For each file > 200 lines whose path is NOT in the parsed index, emit a `minor` finding: scan for *reference content* sections (format specs, parser rules, lookup tables, long checklists, embedded templates) — material that is referenced once or twice in the workflow but loaded into context on every invocation — and propose extraction to a supporting file OR addition of an exemption entry to `ai-docs/skill-size-exemptions.md`.
+   - (c) **Drift detection.** For each SKILL path listed in the index, compare its cited `wc -l` against the live `wc -l`. On any mismatch, emit a `minor` finding with the exact wording: `` `<path>`: index cites X lines, live is Y lines ``. Direction (grew / shrank) is implicit in the two numbers; a SKILL that shrank to ≤ 200 lines should additionally have its index entry deleted per the index file's § Notes entry-removal rule.
+
+   Mechanical pre-commit gate planned in #383; this audit-side back-stop fires in the meantime.
 
 2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 skill or agent**, propose moving it from the owning skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another skill's body. Severity `minor`.
 
