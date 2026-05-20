@@ -141,25 +141,19 @@ When adding or editing dependencies in `Cargo.toml`:
 >
 > The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch **before** any `Edit`/`Write`. Before any `git push`, confirm again — if it is `master`, stop and apply recovery.
 
-- Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
-- Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
-- Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
-- **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff. **After every push** (CI fix, reviewer-comment fix, self-review fix): if a learning entry was written *after* the last code commit landed, give it its own commit on the feature branch in the same turn — do not leave `learnings.md` as an unstaged working-tree change waiting to be bundled with the next code change. Order: write learning → `git add ai-docs/learnings.md` → commit → push.
-- **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
-- **CI-fix commits get self-review too.** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, spawn the `self-review` agent (or, at minimum, run an inline review covering: correct idiom used, no semantics broken, no adjacent lint issues missed, commit message accurate). The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch.
-- **No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. Recurred 2026-05-07 / 2026-05-14 / 2026-05-16.
-- **Never** use `git reset --hard` — it silently discards uncommitted work (working-tree changes, untracked files). Use one of these instead:
-  - `git reset --soft HEAD~N` — preserves working tree; commits become staged
-  - `git stash` — saves uncommitted changes before switching branches
-  - `git cherry-pick` — moves specific commits to another branch
-  - Backup branch — `git checkout -b backup/...` before any destructive operation
-- Plan first. Tests before prod code (TDD). Lint changed files.
-- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:**
-  - Files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
-  - Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
+- Merge PRs via merge commit (`gh pr merge --merge`); never squash/rebase-merge. → [§ Merge strategy](ai-docs/workflow.md#merge-strategy)
+- Run `cargo build` before commit so `Cargo.lock` refreshes. → [§ Cargo.lock refresh before commit](ai-docs/workflow.md#cargolock-refresh-before-commit)
+- Stage explicitly; **Never** `git add -A` / `.`. → [§ Explicit-file staging](ai-docs/workflow.md#explicit-file-staging)
+- **Before every `git commit` during a PR task**, stage `ai-docs/learnings.md` with related code. **After every push**, give a post-push learning entry its own commit. → [§ Staging learnings.md during PR commits](ai-docs/workflow.md#staging-learningsmd-during-pr-commits)
+- **Never** `git commit --no-verify` (or any hook-skip flag) — fix the hook. → [§ No --no-verify](ai-docs/workflow.md#no---no-verify)
+- **CI-fix commits get self-review too.** Spawn `self-review` before pushing any CI-fix commit. → [§ CI-fix commit self-review (parent rule)](ai-docs/workflow.md#ci-fix-commit-self-review-parent-rule) + [§ Self-review checklist for CI-fix commits](ai-docs/workflow.md#self-review-checklist-for-ci-fix-commits)
+- **No "too simple" step-skip in `/task`.** Steps 6 / 7 / 10 are MANDATORY; user authorisation is the only bypass. → [§ "Too simple" step-skip rule (parent rule)](ai-docs/workflow.md#too-simple-step-skip-rule-parent-rule)
+- **NEVER** `git reset --hard` — discards uncommitted work. → [§ Recovery from destructive-git-commands](ai-docs/workflow.md#recovery-from-destructive-git-commands)
+- Plan first. Tests before prod code (TDD). Lint changed files. → [§ TDD + lint-changed-files](ai-docs/workflow.md#tdd--lint-changed-files)
+- Files with ~50+ lines of substantial logic MUST have a `#[cfg(test)] mod tests` block (exceptions: `examples/`, `benches/` with `harness = false`). → [§ #[cfg(test)] requirement for substantial logic](ai-docs/workflow.md#cfgtest-requirement-for-substantial-logic)
 - `.gitignore` (not `.arcignore`).
-- After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
-- **PR review comment resolution:** After pushing fixes, resolve only the comments addressed by a code change; comments where you posted an objection stay open for the reviewer. GitHub stores review threads (not just comments), and REST `/pulls/{N}/comments` does not expose `isResolved` — use the GraphQL `reviewThreads` query then `resolveReviewThread` mutation. See [`ai-docs/workflow.md` → PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution) for the full recipe.
+- After generating/moving a markdown file with relative links, trace one link via `realpath` before committing. → [§ Markdown link tracing after generate/move](ai-docs/workflow.md#markdown-link-tracing-after-generatemove)
+- **PR review comment resolution:** Resolve only comments fixed by code; objections stay open for the reviewer. → [§ PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution)
 
 > **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
 > The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.
@@ -171,7 +165,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | The body contradicts the new commits (renames, scope drift, AC flips, cited counts that drifted) | Run `gh pr edit` to sync |
 > | `gh pr create` immediately preceded the push (i.e., this is the first push that opened the PR) | **Skip** the read — the body is what you just authored. The rule fires on the **next** push. |
 >
-> The upstream tracking **issue**'s title and body are the user's original problem statement — do not rewrite them. Communicate scope changes via `gh issue comment` instead.
+> See [`ai-docs/workflow.md` → PR body vs. tracking-issue body](ai-docs/workflow.md#pr-body-vs-tracking-issue-body) for the issue-vs-PR-body distinction.
 
 > **AXIOM — Every code-producing commit on a feature branch with an open PR (or about-to-be-opened PR) must pass `self-review` before `git push`.**
 > The per-skill rules already exist (`/task` Step 10, `/pr-commented` Step 5, `/pr-ci-failed` Step 5, `/master-ci-failed` Step 5, `/bugfix` Step 6). This AXIOM names them as instances of a single workspace rule, so the next surface that doesn't yet have its own per-skill step still falls under the rule.
@@ -215,16 +209,14 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md ai-docs/agent-writing-style.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
 > | `AGENTS.md` "Learning Log" section (Boundary rules 1 / 2, entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Learning-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
 > | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, task SKILL Step 8's every-group `/context-reset` handoff contract, and context-reset's own trigger / `allowed-tools` / write-contract wording all co-evolve) |
-> | `.claude/agents/design.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group) |
-> | `.claude/agents/design-review.md` | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group) |
-> | `.claude/skills/context-reset/SKILL.md` (handoff trigger, `allowed-tools`, write-contract wording) | `.claude/skills/task/SKILL.md` Steps 6–8 AND `.claude/agents/design.md` AND `.claude/agents/design-review.md` (Task/Design group — `/context-reset`'s trigger contract co-evolves with the sync group; widened in #375) |
+> | `.claude/agents/design.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
+> | `.claude/agents/design-review.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
+> | `.claude/skills/context-reset/SKILL.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
 > | `.claude/skills/task/SKILL.md` Step 7 *Spec Amendment recipe* (or any rule about spec-amendment → design → design-review re-entry) | `.claude/skills/pr-commented/SKILL.md` AND `.claude/skills/pr-ci-failed/SKILL.md` AND `.claude/skills/master-ci-failed/SKILL.md` (Spec-Amendment group — every downstream "fix" skill whose round can touch `ai-docs/plans/*.spec.md` carries the same recipe; the rule's mechanical detection trigger — *"the fix commit's diff includes a `.spec.md` file"* — applies identically in each surface) |
 > | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
-
-> The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 
 **Procedure:**
 1. Before closing the edit, `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md ai-docs/agent-writing-style.md` for any file that references the same rule, exemption, or terminology.
@@ -250,6 +242,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
 | `ai-docs/corrections-log.md` | Extracted § Learning Log carve-outs + field glossary |
 | `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
+| `ai-docs/plans-summary.md` | Maintenance-plans (cross-cutting) detail bodies from context.md |
 | `ai-docs/dependency-versions.md` | Live Cargo / GitHub Action version lookup + behaviour recipes |
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
 | `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
@@ -289,9 +282,9 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 >
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
 >
-> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** These two lines of an existing entry MAY be updated in-place by the `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) — see [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-agent contract. All other lines of an entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are **NOT** authorised by this exception — invoke `/ai-audit` or explicitly request the change.
+> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** Both fields MAY be updated in-place by the `self-improve` agent (`/improve`) and the `learnings-escalation-audit` agent (`/ai-audit` Phase 1). See [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-agent contract. All other lines of an entry remain immutable.
 >
-> **One-off carve-out — 2026-05-19 compaction-recovery-protocol entry.** The 2026-05-19 *compaction-recovery protocol in skill files works* entry was retro-tagged `**Kind:** validation` per PR #492 Phase 1, with the carve-out recorded in that entry's own `Superseded by:` line as the durable audit trail. Named, narrow, audit-traced; **NOT a precedent** for further bulk edits to existing entries. Every future schema-migration touch of `learnings.md` requires its own named carve-out under this Exception block.
+> **One-off carve-out — 2026-05-19 compaction-recovery-protocol entry.** Retro-tagged `**Kind:** validation` via PR #492 Phase 1 with `Superseded by:` line as audit trail. **Named, narrow, NOT a precedent.** Schema migrations require their own named carve-out. See [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception).
 
 ### Boundary rule 2 — writing to `learnings.md` triggers NO other rule-file edits in the same turn
 
@@ -312,9 +305,9 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 >
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
 >
-> **Exception — `/improve` and `/ai-audit` workflows.** The `self-improve` agent (via `/improve`) and the `learnings-escalation-audit` agent (via `/ai-audit` Phase 1) MAY update `Escalated?` / `Superseded by:` on existing entries alongside instruction-file edits — see [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception). The exception applies to **existing-entry `Escalated?` / `Superseded by:` updates ONLY** — NEW learning entries STILL **cannot** be appended in the same turn as instruction-file edits (Rule 2's main protection stays intact).
+> **Exception — `/improve` and `/ai-audit` workflows.** `self-improve` (via `/improve`) + `learnings-escalation-audit` (via `/ai-audit` Phase 1) MAY update `Escalated?` / `Superseded by:` on existing entries alongside instruction-file edits. Existing-entry updates ONLY — NEW learning entries STILL cannot be appended in the same turn as instruction-file edits (Rule 2's main protection stays intact). See [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception).
 >
-> **Exception — in-flow learning capture during `/task` Steps 8–12.** A NEW learning entry MAY be appended to `ai-docs/learnings.md` in the same conversation turn as an instruction-file edit when **all** of these hold: (a) the running skill is `/task` (Steps 8–12 — Implementation through Finalise), **or any sub-skill (e.g., `/bugfix`, `/context-reset`) invoked from within `/task` Steps 8–12**, (b) the entry documents an insight gained **during** the task being implemented (not a pre-emptive escalation of a rule the task already enforces), AND (c) the entry is marked `Escalated? no` (any project-level escalation requires a separate `/improve` invocation per Rule 2's main body). Bare instruction-file edits outside a `/task` flow remain bound by the main rule. See [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception) for the full body.
+> **Exception — in-flow learning capture during `/task` Steps 8–12.** A NEW learning entry MAY be appended in the same turn as an instruction-file edit when ALL hold: (a) running skill is `/task` Steps 8–12 (incl. sub-skills `/bugfix`, `/context-reset`); (b) entry documents an in-task insight (not pre-emptive escalation); (c) marked `Escalated? no`. See [`ai-docs/corrections-log.md` → Boundary rule 2 Exception](ai-docs/corrections-log.md#boundary-rule-2-exception) for the full body.
 
 ### Entry format
 
