@@ -4,7 +4,7 @@
 // `quartzite-macros` import is needed.
 use quartzite::prelude::*;
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Counter {
     #[base]

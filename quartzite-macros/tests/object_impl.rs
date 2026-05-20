@@ -1,11 +1,11 @@
 //! Integration tests for the `#[object_impl]` and `#[object_part]` attribute macros across sole-mode and multi-block types.
 
 use quartzite::core::{Object, ObjectBase, Signal, Value};
-use quartzite_macros::{Extend, Object as ObjectDerive, object_impl, object_part};
+use quartzite_macros::{Extend, Object, object_impl, object_part};
 
 // ── Sole-mode type (no #[object_part] — AC3) ────────────────────────────────
 
-#[derive(Extend, ObjectDerive)]
+#[derive(Extend, Object)]
 #[root]
 struct Widget {
     #[base]
@@ -31,7 +31,7 @@ impl Widget {
 
 // ── Multi-block type: #[object_part] + #[object_impl] (AC1/AC4) ─────────────
 
-#[derive(Extend, ObjectDerive)]
+#[derive(Extend, Object)]
 #[root]
 struct MultiBlock {
     #[base]
@@ -64,7 +64,7 @@ trait Resettable {
     fn reset(&mut self);
 }
 
-#[derive(Extend, ObjectDerive)]
+#[derive(Extend, Object)]
 #[root]
 struct TraitPartWidget {
     #[base]

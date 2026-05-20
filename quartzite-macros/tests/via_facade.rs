@@ -3,9 +3,9 @@
 // Verifies that macros accessed via `quartzite::macros` emit `::quartzite::core` paths —
 // no direct `quartzite_macros` import is needed.
 use quartzite::core::{AsObject, Object, ObjectBase, Signal, Value};
-use quartzite::macros::{Extend, Object as DeriveObject, object_impl};
+use quartzite::macros::{Extend, Object, object_impl};
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Sensor {
     #[base]

@@ -1,4 +1,4 @@
-//! Shows `Extend`, `DeriveObject`, `object_impl`, `object_part`, and `emit!` working together.
+//! Shows `Extend`, `Object`, `object_impl`, `object_part`, and `emit!` working together.
 //!
 //! Layout:
 //!  - `Counter` — root object; property with notify + two signals
@@ -12,7 +12,7 @@ use quartzite::prelude::*;
 
 // ── Root object ───────────────────────────────────────────────────────────────
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Counter {
     #[base]
@@ -77,7 +77,7 @@ impl Counter {
 // ── Derived object ────────────────────────────────────────────────────────────
 
 /// A Counter that clamps at a configurable maximum.
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 struct LimitedCounter {
     #[base]
     base: Counter,
