@@ -10,7 +10,7 @@
 //! that brings the most-used types into scope.
 //!
 // Quickstart is gated on the `derive` feature: the example uses the
-// `#[derive(Extend, DeriveObject)]` and `#[object_impl]` macros from
+// `#[derive(Extend, Object)]` and `#[object_impl]` macros from
 // `quartzite-macros`, which the prelude only re-exports when `derive` is on.
 // Under `cargo test --doc --no-default-features --features std` the doctest
 // would otherwise fail to compile-check. `cfg_attr(..., doc = ...)` injects
@@ -22,7 +22,7 @@
 ```no_run
 use quartzite::prelude::*;
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Counter {
     #[base]
@@ -176,7 +176,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //!   disabled (requires `alloc`).
 //! - [`runtime`] (`quartzite-runtime`) — [`Application`](runtime::Application), [`EventLoop`](runtime::EventLoop),
 //!   [`ObjectTree`](runtime::ObjectTree), [`Timer`](runtime::Timer). Requires `std`.
-//! - [`macros`] (`quartzite-macros`) — [`Extend`](macros::Extend), [`DeriveObject`](macros::Object),
+//! - [`macros`] (`quartzite-macros`) — [`Extend`](macros::Extend), [`Object`](macros::Object),
 //!   [`object_impl`](macros::object_impl), [`object_part`](macros::object_part), [`MetaEnum`](macros::MetaEnum). Requires the `derive` feature
 //!   (on by default).
 //! - [`geometry`] (`quartzite-geometry`) — [`Point`](geometry::Point), [`Size`](geometry::Size), [`Rect`](geometry::Rect),
@@ -368,10 +368,9 @@ pub mod prelude {
     pub use quartzite_core::{SignalConnectionError, connect_signal_to_signal, connect_signals};
 
     // quartzite-macros: derive macros (requires derive feature)
-    // `Object` is re-exported as `DeriveObject` to avoid shadowing the `Object` trait above.
     #[cfg(feature = "derive")]
     #[cfg_attr(docsrs, doc(cfg(feature = "derive")))]
-    pub use quartzite_macros::{Extend, Object as DeriveObject, object_impl, object_part};
+    pub use quartzite_macros::{Extend, Object, object_impl, object_part};
 
     // quartzite-runtime
     pub use quartzite_runtime::{
