@@ -283,6 +283,10 @@ mod tests {
     }
 
     impl CountingRoot {
+        #[allow(
+            clippy::type_complexity,
+            reason = "test fixture: returns the constructed CountingRoot plus three Arc<Mutex<_>> read-back channels (resize log + press + release counters) so individual tests can assert per-method invocation counts without re-borrowing the fixture"
+        )]
         fn new() -> (
             Self,
             Arc<Mutex<Vec<Size>>>,
@@ -448,6 +452,10 @@ mod tests {
 
     // --- R4: MouseInput / CursorMoved / ModifiersChanged / KeyboardInput ----------
 
+    #[allow(
+        clippy::type_complexity,
+        reason = "test fixture: returns the WrappedHandler under test plus its WinitWindowId and four Arc<Mutex<u32>> counter channels (press, release, key_press, key_release) shared with the registered CountingRoot for assertion read-back"
+    )]
     fn make_handler_with_root(
         quit: bool,
     ) -> (
