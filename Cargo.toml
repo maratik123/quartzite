@@ -44,8 +44,6 @@ must_use_candidate = "allow"
 redundant_pub_crate = "allow"
 # 12 hits, same family + justification as must_use_candidate
 return_self_not_must_use = "allow"
-# 5 hits in runtime/object_tree.rs (3) + renderer/wrapped_handler.rs (2); intentional complex generic API surface in those files
-type_complexity = "allow"
 
 [lints]
 workspace = true
