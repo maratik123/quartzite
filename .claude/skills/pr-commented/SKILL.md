@@ -5,8 +5,6 @@ disable-model-invocation: true
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr edit *) Bash(gh api *) Bash(gh issue create *)
 ---
 
-<!-- size-exemption: ~300 lines after extraction; load-bearing residue = compaction-recovery callout (cat-3) + Workflow Steps 0–7 narrative (cat-3) + Step 0 GraphQL + REST snapshot recipes (cat-3 workflow-time, every invocation) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 classification table + pause-trigger list (cat-3 workflow-time, every Step-2 per-thread loop) -->
-
 > **Commit authorisation.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. The single Step-4 commit, the Step-6 `git push`, and the Step-6 per-thread replies / resolutions / issue-creations are pre-authorised by `/pr-commented` itself — perform them without an extra prompt. Pause to confirm only when Step 2 cannot confidently classify a thread, or when a precondition fails.
 
 Workflow for **one round** of reviewer-comment response on an open PR. Steps execute strictly in sequence. Re-invocable: call again after each subsequent reviewer round.

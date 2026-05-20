@@ -5,8 +5,6 @@ disable-model-invocation: false
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git fetch *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr edit *) Bash(gh run view *) Bash(gh run list *) Bash(gh api *)
 ---
 
-<!-- size-exemption: ~321 lines after extraction; load-bearing residue = compaction-recovery callout (cat-3) + Workflow Steps 0–9 narrative (cat-3) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 log-fetch / classification / reproducer + fallback bash (cat-3 workflow-time) -->
-
 > **Commit authorisation.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. The single Step-6 commit, the Step-7 `git push`, and the Step-7 unconditional `gh pr view` read are pre-authorised by `/pr-ci-failed` itself — perform them without an extra prompt. Pause to confirm only when Step 3 cannot reproduce the failure locally, when self-review hits its loop cap, or when a precondition fails.
 
 Workflow for **one round** of CI-failure response on an open PR. Steps execute strictly in sequence. Re-invocable: call again after each subsequent CI failure (e.g. when a fix introduces a new red check).

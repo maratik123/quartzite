@@ -5,8 +5,6 @@ when_to_use: "Activate on: 'not working', 'broken', 'wrong', 'incorrect', 'doesn
 allowed-tools: Bash(cargo test *) Bash(cargo clippy *) Bash(cargo build) Bash(cargo fmt *) Bash(git rm ai-docs/bugfix/*) Bash(rm -f ai-docs/bugfix/*)
 ---
 
-<!-- size-exemption: 257 lines — no category-(1) content; workflow narrative Steps 2–7 (cat-3) + Step 1 trace-file template (cat-2 round-template scaffolding) + Step 6.5 self-review prompt block (cat-3) all load-bearing -->
-
 Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 - First step is analysis, NOT code
 - Failing test is written BEFORE the fix, not after
