@@ -1315,3 +1315,17 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** When a user confirms a non-obvious approach worked well, record it — in the auto-memory system as a `feedback` type entry (capturing confirmed-working approaches for future sessions) and/or as a `learnings.md` entry with "what to keep doing" in the Rule field. Do not rely on stick (violation correction) alone. Positive validation is reinforcement too.
 
 **Escalated?** no
+
+### 2026-05-20 — tooling — commit-block hook false-positives when a `git commit` substring appears in any shell command line
+
+**What happened:** Ran `gh issue edit 507 --body "$(cat <<'EOF' ... git[[:space:]]+commit ... EOF)"` to append content describing the `scripts/gen-roadmap.sh` PreToolUse hook. The PreToolUse hook in `.claude/settings.json:21` scans `tool_input.command` with `grep -qE '(^|[ ;&|`])git[[:space:]]+commit\b'` to block `git commit` on `master`. The heredoc body contained the literal substring `git commit` (inside a regex `git[[:space:]]+commit`), the hook matched it, and the `gh issue edit` was blocked with the "BLOCKED: git commit on master is forbidden" message — even though the actual command was `gh issue edit`, not `git commit`.
+
+**Rule:** When a `gh issue create` / `gh issue edit` / `gh pr create` / `gh pr edit` / `gh pr comment` (or any other command-line tool) body contains substrings that would match the commit-block hook's regex (`git commit`, `git[[:space:]]+commit`, etc.) — write the body to a temp file first and pass it via `--body-file` / `--file`. Do NOT try to escape or transform the text to slip past the regex; the hook is a safety net and the workaround keeps the safety net intact.
+
+**Why:** The hook regex is intentionally broad — `grep -qE` over the raw command string with no knowledge of which `git commit` occurrences are "real" vs. literal-text-inside-a-quoted-body. Heredocs do not hide the substring from the hook because the hook inspects the unexpanded `tool_input.command` (which still contains the literal bytes between the `<<'EOF'` markers). `--body-file` avoids the problem entirely: the body bytes never appear on the shell command line.
+
+**How to apply:** any time the body of a `gh` (or similar) command will contain trigger substrings — `git commit`, `git push --force`, `git reset --hard`, etc. — pre-write the body with `Write` to `/tmp/<purpose>.md`, then run the `gh` command with `--body-file /tmp/<purpose>.md && rm /tmp/<purpose>.md`. Detection trigger: drafting a `gh ... --body "$(cat <<EOF ... EOF)"` invocation whose body would mention any of those substrings → switch to `--body-file` before the first run.
+
+**Kind:** correction
+
+**Escalated?** no

@@ -27,6 +27,12 @@
             "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -qE '(^|[ ;&|`])git[[:space:]]+commit\\b'; then if ! err=$(bash \"$CLAUDE_PROJECT_DIR/scripts/gen-roadmap.sh\" 2>&1 >/dev/null); then printf 'BLOCKED: scripts/gen-roadmap.sh failed:\\n%s\\n\\nFix the error and re-run git commit.\\n' \"$err\" >&2; exit 2; fi; git -C \"$CLAUDE_PROJECT_DIR\" add ROADMAP.md 2>/dev/null || true; fi",
             "timeout": 15,
             "statusMessage": "Regenerating + staging ROADMAP.md..."
+          },
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); if echo \"$cmd\" | grep -qE '(^|[ ;&|`])git[[:space:]]+commit\\b'; then bash \"$CLAUDE_PROJECT_DIR/scripts/update-ast-index.sh\" >/dev/null 2>&1 || true; fi; exit 0",
+            "timeout": 30,
+            "statusMessage": "Refreshing ast-index..."
           }
         ]
       }
@@ -84,7 +90,10 @@
       "Write(.claude/**)",
       "Bash(cargo *)",
       "Bash(git *)",
-      "Bash(gh *)"
+      "Bash(gh *)",
+      "Bash(ast-index *)",
+      "Bash(grep *)",
+      "Bash(rg *)"
     ],
     "deny": [
       "Read(.idea/**)",
