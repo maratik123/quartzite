@@ -146,20 +146,16 @@ When adding or editing dependencies in `Cargo.toml`:
 - Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
 - **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff. **After every push** (CI fix, reviewer-comment fix, self-review fix): if a learning entry was written *after* the last code commit landed, give it its own commit on the feature branch in the same turn — do not leave `learnings.md` as an unstaged working-tree change waiting to be bundled with the next code change. Order: write learning → `git add ai-docs/learnings.md` → commit → push.
 - **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
-- **CI-fix commits get self-review too.** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, spawn the `self-review` agent (or, at minimum, run an inline review covering: correct idiom used, no semantics broken, no adjacent lint issues missed, commit message accurate). The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch.
-- **No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. Recurred 2026-05-07 / 2026-05-14 / 2026-05-16.
-- **Never** use `git reset --hard` — it silently discards uncommitted work (working-tree changes, untracked files). Use one of these instead:
-  - `git reset --soft HEAD~N` — preserves working tree; commits become staged
-  - `git stash` — saves uncommitted changes before switching branches
-  - `git cherry-pick` — moves specific commits to another branch
-  - Backup branch — `git checkout -b backup/...` before any destructive operation
+- **CI-fix commits get self-review too.** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, spawn the `self-review` agent. The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch. See [`ai-docs/workflow.md` → Self-review checklist for CI-fix commits](ai-docs/workflow.md#self-review-checklist-for-ci-fix-commits) for the inline-review checklist when spawning the agent is impractical.
+- **No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. See [`ai-docs/workflow.md` → "Too simple" step-skip recurrences](ai-docs/workflow.md#too-simple-step-skip-recurrences) for the recurrence-date log.
+- **NEVER** use `git reset --hard` — it silently discards uncommitted work. See [`ai-docs/workflow.md` → Recovery from destructive-git-commands](ai-docs/workflow.md#recovery-from-destructive-git-commands) for safer alternatives.
 - Plan first. Tests before prod code (TDD). Lint changed files.
 - Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:**
   - Files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
   - Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
 - `.gitignore` (not `.arcignore`).
 - After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
-- **PR review comment resolution:** After pushing fixes, resolve only the comments addressed by a code change; comments where you posted an objection stay open for the reviewer. GitHub stores review threads (not just comments), and REST `/pulls/{N}/comments` does not expose `isResolved` — use the GraphQL `reviewThreads` query then `resolveReviewThread` mutation. See [`ai-docs/workflow.md` → PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution) for the full recipe.
+- **PR review comment resolution:** Resolve only the comments addressed by a code change; objections stay open for the reviewer. See [`ai-docs/workflow.md` → PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution) for the GraphQL recipe.
 
 > **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
 > The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.
@@ -171,7 +167,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | The body contradicts the new commits (renames, scope drift, AC flips, cited counts that drifted) | Run `gh pr edit` to sync |
 > | `gh pr create` immediately preceded the push (i.e., this is the first push that opened the PR) | **Skip** the read — the body is what you just authored. The rule fires on the **next** push. |
 >
-> The upstream tracking **issue**'s title and body are the user's original problem statement — do not rewrite them. Communicate scope changes via `gh issue comment` instead.
+> See [`ai-docs/workflow.md` → PR body vs. tracking-issue body](ai-docs/workflow.md#pr-body-vs-tracking-issue-body) for the issue-vs-PR-body distinction.
 
 > **AXIOM — Every code-producing commit on a feature branch with an open PR (or about-to-be-opened PR) must pass `self-review` before `git push`.**
 > The per-skill rules already exist (`/task` Step 10, `/pr-commented` Step 5, `/pr-ci-failed` Step 5, `/master-ci-failed` Step 5, `/bugfix` Step 6). This AXIOM names them as instances of a single workspace rule, so the next surface that doesn't yet have its own per-skill step still falls under the rule.
