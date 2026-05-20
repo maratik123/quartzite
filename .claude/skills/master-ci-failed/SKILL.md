@@ -5,6 +5,8 @@ disable-model-invocation: false
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git fetch *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr create *) Bash(gh pr edit *) Bash(gh run view *) Bash(gh run list *) Bash(gh api *)
 ---
 
+<!-- size-exemption: ~368 lines after extraction; load-bearing residue = compaction-recovery callout (cat-3) + Workflow Steps 0–9 narrative (cat-3) + Step 1 progress-file schema (cat-2 round-template scaffolding the skill writes into during each round) + Step 2 log-fetch / classification / reproducer tables (cat-3 workflow-time, consulted every Step-2 execution) -->
+
 > **Commit authorisation.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. The single Step-6 commit, the Step-7 `git push -u origin <branch>`, and the Step-7 `gh pr create` are pre-authorised by `/master-ci-failed` itself — perform them without an extra prompt. Pause to confirm only when Step 3 cannot reproduce the failure locally, when self-review hits its loop cap, or when a precondition fails.
 
 Workflow for **one round** of CI-failure response on the **master** branch — the case where CI fails on a commit that has already merged (post-merge red build). Steps execute strictly in sequence. Re-invocable per round.
@@ -213,22 +215,7 @@ Now root-cause the failure from the log + reproducer output. Two paths:
 
 > **Workflow YAML edit gate.** If the fix touches `.github/workflows/*.yml`, run `actionlint <file>` locally **before** `git add` (AGENTS.md `## Build & Test` axiom).
 
-> **Spec Amendment recipe — fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`).** Mirrors the `/task` Step 7 *Spec Amendment recipe* rule (`ai-docs/learnings.md` 2026-05-15 *"spec amendment during GO-with-notes resolution"* + 2026-05-15 *"spec amendment during `/pr-commented`"* recurrence). The rule fans out to every downstream "fix" skill whose round can touch `ai-docs/plans/*.spec.md` — including this master-branch surface.
->
-> | Detection trigger | Action |
-> |---|---|
-> | `git diff --name-only master..HEAD \| grep -E '^ai-docs/plans/(done/)?.*\.spec\.md$'` returns ≥ 1 file on the new `fix/master-ci-<run-id>` feature branch | The fix is **spec-amending**. PAUSE before Step 5. |
-> | Diff contains no `.spec.md` files | Proceed straight to Step 5 (self-review). The recipe does not fire. |
->
-> **When spec-amending, run this sub-flow instead of going straight to Step 5:**
->
-> 1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/master-ci-failed` for run `<run-id>`; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The CI-fix implementation has already landed in commit `<fix-SHA>` on branch `fix/master-ci-<run-id>`."*
-> 2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, fix diff)`. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total). On REQUEST-USER → surface and stop.
-> 3. Only on a GO verdict: resume `/master-ci-failed` Step 5 (self-review).
->
-> **Why:** A master-CI-fix that also amends `.spec.md` has reclassified the spec contract — the failure is no longer purely a post-merge regression but a partial spec rewrite. `self-review` checks code-against-spec, not spec-against-design; the design-review re-entry is the only gate that catches contradictions or new ACs introduced by the amendment. **Master-specific consideration:** the amended spec will land on the new feature branch's eventual PR (per Step 7), not directly on master — so the design-review re-entry runs against the feature branch's tree, exactly like the `/pr-commented` and `/pr-ci-failed` flows.
->
-> **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just to mirror the new value"* / *"only the lint output changed"* / *"self-review will catch it"* / *"the CI failure is the real fix; the spec edit is incidental"* / *"master CI is on fire; we need to ship the fix fast"*. All forbidden — the recipe fires on **any** `.spec.md` line in the diff. Same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
+**Spec Amendment recipe** — fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`). See [`reference.md` § Spec Amendment recipe (master-ci-failed surface)](reference.md#spec-amendment-recipe-master-ci-failed-surface) for the detection trigger, sub-flow, FORBIDDEN-reasoning list, and master-specific consideration.
 
 **Write progress at this step boundary** before further tool calls. If the Spec Amendment recipe fired, record the design / design-review verdicts in the `## Decisions log` under a `Step 4 (spec amendment):` bullet.
 
@@ -350,26 +337,11 @@ Re-invoke /pr-ci-failed if the new PR's CI surfaces additional red checks.
 After the new PR merges, /pr-merged will clean up ai-docs/master-ci/<run-id>.progress.md.
 ```
 
-## Re-invocation semantics
+## Re-invocation semantics + Edge cases
 
-Each invocation:
+**Re-invocation semantics** — see [`reference.md` § Re-invocation semantics](reference.md#re-invocation-semantics) for the FIRST-failing-check / empty-actionable-set / resolved-without-direct-fix contract.
 
-- Acts on the FIRST failing required check that does not already have an `ai-docs/master-ci/<run-id>.progress.md` file open.
-- Empty actionable set → no-op. Print `No failing checks on latest master commit; exiting.` and stop. Do not create an empty progress file.
-- A previously-failing master check that the next master push resolved silently (e.g., a force-merge of an unrelated fix) → record as `resolved-without-direct-fix` in the progress file's Decisions log; the file then waits for `/pr-merged` cleanup OR can be removed manually.
-
-## Edge cases
-
-| Case | Action |
-|---|---|
-| Multiple failing checks on the same master run | Handle the first failing check this invocation; advise user to re-invoke for the next |
-| Local `cargo build` on master HEAD also fails before any fix attempt | Delegate to `/bugfix` for the deeper regression first; re-enter `/master-ci-failed` once local is green |
-| Failure reproduces locally but the fix is cross-cutting / architectural | Delegate to `/bugfix` (see Step 4) — `/bugfix` carries this to a PR through its own end-to-end flow |
-| `gh run list --commit <sha>` returns zero rows but `gh run list --branch master` shows a failure | `gh` `--commit` filter quirk on older versions — prompt user to pass run-id directly via `$ARGUMENTS`, or upgrade `gh` |
-| Failing master run is older than `git rev-parse origin/master` (a fix has already landed) | Print `Master is currently GREEN; the failing run #<run-id> applies to an older commit.` and ask the user whether to fix retroactively (for build reproducibility) or skip |
-| Self-review REJECTs 3 times | Surface verdict and stop; do not push; do not open PR |
-| `gh pr create` fails (auth, network) | Push succeeded but PR was not opened — surface the branch URL and the failing `gh pr create` command for the user to retry manually |
-| Reviewer wants the failing master commit reverted instead of forward-fixed | Out of scope — surface and bail; the user runs `git revert <sha>` manually and opens a revert PR |
+**Edge cases** — see [`reference.md` § Edge cases](reference.md#edge-cases) for the per-case action table (multiple failing checks, local-also-fails, cross-cutting fix, `--commit` quirk, older failing run, self-review REJECT cap, `gh pr create` failure, revert request).
 
 ## Anti-patterns
 
