@@ -1,7 +1,7 @@
 ---
 name: ui-design
-description: "Explicitly load the Quartzite design-system context for visual work — paint paths, Style impls, Palette / ColorRole changes, snapshot tests. Pointer-only; Reads the canonical design-system/ folder on demand. Distinct from design-system/SKILL.md (name: quartzite-design), which is not slash-discoverable."
-disable-model-invocation: true
+description: "Load Quartzite design-system context for visual / paint work — Style impl + DefaultStyle changes, Palette / ColorRole edits, paint paths in quartzite-style / quartzite-widgets / quartzite-paint-api, snapshot tests. Pointer-only: reads design-system/ on demand. Distinct from design-system/SKILL.md (name: quartzite-design), which is not slash-discoverable."
+disable-model-invocation: false
 allowed-tools: Read
 ---
 
@@ -13,4 +13,10 @@ Read in order:
 2. `design-system/README.md` — the visual foundations section plus the full derivation rules.
 3. `design-system/preview/` and `design-system/ui_kits/widgets/` — explore as needed for per-widget visual contracts and reference renderings.
 
-Use this skill when working on `quartzite-widgets` paint paths or widget views, any `Style` impl in `quartzite-style` (including `DefaultStyle`), changes to `Palette` / `ColorRole` semantics or seeds, or snapshot tests under `quartzite-style/tests/snapshots/`.
+Use this skill when:
+
+- When working on `quartzite-style` (any `Style` impl, including `DefaultStyle`)
+- When working on `quartzite-widgets` paint paths, widget views, or any user-facing rendering
+- When changing `Palette` / `ColorRole` semantics or seeds
+- When adding or modifying snapshot tests under `quartzite-style/tests/snapshots/`
+- When working on quartzite-paint-api painter primitives, brush, pen, path, font, or color
