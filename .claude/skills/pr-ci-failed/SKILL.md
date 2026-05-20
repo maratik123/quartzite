@@ -5,6 +5,8 @@ disable-model-invocation: false
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git fetch *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr edit *) Bash(gh run view *) Bash(gh run list *) Bash(gh api *)
 ---
 
+<!-- size-exemption: ~321 lines after extraction; load-bearing residue = compaction-recovery callout (cat-3) + Workflow Steps 0–9 narrative (cat-3) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 log-fetch / classification / reproducer + fallback bash (cat-3 workflow-time) -->
+
 > **Commit authorisation.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. The single Step-6 commit, the Step-7 `git push`, and the Step-7 unconditional `gh pr view` read are pre-authorised by `/pr-ci-failed` itself — perform them without an extra prompt. Pause to confirm only when Step 3 cannot reproduce the failure locally, when self-review hits its loop cap, or when a precondition fails.
 
 Workflow for **one round** of CI-failure response on an open PR. Steps execute strictly in sequence. Re-invocable: call again after each subsequent CI failure (e.g. when a fix introduces a new red check).
@@ -204,22 +206,7 @@ For inline-fix classes only, continue to Step 5–7 below.
 
 > **Workflow YAML edit gate.** If the fix touches `.github/workflows/*.yml`, run `actionlint <file>` locally **before** `git add` (AGENTS.md `## Build & Test` axiom — the same gate `/task` enforces). Non-negotiable.
 
-> **Spec Amendment recipe — fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`).** Mirrors the `/task` Step 7 *Spec Amendment recipe* rule (`ai-docs/learnings.md` 2026-05-15 *"spec amendment during GO-with-notes resolution"* + 2026-05-15 *"spec amendment during `/pr-commented`"* recurrence). The same root cause surfaces here whenever a CI-fix needs to reconcile spec text with the implementation.
->
-> | Detection trigger | Action |
-> |---|---|
-> | `git diff --name-only <round-M-base-sha>..HEAD \| grep -E '^ai-docs/plans/(done/)?.*\.spec\.md$'` returns ≥ 1 file | The fix is **spec-amending**. PAUSE before Step 5. |
-> | Diff contains no `.spec.md` files | Proceed straight to Step 5 (self-review). The recipe does not fire. |
->
-> **When spec-amending, run this sub-flow instead of going straight to Step 5:**
->
-> 1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/pr-ci-failed` Round M; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The CI-fix implementation has already landed in commit `<round-M-fix-SHA>`."*
-> 2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, round-M-fix diff)`. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total). On REQUEST-USER → surface and stop.
-> 3. Only on a GO verdict: resume `/pr-ci-failed` Step 5 (self-review).
->
-> **Why:** A CI-fix that also amends `.spec.md` is, by definition, no longer a pure CI fix — it has reclassified the spec contract. `self-review` checks code-against-spec, not spec-against-design; the design-review re-entry is the only gate that catches contradictions, unresolved decomposition items, or new ACs introduced by the amendment.
->
-> **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just to mirror the new value"* / *"only the lint output changed"* / *"self-review will catch it"* / *"the CI failure is the real fix; the spec edit is incidental"*. All forbidden — the recipe fires on **any** `.spec.md` line in the round's diff. Same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
+**Spec Amendment recipe** — fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`). See [`reference.md` § Spec Amendment recipe (pr-ci-failed surface)](reference.md#spec-amendment-recipe-pr-ci-failed-surface) for the detection trigger, sub-flow, and FORBIDDEN-reasoning list.
 
 **Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4 — fix applied (inline)` or `Round M Step 4 — delegated to /bugfix`; append a `### Decisions log (round M)` bullet recording the fix path (one line, prefixed `Step 4:`). If the Spec Amendment recipe fired, append a second bullet recording the design / design-review verdicts (prefixed `Step 4 (spec amendment):`).
 
@@ -304,28 +291,11 @@ PR body re-read (AXIOM 2): synced=<yes|no>
 Re-invoke /pr-ci-failed after the next CI run if it turns red again.
 ```
 
-## Re-invocation semantics
+## Re-invocation semantics + Edge cases
 
-Each invocation:
+**Re-invocation semantics** — see [`reference.md` § Re-invocation semantics](reference.md#re-invocation-semantics) for the FIRST-failing-check / empty-actionable-set / resolved-without-fix contract.
 
-- Reads the current failing check(s) and acts only on the FIRST failing check that is not in any prior round's progress note.
-- Empty actionable set (no failing checks remaining) → no-op. Print `No failing checks on PR #<N>; exiting.` and stop. Do not append an empty round to the progress file.
-- A previously-failing check that the next CI run resolves silently (no new commit, just a runner re-spin) → record as `resolved-without-fix` in the progress file for traceability if the user invokes `/pr-ci-failed` and finds nothing red.
-
-## Edge cases
-
-| Case | Action |
-|---|---|
-| Multiple failing checks with diverging root causes | Handle the first failing check this invocation; advise the user to re-invoke for the next |
-| Same class on multiple runners (Linux + macOS + Windows lane) | Handle as one round — the local reproducer is the same; the fix usually lands on all runners simultaneously |
-| Failure reproduces locally but the fix is non-trivial (cross-cutting) | Delegate to `/bugfix` (see Step 4 delegation criteria) |
-| Reviewer requested force-push or rebase in a PR comment AND CI is red | This skill does not handle reviewer comments — surface the comment exists, bail; the user runs `/pr-commented` first, then re-invokes `/pr-ci-failed` |
-| Master moved ahead of branch (merge conflict) | Bail at preconditions; surface for user decision (merge / rebase / defer) |
-| CI is red on master itself (not just this PR) | Bail; recommend `/master-ci-failed` for the master-side red and re-invoke `/pr-ci-failed` after master is green |
-| Failure on a closed/merged PR | Bail at preconditions (PR state ≠ OPEN) |
-| Self-review REJECTs 3 times | Surface verdict and stop; do not push |
-| Workflow YAML failure where the fix changes runner behaviour beyond the failing job | Bail with "expand scope to /task — workflow restructure exceeds CI-fix scope" |
-| Bot-side check failure (e.g. Codecov coverage delta) endorsed by a human reviewer | Re-classify as a fix-needed (usually `coverage` class or `other` for project-policy questions) |
+**Edge cases** — see [`reference.md` § Edge cases](reference.md#edge-cases) for the per-case action table (multiple failing checks, multi-runner same class, cross-cutting fix, force-push request + red CI, master ahead, master-side red, closed PR, self-review REJECT cap, workflow-YAML restructure, bot-side check).
 
 ## Anti-patterns
 
