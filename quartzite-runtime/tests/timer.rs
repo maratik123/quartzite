@@ -247,6 +247,10 @@ fn app_driver_executes_on_event_loop_thread() {
     Application::global().unwrap().quit();
     let _ = el_thread.join();
 
+    #[allow(
+        clippy::significant_drop_in_scrutinee,
+        reason = "observed_thread mutex guard held across the deref-Some match so the assertion observes the same value the if-let bound, not a value mutated by a still-running tick"
+    )]
     if let Some(actual) = *observed_thread.lock() {
         assert_eq!(
             actual, expected_el_id,
