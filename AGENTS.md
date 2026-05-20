@@ -15,6 +15,7 @@
 > - When working on `quartzite-widgets` paint paths, widget views, or any user-facing rendering
 > - When changing `Palette` / `ColorRole` semantics or seeds
 > - When adding or modifying snapshot tests under `quartzite-style/tests/snapshots/`
+> - When working on quartzite-paint-api painter primitives, brush, pen, path, font, or color
 
 ## Permissions
 
