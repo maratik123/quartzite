@@ -5,6 +5,8 @@ disable-model-invocation: true
 allowed-tools: Bash(cargo build) Bash(cargo test *) Bash(cargo clippy *) Bash(cargo fmt *) Bash(cargo doc *) Bash(actionlint *) Bash(git diff *) Bash(git status *) Bash(git log *) Bash(git rev-parse *) Bash(git branch *) Bash(git checkout *) Bash(git add *) Bash(git commit *) Bash(git push *) Bash(git merge-base *) Bash(gh pr view *) Bash(gh pr checks *) Bash(gh pr edit *) Bash(gh api *) Bash(gh issue create *)
 ---
 
+<!-- size-exemption: ~300 lines after extraction; load-bearing residue = compaction-recovery callout (cat-3) + Workflow Steps 0–7 narrative (cat-3) + Step 0 GraphQL + REST snapshot recipes (cat-3 workflow-time, every invocation) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 classification table + pause-trigger list (cat-3 workflow-time, every Step-2 per-thread loop) -->
+
 > **Commit authorisation.** The default rule "only commit when the user explicitly asks" does **not** apply inside this workflow. The single Step-4 commit, the Step-6 `git push`, and the Step-6 per-thread replies / resolutions / issue-creations are pre-authorised by `/pr-commented` itself — perform them without an extra prompt. Pause to confirm only when Step 2 cannot confidently classify a thread, or when a precondition fails.
 
 Workflow for **one round** of reviewer-comment response on an open PR. Steps execute strictly in sequence. Re-invocable: call again after each subsequent reviewer round.
@@ -200,22 +202,7 @@ Trivial fixes (typo, rename, single-call rewrite, comment fix, test addition, do
 
 - Capture the commit SHA. Update the progress file's `Diff SHA` for each fix row.
 
-> **Spec Amendment recipe — fires BEFORE Step 5 when the round's diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`).** Mirrors the `/task` Step 7 *Spec Amendment recipe* rule (`ai-docs/learnings.md` 2026-05-15 *"spec amendment during GO-with-notes resolution"* + 2026-05-15 *"spec amendment during `/pr-commented`"* recurrence). Same root cause, same remedy in every downstream "fix" skill.
->
-> | Detection trigger | Action |
-> |---|---|
-> | `git diff --name-only <round-M-base-sha>..HEAD \| grep -E '^ai-docs/plans/(done/)?.*\.spec\.md$'` returns ≥ 1 file | The round is **spec-amending**. PAUSE before Step 5. |
-> | Diff contains no `.spec.md` files | Proceed straight to Step 5 (self-review). The recipe does not fire. |
->
-> **When spec-amending, run this sub-flow instead of going straight to Step 5:**
->
-> 1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/pr-commented` Round M; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The implementation has already landed in commit `<round-M-fix-SHA>`."* Expected output: a refreshed design doc (`ai-docs/plans/*.design.md` if extant, otherwise an inline analysis).
-> 2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, round-M-fix diff)`. Expected verdict: GO, NEEDS-CHANGES, or REQUEST-USER. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total, matching `/task` Step 7's cap). On REQUEST-USER → surface and stop.
-> 3. Only on a GO verdict from design-review: resume `/pr-commented` Step 5 (self-review). `self-review` operates on a code-vs-spec diff; it cannot validate that the spec → design → implementation chain still holds after a spec amendment — that's what the design-review re-entry does.
->
-> **Why:** a spec amendment can introduce contradictions, unresolved decomposition items, or new ACs that only a fresh design-review pass against the amended spec catches; `self-review` checks code-against-spec, not spec-against-design. Recurrence root cause: the `/task` Step 7 rule was not propagated to `/pr-commented` until the second incident; this recipe block closes that gap.
->
-> **FORBIDDEN reasoning for skipping this recipe:** *"the spec amendment is just a wording fix"* / *"the spec change is mechanical"* / *"self-review will catch it"* / *"only 3 lines changed"*. All forbidden — the recipe fires on **any** `.spec.md` line in the round's diff, regardless of size. The same FORBIDDEN-reasoning principle as [`ai-docs/corrections-log.md` → FORBIDDEN reasoning for skipping a `learnings.md` write](../../../ai-docs/corrections-log.md#forbidden-reasoning-for-skipping-a-learningsmd-write).
+**Spec Amendment recipe** — fires BEFORE Step 5 when the round's diff touches `ai-docs/plans/*.spec.md` (or `done/*.spec.md`). See [`reference.md` § Spec Amendment recipe (pr-commented surface)](reference.md#spec-amendment-recipe-pr-commented-surface) for the detection trigger, sub-flow, and FORBIDDEN-reasoning list.
 
 **Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 4`; rewrite the round's `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `### Decisions log (round M)` bullet recording the fix count + commit SHA (one line, prefixed `Step 4:`). If the Spec Amendment recipe fired, append a second bullet recording the design / design-review verdicts (prefixed `Step 4 (spec amendment):`).
 
@@ -285,30 +272,11 @@ Progress: <path>
 Re-invoke /pr-commented after the reviewer responds to the open threads.
 ```
 
-## Re-invocation semantics
+## Re-invocation semantics + Edge cases
 
-Each invocation:
+**Re-invocation semantics** — see [`reference.md` § Re-invocation semantics](reference.md#re-invocation-semantics) for the actionable-thread filter, objection-reclassification rule, and empty-actionable-set contract.
 
-- Reads all threads but acts only on those `isResolved:false` AND not in any prior round's `Diff SHA` column of the progress file.
-- An objection thread that the reviewer has now replied to may re-classify on this round:
-  - Reviewer accepted → reply "Thanks, resolving." + resolve.
-  - Reviewer pushed back → re-classify as `fix` or `clarify` per the new wording.
-- Empty actionable set → no-op. Print `No new actionable threads on PR #<N>; exiting.` and stop. Do not append an empty round to the progress file.
-
-## Edge cases
-
-| Case | Action |
-|---|---|
-| Reviewer requested force-push or rebase | Bail at Step 2 (treat as a special pause); surface request to user — autonomous force-push is forbidden by AGENTS.md |
-| Master moved ahead of branch (merge conflict) | Bail at preconditions; surface for user decision (merge / rebase / defer) |
-| CI is red on current HEAD | Bail at preconditions; recommend fixing CI before review-comment work |
-| Reviewer-resolved a thread mid-round | Detect via `isResolved:true` at Step 0; record as `resolved-by-reviewer` in progress file; no further action |
-| Thread anchored to a line that no longer exists (`isOutdated:true`) | If body is still actionable → classify as usual; if anchor is meaningless without context → `clarify` (reply asking for re-anchor) |
-| Comment requests architectural rework | Bail at Step 3; route to fresh `/task` design-review |
-| Comment from the PR author themselves | Treat as a note; usually `already-fixed` after the author's later commit, or `ignore-bot`-equivalent (no-action) if it's a TODO note for themselves |
-| Multiple commenters disagree on the same thread | Pause at Step 2; user decides |
-| Self-review REJECTs 3 times | Surface verdict and stop; do not push |
-| Bot comment endorsed by a human reviewer ("Codecov is right, please add a test") | Re-classify as `fix` (or `clarify` if the human's endorsement is itself ambiguous) — bot endorsement counts |
+**Edge cases** — see [`reference.md` § Edge cases](reference.md#edge-cases) for the per-case action table (force-push request, master ahead, red CI, reviewer-resolved mid-round, outdated anchor, architectural rework, PR-author comment, multiple-commenter disagreement, self-review REJECT cap, bot endorsement).
 
 ## Anti-patterns
 

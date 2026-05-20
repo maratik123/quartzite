@@ -221,8 +221,8 @@ than per-PR taste.
 PR-side citation (above) relies on the author remembering. The
 **reverse-direction audit** — sweeping downstream files for drift against the
 7 Patterns + Anti-patterns table — lives in `/ai-audit`'s Phase 2 Checklist M.
-See [`.claude/skills/ai-audit/SKILL.md#m-agent-writing-stylemd-conformance`](../.claude/skills/ai-audit/SKILL.md#m-agent-writing-stylemd-conformance)
-for the 8 sub-checks (one per Pattern + one for the Anti-patterns table) and
+See [`.claude/skills/ai-audit/reference.md#checklist-m--agent-writing-stylemd-conformance`](../.claude/skills/ai-audit/reference.md#checklist-m--agent-writing-stylemd-conformance)
+for the 11 sub-checks (Patterns 1–7 + Anti-patterns + Sub-checks 9/10 + Cross-shape verbs) and
 the severity assignments. Run `/ai-audit` after any PR that touches a fail-loud
 section if you want a mechanical conformance check on the corpus.
 
