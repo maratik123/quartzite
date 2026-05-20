@@ -2,8 +2,7 @@
 //!
 //! Exports [`DARK_PALETTE`], a compile-time [`Palette`] whose eleven
 //! [`ColorRole`] slots are seeded from the dark-theme values defined in
-//! `design-system/README.md` § *Dark theme* and
-//! `design-system/colors_and_type.css` `[data-theme="dark"]`.
+//! `design-system/README.md` § *Dark theme*.
 
 use crate::{ColorRole, Palette};
 use quartzite_paint_api::Color;
