@@ -48,3 +48,50 @@ The `/task` Step 10 self-review loop applies to every code-producing commit on t
 ## "Too simple" step-skip recurrences
 
 The `**No "too simple" step-skip in /task.**` rule (Steps 6 / 7 / 10 are mandatory regardless of diff size) has recurred 2026-05-07 / 2026-05-14 / 2026-05-16. The recurrence record is kept here so the parent rule in AGENTS.md stays a one-line directive.
+
+## Staging learnings.md during PR commits
+
+**Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff.
+
+**After every push** (CI fix, reviewer-comment fix, self-review fix): if a learning entry was written *after* the last code commit landed, give it its own commit on the feature branch in the same turn — do not leave `learnings.md` as an unstaged working-tree change waiting to be bundled with the next code change.
+
+Order: write learning → `git add ai-docs/learnings.md` → commit → push.
+
+## No --no-verify
+
+**Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
+
+## TDD + lint-changed-files
+
+Plan first. Tests before prod code (TDD). Lint changed files.
+
+## #[cfg(test)] requirement for substantial logic
+
+Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:**
+
+- Files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
+- Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
+
+## Markdown link tracing after generate/move
+
+After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
+
+## Merge strategy
+
+Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
+
+## Cargo.lock refresh before commit
+
+Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
+
+## Explicit-file staging
+
+Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
+
+## CI-fix commit self-review (parent rule)
+
+**CI-fix commits get self-review too.** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, spawn the `self-review` agent. The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch. The inline-review checklist lives in [§ Self-review checklist for CI-fix commits](#self-review-checklist-for-ci-fix-commits).
+
+## "Too simple" step-skip rule (parent rule)
+
+**No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. Recurrence-date log lives in [§ "Too simple" step-skip recurrences](#too-simple-step-skip-recurrences).

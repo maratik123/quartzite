@@ -141,21 +141,19 @@ When adding or editing dependencies in `Cargo.toml`:
 >
 > The first action of any skill/workflow that produces commits (`/task`, `/improve`, `/ai-audit`, etc.) is `git branch --show-current`; if `master`, switch **before** any `Edit`/`Write`. Before any `git push`, confirm again — if it is `master`, stop and apply recovery.
 
-- Merge PRs with a merge commit (`gh pr merge --merge`). Never squash or rebase-merge.
-- Run `cargo build` before committing so `Cargo.lock` is refreshed and included in the commit when it changes.
-- Stage files explicitly by name. **Never** use `git add -A` or `git add .` — they pull in unintended files (IDE state, accidental scratch files).
-- **Before every `git commit` during a PR task**, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff. **After every push** (CI fix, reviewer-comment fix, self-review fix): if a learning entry was written *after* the last code commit landed, give it its own commit on the feature branch in the same turn — do not leave `learnings.md` as an unstaged working-tree change waiting to be bundled with the next code change. Order: write learning → `git add ai-docs/learnings.md` → commit → push.
-- **Never** use `git commit --no-verify` (or any other hook-skipping flag). If a hook fails, fix the underlying issue.
-- **CI-fix commits get self-review too.** Any code change made in response to a CI failure — even a one-liner in test code — is subject to the same self-review requirement as the original implementation commits. Before pushing a CI-fix commit, spawn the `self-review` agent. The `/task` Step 10 self-review loop applies to every code-producing commit on the branch, not just the initial implementation batch. See [`ai-docs/workflow.md` → Self-review checklist for CI-fix commits](ai-docs/workflow.md#self-review-checklist-for-ci-fix-commits) for the inline-review checklist when spawning the agent is impractical.
-- **No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. See [`ai-docs/workflow.md` → "Too simple" step-skip recurrences](ai-docs/workflow.md#too-simple-step-skip-recurrences) for the recurrence-date log.
-- **NEVER** use `git reset --hard` — it silently discards uncommitted work. See [`ai-docs/workflow.md` → Recovery from destructive-git-commands](ai-docs/workflow.md#recovery-from-destructive-git-commands) for safer alternatives.
-- Plan first. Tests before prod code (TDD). Lint changed files.
-- Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[cfg(test)] mod tests` block. No exceptions for generator, codegen, or utility files. **Exceptions:**
-  - Files under `examples/` are runnable demos, not library code — no `#[cfg(test)]` block required.
-  - Files under `benches/` declared with `[[bench]] harness = false` (criterion bench binaries) — `criterion_main!` replaces the test runner, so `#[cfg(test)]` items would never be invoked. No `#[cfg(test)]` block required.
+- Merge PRs via merge commit (`gh pr merge --merge`); never squash/rebase-merge. → [§ Merge strategy](ai-docs/workflow.md#merge-strategy)
+- Run `cargo build` before commit so `Cargo.lock` refreshes. → [§ Cargo.lock refresh before commit](ai-docs/workflow.md#cargolock-refresh-before-commit)
+- Stage explicitly; **Never** `git add -A` / `.`. → [§ Explicit-file staging](ai-docs/workflow.md#explicit-file-staging)
+- **Before every `git commit` during a PR task**, stage `ai-docs/learnings.md` with related code. **After every push**, give a post-push learning entry its own commit. → [§ Staging learnings.md during PR commits](ai-docs/workflow.md#staging-learningsmd-during-pr-commits)
+- **Never** `git commit --no-verify` (or any hook-skip flag) — fix the hook. → [§ No --no-verify](ai-docs/workflow.md#no---no-verify)
+- **CI-fix commits get self-review too.** Spawn `self-review` before pushing any CI-fix commit. → [§ CI-fix commit self-review (parent rule)](ai-docs/workflow.md#ci-fix-commit-self-review-parent-rule) + [§ Self-review checklist for CI-fix commits](ai-docs/workflow.md#self-review-checklist-for-ci-fix-commits)
+- **No "too simple" step-skip in `/task`.** Steps 6 / 7 / 10 are MANDATORY; user authorisation is the only bypass. → [§ "Too simple" step-skip rule (parent rule)](ai-docs/workflow.md#too-simple-step-skip-rule-parent-rule)
+- **NEVER** `git reset --hard` — discards uncommitted work. → [§ Recovery from destructive-git-commands](ai-docs/workflow.md#recovery-from-destructive-git-commands)
+- Plan first. Tests before prod code (TDD). Lint changed files. → [§ TDD + lint-changed-files](ai-docs/workflow.md#tdd--lint-changed-files)
+- Files with ~50+ lines of substantial logic MUST have a `#[cfg(test)] mod tests` block (exceptions: `examples/`, `benches/` with `harness = false`). → [§ #[cfg(test)] requirement for substantial logic](ai-docs/workflow.md#cfgtest-requirement-for-substantial-logic)
 - `.gitignore` (not `.arcignore`).
-- After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
-- **PR review comment resolution:** Resolve only the comments addressed by a code change; objections stay open for the reviewer. See [`ai-docs/workflow.md` → PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution) for the GraphQL recipe.
+- After generating/moving a markdown file with relative links, trace one link via `realpath` before committing. → [§ Markdown link tracing after generate/move](ai-docs/workflow.md#markdown-link-tracing-after-generatemove)
+- **PR review comment resolution:** Resolve only comments fixed by code; objections stay open for the reviewer. → [§ PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution)
 
 > **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
 > The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.
@@ -219,8 +217,6 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
-
-> The former `task` ↔ `task-issue` group collapsed when `task-issue` was merged into `task` — both entry modes now live in `.claude/skills/task/SKILL.md`. Grep across `.claude/skills/` and `.claude/agents/` per the procedure below to catch any lingering references.
 
 **Procedure:**
 1. Before closing the edit, `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md ai-docs/agent-writing-style.md` for any file that references the same rule, exemption, or terminology.
