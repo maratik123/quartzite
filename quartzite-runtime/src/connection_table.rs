@@ -160,6 +160,10 @@ impl ConnectionTable {
     /// table.remove(id);
     /// ```
     pub fn remove(&self, id: ConnectionId) {
+        #[allow(
+            clippy::significant_drop_in_scrutinee,
+            reason = "connections write-guard must remain live across record extraction and the two by_receiver / by_signal lookups so a concurrent insert cannot observe a half-removed entry"
+        )]
         if let Some(record) = self.connections.write().remove(&id) {
             if let Some(v) = self.by_receiver.write().get_mut(&record.receiver_id) {
                 v.retain(|&c| c != id);

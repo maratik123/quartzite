@@ -102,6 +102,10 @@ impl TimerDriver for ThreadDriver {
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
+        #[allow(
+            clippy::significant_drop_in_scrutinee,
+            reason = "handle mutex guard held across .take() and the unpark+join shutdown sequence so a concurrent start cannot install a fresh handle mid-shutdown"
+        )]
         if let Some((thread_handle, join)) = self.handle.lock().take() {
             thread_handle.unpark();
             let _ = join.join();
@@ -194,6 +198,10 @@ impl TimerDriver for AppDriver {
 
     fn stop(&self, _id: ObjectId) {
         self.running.store(false, Ordering::SeqCst);
+        #[allow(
+            clippy::significant_drop_in_scrutinee,
+            reason = "handle mutex guard held across .take() and the unpark+join shutdown sequence so a concurrent start cannot install a fresh handle mid-shutdown"
+        )]
         if let Some((thread_handle, join)) = self.handle.lock().take() {
             thread_handle.unpark();
             let _ = join.join();
@@ -404,6 +412,10 @@ impl Drop for PoolDriver {
             self.inner.state.lock().running = false;
         }
         self.inner.condvar.notify_all();
+        #[allow(
+            clippy::significant_drop_in_scrutinee,
+            reason = "handle mutex guard held across .take() and the join() drop-finalisation so the pool thread cannot be racingly re-spawned during teardown"
+        )]
         if let Some(handle) = self.inner.handle.lock().take() {
             let _ = handle.join();
         }
