@@ -57,8 +57,8 @@
 | # | Criterion |
 |---|-----------|
 | AC1 | `.claude/settings.json` `permissions.allow` contains all three search-tool wildcards: `Bash(ast-index *)`, `Bash(grep *)`, `Bash(rg *)` (or the colon-form variants of all three, applied consistently). |
-| AC2 | `.claude/settings.local.json` no longer contains the standalone `Bash(grep *)` (was line 32) and `Bash(rg *)` (was line 341) entries — they have been moved, not duplicated. |
-| AC3 | `.claude/settings.local.json` no longer contains the 33 specific-argument `Bash(rg "...")` entries nor the 6 specific-argument `Bash(grep ...)` entries enumerated in Scope §3. After the cleanup, `grep -cE 'Bash\((rg\|grep) ' .claude/settings.local.json` returns `0`. |
+| AC2 | (host-local — `.claude/settings.local.json` is gitignored per `.gitignore:3:/.claude/settings.local.json`; cleanup is per-host hygiene, not propagated via git. Project-shared wildcards in `.claude/settings.json` are what propagate cross-host.) `.claude/settings.local.json` no longer contains the standalone `Bash(grep *)` (was line 32) and `Bash(rg *)` (was line 341) entries — they have been moved, not duplicated. |
+| AC3 | (host-local — gitignored as above.) `.claude/settings.local.json` no longer contains the 33 specific-argument `Bash(rg "...")` entries nor the 6 specific-argument `Bash(grep ...)` entries enumerated in Scope §3. After the cleanup, `grep -cE 'Bash\((rg\|grep) ' .claude/settings.local.json` returns `0`. |
 | AC4 | `scripts/update-ast-index.sh` exists, is executable (`chmod +x`), is POSIX-portable (same shellcheck-clean baseline as `gen-roadmap.sh`), and is a no-op (`exit 0`, no other output) on hosts where `command -v ast-index` is empty. |
 | AC5 | On hosts where `ast-index` is installed, `scripts/update-ast-index.sh` runs `ast-index update` (incremental), and falls back to `ast-index rebuild` when the database is missing (detected by `ast-index update` exit code or `ast-index stats` probe — design phase picks the mechanic). |
 | AC6 | `scripts/update-ast-index.sh` exits 0 on every code path, including on `ast-index` failure; failure messages go to stderr only. |

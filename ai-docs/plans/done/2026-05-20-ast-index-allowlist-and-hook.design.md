@@ -55,6 +55,10 @@ Note the **trailing `exit 0`**: it makes the always-success contract explicit + 
 
 The spec headline `33 + 6` counts the wildcards plus specifics; the enumerated line list (which is what subtask 4 executes against) is `32 + 5`. Both are mutually consistent; AC3's grep gate (`= 0`) is the authoritative final check. The implementation follows the enumerated line list verbatim; the headline numerics are not consulted at edit time.
 
+### Gitignore deviation (recorded post-Group-B)
+
+`.claude/settings.local.json` is gitignored (`.gitignore:3:/.claude/settings.local.json`); `git ls-files` confirms it has never been tracked. Subtask 4's cleanup therefore mutates the file **on disk only** and produces **no commit** for the PR. AC2 and AC3 are satisfied locally on this host, but they do **not** propagate cross-host via git — other contributors' `.claude/settings.local.json` files remain untouched until each runs the same cleanup. The original "Stage `.claude/settings.local.json`" instruction in subtask 5 was impossible and was dropped at implementation time. The cross-host deliverable lives entirely in `.claude/settings.json` (the migrated wildcards + the new ast-index entry + the PreToolUse hook), which IS committed and therefore propagates. This deviation is intentional and is reflected in the spec's AC2 / AC3 wording (the host-local qualifier added during Step 12 finalisation).
+
 ## Decomposition
 
 | # | Task | Files | Depends on |
