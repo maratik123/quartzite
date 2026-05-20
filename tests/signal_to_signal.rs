@@ -10,7 +10,7 @@ use quartzite::prelude::*;
 
 // ----- Shared test objects -----
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Emitter {
     #[base]
@@ -24,7 +24,7 @@ struct Emitter {
 #[object_impl]
 impl Emitter {}
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Relay {
     #[base]

@@ -2,12 +2,11 @@
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use quartzite::core::{Object, ObjectBase, Signal, Value};
-use quartzite::macros::Object as DeriveObject;
-use quartzite::macros::{Extend, object_impl};
+use quartzite::macros::{Extend, Object, object_impl};
 use quartzite::prelude::emit;
 use std::hint::black_box;
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct BenchObject {
     #[base]

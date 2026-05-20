@@ -2,7 +2,7 @@
 
 use quartzite::prelude::*;
 
-#[derive(Extend, DeriveObject)]
+#[derive(Extend, Object)]
 #[root]
 struct Greeter {
     #[base]
