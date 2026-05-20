@@ -85,25 +85,37 @@
  * default) because Link::default = LinkVisited::default = BLUE
  * would be illegible at 100% on a dark Window.
  * ============================================================ */
+/*
+ * Common names below come from curated color-name aggregators
+ * (HtmlCssColor, color-name.com, SchemeColor, colordesigner.io,
+ * ArtyClick). They are documentation-only labels — the framework
+ * does not use them. Where multiple sources disagree, the chosen
+ * name is the one with the closest ΔE match to the seeded hex.
+ *
+ * Two seeds have no catalogued match. We coin descriptive labels:
+ *   #5BB0FF → "Light Dodger Blue" (a lightening of Highlight).
+ *   #C58AFF → "Charoite" (purple silicate mineral; the -ite
+ *             suffix is intentional — sister to Quartzite).
+ */
 [data-theme="dark"], .qz-dark {
   /* Surfaces */
-  --qz-window:           #2B2B2B;
-  --qz-button:           #3C3C3C;
-  --qz-base:             #1E1E1E;
+  --qz-window:           #2B2B2B;   /* Mine Shaft        */
+  --qz-button:           #3C3C3C;   /* Eclipse           */
+  --qz-base:             #1E1E1E;   /* Nero              */
 
   /* Foreground text */
-  --qz-window-text:      #E8E8E8;
-  --qz-button-text:      #E8E8E8;
-  --qz-text:             #E8E8E8;
+  --qz-window-text:      #E8E8E8;   /* Mercury           */
+  --qz-button-text:      #E8E8E8;   /* Mercury           */
+  --qz-text:             #E8E8E8;   /* Mercury           */
 
   /* Selection / accent */
-  --qz-highlight:        #1E90FF;
-  --qz-highlighted-text: #FFFFFF;
-  --qz-bright-text:      #FF6B6B;   /* Qt convention: red for attention */
+  --qz-highlight:        #1E90FF;   /* DodgerBlue (X11)  */
+  --qz-highlighted-text: #FFFFFF;   /* White             */
+  --qz-bright-text:      #FF6B6B;   /* Pastel Red — Qt convention: red signals attention */
 
   /* Links — diverged (light theme seeds both to BLUE) */
-  --qz-link:             #5BB0FF;
-  --qz-link-visited:     #C58AFF;
+  --qz-link:             #5BB0FF;   /* Light Dodger Blue (coined; no catalogued match) */
+  --qz-link-visited:     #C58AFF;   /* Charoite (coined — purple silicate mineral; no catalogued match) */
 
   /* Derived: Button.blend(Highlight, 0.25)
      = (0.235,0.235,0.235).blend((0.118,0.564,1.0), 0.25)
