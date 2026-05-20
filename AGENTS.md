@@ -242,6 +242,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
 | `ai-docs/corrections-log.md` | Extracted § Learning Log carve-outs + field glossary |
 | `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
+| `ai-docs/plans-summary.md` | Maintenance-plans (cross-cutting) detail bodies from context.md |
 | `ai-docs/dependency-versions.md` | Live Cargo / GitHub Action version lookup + behaviour recipes |
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
 | `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
