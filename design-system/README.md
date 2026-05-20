@@ -223,19 +223,32 @@ The dark seeds proposed in `colors_and_type.css`
 (`[data-theme="dark"]`) and demonstrated in
 `preview/dark-*.html`:
 
-| Role | Light seed | **Dark seed** |
-|---|---|---|
-| `Window`          | `#FFFFFF` | **`#2B2B2B`** |
-| `WindowText`      | `#000000` | **`#E8E8E8`** |
-| `Button`          | `#FFFFFF` | **`#3C3C3C`** |
-| `ButtonText`      | `#000000` | **`#E8E8E8`** |
-| `Base`            | `#FFFFFF` | **`#1E1E1E`** |
-| `Text`            | `#000000` | **`#E8E8E8`** |
-| `Highlight`       | `#0080FF` | **`#1E90FF`**  (DodgerBlue — close cousin of `SKY_BLUE`, brighter for dark substrate) |
-| `HighlightedText` | `#FFFFFF` | `#FFFFFF` (unchanged) |
-| `Link`            | `#0000FF` | **`#5BB0FF`** (lighter blue; `#0000FF` is illegible against `#2B2B2B`) |
-| `LinkVisited`     | `#0000FF` | **`#C58AFF`** (purple — the light theme seeds both to the same value, the dark theme diverges them) |
-| `BrightText`      | `#FFFFFF` | **`#FF6B6B`** (Qt convention: red signals attention against a coloured banner) |
+| Role | Light seed | **Dark seed** | Common name (dark) |
+|---|---|---|---|
+| `Window`          | `#FFFFFF` | **`#2B2B2B`** | Mine Shaft |
+| `WindowText`      | `#000000` | **`#E8E8E8`** | Mercury |
+| `Button`          | `#FFFFFF` | **`#3C3C3C`** | Eclipse |
+| `ButtonText`      | `#000000` | **`#E8E8E8`** | Mercury |
+| `Base`            | `#FFFFFF` | **`#1E1E1E`** | Nero |
+| `Text`            | `#000000` | **`#E8E8E8`** | Mercury |
+| `Highlight`       | `#0080FF` | **`#1E90FF`** | DodgerBlue (X11 — close cousin of `SKY_BLUE`, brighter for dark substrate) |
+| `HighlightedText` | `#FFFFFF` | `#FFFFFF`     | White (unchanged) |
+| `Link`            | `#0000FF` | **`#5BB0FF`** | Light Dodger Blue (coined — no catalogued match; `#0000FF` is illegible against `#2B2B2B`) |
+| `LinkVisited`     | `#0000FF` | **`#C58AFF`** | Charoite (coined — purple silicate mineral; sister to `Quartzite`. No catalogued match.) |
+| `BrightText`      | `#FFFFFF` | **`#FF6B6B`** | Pastel Red (Qt convention: red signals attention against a coloured banner) |
+
+> **Naming source.** "Common name" labels are documentation-only —
+> the framework does not use them. They come from curated
+> aggregators (HtmlCssColor, color-name.com, SchemeColor, ArtyClick)
+> picking the entry with the closest ΔE to each seed. Two seeds
+> have no catalogued match: `#5BB0FF` (we coin **Light Dodger Blue**
+> rather than approximate it to Maya Blue `#73C2FB` or French Sky
+> Blue `#77B5FE` — neither matches) and `#C58AFF` (we coin
+> **Charoite** after the purple silicate mineral, keeping the
+> `-ite` mineral-suffix theme `Quartzite` already commits to;
+> documented "Lilac" hexes range from `#C8A2C8` to `#DCD0FF` and
+> none coincides with our seed — see
+> `preview/dark-link-visited-lilac-compare.html`).
 
 **Derived state values follow the framework's same formulas**, so
 they re-compute correctly against the dark slots:
@@ -255,17 +268,17 @@ by registering a new `Style` impl in `StyleRegistry`:
 
 ```rust
 let dark = Palette::default()
-    .with_role(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B
-    .with_role(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0))
-    .with_role(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0))
-    .with_role(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0))
-    .with_role(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0))
-    .with_role(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0))
-    .with_role(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF
-    .with_role(ColorRole::HighlightedText, Color::WHITE)
-    .with_role(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0))
-    .with_role(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0))
-    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0));
+    .with_role(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B  Mine Shaft
+    .with_role(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0)) // #3C3C3C  Eclipse
+    .with_role(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0)) // #1E1E1E  Nero
+    .with_role(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF  DodgerBlue (X11)
+    .with_role(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
+    .with_role(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
+    .with_role(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
+    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)); // #FF6B6B Pastel Red
 ```
 
 The UI-kit demo at `ui_kits/widgets/index.html` carries a

@@ -1,0 +1,190 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>LinkVisited — Charoite vs. Lilac on dark</title>
+<style>
+/* --- inlined card-base.css essentials (matches sibling dark/* cards) --- */
+html, body {
+  margin: 0; padding: 0;
+  background: #FFFFFF; color: #000000;
+  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+.card {
+  width: 700px;
+  box-sizing: border-box;
+  padding: 20px 24px;
+  background: #FFFFFF;
+  color: #000000;
+  font-size: 12pt;
+}
+.cap  { font-size: 9pt; color: #000000; letter-spacing: 0.02em; }
+.mono { font-family: 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace; }
+
+/* --- dark-card chrome (mirrors sibling dark/* cards) --- */
+.card.dark { background: #2B2B2B; color: #E8E8E8; }
+.card.dark .cap  { color: #E8E8E8; }
+.card.dark .mono { color: #E8E8E8; font-family: 'DejaVu Sans Mono', 'Liberation Mono', monospace; font-size: 9pt; }
+
+  /* Comparison grid: 1 label column + 3 surface columns. */
+  .lcmp {
+    display: grid;
+    grid-template-columns: 168px 1fr 1fr 1fr;
+    gap: 10px 12px;
+    align-items: stretch;
+  }
+  .lcmp .colhdr {
+    font-family: 'DejaVu Sans Mono', monospace;
+    font-size: 9pt;
+    color: #E8E8E8;
+    padding: 4px 2px;
+    border-bottom: 1px solid rgba(232,232,232,0.25);
+  }
+  .lcmp .row-label {
+    display: flex; flex-direction: column; gap: 4px;
+    justify-content: center;
+    padding: 8px 6px 8px 0;
+    border-right: 1px solid rgba(232,232,232,0.15);
+  }
+  .lcmp .row-label .name { font-weight: 700; font-size: 11pt; }
+  .lcmp .row-label .hex  { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; opacity: 0.7; }
+  .lcmp .row-label .src  { font-size: 8.5pt; opacity: 0.55; text-wrap: pretty; }
+
+  /* The link specimen. A 1 px outline mirrors widget framing. */
+  .surface {
+    border: 1px solid #E8E8E8;
+    padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    min-height: 56px;
+    justify-content: center;
+  }
+  .surface .sb { font-size: 8pt; opacity: 0.55; letter-spacing: 0.04em; text-transform: uppercase; }
+  .surface a {
+    text-decoration: underline;
+    font-size: 10.5pt;
+    font-family: 'DejaVu Sans', 'Liberation Sans', sans-serif;
+  }
+  .s-base   { background: #1E1E1E; }   /* Base    — Nero       */
+  .s-window { background: #2B2B2B; }   /* Window  — Mine Shaft */
+  .s-button { background: #3C3C3C; }   /* Button  — Eclipse    */
+
+  .ourrow .row-label { border-right-color: rgba(91,176,255,0.5); }
+  .ourrow .surface   { box-shadow: inset 0 0 0 1px rgba(91,176,255,0.35); }
+
+  .legend {
+    margin-top: 14px;
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-size: 8.5pt; opacity: 0.7;
+  }
+  .legend .chip { display: inline-flex; align-items: center; gap: 6px; }
+  .legend .chip .dot { width: 10px; height: 10px; display: inline-block; border: 1px solid #E8E8E8; }
+</style></head><body>
+
+<div class="card dark" style="height:auto;">
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
+    <div>
+      <div style="font-size:14pt;font-weight:700;">LinkVisited — Charoite vs. catalogued &ldquo;Lilac&rdquo; on dark surfaces</div>
+      <div style="font-size:9pt;opacity:0.65;margin-top:2px;">Our coined seed vs. three documented &ldquo;Lilac&rdquo; hexes. Sample text is rendered as a visited link.</div>
+    </div>
+    <div class="mono" style="opacity:0.6;">role: ColorRole::LinkVisited</div>
+  </div>
+
+  <div class="lcmp">
+    <!-- header row -->
+    <div class="colhdr">Candidate</div>
+    <div class="colhdr">on Base<br><span style="opacity:0.55">#1E1E1E&nbsp;·&nbsp;Nero</span></div>
+    <div class="colhdr">on Window<br><span style="opacity:0.55">#2B2B2B&nbsp;·&nbsp;Mine Shaft</span></div>
+    <div class="colhdr">on Button<br><span style="opacity:0.55">#3C3C3C&nbsp;·&nbsp;Eclipse</span></div>
+
+    <!-- row 1: OUR seed -->
+    <div class="ourrow" style="display:contents;">
+      <div class="row-label">
+        <div class="name">Charoite<span style="opacity:0.6">*</span></div>
+        <div class="hex">#C58AFF</div>
+        <div class="src">coined for Quartzite — after the purple silicate mineral</div>
+      </div>
+      <div class="surface s-base">
+        <span class="sb">on #1E1E1E</span>
+        <a style="color:#C58AFF;">Visited link — quartzite.rs</a>
+      </div>
+      <div class="surface s-window">
+        <span class="sb">on #2B2B2B</span>
+        <a style="color:#C58AFF;">Visited link — quartzite.rs</a>
+      </div>
+      <div class="surface s-button">
+        <span class="sb">on #3C3C3C</span>
+        <a style="color:#C58AFF;">Visited link — quartzite.rs</a>
+      </div>
+    </div>
+
+    <!-- row 2: ArtyClick Lilac -->
+    <div class="row-label">
+      <div class="name">Lilac</div>
+      <div class="hex">#CEA2FD</div>
+      <div class="src">ArtyClick dictionary — closest documented match</div>
+    </div>
+    <div class="surface s-base">
+      <span class="sb">on #1E1E1E</span>
+      <a style="color:#CEA2FD;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-window">
+      <span class="sb">on #2B2B2B</span>
+      <a style="color:#CEA2FD;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-button">
+      <span class="sb">on #3C3C3C</span>
+      <a style="color:#CEA2FD;">Visited link — quartzite.rs</a>
+    </div>
+
+    <!-- row 3: HtmlCssColor / Figma Lilac -->
+    <div class="row-label">
+      <div class="name">Lilac</div>
+      <div class="hex">#C8A2C8</div>
+      <div class="src">HtmlCssColor.com, Figma — pinker, less saturated</div>
+    </div>
+    <div class="surface s-base">
+      <span class="sb">on #1E1E1E</span>
+      <a style="color:#C8A2C8;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-window">
+      <span class="sb">on #2B2B2B</span>
+      <a style="color:#C8A2C8;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-button">
+      <span class="sb">on #3C3C3C</span>
+      <a style="color:#C8A2C8;">Visited link — quartzite.rs</a>
+    </div>
+
+    <!-- row 4: color-name.com Lilac -->
+    <div class="row-label">
+      <div class="name">Lilac</div>
+      <div class="hex">#DCD0FF</div>
+      <div class="src">color-name.com — paler, more washed-out</div>
+    </div>
+    <div class="surface s-base">
+      <span class="sb">on #1E1E1E</span>
+      <a style="color:#DCD0FF;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-window">
+      <span class="sb">on #2B2B2B</span>
+      <a style="color:#DCD0FF;">Visited link — quartzite.rs</a>
+    </div>
+    <div class="surface s-button">
+      <span class="sb">on #3C3C3C</span>
+      <a style="color:#DCD0FF;">Visited link — quartzite.rs</a>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:#C58AFF"></span> Charoite (#C58AFF) — ours</span>
+    <span class="chip"><span class="dot" style="background:#CEA2FD"></span> ArtyClick Lilac (#CEA2FD)</span>
+    <span class="chip"><span class="dot" style="background:#C8A2C8"></span> Figma/HtmlCssColor Lilac (#C8A2C8)</span>
+    <span class="chip"><span class="dot" style="background:#DCD0FF"></span> color-name.com Lilac (#DCD0FF)</span>
+  </div>
+
+  <div style="margin-top:10px;font-size:8.5pt;opacity:0.55;">
+    Charoite sits between ArtyClick&rsquo;s saturated Lilac and the desaturated Figma variant. The pale color-name.com hex is too close to <span class="mono" style="font-size:8.5pt;">HighlightedText</span> (#FFFFFF) to be distinguishable, especially on Eclipse.
+    <br><span style="opacity:0.8">*</span> coined name — sister to <span class="mono" style="font-size:8.5pt;">Quartzite</span>; the mineral is a real lilac-purple silicate (K(Ca,Na)<sub>2</sub>Si<sub>4</sub>O<sub>10</sub>(OH,F)·H<sub>2</sub>O) found in Russia.
+  </div>
+</div>
+
+</body></html>
