@@ -70,7 +70,7 @@ Make the design system discoverable and default-on **for visual work**, with zer
 |---|---|---|
 | 1 | `AGENTS.md` pointer section added | `grep -n 'design-system' AGENTS.md` returns the new section; `git diff --stat AGENTS.md` shows ≤ 1 024 bytes added |
 | 2 | `CLAUDE.md` unchanged | `git diff CLAUDE.md` is empty |
-| 3 | `design` agent reads design-system on UI tasks | Fresh agent prompt on a visual task: *"hover fill for Button?"* → cites `Button.blend(Highlight, 0.25)` |
+| 3 | `design` agent reads design-system on UI tasks | Fresh agent prompt on a visual task: *"hover fill for Button?"* → cites the `ColorGroup` derivation `c.blend(WindowText.Normal, 0.06)` (per `palette-state-groups.proposal.md`) |
 | 4 | `design-review` flags deviations | Synthetic design doc proposing 4 px radius on Button → review verdict includes a `major` row citing § VISUAL FOUNDATIONS |
 | 5 | `/skill design` invocable | Slash-command dispatcher loads the new skill file and returns its body |
 | 6 | No duplication | `wc -c AGENTS.md CLAUDE.md` — only `AGENTS.md` grows, and by ≤ 1 KB; no `design-system/README.md` text appears inside `.claude/` |

@@ -58,9 +58,9 @@ svg { shape-rendering: geometricPrecision; }
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 64px; min-height: 32px;
 }
-.qz-button.hover    { background: #BFDFFF; }
-.qz-button.pressed,
-.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.hover    { background: #F0F0F0; }                                /* HOVER_WHITE      */
+.qz-button.pressed  { background: #006CD6; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_SKY_BLUE */
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }   /* SKY_BLUE         */
 .qz-button.focused  {
   /* additive 2px highlight outline over idle */
   box-shadow: inset 0 0 0 2px #0080FF;
@@ -96,9 +96,9 @@ svg { shape-rendering: geometricPrecision; }
 .card.dark .kv .k    { color: #E8E8E8; }
 .card.dark .kv .v    { color: rgba(232,232,232,0.7); }
 .card.dark .qz-button { background: #3C3C3C; color: #E8E8E8; border: 1px solid #E8E8E8; }
-.card.dark .qz-button.hover    { background: #345067; }
-.card.dark .qz-button.pressed,
-.card.dark .qz-button.checked  { background: #1E90FF; color: #FFFFFF; border-color: #FFFFFF; }
+.card.dark .qz-button.hover    { background: #464646; }                                /* HOVER_ECLIPSE          */
+.card.dark .qz-button.pressed  { background: #3E9EFB; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_DODGER_BLUE    */
+.card.dark .qz-button.checked  { background: #1E90FF; color: #FFFFFF; border-color: #FFFFFF; }   /* DODGER_BLUE            */
 .card.dark .qz-button.focused  { box-shadow: inset 0 0 0 2px #1E90FF; }
 .card.dark .qz-button.disabled { opacity: 0.5; }
 .card.dark .qz-line-edit, .card.dark .qz-text-edit { background: #1E1E1E; color: #E8E8E8; border: 1px solid #E8E8E8; }
@@ -109,34 +109,48 @@ svg { shape-rendering: geometricPrecision; }
 .card.dark .qz-label { background: #2B2B2B; color: #E8E8E8; }
 
 </style></head><body>
-<div class="card dark" style="height:240px;">
-  <div class="sw-row" style="align-items:flex-start;gap:18px;">
+<div class="card dark" style="height:300px;">
+  <div class="sw-row" style="align-items:flex-start;gap:14px;">
     <div class="sw-col">
-      <div class="sw lg" style="background:#345067;border-color:#E8E8E8;"></div>
+      <div class="sw lg" style="background:#2B2B2B; display:flex; align-items:center; justify-content:center; padding:0; border-color:#E8E8E8;">
+        <button class="qz-button hover">OK</button>
+      </div>
       <div class="cap"><b>Hover</b></div>
-      <div class="cap mono">#345067</div>
-      <div class="cap mono">Button.blend(<br>&nbsp;&nbsp;Highlight,<br>&nbsp;&nbsp;0.25)</div>
+      <div class="cap mono">#464646</div>
+      <div class="cap mono">HOVER_ECLIPSE</div>
+      <div class="cap mono" style="opacity:0.65">ECLIPSE.blend(<br>&nbsp;&nbsp;MERCURY, 0.06)</div>
     </div>
     <div class="sw-col">
-      <div class="sw lg" style="position:relative;overflow:hidden;border-color:#E8E8E8;">
-        <div style="position:absolute;inset:0;background:#3C3C3C;opacity:0.5;"></div>
+      <div class="sw lg" style="background:#2B2B2B; display:flex; align-items:center; justify-content:center; padding:0; border-color:#E8E8E8;">
+        <button class="qz-button pressed">OK</button>
+      </div>
+      <div class="cap"><b>Pressed</b></div>
+      <div class="cap mono">#3E9EFB</div>
+      <div class="cap mono">PRESSED_DODGER_BLUE</div>
+      <div class="cap mono" style="opacity:0.65">DODGER_BLUE.blend(<br>&nbsp;&nbsp;MERCURY, 0.16)</div>
+    </div>
+    <div class="sw-col">
+      <div class="sw lg" style="background:#2B2B2B; display:flex; align-items:center; justify-content:center; padding:0; border-color:#E8E8E8;">
+        <button class="qz-button disabled">OK</button>
       </div>
       <div class="cap"><b>Disabled</b></div>
       <div class="cap mono">alpha × 0.5</div>
-      <div class="cap mono">color.with_alpha(<br>&nbsp;&nbsp;a * 0.5)</div>
+      <div class="cap mono" style="opacity:0.65">color.with_alpha(<br>&nbsp;&nbsp;a * 0.5)</div>
     </div>
     <div class="sw-col">
-      <div class="sw lg" style="background:#3C3C3C;outline:2px solid #1E90FF;outline-offset:-2px;border-color:#E8E8E8;"></div>
+      <div class="sw lg" style="background:#2B2B2B; display:flex; align-items:center; justify-content:center; padding:0; border-color:#E8E8E8;">
+        <button class="qz-button focused">OK</button>
+      </div>
       <div class="cap"><b>Focus</b></div>
-      <div class="cap mono">2px Highlight</div>
-      <div class="cap mono">additive overlay</div>
+      <div class="cap mono">2px FocusRing</div>
+      <div class="cap mono" style="opacity:0.65">= Highlight by<br>default</div>
     </div>
-    <div class="note" style="max-width:230px;">
-      Same precedence rules, dark substrate.<br>
-      <span class="mono">pressed &gt; checked &gt; hovered &gt; idle</span><br><br>
-      Hover blend lands on a saturated steel-blue because Button
-      is dark grey, not white.
-    </div>
+  </div>
+  <div class="note" style="margin-top:14px;">
+    Same derivation rule, dark substrate. WindowText.Normal = Mercury (#E8E8E8),
+    so the <span class="mono">c.blend(WindowText.Normal, t)</span> formula lightens
+    instead of darkening — hover and pressed both nudge toward foreground. State
+    precedence unchanged: <span class="mono">disabled &gt; pressed &gt; checked &gt; hovered &gt; idle</span>.
   </div>
 </div>
 </body></html>

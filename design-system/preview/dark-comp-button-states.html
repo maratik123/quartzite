@@ -58,9 +58,9 @@ svg { shape-rendering: geometricPrecision; }
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 64px; min-height: 32px;
 }
-.qz-button.hover    { background: #BFDFFF; }
-.qz-button.pressed,
-.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.hover    { background: #F0F0F0; }                                /* HOVER_WHITE      */
+.qz-button.pressed  { background: #006CD6; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_SKY_BLUE */
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }   /* SKY_BLUE         */
 .qz-button.focused  {
   /* additive 2px highlight outline over idle */
   box-shadow: inset 0 0 0 2px #0080FF;
@@ -96,9 +96,9 @@ svg { shape-rendering: geometricPrecision; }
 .card.dark .kv .k    { color: #E8E8E8; }
 .card.dark .kv .v    { color: rgba(232,232,232,0.7); }
 .card.dark .qz-button { background: #3C3C3C; color: #E8E8E8; border: 1px solid #E8E8E8; }
-.card.dark .qz-button.hover    { background: #345067; }
-.card.dark .qz-button.pressed,
-.card.dark .qz-button.checked  { background: #1E90FF; color: #FFFFFF; border-color: #FFFFFF; }
+.card.dark .qz-button.hover    { background: #464646; }                                /* HOVER_ECLIPSE          */
+.card.dark .qz-button.pressed  { background: #3E9EFB; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_DODGER_BLUE    */
+.card.dark .qz-button.checked  { background: #1E90FF; color: #FFFFFF; border-color: #FFFFFF; }   /* DODGER_BLUE            */
 .card.dark .qz-button.focused  { box-shadow: inset 0 0 0 2px #1E90FF; }
 .card.dark .qz-button.disabled { opacity: 0.5; }
 .card.dark .qz-line-edit, .card.dark .qz-text-edit { background: #1E1E1E; color: #E8E8E8; border: 1px solid #E8E8E8; }

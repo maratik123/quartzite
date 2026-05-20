@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=1280" />
+  <title>Palette state groups — swatches · quartzite</title>
+  <style>
+    /* ------------------------------------------------------------------
+       Visual reference for `palette-state-groups.proposal.md`.
+
+       Mirrors the design-system aesthetic — flat, 1 px strokes, sharp
+       corners, DejaVu / Liberation stack — so it reads next to the
+       existing `preview/` cards without retraining the eye.
+       ------------------------------------------------------------------ */
+
+    :root {
+      /* Light theme — Palette::default (current + new state cells) */
+      --L-window:          #FFFFFF;
+      --L-window-text:     #000000;
+      --L-button:          #FFFFFF;
+      --L-button-hover:    #F0F0F0;   /* HOVER_WHITE   = WHITE.blend(BLACK, 0.06) */
+      --L-button-pressed:  #D6D6D6;   /* PRESSED_WHITE = WHITE.blend(BLACK, 0.16) */
+      --L-button-text:     #000000;
+      --L-base:            #FFFFFF;
+      --L-text:            #000000;
+      --L-highlight:        #0080FF;
+      --L-highlight-hover:  #0078F0;  /* HOVER_SKY_BLUE   = SKY_BLUE.blend(BLACK, 0.06) */
+      --L-highlight-pressed:#006CD6;  /* PRESSED_SKY_BLUE = SKY_BLUE.blend(BLACK, 0.16) */
+      --L-highlighted-text:#FFFFFF;
+      --L-link:            #0000FF;
+      --L-link-visited:    #0000FF;
+      --L-bright-text:     #FFFFFF;
+      --L-focus-ring:      #0080FF;   /* NEW role */
+      /* #316's heuristic hover value — kept here only for comparison */
+      --L-hover-316-blend: #BFDFFF;
+
+      /* Dark theme — DARK_PALETTE (current + new state cells) */
+      --D-window:          #2B2B2B;
+      --D-window-text:     #E8E8E8;
+      --D-button:          #3C3C3C;
+      --D-button-hover:    #464646;   /* HOVER_ECLIPSE   = ECLIPSE.blend(MERCURY, 0.06) */
+      --D-button-pressed:  #585858;   /* PRESSED_ECLIPSE = ECLIPSE.blend(MERCURY, 0.16) */
+      --D-button-text:     #E8E8E8;
+      --D-base:            #1E1E1E;
+      --D-text:            #E8E8E8;
+      --D-highlight:        #1E90FF;
+      --D-highlight-hover:  #2A95FE;  /* HOVER_DODGER_BLUE   = DODGER_BLUE.blend(MERCURY, 0.06) */
+      --D-highlight-pressed:#3E9EFB;  /* PRESSED_DODGER_BLUE = DODGER_BLUE.blend(MERCURY, 0.16) */
+      --D-highlighted-text:#FFFFFF;
+      --D-link:            #5BB0FF;
+      --D-link-visited:    #C58AFF;
+      --D-bright-text:     #FF6B6B;
+      --D-focus-ring:      #1E90FF;   /* NEW role */
+      /* #316's heuristic hover value for dark, for comparison */
+      --D-hover-316-blend: #345067;
+
+      --font-stack: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
+      --font-mono:  'DejaVu Sans Mono', 'Liberation Mono', 'Menlo', 'Consolas', monospace;
+
+      --stroke-1: #000000;
+      --stroke-thin: 1px;
+      --stroke-focus: 2px;
+      --new-cell-tag-bg: #FFE45C;
+      --new-role-tag-bg: #4ADE80;
+      --derived-cell-tag-bg: #BAE6FD;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #FAFAFA;
+      color: #000;
+      font-family: var(--font-stack);
+      font-size: 13px;
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 48px 32px 96px;
+    }
+
+    /* ---------- Header ---------- */
+    h1 {
+      font-size: 22pt;
+      font-weight: 700;
+      margin: 0 0 8px;
+      letter-spacing: -0.01em;
+    }
+    .subtitle {
+      font-size: 12pt;
+      color: #444;
+      margin: 0 0 4px;
+    }
+    .meta {
+      font-family: var(--font-mono);
+      font-size: 10pt;
+      color: #666;
+      margin: 0 0 32px;
+    }
+    .meta code { background: #EAEAEA; padding: 1px 4px; }
+
+    /* ---------- Section chrome ---------- */
+    section {
+      margin-top: 56px;
+    }
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      margin: 0 0 4px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #000;
+    }
+    h2 .num {
+      font-family: var(--font-mono);
+      color: #888;
+      font-weight: 400;
+      margin-right: 8px;
+    }
+    .section-lead {
+      font-size: 11pt;
+      color: #333;
+      margin: 0 0 24px;
+      max-width: 820px;
+    }
+
+    /* ---------- Matrix tables ---------- */
+    .matrix-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+
+    .matrix {
+      border: 1px solid #000;
+      background: #FFFFFF;
+    }
+    .matrix.dark {
+      background: var(--D-window);
+      color: var(--D-window-text);
+      border-color: var(--D-window-text);
+    }
+    .matrix-head {
+      display: grid;
+      grid-template-columns: 130px repeat(3, 1fr);
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid currentColor;
+      font-family: var(--font-mono);
+      font-size: 10pt;
+    }
+    .matrix-head .title {
+      font-family: var(--font-stack);
+      font-weight: 700;
+      font-size: 12pt;
+    }
+    .matrix-head .group {
+      text-align: center;
+      letter-spacing: 0.04em;
+    }
+    .matrix-row {
+      display: grid;
+      grid-template-columns: 130px repeat(3, 1fr);
+      align-items: stretch;
+      border-top: 1px solid currentColor;
+    }
+    .matrix-row:first-child { border-top: none; }
+    .matrix .role-name {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 9.5pt;
+      border-right: 1px solid currentColor;
+    }
+    .matrix .role-name .new-tag {
+      display: inline-block;
+      align-self: flex-start;
+      margin-top: 4px;
+      background: var(--new-role-tag-bg);
+      color: #000;
+      font-family: var(--font-stack);
+      font-size: 7pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 1px 4px;
+    }
+    .cell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 72px;
+      padding: 10px 6px 8px;
+      border-right: 1px solid currentColor;
+      font-family: var(--font-mono);
+      font-size: 9.5pt;
+    }
+    .cell:last-child { border-right: none; }
+    .cell.mirror {
+      /* Cell mirrors Normal — half-faded label. */
+      opacity: 0.55;
+    }
+    .cell .swatch {
+      display: block;
+      width: 56px;
+      height: 24px;
+      border: 1px solid currentColor;
+      margin: 0;
+    }
+    .cell.new::before {
+      content: 'DERIVED';
+      background: var(--derived-cell-tag-bg);
+      color: #000;
+      font-family: var(--font-stack);
+      font-size: 6.5pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      padding: 1px 5px;
+      align-self: center;
+      margin-bottom: 2px;
+    }
+    .cell .hex {
+      font-family: var(--font-mono);
+      text-align: center;
+      line-height: 1.2;
+      font-size: 9pt;
+    }
+    .cell .hex small {
+      display: block;
+      font-size: 6.5pt;
+      opacity: 0.6;
+      letter-spacing: 0.02em;
+      margin-top: 2px;
+    }
+
+    /* ---------- Live button mocks ---------- */
+    .demo-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    .demo-surface {
+      border: 1px solid #000;
+      padding: 32px;
+      background: #FFFFFF;
+    }
+    .demo-surface.dark {
+      background: var(--D-window);
+      color: var(--D-window-text);
+      border-color: var(--D-window-text);
+    }
+    .demo-surface .demo-title {
+      font-family: var(--font-mono);
+      font-size: 10pt;
+      margin-bottom: 16px;
+      letter-spacing: 0.03em;
+    }
+    .demo-row-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .demo-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 6px;
+      width: 130px;
+    }
+    .demo-btn .label {
+      font-family: var(--font-mono);
+      font-size: 9pt;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+    .qz-btn {
+      font-family: var(--font-stack);
+      font-size: 12pt;
+      font-weight: 400;
+      padding: 8px 18px;
+      border: 1px solid var(--btn-stroke);
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      text-align: center;
+      cursor: default;
+      user-select: none;
+      border-radius: 0;
+    }
+    .qz-btn.focused {
+      outline: 2px solid var(--btn-focus, transparent);
+      outline-offset: -2px;
+    }
+    .qz-btn.disabled {
+      opacity: 0.5;
+    }
+
+    /* Light-theme button variants */
+    .L-normal   { --btn-bg: var(--L-button);          --btn-text: var(--L-button-text); --btn-stroke: var(--L-button-text); --btn-focus: var(--L-focus-ring); }
+    .L-hover    { --btn-bg: var(--L-button-hover);    --btn-text: var(--L-button-text); --btn-stroke: var(--L-button-text); --btn-focus: var(--L-focus-ring); }
+    .L-pressed  { --btn-bg: var(--L-highlight-pressed); --btn-text: var(--L-highlighted-text); --btn-stroke: var(--L-highlighted-text); --btn-focus: var(--L-focus-ring); }
+    .L-checked  { --btn-bg: var(--L-highlight);       --btn-text: var(--L-highlighted-text); --btn-stroke: var(--L-highlighted-text); --btn-focus: var(--L-focus-ring); }
+    .L-hover-316{ --btn-bg: var(--L-hover-316-blend); --btn-text: var(--L-button-text); --btn-stroke: var(--L-button-text); --btn-focus: var(--L-focus-ring); }
+
+    /* Dark-theme button variants */
+    .D-normal   { --btn-bg: var(--D-button);           --btn-text: var(--D-button-text); --btn-stroke: var(--D-button-text); --btn-focus: var(--D-focus-ring); }
+    .D-hover    { --btn-bg: var(--D-button-hover);     --btn-text: var(--D-button-text); --btn-stroke: var(--D-button-text); --btn-focus: var(--D-focus-ring); }
+    .D-pressed  { --btn-bg: var(--D-highlight-pressed); --btn-text: var(--D-highlighted-text); --btn-stroke: var(--D-highlighted-text); --btn-focus: var(--D-focus-ring); }
+    .D-checked  { --btn-bg: var(--D-highlight);        --btn-text: var(--D-highlighted-text); --btn-stroke: var(--D-highlighted-text); --btn-focus: var(--D-focus-ring); }
+    .D-hover-316{ --btn-bg: var(--D-hover-316-blend);  --btn-text: var(--D-button-text); --btn-stroke: var(--D-button-text); --btn-focus: var(--D-focus-ring); }
+
+    /* ---------- Comparison strip ---------- */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    .compare-card {
+      border: 1px solid #000;
+      padding: 24px;
+    }
+    .compare-card.dark { background: var(--D-window); color: var(--D-window-text); border-color: var(--D-window-text); }
+    .compare-pair {
+      display: flex;
+      gap: 20px;
+      align-items: stretch;
+      margin: 16px 0 24px;
+    }
+    .compare-pair .col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .compare-pair .col .tag {
+      font-family: var(--font-mono);
+      font-size: 9pt;
+      color: inherit;
+      opacity: 0.7;
+      letter-spacing: 0.04em;
+      min-height: 2.6em;
+      line-height: 1.3;
+    }
+    .compare-pair .col .tag.strike { text-decoration: line-through; }
+    .compare-pair .col .swatch-big {
+      height: 64px;
+      border: 1px solid currentColor;
+    }
+    .compare-pair .col .hex { font-family: var(--font-mono); font-size: 10pt; min-height: 1.4em; }
+    .compare-card .caption {
+      font-size: 10.5pt;
+      max-width: 480px;
+      color: inherit;
+      opacity: 0.85;
+    }
+
+    /* ---------- Focus-ring divergence example ---------- */
+    .ring-demo {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .ring-card {
+      border: 1px solid #000;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .ring-card .ring-label {
+      font-family: var(--font-mono);
+      font-size: 9.5pt;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+    .ring-card .ring-hex { font-family: var(--font-mono); font-size: 9pt; color: #666; }
+
+    /* ---------- Legend ---------- */
+    .legend {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      font-family: var(--font-mono);
+      font-size: 10pt;
+      margin-top: 16px;
+      color: #444;
+    }
+    .legend .key {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      vertical-align: -3px;
+      margin-right: 6px;
+      border: 1px solid #000;
+    }
+    .legend .key.new { background: var(--derived-cell-tag-bg); }
+    .legend .key.new-role { background: var(--new-role-tag-bg); }
+    .legend .key.mirror { background: repeating-linear-gradient(45deg, #DDD 0 4px, #FFF 4px 8px); }
+
+    .footnote {
+      font-size: 10pt;
+      color: #666;
+      max-width: 820px;
+      margin-top: 24px;
+      line-height: 1.5;
+    }
+    .footnote code { font-family: var(--font-mono); background: #EAEAEA; padding: 1px 4px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- ============================================================ -->
+    <header>
+      <h1>Palette state groups — Hover, Pressed, FocusRing</h1>
+      <p class="subtitle">Visual reference for <code>palette-state-groups.proposal.md</code> · issue #402</p>
+      <p class="meta">Light theme = <code>Palette::default</code> · Dark theme = <code>DARK_PALETTE</code> · Cells tagged <strong>DERIVED</strong> are computed from <code>Normal</code> via the rule in section 01. The <code>FocusRing</code> role is new in this proposal.</p>
+    </header>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2><span class="num">01</span>The matrix — every cell, both themes</h2>
+      <p class="section-lead">
+        Each row is a <code>ColorRole</code>; each column is a <code>ColorGroup</code>.
+        Faded cells mirror <code>Normal</code> byte-for-byte. Cells tagged <strong>DERIVED</strong>
+        are computed at lookup time via:
+      </p>
+
+      <pre style="background:#FFF; border:1px solid #000; padding:12px 16px; font-family:var(--font-mono); font-size:10pt; margin:0 0 16px; max-width:820px;">Hover(c)   = c.blend(WindowText.Normal, 0.06)
+Pressed(c) = c.blend(WindowText.Normal, 0.16)</pre>
+
+      <p class="section-lead">
+        Light theme: <code>WindowText.Normal = #000000</code>, so hover and pressed
+        both darken (6 % and 16 %). Dark theme: <code>WindowText.Normal = #E8E8E8</code>
+        (Mercury), so the same factors lighten by the same amounts. <strong>v1 ships no
+        explicit overrides</strong> — every derived cell follows the formula above. Themes that
+        want different values shadow the cell via <code>Palette::with_role(role, group, color)</code>.
+      </p>
+
+      <div class="matrix-grid">
+
+        <!-- ----- Light theme matrix ----- -->
+        <div class="matrix" id="matrix-light">
+          <div class="matrix-head">
+            <div class="title">Light · <code>Palette::default</code></div>
+            <div class="group">Normal</div>
+            <div class="group">Hover</div>
+            <div class="group">Pressed</div>
+          </div>
+
+          <!-- Window -->
+          <div class="matrix-row">
+            <div class="role-name">Window</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- WindowText -->
+          <div class="matrix-row">
+            <div class="role-name">WindowText</div>
+            <div class="cell"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+          </div>
+          <!-- Button -->
+          <div class="matrix-row">
+            <div class="role-name">Button</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell new"><span class="swatch" style="background:#F0F0F0"></span><span class="hex">#F0F0F0<br><small>HOVER_WHITE</small></span></div>
+            <div class="cell new"><span class="swatch" style="background:#D6D6D6"></span><span class="hex">#D6D6D6<br><small>PRESSED_WHITE</small></span></div>
+          </div>
+          <!-- ButtonText -->
+          <div class="matrix-row">
+            <div class="role-name">ButtonText</div>
+            <div class="cell"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+          </div>
+          <!-- Base -->
+          <div class="matrix-row">
+            <div class="role-name">Base</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- Text -->
+          <div class="matrix-row">
+            <div class="role-name">Text</div>
+            <div class="cell"><span class="swatch" style="background:#000000"></span><span class="hex">#000000</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#000000"></span><span class="hex">=</span></div>
+          </div>
+          <!-- Highlight -->
+          <div class="matrix-row">
+            <div class="role-name">Highlight</div>
+            <div class="cell"><span class="swatch" style="background:#0080FF"></span><span class="hex">#0080FF</span></div>
+            <div class="cell new"><span class="swatch" style="background:#0078F0"></span><span class="hex">#0078F0<br><small>HOVER_SKY_BLUE</small></span></div>
+            <div class="cell new"><span class="swatch" style="background:#006CD6"></span><span class="hex">#006CD6<br><small>PRESSED_SKY_BLUE</small></span></div>
+          </div>
+          <!-- HighlightedText -->
+          <div class="matrix-row">
+            <div class="role-name">HighlightedText</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- Link -->
+          <div class="matrix-row">
+            <div class="role-name">Link</div>
+            <div class="cell"><span class="swatch" style="background:#0000FF"></span><span class="hex">#0000FF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0000FF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0000FF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- LinkVisited -->
+          <div class="matrix-row">
+            <div class="role-name">LinkVisited</div>
+            <div class="cell"><span class="swatch" style="background:#0000FF"></span><span class="hex">#0000FF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0000FF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0000FF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- BrightText -->
+          <div class="matrix-row">
+            <div class="role-name">BrightText</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+          </div>
+          <!-- FocusRing (new role) -->
+          <div class="matrix-row">
+            <div class="role-name">
+              FocusRing
+              <span class="new-tag">NEW ROLE</span>
+            </div>
+            <div class="cell"><span class="swatch" style="background:#0080FF"></span><span class="hex">#0080FF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0080FF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#0080FF"></span><span class="hex">=</span></div>
+          </div>
+        </div>
+
+        <!-- ----- Dark theme matrix ----- -->
+        <div class="matrix dark" id="matrix-dark">
+          <div class="matrix-head">
+            <div class="title">Dark · <code>DARK_PALETTE</code></div>
+            <div class="group">Normal</div>
+            <div class="group">Hover</div>
+            <div class="group">Pressed</div>
+          </div>
+
+          <div class="matrix-row">
+            <div class="role-name">Window</div>
+            <div class="cell"><span class="swatch" style="background:#2B2B2B"></span><span class="hex">#2B2B2B</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#2B2B2B"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#2B2B2B"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">WindowText</div>
+            <div class="cell"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">#E8E8E8</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">Button</div>
+            <div class="cell"><span class="swatch" style="background:#3C3C3C"></span><span class="hex">#3C3C3C</span></div>
+            <div class="cell new"><span class="swatch" style="background:#464646"></span><span class="hex">#464646<br><small>HOVER_ECLIPSE</small></span></div>
+            <div class="cell new"><span class="swatch" style="background:#585858"></span><span class="hex">#585858<br><small>PRESSED_ECLIPSE</small></span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">ButtonText</div>
+            <div class="cell"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">#E8E8E8</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">Base</div>
+            <div class="cell"><span class="swatch" style="background:#1E1E1E"></span><span class="hex">#1E1E1E</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#1E1E1E"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#1E1E1E"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">Text</div>
+            <div class="cell"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">#E8E8E8</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#E8E8E8"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">Highlight</div>
+            <div class="cell"><span class="swatch" style="background:#1E90FF"></span><span class="hex">#1E90FF</span></div>
+            <div class="cell new"><span class="swatch" style="background:#2A95FE"></span><span class="hex">#2A95FE<br><small>HOVER_DODGER_BLUE</small></span></div>
+            <div class="cell new"><span class="swatch" style="background:#3E9EFB"></span><span class="hex">#3E9EFB<br><small>PRESSED_DODGER_BLUE</small></span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">HighlightedText</div>
+            <div class="cell"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">#FFFFFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FFFFFF"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">Link</div>
+            <div class="cell"><span class="swatch" style="background:#5BB0FF"></span><span class="hex">#5BB0FF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#5BB0FF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#5BB0FF"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">LinkVisited</div>
+            <div class="cell"><span class="swatch" style="background:#C58AFF"></span><span class="hex">#C58AFF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#C58AFF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#C58AFF"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">BrightText</div>
+            <div class="cell"><span class="swatch" style="background:#FF6B6B"></span><span class="hex">#FF6B6B</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FF6B6B"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#FF6B6B"></span><span class="hex">=</span></div>
+          </div>
+          <div class="matrix-row">
+            <div class="role-name">
+              FocusRing
+              <span class="new-tag">NEW ROLE</span>
+            </div>
+            <div class="cell"><span class="swatch" style="background:#1E90FF"></span><span class="hex">#1E90FF</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#1E90FF"></span><span class="hex">=</span></div>
+            <div class="cell mirror"><span class="swatch" style="background:#1E90FF"></span><span class="hex">=</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div><span class="key new"></span>Derived cell (computed from <code>Normal</code> via the rule below)</div>
+        <div><span class="key new-role"></span>New <code>ColorRole</code> variant</div>
+        <div><span class="key mirror"></span>Mirror of Normal · no v1 state effect</div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2><span class="num">02</span>Live button mocks</h2>
+      <p class="section-lead">
+        How <code>DefaultStyle::draw_button</code> renders under the new palette
+        in each state. The fill, text, and outline are read directly from the
+        cells in section 01; the <code>Focused</code> outline reads
+        <code>FocusRing × Normal</code> and overlays at <code>width = 2 px</code>.
+      </p>
+
+      <div class="demo-row">
+
+        <!-- Light theme buttons -->
+        <div class="demo-surface" id="demo-light">
+          <div class="demo-title">Light · <code>Palette::default</code></div>
+          <div class="demo-row-buttons">
+            <div class="demo-btn">
+              <div class="qz-btn L-normal">OK</div>
+              <div class="label">normal</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-hover">OK</div>
+              <div class="label">hovered</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-pressed">OK</div>
+              <div class="label">pressed</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-checked">OK</div>
+              <div class="label">checked</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-normal focused">OK</div>
+              <div class="label">focused</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-pressed focused">OK</div>
+              <div class="label">focused + pressed</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn L-normal disabled">OK</div>
+              <div class="label">disabled</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dark theme buttons -->
+        <div class="demo-surface dark" id="demo-dark">
+          <div class="demo-title">Dark · <code>DARK_PALETTE</code></div>
+          <div class="demo-row-buttons">
+            <div class="demo-btn">
+              <div class="qz-btn D-normal">OK</div>
+              <div class="label">normal</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-hover">OK</div>
+              <div class="label">hovered</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-pressed">OK</div>
+              <div class="label">pressed</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-checked">OK</div>
+              <div class="label">checked</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-normal focused">OK</div>
+              <div class="label">focused</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-pressed focused">OK</div>
+              <div class="label">focused + pressed</div>
+            </div>
+            <div class="demo-btn">
+              <div class="qz-btn D-normal disabled">OK</div>
+              <div class="label">disabled</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2><span class="num">03</span>Comparison · #316 heuristic vs. explicit state cells</h2>
+      <p class="section-lead">
+        Direct A/B between the existing v1 visuals (<code>Button.blend(Highlight, 0.25)</code>
+        for hover; <code>Highlight × Normal</code> for pressed) and the new explicit cells.
+        Snapshot goldens for <code>button_hovered.png</code> and
+        <code>button_pressed.png</code> regenerate to match the right-hand
+        column.
+      </p>
+
+      <div class="compare">
+
+        <!-- Light theme comparison -->
+        <div class="compare-card" id="compare-light">
+          <div style="font-family: var(--font-mono); font-size:10pt; margin-bottom:8px;">Light</div>
+
+          <div style="font-weight:700; font-size:11pt; margin-bottom:4px;">Hover</div>
+          <div class="compare-pair">
+            <div class="col">
+              <div class="tag strike">v1 (#316) · 25 % blend toward Highlight</div>
+              <div class="swatch-big" style="background:#BFDFFF"></div>
+              <div class="hex">#BFDFFF</div>
+              <div class="qz-btn L-hover-316" style="margin-top:8px;">OK</div>
+            </div>
+            <div class="col">
+              <div class="tag">v2 (this proposal) · derived <code>Button × Hover</code></div>
+              <div class="swatch-big" style="background:#F0F0F0"></div>
+              <div class="hex">#F0F0F0 · <small>HOVER_WHITE</small></div>
+              <div class="qz-btn L-hover" style="margin-top:8px;">OK</div>
+            </div>
+          </div>
+          <p class="caption">
+            The v1 hover reads "selected" — same hue family as the
+            <code>Highlight</code> selection colour. The v2 hover reads
+            "raised affordance" — distinct from <code>Highlight</code> entirely.
+            Matches Qt Fusion, Windows Common Controls, macOS Aqua conventions.
+          </p>
+
+          <div style="font-weight:700; font-size:11pt; margin: 24px 0 4px;">Pressed</div>
+          <div class="compare-pair">
+            <div class="col">
+              <div class="tag strike">v1 (#316) · same as <code>Highlight × Normal</code></div>
+              <div class="swatch-big" style="background:#0080FF"></div>
+              <div class="hex">#0080FF</div>
+              <div class="qz-btn L-checked" style="margin-top:8px;">OK</div>
+            </div>
+            <div class="col">
+              <div class="tag">v2 · derived <code>Highlight × Pressed</code></div>
+              <div class="swatch-big" style="background:#006CD6"></div>
+              <div class="hex">#006CD6 · <small>PRESSED_SKY_BLUE</small></div>
+              <div class="qz-btn L-pressed" style="margin-top:8px;">OK</div>
+            </div>
+          </div>
+          <p class="caption">
+            v1 made <code>pressed</code> and <code>checked</code> visually identical
+            (both fell back to <code>Highlight</code>). v2 keeps the role swap but
+            differentiates the group — a button that is <em>both</em> pressed and
+            checked still reads as "actively being pressed" against an already-checked
+            sibling.
+          </p>
+        </div>
+
+        <!-- Dark theme comparison -->
+        <div class="compare-card dark" id="compare-dark">
+          <div style="font-family: var(--font-mono); font-size:10pt; margin-bottom:8px;">Dark</div>
+
+          <div style="font-weight:700; font-size:11pt; margin-bottom:4px;">Hover</div>
+          <div class="compare-pair">
+            <div class="col">
+              <div class="tag strike">v1 (#316) · 25 % blend toward Highlight</div>
+              <div class="swatch-big" style="background:#345067"></div>
+              <div class="hex">#345067</div>
+              <div class="qz-btn D-hover-316" style="margin-top:8px;">OK</div>
+            </div>
+            <div class="col">
+              <div class="tag">v2 · derived <code>Button × Hover</code></div>
+              <div class="swatch-big" style="background:#464646"></div>
+              <div class="hex">#464646 · <small>HOVER_ECLIPSE</small></div>
+              <div class="qz-btn D-hover" style="margin-top:8px;">OK</div>
+            </div>
+          </div>
+          <p class="caption">
+            v1's steel-blue hover is striking but conflates "I'm hovering" with
+            "I'm pre-selected". v2 keeps the hover neutral — a slightly lighter
+            grey — and leaves <code>Highlight</code> as the unambiguous
+            selection cue.
+          </p>
+
+          <div style="font-weight:700; font-size:11pt; margin: 24px 0 4px;">Pressed</div>
+          <div class="compare-pair">
+            <div class="col">
+              <div class="tag strike">v1 · same as <code>Highlight × Normal</code></div>
+              <div class="swatch-big" style="background:#1E90FF"></div>
+              <div class="hex">#1E90FF</div>
+              <div class="qz-btn D-checked" style="margin-top:8px;">OK</div>
+            </div>
+            <div class="col">
+              <div class="tag">v2 · derived <code>Highlight × Pressed</code></div>
+              <div class="swatch-big" style="background:#3E9EFB"></div>
+              <div class="hex">#3E9EFB · <small>PRESSED_DODGER_BLUE</small></div>
+              <div class="qz-btn D-pressed" style="margin-top:8px;">OK</div>
+            </div>
+          </div>
+          <p class="caption">
+            Same story: differentiating <code>pressed</code> from <code>checked</code>
+            takes a second blue cell, not two more roles.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2><span class="num">04</span>Why <code>FocusRing</code> is its own role</h2>
+      <p class="section-lead">
+        The default <code>FocusRing</code> seed equals <code>Highlight × Normal</code>
+        in both themes — so the byte output of <code>button_focused.png</code>
+        does not change. The reason the slot exists is to let themes diverge
+        when accessibility, palette mood, or contrast budgets demand it,
+        without forking <code>DefaultStyle</code>.
+      </p>
+
+      <div class="ring-demo">
+
+        <div class="ring-card">
+          <div class="ring-label">Default · <code>FocusRing = Highlight</code></div>
+          <div class="qz-btn L-normal focused" style="--btn-focus:#0080FF;">OK</div>
+          <div class="ring-hex">#0080FF</div>
+        </div>
+
+        <div class="ring-card">
+          <div class="ring-label">Accessibility theme · high-contrast amber ring</div>
+          <div class="qz-btn L-normal focused" style="--btn-focus:#FFB000;">OK</div>
+          <div class="ring-hex">#FFB000</div>
+        </div>
+
+        <div class="ring-card" style="background:var(--D-window); color:var(--D-window-text); border-color:var(--D-window-text);">
+          <div class="ring-label">Dark theme · divergent magenta ring</div>
+          <div class="qz-btn D-normal focused" style="--btn-focus:#E879F9;">OK</div>
+          <div class="ring-hex">#E879F9</div>
+        </div>
+
+      </div>
+
+      <p class="footnote">
+        Themes set the divergent value via
+        <code>Palette::default().with_role(ColorRole::FocusRing, ColorGroup::Normal, ...)</code>.
+        The two examples above (amber and magenta) are illustrative only — not part
+        of any shipped palette.
+      </p>
+    </section>
+
+    <!-- ============================================================ -->
+    <section>
+      <h2><span class="num">05</span>Snapshot impact summary</h2>
+      <p class="section-lead">
+        Of the eight committed goldens in <code>quartzite-style/tests/snapshots/shared/</code>,
+        two regenerate: <code>button_hovered.png</code> and <code>button_pressed.png</code>.
+        The other six are byte-identical after the refactor.
+      </p>
+
+      <div class="ring-demo">
+        <div class="ring-card">
+          <div class="ring-label">button_hovered · was 25 % blend</div>
+          <div class="qz-btn L-hover-316">OK</div>
+          <div class="ring-hex">#BFDFFF · regenerates →</div>
+          <div class="qz-btn L-hover">OK</div>
+          <div class="ring-hex">#F0F0F0</div>
+        </div>
+        <div class="ring-card">
+          <div class="ring-label">button_pressed · was Highlight Normal</div>
+          <div class="qz-btn L-checked">OK</div>
+          <div class="ring-hex">#0080FF · regenerates →</div>
+          <div class="qz-btn L-pressed">OK</div>
+          <div class="ring-hex">#006CD6 · <small>PRESSED_SKY_BLUE</small></div>
+        </div>
+        <div class="ring-card">
+          <div class="ring-label">button_focused · unchanged</div>
+          <div class="qz-btn L-normal focused">OK</div>
+          <div class="ring-hex">#0080FF (FocusRing = Highlight)</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
