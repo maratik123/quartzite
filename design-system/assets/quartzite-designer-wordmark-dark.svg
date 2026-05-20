@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" width="240" height="64" role="img" aria-label="Quartzite Designer (dark)" shape-rendering="geometricPrecision">
+  <rect x="0" y="0" width="240" height="64" fill="#2B2B2B"></rect>
+  <g transform="translate(4,0)">
+    <polygon points="32,6 10,20 10,44 32,32" fill="#1E90FF"></polygon>
+    <polygon points="32,6 54,20 32,32" fill="#345067"></polygon>
+    <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#E8E8E8" stroke-width="1" stroke-linejoin="miter" stroke-linecap="butt"></path>
+    <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linejoin="bevel" stroke-linecap="butt"></path>
+  </g>
+  <text x="74" y="36" font-family="&#39;DejaVu Sans&#39;,&#39;Liberation Sans&#39;,&#39;Helvetica Neue&#39;,Arial,sans-serif" font-size="28" font-weight="400" fill="#E8E8E8" letter-spacing="0.5">quartzite</text>
+  <text x="74" y="52" font-family="&#39;DejaVu Sans&#39;,&#39;Liberation Sans&#39;,&#39;Helvetica Neue&#39;,Arial,sans-serif" font-size="12" font-weight="500" fill="#1E90FF" letter-spacing="2.4">DESIGNER</text>
+</svg>

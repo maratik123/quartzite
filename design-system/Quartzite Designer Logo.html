@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Quartzite Designer — Logo Explorations</title>
+<style>
+  /* ------------------------------------------------------------------
+     Self-contained logo exploration page.
+     Mirrors the quartzite design-system aesthetic — flat, 1 px strokes,
+     sharp corners, DejaVu/Liberation stack — so the lockups read next
+     to the existing preview cards without retraining the eye.
+     ------------------------------------------------------------------ */
+
+  :root {
+    --window: #FFFFFF;
+    --window-text: #000000;
+    --base: #FFFFFF;
+    --highlight: #0080FF;          /* SKY_BLUE       */
+    --highlight-soft: #BFDFFF;     /* button-hover   */
+    --highlight-dark: #1E90FF;     /* DodgerBlue     */
+    --window-dark: #2B2B2B;        /* Mine Shaft     */
+    --mercury: #E8E8E8;
+    --steel:   #345067;            /* dark-theme button-hover */
+    --page-bg: #f0eee9;            /* warm gray, matches canvas tone */
+    --rule:    rgba(0,0,0,0.08);
+
+    --font-sans: 'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+    --font-mono: 'DejaVu Sans Mono','Liberation Mono','Menlo','Consolas',monospace;
+  }
+
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--page-bg);
+    color: var(--window-text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  svg { shape-rendering: geometricPrecision; }
+
+  .page {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+  }
+
+  /* Page header */
+  .page-head { margin-bottom: 56px; }
+  .page-head .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(0,0,0,0.55);
+    margin-bottom: 14px;
+  }
+  .page-head h1 {
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    margin: 0 0 12px;
+  }
+  .page-head h1 b { font-weight: 700; }
+  .page-head p {
+    max-width: 720px;
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+    color: rgba(0,0,0,0.7);
+  }
+
+  /* Sections */
+  section.s { margin-bottom: 64px; }
+  section.s > header {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+  section.s > header h2 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin: 0;
+  }
+  section.s > header .subtitle {
+    font-size: 13px;
+    color: rgba(0,0,0,0.6);
+    margin: 0;
+  }
+
+  .row { display: flex; flex-wrap: wrap; gap: 20px; }
+
+  /* Artboard cards (mimic the design canvas) */
+  .ab {
+    background: var(--window);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 8px 24px -16px rgba(0,0,0,0.18);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .ab .label {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: rgba(60,50,40,0.7);
+  }
+  .ab .stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .ab .stage.dark { background: var(--window-dark); }
+  .ab .stage.gray { background: #F5F5F5; }
+  .ab .caption {
+    position: absolute;
+    left: 12px;
+    bottom: 10px;
+    right: 12px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: rgba(0,0,0,0.45);
+    pointer-events: none;
+  }
+  .ab .stage.dark .caption { color: rgba(232,232,232,0.55); }
+
+  /* Lockup type */
+  .wm {
+    font-family: var(--font-sans);
+    color: #000;
+    line-height: 1;
+    white-space: nowrap;
+    font-feature-settings: "kern" 1;
+  }
+  .wm.on-dark { color: var(--mercury); }
+
+  .lockup-h { display: flex; align-items: center; gap: 14px; }
+  .lockup-v { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+  .slash  { color: var(--highlight); padding: 0 2px; }
+  .slash.on-dark { color: var(--highlight-dark); }
+  .hyphen { color: #000; opacity: 0.4; padding: 0 1px; }
+  .hyphen.on-dark { color: var(--mercury); opacity: 0.5; }
+
+  .stacked-text { display: flex; flex-direction: column; line-height: 1; }
+  .stacked-text .primary   { font-size: 28px; font-weight: 400; letter-spacing: 0.5px; }
+  .stacked-text .secondary {
+    font-size: 12px; font-weight: 500; letter-spacing: 2.4px;
+    text-transform: uppercase; margin-top: 6px;
+  }
+  .stacked-text .secondary.accent          { color: var(--highlight); }
+  .stacked-text .secondary.accent.on-dark  { color: var(--highlight-dark); }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 1px 6px;
+    border: 1px solid #000;
+    color: #000;
+    background: #FFF;
+    margin-left: 10px;
+    letter-spacing: 0;
+    line-height: 1.4;
+  }
+  .tag.on-dark { color: var(--mercury); border-color: var(--mercury); background: transparent; }
+
+  /* App-icon framing */
+  .icon-frame {
+    background: #FFF;
+    border: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .icon-frame.dark { background: var(--window-dark); border-color: var(--mercury); }
+
+  /* Quartzite-style faux window for the in-product example */
+  .qz-window {
+    background: #FFF;
+    border: 1px solid #000;
+    display: flex;
+    flex-direction: column;
+  }
+  .qz-window .titlebar {
+    border-bottom: 1px solid #000;
+    padding: 6px 10px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .qz-window .body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #FFFFFF;
+  }
+  .qz-window .statusbar {
+    border-top: 1px solid #000;
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #000;
+    opacity: 0.6;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .size-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .size-cell .num { font-family: var(--font-mono); font-size: 10px; color: rgba(0,0,0,0.55); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="page-head">
+    <div class="eyebrow">quartzite-designer · logo system</div>
+    <h1>quartzite <b>designer</b></h1>
+    <p>Lockups and an application icon for the Quartzite Designer app, built on the existing brand mark. The mark, color tokens (<code>#0080FF</code> / <code>#1E90FF</code>) and type stack (DejaVu Sans / DejaVu Sans Mono) are inherited verbatim from the design system. Everything below uses only the system's primitives: 1 px black or Mercury strokes, integer-pixel geometry, zero rounded corners, no shadows, no gradients.</p>
+  </header>
+
+  <!-- ─────────────────────────── PRIMARY ─────────────────────────── -->
+  <section class="s">
+    <header>
+      <h2>Primary lockup</h2>
+      <p class="subtitle">Mark + stacked wordmark. "quartzite" in DejaVu Sans Regular 28·px; "designer" tucked beneath in 12·px medium uppercase, tracked +2.4·px, set in Highlight blue. The accent labels the application without changing the brand's typographic voice.</p>
+    </header>
+    <div class="row">
+
+      <div class="ab" style="width:520px;height:180px">
+        <div class="label">A · Primary · light</div>
+        <div class="stage">
+          <div class="lockup-h">
+            <svg viewBox="0 0 64 64" width="84" height="84">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+            <div class="stacked-text wm">
+              <span class="primary">quartzite</span>
+              <span class="secondary accent">designer</span>
+            </div>
+          </div>
+          <div class="caption">quartzite 28·px / 400 · designer 12·px / 500 · letter-spacing 2.4·px · Highlight #0080FF</div>
+        </div>
+      </div>
+
+      <div class="ab" style="width:520px;height:180px">
+        <div class="label">B · Primary · dark</div>
+        <div class="stage dark">
+          <div class="lockup-h">
+            <svg viewBox="0 0 64 64" width="84" height="84">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#1E90FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#345067"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+            <div class="stacked-text wm on-dark">
+              <span class="primary">quartzite</span>
+              <span class="secondary accent on-dark">designer</span>
+            </div>
+          </div>
+          <div class="caption on-dark">dark theme — Mercury wordmark · DodgerBlue accent #1E90FF</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── ALTERNATES ─────────────────────────── -->
+  <section class="s">
+    <header>
+      <h2>Alternate lockup</h2>
+      <p class="subtitle">Vertical stack for square contexts — README header, splash screen, About dialog. Same type system as the primary, reflowed onto two stacked lines with the mark centered above.</p>
+    </header>
+    <div class="row">
+
+      <div class="ab" style="width:300px;height:340px">
+        <div class="label">C · Stacked · light</div>
+        <div class="stage">
+          <div class="lockup-v">
+            <svg viewBox="0 0 64 64" width="84" height="84">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+            <div class="wm" style="text-align:center;line-height:1.1">
+              <div style="font-size:22px;font-weight:400;letter-spacing:0.5px">quartzite</div>
+              <div style="font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;margin-top:6px;color:#0080FF">designer</div>
+            </div>
+          </div>
+          <div class="caption">mark 84·px · type 22·px / 11·px · vertical gap 14·px</div>
+        </div>
+      </div>
+
+      <div class="ab" style="width:300px;height:340px">
+        <div class="label">D · Stacked · dark</div>
+        <div class="stage dark">
+          <div class="lockup-v">
+            <svg viewBox="0 0 64 64" width="84" height="84">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#1E90FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#345067"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+            <div class="wm on-dark" style="text-align:center;line-height:1.1">
+              <div style="font-size:22px;font-weight:400;letter-spacing:0.5px">quartzite</div>
+              <div style="font-size:11px;font-weight:500;letter-spacing:3px;text-transform:uppercase;margin-top:6px;color:#1E90FF">designer</div>
+            </div>
+          </div>
+          <div class="caption on-dark">dark theme — DodgerBlue accent</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── APPLICATION ICON ─────────────────────────── -->
+  <section class="s">
+    <header>
+      <h2>Application icon</h2>
+      <p class="subtitle">The Designer signifier is a 2 px Highlight ring around the back-right facet — drawn over the canonical mark with bevel line-joins so the corners terminate cleanly at the hex silhouette instead of spiking outside it.</p>
+    </header>
+    <div class="row">
+
+      <!-- Light app icon -->
+      <div class="ab" style="width:300px;height:300px">
+        <div class="label">I · 256·px · designer ring</div>
+        <div class="stage">
+          <div class="icon-frame" style="width:224px;height:224px">
+            <svg viewBox="0 0 64 64" width="145" height="145">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+          </div>
+          <div class="caption">selection ring · 2·px stroke · Highlight #0080FF · bevel join</div>
+        </div>
+      </div>
+
+      <!-- Dark app icon -->
+      <div class="ab" style="width:300px;height:300px">
+        <div class="label">J · 256·px · dark</div>
+        <div class="stage dark">
+          <div class="icon-frame dark" style="width:224px;height:224px">
+            <svg viewBox="0 0 64 64" width="145" height="145">
+              <polygon points="32,6 10,20 10,44 32,32" fill="#1E90FF"/>
+              <polygon points="32,6 54,20 32,32" fill="#345067"/>
+              <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#E8E8E8" stroke-width="1"/>
+              <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#1E90FF" stroke-width="2" stroke-linejoin="bevel"/>
+            </svg>
+          </div>
+          <div class="caption">DodgerBlue #1E90FF on Mine Shaft #2B2B2B</div>
+        </div>
+      </div>
+
+      <!-- Plain vs designer -->
+      <div class="ab" style="width:620px;height:300px">
+        <div class="label">K · Plain vs. Designer</div>
+        <div class="stage" style="gap:36px">
+          <div style="display:flex;gap:48px;align-items:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div class="icon-frame" style="width:140px;height:140px">
+                <svg viewBox="0 0 64 64" width="90" height="90">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                </svg>
+              </div>
+              <div class="wm" style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.55">quartzite</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div class="icon-frame" style="width:140px;height:140px">
+                <svg viewBox="0 0 64 64" width="90" height="90">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+                </svg>
+              </div>
+              <div class="wm" style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#0080FF;font-weight:600">designer</div>
+            </div>
+          </div>
+          <div class="caption">framework mark left · designer-app mark right · single-facet ring is the only difference</div>
+        </div>
+      </div>
+
+      <!-- Size ladder -->
+      <div class="ab" style="width:620px;height:240px">
+        <div class="label">L · Size ladder</div>
+        <div class="stage">
+          <div style="display:flex;align-items:flex-end;gap:28px">
+            <div class="size-cell">
+              <div class="icon-frame" style="width:128px;height:128px">
+                <svg viewBox="0 0 64 64" width="83" height="83">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+                </svg>
+              </div>
+              <div class="num">128</div>
+            </div>
+            <div class="size-cell">
+              <div class="icon-frame" style="width:64px;height:64px">
+                <svg viewBox="0 0 64 64" width="42" height="42">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+                </svg>
+              </div>
+              <div class="num">64</div>
+            </div>
+            <div class="size-cell">
+              <div class="icon-frame" style="width:32px;height:32px">
+                <svg viewBox="0 0 64 64" width="21" height="21">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+                </svg>
+              </div>
+              <div class="num">32</div>
+            </div>
+            <div class="size-cell">
+              <div class="icon-frame" style="width:16px;height:16px">
+                <svg viewBox="0 0 64 64" width="10" height="10">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="0.5"/>
+                </svg>
+              </div>
+              <div class="num">16</div>
+            </div>
+          </div>
+          <div class="caption">at 16·px the selection ring is dropped — falls back to canonical mark</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── CONSTRUCTION ─────────────────────────── -->
+  <section class="s">
+    <header>
+      <h2>Construction</h2>
+      <p class="subtitle">Mark on 8·px grid with vertex callouts; in-product placement inside a Quartzite-style window.</p>
+    </header>
+    <div class="row">
+
+      <!-- Spec card -->
+      <div class="ab" style="width:420px;height:420px">
+        <div class="label">M · 64·px integer grid</div>
+        <div class="stage">
+          <svg viewBox="0 0 64 64" width="340" height="340">
+            <rect x="0" y="0" width="64" height="64" fill="#FFFFFF"/>
+            <!-- 8-unit grid -->
+            <g stroke="#0080FF" stroke-opacity="0.12" stroke-width="0.25">
+              <line x1="0"  y1="0" x2="0"  y2="64"/>
+              <line x1="8"  y1="0" x2="8"  y2="64"/>
+              <line x1="16" y1="0" x2="16" y2="64"/>
+              <line x1="24" y1="0" x2="24" y2="64"/>
+              <line x1="32" y1="0" x2="32" y2="64"/>
+              <line x1="40" y1="0" x2="40" y2="64"/>
+              <line x1="48" y1="0" x2="48" y2="64"/>
+              <line x1="56" y1="0" x2="56" y2="64"/>
+              <line x1="64" y1="0" x2="64" y2="64"/>
+              <line x1="0" y1="0"  x2="64" y2="0"/>
+              <line x1="0" y1="8"  x2="64" y2="8"/>
+              <line x1="0" y1="16" x2="64" y2="16"/>
+              <line x1="0" y1="24" x2="64" y2="24"/>
+              <line x1="0" y1="32" x2="64" y2="32"/>
+              <line x1="0" y1="40" x2="64" y2="40"/>
+              <line x1="0" y1="48" x2="64" y2="48"/>
+              <line x1="0" y1="56" x2="64" y2="56"/>
+              <line x1="0" y1="64" x2="64" y2="64"/>
+            </g>
+            <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+            <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+            <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="0.5"/>
+            <!-- designer selection ring -->
+            <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="1" stroke-linejoin="bevel"/>
+            <!-- vertex dots -->
+            <circle cx="32" cy="6"  r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="54" cy="20" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="54" cy="44" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="32" cy="58" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="10" cy="44" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="10" cy="20" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+            <circle cx="32" cy="32" r="0.8" fill="#0080FF" stroke="#000" stroke-width="0.3"/>
+          </svg>
+          <div class="caption">vertices: (32,6)·(54,20)·(54,44)·(32,58)·(10,44)·(10,20)·(32,32) · designer ring on (32,32)→(54,20)→(54,44)→(32,58)</div>
+        </div>
+      </div>
+
+      <!-- In a Quartzite window -->
+      <div class="ab" style="width:520px;height:420px">
+        <div class="label">N · In a Quartzite window</div>
+        <div class="stage gray" style="padding:24px">
+          <div class="qz-window" style="width:420px;height:300px">
+            <div class="titlebar">
+              <svg viewBox="0 0 64 64" width="14" height="14">
+                <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+              </svg>
+              <span>Quartzite Designer</span>
+            </div>
+            <div class="body">
+              <div class="lockup-h">
+                <svg viewBox="0 0 64 64" width="56" height="56">
+                  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"/>
+                  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"/>
+                  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000" stroke-width="1"/>
+                  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel"/>
+                </svg>
+                <div class="stacked-text wm" style="font-size:22px">
+                  <span class="primary" style="font-size:22px">quartzite</span>
+                  <span class="secondary accent" style="font-size:10px;letter-spacing:2px">designer</span>
+                </div>
+              </div>
+            </div>
+            <div class="statusbar">
+              <span>ready</span>
+              <span>0,0 · 64×64</span>
+            </div>
+          </div>
+          <div class="caption">in-product use — title bar + about dialog header</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

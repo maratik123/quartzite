@@ -16,7 +16,7 @@ and no codegen outside proc-macros.
   - `quartzite-style-types` — the `ColorRole` enum + `Palette` lookup table that defines the entire color vocabulary.
   - `quartzite-style/src/default_style.rs` — the only concrete `Style` in-tree; every visual rule in this doc comes from it.
   - `quartzite-widgets/src/widgets/*` — the six built-in widgets (`Button`, `Label`, `LineEdit`, `TextEdit`, `ScrollArea`, `Container`).
-  - `quartzite-style/tests/snapshots/shared/*.png` — committed golden PNGs of every widget state under `DefaultStyle`. Truth source for the screenshots in this system.
+  - `quartzite-style/tests/snapshots/shared/*.png` — committed golden PNGs of every widget state under `DefaultStyle`. Read these in the upstream repo when verifying paint output against `DefaultStyle`.
   - `quartzite-paint-api/src/{color,font,brush,pen,path,image,painter}.rs` — the painting primitives the style draws against.
 
 The reader is encouraged to explore the repository — especially `quartzite-widgets` and `quartzite-style` — to recreate or extend designs faithfully. Most decisions in this design system are **described** rather than re-derived; the source of truth is the Rust code.
@@ -33,8 +33,16 @@ A short manifest of the root:
 | `fonts/` | (empty — see _Typography_ below.) |
 | `assets/` | Logos and snapshot pngs. |
 | `assets/quartzite-mark.svg` | 64 px crystalline mark. |
+| `assets/quartzite-mark-dark.svg` | Same mark, dark-theme facets, no background. |
+| `assets/quartzite-mark-white.svg` | Same mark with a 3 px white halo for colored backgrounds. |
 | `assets/quartzite-wordmark.svg` | Mark + `quartzite` lockup. |
-| `assets/snapshots/` | The 10 committed golden PNGs from `quartzite-style`. |
+| `assets/quartzite-designer-mark.svg` | Sibling-product mark — canonical mark + 2 px `Highlight` ring on the back-right facet. |
+| `assets/quartzite-designer-mark-dark.svg` | Designer mark · dark · transparent. |
+| `assets/quartzite-designer-mark-white.svg` | Designer mark · 3 px white halo. |
+| `assets/quartzite-designer-wordmark.svg` | Designer primary lockup · mark + stacked `quartzite` / `DESIGNER` accent. |
+| `assets/quartzite-designer-wordmark-dark.svg` | Designer primary lockup · dark. |
+| `Quartzite Designer Logo.html` | Designer logo system showcase — primary lockup, alternate stacked lockup, application icon, construction grid. |
+| `Quartzite Designer Assets.html` | Final asset preview — all SVG variants + raster ladder. |
 | `preview/` | 24 cards populating the Design System tab (Brand / Colors / Type / Spacing / Components). |
 | `preview/card-base.css` | Shared chrome + widget-mock CSS for every preview card. |
 | `ui_kits/widgets/` | HTML/JSX recreation of the six built-in widgets + an interactive demo (title-bar toggle flips light ↔ dark). |
@@ -76,9 +84,9 @@ crate-level rustdoc, and inline doc comments.
 
 > _"A clickable push button. When `checkable` is `false` (the default), each `click()` emits `clicked(false)`. When `checkable` is `true`, each `click()` toggles `checked` and emits `toggled(new_checked)` followed by `clicked(new_checked)`."_ (from `Button`)
 
-> _"Precedence for fill/text axis: pressed > checked > hovered > idle. `disabled` is an alpha modifier applied after role selection (not a role-selector)."_ (from `DefaultStyle::paint::<Button>`)
+> _"Precedence for fill/text axis: disabled > pressed > checked > hovered > idle. `disabled` is an alpha modifier applied after role selection; `pressed` reads `Highlight × Pressed`, `checked` reads `Highlight × Normal`."_ (from `DefaultStyle::paint::<Button>`, post #402)
 
-> _"`focused` is an additive outline modifier — always 2 px Highlight, never alpha-halved."_ (from `DefaultStyle::paint::<Button>`)
+> _"`focused` is an additive outline modifier — always 2 px `ColorRole::FocusRing`, never alpha-halved."_ (from `DefaultStyle::paint::<Button>`, post #402)
 
 When writing in the Quartzite voice: pick the precise verb,
 quote the field name, and finish the sentence. Do not garnish.
@@ -91,12 +99,12 @@ restatements of that file.
 
 ### Color
 
-- **11 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA.
-- **`Palette::default` seeds every slot to a non-transparent value.** Backgrounds white, foregrounds black, `Highlight` sky-blue (`#0080FF`), `Link` blue (`#0000FF`), `HighlightedText` and `BrightText` white. The defaults are explicitly described in source as "intentionally minimal — the goal is to satisfy the `default != Color::TRANSPARENT` invariant for every role rather than to produce a polished theme."
-- **Hover state** is `Button.blend(Highlight, 0.25)` — for the default palette that lands on `#BFDFFF`. The blend is computed at draw time, not stored.
-- **Disabled state** halves the alpha of whatever role-color was selected (`color.with_alpha(color.a() * 0.5)`). It is an alpha modifier, not a role swap.
-- **Pressed and checked** swap to `Highlight` fill + `HighlightedText` foreground. Pressed wins over checked.
-- **Focus** is additive: a 2 px `Highlight` outline overlaid on top of the idle/hover/pressed look. Never alpha-halved.
+- **12 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`, `FocusRing`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA. (`FocusRing` is added by issue #402; its default value equals `Highlight × Normal`.)
+- **`Palette::default` seeds every slot to a non-transparent value.** Backgrounds white, foregrounds black, `Highlight` sky-blue (`#0080FF`), `Link` blue (`#0000FF`), `HighlightedText` and `BrightText` white, `FocusRing` sky-blue (matching `Highlight`). The defaults are explicitly described in source as "intentionally minimal — the goal is to satisfy the `default != Color::TRANSPARENT` invariant for every role rather than to produce a polished theme."
+- **State groups.** Issue #402 adds a `ColorGroup` axis (`Normal` / `Hover` / `Pressed`) orthogonal to `ColorRole`. Lookups become `palette.color(role, group)`. `Hover` and `Pressed` cells are **derived** from the role's `Normal` value at construction time via `Hover(c) = c.blend(WindowText.Normal, 0.06)` and `Pressed(c) = c.blend(WindowText.Normal, 0.16)`. For the default light palette this lands on `#F0F0F0` / `#D6D6D6` (Button) and `#0078F0` / `#006CD6` (Highlight). Themes opt out per cell.
+- **Disabled state** halves the alpha of whatever role-color was selected (`color.with_alpha(color.a() * 0.5)`). It is an alpha modifier, not a role swap. Not a `ColorGroup` variant — stays as mathematical post-processing.
+- **Pressed and checked** both swap to the `Highlight` role for fill + `HighlightedText` for text. Pressed reads `Highlight × Pressed`; checked reads `Highlight × Normal`. Pressed wins over checked on the group axis.
+- **Focus** is additive: a 2 px outline reading `ColorRole::FocusRing × Normal` overlaid on top of the idle/hover/pressed look. `FocusRing` defaults to `Highlight`'s value; themes that need a divergent focus ring (high-contrast amber, etc.) override the slot directly.
 - **Links** are blue (`#0000FF`); visited and unvisited are seeded to the same value. Theme implementors are expected to differentiate them.
 
 ### Type
@@ -128,10 +136,11 @@ restatements of that file.
 ### Animation, hover, press
 
 - **No animations.** `DefaultStyle` paints from instantaneous boolean state (`is_hovered`, `is_pressed`, `is_focused`, `is_enabled`, `checked`). Transitions are not modeled in the paint API.
-- **Hover** = blend toward `Highlight` 25 %.
-- **Press / checked** = solid `Highlight` fill, `HighlightedText` foreground.
-- **Disabled** = ×0.5 alpha on whatever the resolved color was.
-- **Focus** = 2 px `Highlight` outline overlay.
+- **Hover** = role's `Hover` cell. Default derivation `c.blend(WindowText.Normal, 0.06)` — light theme darkens, dark theme lightens.
+- **Press** = `Highlight × Pressed` fill, `HighlightedText` foreground. Default derivation `c.blend(WindowText.Normal, 0.16)`.
+- **Checked** = `Highlight × Normal` fill, `HighlightedText` foreground. Same role swap; group stays `Normal`.
+- **Disabled** = ×0.5 alpha on whatever the resolved color was. Not a `ColorGroup` variant; mathematical post-processing.
+- **Focus** = 2 px `ColorRole::FocusRing` outline overlay. Defaults to `Highlight`; themes can diverge.
 
 ### Transparency & blur
 
@@ -156,8 +165,9 @@ no built-in glyph system in `quartzite-paint-api` beyond
 (`Path` made of move-to / line-to / quad / cubic / close primitives).
 
 The `quartzite-style` snapshot suite contains a handful of PNGs —
-but those are golden-image **test artifacts**, not icons. They live
-in `assets/snapshots/` here for reference.
+but those are golden-image **test artifacts**, not icons. They
+live in `quartzite-style/tests/snapshots/shared/` in the upstream
+repo.
 
 When working with Quartzite, follow these rules:
 
@@ -189,25 +199,25 @@ snapshot PNGs.
 > render target font into `fonts/` and the CSS stack will pick
 > it up automatically (it's listed first in `--qz-font-family`).
 
-## Visual snapshots reference
+## Designer mark
 
-The eight `DefaultStyle` snapshots from
-`quartzite-style/tests/snapshots/shared/` are mirrored into
-`assets/snapshots/` for reference inside this design system.
-They are 64×64 PNGs.
+**Quartzite Designer** is a sibling application that ships with
+the framework. Its mark is the canonical Quartzite mark with one
+addition: a **2 px `Highlight` outline along the back-right facet
+boundary** — `(32,32) → (54,20) → (54,44) → (32,58) → close` —
+drawn with `stroke-linejoin="bevel"` so the acute corners at
+(54,20) and (54,44) terminate cleanly on the hex silhouette.
+The outline reads as the framework's focused-widget visual idiom
+applied to a single facet — "Quartzite, with a thing selected".
 
-| Snapshot | What it shows |
-|---|---|
-| `button_idle.png`        | Button at rest. White fill, 1 px black outline, "OK" centered. |
-| `button_hovered.png`     | Same with fill blended 25 % toward sky blue. |
-| `button_pressed.png`     | Full sky-blue fill, white text. |
-| `button_checked.png`     | Identical to pressed — `checked` falls under the same arm. |
-| `button_focused.png`     | Idle look + 2 px sky-blue outline overlay. |
-| `button_disabled.png`    | Whole composition ×0.5 alpha. |
-| `label.png`              | White surface, left-aligned "hi". |
-| `scroll_area_chrome.png` | Empty white field, 1 px outline. |
-| `text_edit_plain.png`    | White field, "abc" top-left, 1 px outline. |
-| `text_edit_read_only.png`| Same with a 50 % white overlay across the whole rect. |
+The Designer wordmark uses a stacked primary lockup: `quartzite`
+in DejaVu Sans Regular 28 pt with `DESIGNER` set 12 pt / weight
+500 / letter-spacing 2.4 px directly beneath, painted in
+`ColorRole::Highlight` (`#0080FF` light, `#1E90FF` dark). The
+showcase files at `Quartzite Designer Logo.html` and
+`Quartzite Designer Assets.html` enumerate the variants — light,
+dark, halo, and the construction grid (vertices identical to the
+base mark; selection ring overlaid).
 
 ## Dark theme
 
@@ -236,6 +246,7 @@ The dark seeds proposed in `colors_and_type.css`
 | `Link`            | `#0000FF` | **`#5BB0FF`** | Light Dodger Blue (coined — no catalogued match; `#0000FF` is illegible against `#2B2B2B`) |
 | `LinkVisited`     | `#0000FF` | **`#C58AFF`** | Charoite (coined — purple silicate mineral; sister to `Quartzite`. No catalogued match.) |
 | `BrightText`      | `#FFFFFF` | **`#FF6B6B`** | Pastel Red (Qt convention: red signals attention against a coloured banner) |
+| `FocusRing` *(new, #402)* | `#0080FF` | **`#1E90FF`** | DodgerBlue — mirrors `Highlight` by default; theme-overridable |
 
 > **Naming source.** "Common name" labels are documentation-only —
 > the framework does not use them. They come from curated
@@ -253,12 +264,18 @@ The dark seeds proposed in `colors_and_type.css`
 **Derived state values follow the framework's same formulas**, so
 they re-compute correctly against the dark slots:
 
-- **Hover** = `Button.blend(Highlight, 0.25)` → on dark that
-  lands on `#345067` (saturated steel-blue), not light blue.
+- **Hover** = `c.blend(WindowText.Normal, 0.06)` — on dark that
+  lights toward Mercury (`#E8E8E8`). For `Button`, lands on
+  `#464646` (HOVER_ECLIPSE). For `Highlight`, lands on `#2A95FE`
+  (HOVER_DODGER_BLUE).
+- **Pressed** = `c.blend(WindowText.Normal, 0.16)` — same direction,
+  stronger nudge. `Button × Pressed` = `#585858` (PRESSED_ECLIPSE);
+  `Highlight × Pressed` = `#3E9EFB` (PRESSED_DODGER_BLUE).
 - **Disabled** = `color.with_alpha(color.a() * 0.5)` — α-halving
   fades dark colors against the dark Window in the same way it
   fades light colors against the light Window.
-- **Focus** = additive 2 px Highlight outline overlay — same rule.
+- **Focus** = additive 2 px `FocusRing` outline overlay — same rule;
+  defaults to `Highlight`'s Normal value.
 - **Read-only** = Base fill with 50 % Window overlay — same rule;
   the overlay's source colour is whatever Window resolves to.
 
@@ -278,7 +295,8 @@ let dark = Palette::default()
     .with_role(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
     .with_role(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
     .with_role(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
-    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)); // #FF6B6B Pastel Red
+    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)) // #FF6B6B Pastel Red
+    .with_role(ColorRole::FocusRing,       Color::new(0.118, 0.564, 1.000, 1.0)); // #1E90FF DodgerBlue (mirrors Highlight)
 ```
 
 The UI-kit demo at `ui_kits/widgets/index.html` carries a

@@ -25,9 +25,10 @@ text shaping, and no GPU rendering are involved.
 Painting rules mirrored verbatim:
 
 - **1 px outline** on every framed widget. `border: 1px solid #000`.
-- **Hover** = `Button.blend(Highlight, 0.25)` ≈ `#BFDFFF`.
-- **Pressed / checked** = `Highlight` fill + `HighlightedText` foreground.
-- **Focus** = additive 2 px `Highlight` outline, never alpha-halved.
+- **Hover** = role's `Hover` cell. Derived: `c.blend(WindowText.Normal, 0.06)`. For default light palette, `Button × Hover` ≈ `#F0F0F0`.
+- **Pressed** = `Highlight × Pressed` fill + `HighlightedText` foreground. Derived: `c.blend(WindowText.Normal, 0.16)`, lands on `#006CD6` for default light.
+- **Checked** = `Highlight × Normal` fill + `HighlightedText` foreground.
+- **Focus** = additive 2 px `ColorRole::FocusRing` outline, never alpha-halved. Defaults to `Highlight`.
 - **Disabled** = α × 0.5 on the resolved color.
 - **Read-only** = `Base` fill with a 50 %-α `Window` overlay.
 - **Sharp corners.** No radii, no shadows.

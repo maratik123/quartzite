@@ -58,9 +58,9 @@ svg { shape-rendering: geometricPrecision; }
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 64px; min-height: 32px;
 }
-.qz-button.hover    { background: #BFDFFF; }
-.qz-button.pressed,
-.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }
+.qz-button.hover    { background: #F0F0F0; }                                /* HOVER_WHITE      */
+.qz-button.pressed  { background: #006CD6; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_SKY_BLUE */
+.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }   /* SKY_BLUE         */
 .qz-button.focused  {
   /* additive 2px highlight outline over idle */
   box-shadow: inset 0 0 0 2px #0080FF;
@@ -88,32 +88,49 @@ svg { shape-rendering: geometricPrecision; }
 .qz-scroll-area { background: #FFFFFF; }
 
 </style></head>
-<body><div class="card" style="height:240px;">
-  <div class="sw-row" style="align-items:flex-start;gap:18px">
+<body><div class="card" style="height:300px;">
+  <div class="sw-row" style="align-items:flex-start;gap:14px;">
     <div class="sw-col">
-      <div class="sw lg" style="background:#BFDFFF;"></div>
+      <div class="sw lg" style="background:#FFFFFF; display:flex; align-items:center; justify-content:center; padding:0;">
+        <button class="qz-button hover">OK</button>
+      </div>
       <div class="cap"><b>Hover</b></div>
-      <div class="cap mono">#BFDFFF</div>
-      <div class="cap mono">Button.blend(<br>&nbsp;&nbsp;Highlight,<br>&nbsp;&nbsp;0.25)</div>
+      <div class="cap mono">#F0F0F0</div>
+      <div class="cap mono">HOVER_WHITE</div>
+      <div class="cap mono" style="opacity:0.65">WHITE.blend(<br>&nbsp;&nbsp;BLACK, 0.06)</div>
     </div>
     <div class="sw-col">
-      <div class="sw lg" style="background:rgba(255,255,255,0.5);background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0px;"></div>
+      <div class="sw lg" style="background:#FFFFFF; display:flex; align-items:center; justify-content:center; padding:0;">
+        <button class="qz-button pressed">OK</button>
+      </div>
+      <div class="cap"><b>Pressed</b></div>
+      <div class="cap mono">#006CD6</div>
+      <div class="cap mono">PRESSED_SKY_BLUE</div>
+      <div class="cap mono" style="opacity:0.65">SKY_BLUE.blend(<br>&nbsp;&nbsp;BLACK, 0.16)</div>
+    </div>
+    <div class="sw-col">
+      <div class="sw lg" style="background:#FFFFFF; display:flex; align-items:center; justify-content:center; padding:0;">
+        <button class="qz-button disabled">OK</button>
+      </div>
       <div class="cap"><b>Disabled</b></div>
       <div class="cap mono">alpha × 0.5</div>
-      <div class="cap mono">color.with_alpha(<br>&nbsp;&nbsp;a * 0.5)</div>
+      <div class="cap mono" style="opacity:0.65">color.with_alpha(<br>&nbsp;&nbsp;a * 0.5)</div>
     </div>
     <div class="sw-col">
-      <div class="sw lg" style="background:#FFFFFF;outline:2px solid #0080FF;outline-offset:-2px;"></div>
+      <div class="sw lg" style="background:#FFFFFF; display:flex; align-items:center; justify-content:center; padding:0;">
+        <button class="qz-button focused">OK</button>
+      </div>
       <div class="cap"><b>Focus</b></div>
-      <div class="cap mono">2px Highlight</div>
-      <div class="cap mono">additive overlay</div>
+      <div class="cap mono">2px FocusRing</div>
+      <div class="cap mono" style="opacity:0.65">= Highlight by<br>default</div>
     </div>
-    <div class="note" style="max-width:240px;">
-      State precedence on the fill/text axis:
-      <span class="mono">pressed &gt; checked &gt; hovered &gt; idle</span>.
-      <br><br>
-      `disabled` is an alpha modifier, not a role swap. `focused` is
-      a 2&nbsp;px additive outline — never alpha-halved.
-    </div>
+  </div>
+  <div class="note" style="margin-top:14px;">
+    State precedence on the fill/text axis:
+    <span class="mono">disabled &gt; pressed &gt; checked &gt; hovered &gt; idle</span>.
+    Hover/Pressed are derived per
+    <span class="mono">c.blend(WindowText.Normal, t)</span> with
+    <span class="mono">t = 0.06 / 0.16</span>. `disabled` is an alpha modifier, not a role
+    swap. `focused` is a 2&nbsp;px additive outline reading <span class="mono">ColorRole::FocusRing</span> — never alpha-halved.
   </div>
 </div></body></html>

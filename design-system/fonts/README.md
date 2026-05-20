@@ -12,7 +12,8 @@ For HTML mockups in this design system, the CSS stack in
 `colors_and_type.css` is rooted on **DejaVu Sans** /
 **Liberation Sans** — the typical Linux text-shaper fallback that
 most closely matches the rendered glyphs in the committed
-snapshot PNGs at `assets/snapshots/`.
+snapshot PNGs at `quartzite-style/tests/snapshots/shared/` in the
+upstream repo.
 
 ## To improve fidelity
 

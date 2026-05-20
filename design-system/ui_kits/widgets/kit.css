@@ -6,6 +6,7 @@
 * { box-sizing: border-box; }
 
 :root {
+  /* ---- Normal cells (Palette::default) ---------------- */
   --qz-window:           #FFFFFF;
   --qz-button:           #FFFFFF;
   --qz-base:             #FFFFFF;
@@ -17,26 +18,42 @@
   --qz-bright-text:      #FFFFFF;
   --qz-link:             #0000FF;
   --qz-link-visited:     #0000FF;
-  --qz-button-hover:     #BFDFFF;
+  /* ---- New: FocusRing role (defaults to Highlight) ---- */
+  --qz-focus-ring:       #0080FF;
+  /* ---- New: derived state cells ----------------------- *
+     Hover(c)   = c.blend(WindowText.Normal, 0.06)
+     Pressed(c) = c.blend(WindowText.Normal, 0.16)
+     Light theme: WindowText.Normal = #000000.
+     ------------------------------------------------------ */
+  --qz-button-hover:     #F0F0F0;   /* HOVER_WHITE      */
+  --qz-button-pressed:   #D6D6D6;   /* PRESSED_WHITE    */
+  --qz-highlight-hover:  #0078F0;   /* HOVER_SKY_BLUE   */
+  --qz-highlight-pressed:#006CD6;   /* PRESSED_SKY_BLUE */
+  /* ---- Other constants ------------------------------- */
   --qz-readonly-overlay: rgba(255, 255, 255, 0.5);
   --qz-desktop:          #D4D4D4;
 }
 
-/* Dark theme override — same 11 ColorRole slots, dark seeds.
-   Activated by setting data-theme="dark" or .qz-dark on any ancestor. */
+/* Dark theme override — same slots, dark seeds.
+   Activated by data-theme="dark" or .qz-dark on any ancestor. */
 [data-theme="dark"], .qz-dark {
-  --qz-window:           #2B2B2B;
-  --qz-button:           #3C3C3C;
-  --qz-base:             #1E1E1E;
-  --qz-window-text:      #E8E8E8;
+  --qz-window:           #2B2B2B;   /* MINE_SHAFT  */
+  --qz-button:           #3C3C3C;   /* ECLIPSE     */
+  --qz-base:             #1E1E1E;   /* NERO        */
+  --qz-window-text:      #E8E8E8;   /* MERCURY     */
   --qz-button-text:      #E8E8E8;
   --qz-text:             #E8E8E8;
-  --qz-highlight:        #1E90FF;
+  --qz-highlight:        #1E90FF;   /* DODGER_BLUE */
   --qz-highlighted-text: #FFFFFF;
   --qz-bright-text:      #FF6B6B;
   --qz-link:             #5BB0FF;
   --qz-link-visited:     #C58AFF;
-  --qz-button-hover:     #345067;
+  --qz-focus-ring:       #1E90FF;
+  /* Derived: blend toward MERCURY (#E8E8E8) by 0.06 / 0.16. */
+  --qz-button-hover:     #464646;   /* HOVER_ECLIPSE        */
+  --qz-button-pressed:   #585858;   /* PRESSED_ECLIPSE      */
+  --qz-highlight-hover:  #2A95FE;   /* HOVER_DODGER_BLUE    */
+  --qz-highlight-pressed:#3E9EFB;   /* PRESSED_DODGER_BLUE  */
   --qz-readonly-overlay: rgba(43, 43, 43, 0.5);
   --qz-desktop:          #1B1B1B;
 }
@@ -143,7 +160,7 @@ fieldset.qz-container {
 }
 .qz-button:hover { background: var(--qz-button-hover); }
 .qz-button:active, .qz-button.is-pressed {
-  background: var(--qz-highlight);
+  background: var(--qz-highlight-pressed);
   color: var(--qz-highlighted-text);
   border-color: var(--qz-highlighted-text);
 }
@@ -152,8 +169,12 @@ fieldset.qz-container {
   color: var(--qz-highlighted-text);
   border-color: var(--qz-highlighted-text);
 }
+.qz-button.is-checked:hover {
+  /* checked + hovered — Highlight × Hover (group axis overrides Normal). */
+  background: var(--qz-highlight-hover);
+}
 .qz-button:focus-visible, .qz-button.is-focused {
-  outline: 2px solid var(--qz-highlight);
+  outline: 2px solid var(--qz-focus-ring);
   outline-offset: -2px;
 }
 .qz-button:disabled, .qz-button.is-disabled {
@@ -174,7 +195,7 @@ fieldset.qz-container {
 }
 .qz-line-edit::placeholder { color: rgba(0,0,0,0.5); }
 [data-theme="dark"] .qz-line-edit::placeholder, .qz-dark .qz-line-edit::placeholder { color: rgba(232,232,232,0.5); }
-.qz-line-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-line-edit:focus-visible { outline: 2px solid var(--qz-focus-ring); outline-offset: -2px; }
 .qz-line-edit:read-only {
   background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
 }
@@ -190,7 +211,7 @@ fieldset.qz-container {
   resize: vertical;
   outline: none;
 }
-.qz-text-edit:focus-visible { outline: 2px solid var(--qz-highlight); outline-offset: -2px; }
+.qz-text-edit:focus-visible { outline: 2px solid var(--qz-focus-ring); outline-offset: -2px; }
 .qz-text-edit:read-only {
   background-image: linear-gradient(var(--qz-readonly-overlay), var(--qz-readonly-overlay));
 }

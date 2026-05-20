@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Quartzite Designer mark (transparent outside, white halo)" shape-rendering="geometricPrecision">
+  <polygon points="32,6 54,20 54,44 32,58 10,44 10,20" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="miter" stroke-linecap="butt"></polygon>
+  <polygon points="32,6 54,20 54,44 32,58 10,44 10,20" fill="#FFFFFF"></polygon>
+  <polygon points="32,6 10,20 10,44 32,32" fill="#0080FF"></polygon>
+  <polygon points="32,6 54,20 32,32" fill="#BFDFFF"></polygon>
+  <path d="M 32 6 L 54 20 L 54 44 L 32 58 L 10 44 L 10 20 Z M 32 6 L 32 32 M 54 20 L 32 32 M 54 44 L 32 32 M 10 44 L 32 32 M 32 58 L 32 32" fill="none" stroke="#000000" stroke-width="1" stroke-linejoin="miter" stroke-linecap="butt"></path>
+  <path d="M 32 32 L 54 20 L 54 44 L 32 58 Z" fill="none" stroke="#0080FF" stroke-width="2" stroke-linejoin="bevel" stroke-linecap="butt"></path>
+</svg>
