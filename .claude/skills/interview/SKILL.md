@@ -5,6 +5,8 @@ argument-hint: "[issue-number | task description]"
 allowed-tools: Bash(gh issue view *) Bash(gh issue list *) Bash(gh issue create *) Bash(gh issue comment *)
 ---
 
+<!-- size-exemption: 227 lines — no category-(1) content; Workflow Steps 1–4 narrative (cat-3) + State file YAML template (cat-2 round-template scaffolding) + Round/question caps table (cat-3) all load-bearing -->
+
 Orchestrator for the spec-drafting interview. Drives the round loop, surfaces the subagent's questions to the user, and applies the user's answers — but does **not** draft the spec itself. Spec drafting and question generation live in `.claude/agents/spec-writer.md` (subagent on `model: opus`).
 
 > **MUST run before:** code investigation, design agent, or writing code.
