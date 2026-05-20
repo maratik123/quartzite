@@ -282,28 +282,24 @@ mod tests {
         key_release_calls: Arc<Mutex<u32>>,
     }
 
-    impl CountingRoot {
-        fn new() -> (
-            Self,
-            Arc<Mutex<Vec<Size>>>,
-            Arc<Mutex<u32>>,
-            Arc<Mutex<u32>>,
-        ) {
-            let resize = Arc::new(Mutex::new(vec![]));
-            let press = Arc::new(Mutex::new(0u32));
-            let release = Arc::new(Mutex::new(0u32));
-            (
-                Self {
-                    resize_calls: resize.clone(),
-                    press_calls: press.clone(),
-                    release_calls: release.clone(),
+    struct CountingRootHandle {
+        root: CountingRoot,
+        resizes: Arc<Mutex<Vec<Size>>>,
+    }
+
+    impl CountingRootHandle {
+        fn new() -> Self {
+            let resizes = Arc::new(Mutex::new(vec![]));
+            Self {
+                root: CountingRoot {
+                    resize_calls: resizes.clone(),
+                    press_calls: Arc::new(Mutex::new(0)),
+                    release_calls: Arc::new(Mutex::new(0)),
                     key_press_calls: Arc::new(Mutex::new(0)),
                     key_release_calls: Arc::new(Mutex::new(0)),
                 },
-                resize,
-                press,
-                release,
-            )
+                resizes,
+            }
         }
     }
 
@@ -340,8 +336,8 @@ mod tests {
         let mut handler = make_handler(true);
         let id_a = fake_id(1);
         let id_b = fake_id(2);
-        let (root_a, _, _, _) = CountingRoot::new();
-        let (root_b, _, _, _) = CountingRoot::new();
+        let CountingRootHandle { root: root_a, .. } = CountingRootHandle::new();
+        let CountingRootHandle { root: root_b, .. } = CountingRootHandle::new();
         handler.registry.insert_root_for_test(id_a, root_a);
         handler.registry.insert_root_for_test(id_b, root_b);
         assert_eq!(handler.registry.windows.len(), 2);
@@ -372,7 +368,7 @@ mod tests {
     fn close_last_window_with_quit_true_signals_exit() {
         let mut handler = make_handler(true);
         let id = fake_id(42);
-        let (root, _, _, _) = CountingRoot::new();
+        let CountingRootHandle { root, .. } = CountingRootHandle::new();
         handler.registry.insert_root_for_test(id, root);
 
         let should_exit = handler.dispatch_window_event_inner(id, WindowEvent::CloseRequested);
@@ -389,7 +385,7 @@ mod tests {
     fn close_last_window_with_quit_false_does_not_signal_exit() {
         let mut handler = make_handler(false);
         let id = fake_id(99);
-        let (root, _, _, _) = CountingRoot::new();
+        let CountingRootHandle { root, .. } = CountingRootHandle::new();
         handler.registry.insert_root_for_test(id, root);
 
         let should_exit = handler.dispatch_window_event_inner(id, WindowEvent::CloseRequested);
@@ -405,8 +401,16 @@ mod tests {
         let mut handler = make_handler(true);
         let id_a = fake_id(10);
         let id_b = fake_id(20);
-        let (root_a, resizes_a, _, _) = CountingRoot::new();
-        let (root_b, resizes_b, _, _) = CountingRoot::new();
+        let CountingRootHandle {
+            root: root_a,
+            resizes: resizes_a,
+            ..
+        } = CountingRootHandle::new();
+        let CountingRootHandle {
+            root: root_b,
+            resizes: resizes_b,
+            ..
+        } = CountingRootHandle::new();
         handler.registry.insert_root_for_test(id_a, root_a);
         handler.registry.insert_root_for_test(id_b, root_b);
 
@@ -431,7 +435,11 @@ mod tests {
         let mut handler = make_handler(true);
         let id_a = fake_id(1);
         let id_unknown = fake_id(999);
-        let (root_a, resizes_a, _, _) = CountingRoot::new();
+        let CountingRootHandle {
+            root: root_a,
+            resizes: resizes_a,
+            ..
+        } = CountingRootHandle::new();
         handler.registry.insert_root_for_test(id_a, root_a);
 
         let should_exit = handler.dispatch_window_event_inner(
@@ -448,36 +456,43 @@ mod tests {
 
     // --- R4: MouseInput / CursorMoved / ModifiersChanged / KeyboardInput ----------
 
-    fn make_handler_with_root(
-        quit: bool,
-    ) -> (
-        WrappedHandler<NoopHandler>,
-        WinitWindowId,
-        Arc<Mutex<u32>>,
-        Arc<Mutex<u32>>,
-        Arc<Mutex<u32>>,
-        Arc<Mutex<u32>>,
-    ) {
+    struct HandlerWithRoot {
+        handler: WrappedHandler<NoopHandler>,
+        id: WinitWindowId,
+        presses: Arc<Mutex<u32>>,
+        releases: Arc<Mutex<u32>>,
+    }
+
+    fn make_handler_with_root(quit: bool) -> HandlerWithRoot {
         let mut handler = make_handler(quit);
         let id = fake_id(7);
-        let press = Arc::new(Mutex::new(0u32));
-        let release = Arc::new(Mutex::new(0u32));
-        let kp = Arc::new(Mutex::new(0u32));
-        let kr = Arc::new(Mutex::new(0u32));
+        let presses = Arc::new(Mutex::new(0u32));
+        let releases = Arc::new(Mutex::new(0u32));
         let root = CountingRoot {
             resize_calls: Arc::new(Mutex::new(vec![])),
-            press_calls: press.clone(),
-            release_calls: release.clone(),
-            key_press_calls: kp.clone(),
-            key_release_calls: kr.clone(),
+            press_calls: presses.clone(),
+            release_calls: releases.clone(),
+            key_press_calls: Arc::new(Mutex::new(0)),
+            key_release_calls: Arc::new(Mutex::new(0)),
         };
         handler.registry.insert_root_for_test(id, root);
-        (handler, id, press, release, kp, kr)
+        HandlerWithRoot {
+            handler,
+            id,
+            presses,
+            releases,
+        }
     }
 
     #[test]
     fn mouse_input_pressed_increments_press_count() {
-        let (mut handler, id, press, release, _, _) = make_handler_with_root(false);
+        let HandlerWithRoot {
+            mut handler,
+            id,
+            presses: press,
+            releases: release,
+            ..
+        } = make_handler_with_root(false);
         let btn = winit::event::MouseButton::Left;
         handler.dispatch_window_event_inner(
             id,
@@ -493,7 +508,13 @@ mod tests {
 
     #[test]
     fn mouse_input_released_increments_release_count() {
-        let (mut handler, id, press, release, _, _) = make_handler_with_root(false);
+        let HandlerWithRoot {
+            mut handler,
+            id,
+            presses: press,
+            releases: release,
+            ..
+        } = make_handler_with_root(false);
         let btn = winit::event::MouseButton::Left;
         // Press first so pressed_buttons is consistent
         handler.dispatch_window_event_inner(
@@ -518,7 +539,9 @@ mod tests {
 
     #[test]
     fn cursor_moved_updates_cursor_position() {
-        let (mut handler, id, _, _, _, _) = make_handler_with_root(false);
+        let HandlerWithRoot {
+            mut handler, id, ..
+        } = make_handler_with_root(false);
         handler.dispatch_window_event_inner(
             id,
             WindowEvent::CursorMoved {
@@ -547,7 +570,9 @@ mod tests {
 
     #[test]
     fn modifiers_changed_does_not_panic() {
-        let (mut handler, id, _, _, _, _) = make_handler_with_root(false);
+        let HandlerWithRoot {
+            mut handler, id, ..
+        } = make_handler_with_root(false);
         // A default Modifiers (no flags) — just verifying the arm runs without panic.
         handler.dispatch_window_event_inner(
             id,

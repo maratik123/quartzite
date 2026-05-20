@@ -764,18 +764,15 @@ mod tests {
 
     // --- RecordingObject: captures emit_signal calls for signal emission tests ---
 
+    type EmissionLog = std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>;
+
     struct RecordingObject {
         base: ObjectBase,
-        emissions: std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
+        emissions: EmissionLog,
     }
 
     impl RecordingObject {
-        fn named(
-            name: &str,
-        ) -> (
-            Box<dyn Object>,
-            std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
-        ) {
+        fn named(name: &str) -> (Box<dyn Object>, EmissionLog) {
             let log = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
             let obj = Box::new(Self {
                 base: ObjectBase::named(name),
@@ -784,10 +781,7 @@ mod tests {
             (obj, log)
         }
 
-        fn anonymous() -> (
-            Box<dyn Object>,
-            std::sync::Arc<parking_lot::Mutex<Vec<(String, Vec<Value>)>>>,
-        ) {
+        fn anonymous() -> (Box<dyn Object>, EmissionLog) {
             let log = std::sync::Arc::new(parking_lot::Mutex::new(Vec::new()));
             let obj = Box::new(Self {
                 base: ObjectBase::new(),
