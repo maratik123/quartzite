@@ -84,7 +84,10 @@
       "Write(.claude/**)",
       "Bash(cargo *)",
       "Bash(git *)",
-      "Bash(gh *)"
+      "Bash(gh *)",
+      "Bash(ast-index *)",
+      "Bash(grep *)",
+      "Bash(rg *)"
     ],
     "deny": [
       "Read(.idea/**)",
