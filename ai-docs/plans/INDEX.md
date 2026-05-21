@@ -130,6 +130,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [hover-focused-label-textedit-scroll](deferred/2026-05-21-hover-focused-label-textedit-scroll.spec.md) | `quartzite-style` (`DefaultStyle` paint impls for `Label` / `TextEdit` / `ScrollArea`) | 🟡 spec-only | #402 (palette state-groups + `ColorRole::FocusRing`) |
 
 Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
 
