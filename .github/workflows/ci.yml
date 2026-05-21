@@ -442,6 +442,8 @@ jobs:
         run: cargo doc --no-deps --workspace --all-features
         env:
           RUSTDOCFLAGS: "-D warnings -D missing-docs"
+      - name: Check rustdoc has no repo-internal references
+        run: bash scripts/check-rustdoc-internal-refs.sh
 
   docs-pass:
     name: Docs
