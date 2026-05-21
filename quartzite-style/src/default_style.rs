@@ -86,13 +86,7 @@ impl Paint<Button> for DefaultStyle {
         let focused = w.is_focused();
 
         // State group: pressed wins over hovered; Normal is the idle default.
-        let group = if pressed {
-            ColorGroup::Pressed
-        } else if hovered {
-            ColorGroup::Hover
-        } else {
-            ColorGroup::Normal
-        };
+        let group = state_group(pressed, hovered);
 
         // Role selection: pressed or checked maps to Highlight/HighlightedText.
         // `disabled` is an alpha modifier applied after role selection (not a role-selector).
@@ -134,15 +128,33 @@ impl Paint<Label> for DefaultStyle {
     fn paint(&self, w: &Label, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
+        let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
 
-        painter.fill_rect(geom, &brush(palette, ColorRole::Window));
-        painter.draw_text_in(
-            geom,
-            &w.text,
-            &font,
-            &brush(palette, ColorRole::WindowText),
-            w.alignment,
-        );
+        let group = state_group(pressed, hovered);
+        let (fill_role, text_role) = if pressed {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
+        } else {
+            (ColorRole::Window, ColorRole::WindowText)
+        };
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
+
+        painter.fill_rect(geom, &Brush::solid(fill_color));
+        // `focused` is an additive 2 px FocusRing outline; never alpha-halved.
+        if focused {
+            painter.draw_rect(
+                geom,
+                &Pen::new(
+                    palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                    FOCUS_RING_WIDTH,
+                ),
+                &Brush::solid(Color::TRANSPARENT),
+            );
+        }
+        painter.draw_text_in(geom, &w.text, &font, &Brush::solid(text_color), w.alignment);
     }
 }
 
@@ -150,28 +162,57 @@ impl Paint<TextEdit> for DefaultStyle {
     fn paint(&self, w: &TextEdit, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
+        let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
 
-        painter.fill_rect(geom, &brush(palette, ColorRole::Base));
+        let group = state_group(pressed, hovered);
+        let (fill_role, text_role) = if pressed {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
+        } else {
+            (ColorRole::Base, ColorRole::Text)
+        };
+        // Idle/hover keep outline = Text (tracks the text colour); pressed
+        // swaps to HighlightedText for legibility under the inverted fill.
+        let outline_role_idle = if pressed {
+            ColorRole::HighlightedText
+        } else {
+            ColorRole::Text
+        };
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
+        let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
+
+        painter.fill_rect(geom, &Brush::solid(fill_color));
         if w.read_only {
             painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
         }
+        // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
+        let (outline_color, outline_width) = if focused {
+            (
+                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                FOCUS_RING_WIDTH,
+            )
+        } else {
+            (outline_color_idle, 1.0)
+        };
         painter.draw_rect(
             geom,
-            &Pen::new(palette.color(ColorRole::Text, ColorGroup::Normal), 1.0),
+            &Pen::new(outline_color, outline_width),
             &Brush::solid(Color::TRANSPARENT),
         );
-        let text_color = if w.read_only {
-            palette
-                .color(ColorRole::Text, ColorGroup::Normal)
-                .with_alpha(READ_ONLY_TEXT_ALPHA)
+        // Read-only dims the state-resolved text colour; does NOT collapse to idle.
+        let final_text_color = if w.read_only {
+            text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
         } else {
-            palette.color(ColorRole::Text, ColorGroup::Normal)
+            text_color
         };
         painter.draw_text_in(
             geom,
             &w.plain_text,
             &font,
-            &Brush::solid(text_color),
+            &Brush::solid(final_text_color),
             Alignment::Left,
         );
     }
@@ -180,13 +221,35 @@ impl Paint<TextEdit> for DefaultStyle {
 impl Paint<ScrollArea> for DefaultStyle {
     fn paint(&self, w: &ScrollArea, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
-        painter.fill_rect(geom, &brush(palette, ColorRole::Base));
+        let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
+
+        let group = state_group(pressed, hovered);
+        // Idle/hover keep outline = WindowText; pressed swaps to HighlightedText
+        // for legibility under the inverted Highlight fill.
+        let (fill_role, outline_role_idle) = if pressed {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
+        } else {
+            (ColorRole::Base, ColorRole::WindowText)
+        };
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
+
+        painter.fill_rect(geom, &Brush::solid(fill_color));
+        // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
+        let (outline_color, outline_width) = if focused {
+            (
+                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                FOCUS_RING_WIDTH,
+            )
+        } else {
+            (outline_color_idle, 1.0)
+        };
         painter.draw_rect(
             geom,
-            &Pen::new(
-                palette.color(ColorRole::WindowText, ColorGroup::Normal),
-                1.0,
-            ),
+            &Pen::new(outline_color, outline_width),
             &Brush::solid(Color::TRANSPARENT),
         );
     }
@@ -236,6 +299,21 @@ impl Paint<LineEdit> for DefaultStyle {
             (w.text.as_str(), Brush::solid(text_role_color))
         };
         painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
+    }
+}
+
+/// Resolves the [`ColorGroup`] for a widget given its `pressed` / `hovered` flags.
+///
+/// `pressed` wins over `hovered`; falls back to [`ColorGroup::Normal`] otherwise.
+/// Shared selector for every state-aware `Paint<W>` impl in this module.
+#[inline]
+const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
+    if pressed {
+        ColorGroup::Pressed
+    } else if hovered {
+        ColorGroup::Hover
+    } else {
+        ColorGroup::Normal
     }
 }
 

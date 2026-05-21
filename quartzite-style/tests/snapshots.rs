@@ -293,3 +293,167 @@ fn dark_text_edit_read_only_renders() {
         DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
+
+// ---------------------------------------------------------------------------
+// Label / TextEdit / ScrollArea hover / pressed / focused (issue #403 — AC6)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn label_hovered_renders() {
+    let Some(mut harness) = harness_or_skip("label_hovered_renders") else {
+        return;
+    };
+    let mut w = Label::new("hi".into());
+    w.set_geometry(canvas_rect());
+    w.set_hovered(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("label_hovered", &image);
+}
+
+#[test]
+fn label_pressed_renders() {
+    let Some(mut harness) = harness_or_skip("label_pressed_renders") else {
+        return;
+    };
+    let mut w = Label::new("hi".into());
+    w.set_geometry(canvas_rect());
+    w.set_pressed(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("label_pressed", &image);
+}
+
+#[test]
+fn label_focused_renders() {
+    let Some(mut harness) = harness_or_skip("label_focused_renders") else {
+        return;
+    };
+    let mut w = Label::new("hi".into());
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("label_focused", &image);
+}
+
+#[test]
+fn text_edit_hovered_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_hovered_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    w.set_hovered(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("text_edit_hovered", &image);
+}
+
+#[test]
+fn text_edit_pressed_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_pressed_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    w.set_pressed(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("text_edit_pressed", &image);
+}
+
+#[test]
+fn text_edit_focused_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_focused_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("text_edit_focused", &image);
+}
+
+#[test]
+fn scroll_area_hovered_renders() {
+    let Some(mut harness) = harness_or_skip("scroll_area_hovered_renders") else {
+        return;
+    };
+    let mut w = ScrollArea::new();
+    w.set_geometry(canvas_rect());
+    w.set_hovered(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("scroll_area_hovered", &image);
+}
+
+#[test]
+fn scroll_area_pressed_renders() {
+    let Some(mut harness) = harness_or_skip("scroll_area_pressed_renders") else {
+        return;
+    };
+    let mut w = ScrollArea::new();
+    w.set_geometry(canvas_rect());
+    w.set_pressed(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("scroll_area_pressed", &image);
+}
+
+#[test]
+fn scroll_area_focused_renders() {
+    let Some(mut harness) = harness_or_skip("scroll_area_focused_renders") else {
+        return;
+    };
+    let mut w = ScrollArea::new();
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("scroll_area_focused", &image);
+}
+
+#[test]
+fn dark_label_focused_renders() {
+    let mut w = Label::new("hi".into());
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    render_dark("dark_label_focused", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_text_edit_focused_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "abc".into();
+    w.set_focused(true);
+    render_dark("dark_text_edit_focused", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_scroll_area_focused_renders() {
+    let mut w = ScrollArea::new();
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    render_dark("dark_scroll_area_focused", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
