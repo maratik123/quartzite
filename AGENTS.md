@@ -269,6 +269,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `.claude/skills/pr-ci-failed/SKILL.md` | `/pr-ci-failed` skill — one round of CI-failure response on PR |
 | `.claude/skills/master-ci-failed/SKILL.md` | `/master-ci-failed` skill — one round of post-merge red-master fix |
 | `.claude/skills/ui-design/SKILL.md` | `/ui-design` skill — pointer to `design-system/` (Read manifest + visual rules on demand) |
+| `.claude/rules/ast-index.md` | On-demand code-search rules — `ast-index` mandatory-search + read-outline rules, plus the verbatim block subagents inherit (see also `§ Build & Test` Search line). |
 
 See [`ai-docs/agent-docs-index.md` → Agent doc rows](ai-docs/agent-docs-index.md#agent-doc-rows) for the verbose body of each row (writers, lifecycle, special cases).
 
