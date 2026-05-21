@@ -163,8 +163,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! };
 //! ```
 //!
-//! See [`runtime::Timer`] and [`runtime::TimerConfig`]. A complete example
-//! lives at [`examples/timer.rs`](https://github.com/maratik123/quartzite/tree/master/examples/timer.rs).
+//! See [`runtime::Timer`] and [`runtime::TimerConfig`].
 //!
 //! # Ecosystem
 //!
@@ -200,8 +199,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //!
 //! - **`no_std` posture.** [`core`] compiles `no_std + alloc`; [`runtime`]
 //!   requires `std`. The facade picks up `std` by default; disable the `std`
-//!   feature for the `no_std + derive`-free path. Verify locally with
-//!   `cargo build -p quartzite --no-default-features`.
+//!   feature for the `no_std + derive`-free path.
 //! - **Threading model.** Each object is owned by a specific thread
 //!   (`ObjectBase::thread_id`). Cross-thread signal delivery uses
 //!   [`ConnectionType::Queued`](core::signal::ConnectionType); the slot runs

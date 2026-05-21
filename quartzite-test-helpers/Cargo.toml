@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 description = "Workspace-internal test-serialisation helper for quartzite (per-binary `test_lock()`)"
 
+[lib]
+doc = false
+
 [dependencies]
 parking_lot = "0.12"
 

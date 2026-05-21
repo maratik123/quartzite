@@ -66,7 +66,7 @@ pub struct TreeSnapshot {
 }
 
 impl TreeSnapshot {
-    /// Validates that `self.schema_version` is supported by this implementation.
+    /// Validates that `self.schema_version` is at or below [`CURRENT_SCHEMA_VERSION`](crate::snapshot::CURRENT_SCHEMA_VERSION).
     ///
     /// # Errors
     ///

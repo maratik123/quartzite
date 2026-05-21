@@ -159,5 +159,6 @@ EOF
 | Step 2 | branch confirmed? base_commit recorded? |
 | Step 3 | build green after every 3 fixes? |
 | Step 4 | all six checks pass (build, test, clippy, fmt, doc, doc convention)? |
+| Step 4 | doc-comments in changed published-surface files do not match Pattern A / Pattern B from [doc-convention](../../../ai-docs/doc-convention.md#self-sufficiency-no-repo-internal-references) (the standard `review-findings.md` §6 finding fires when violated) |
 | Step 5 | self-review APPROVE before commit? |
 | Commit | `major`/`blocker` objections user-approved? progress file deleted? |

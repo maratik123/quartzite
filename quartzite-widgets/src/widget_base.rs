@@ -97,7 +97,7 @@ pub struct WidgetBase {
     pub palette: Arc<Palette>,
     /// [`ObjectId`] of the layout manager attached to this widget, if any.
     pub layout: Option<ObjectId>,
-    /// [`ObjectId`]s of installed event filters (dispatch deferred to plan #47).
+    /// [`ObjectId`]s of installed event filters. Dispatch through these filters is not yet implemented; the field is reserved for future use.
     pub event_filters: Vec<ObjectId>,
     /// Minimum size hint returned by [`crate::WidgetExt::minimum_size`].
     pub min_size: Size,

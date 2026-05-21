@@ -56,10 +56,6 @@ pub trait WidgetResolver {
 /// practice only `&'static` references satisfy this (e.g. leaked boxes or
 /// `static` widget arrays). Callers that need to return borrows tied to `self`
 /// should implement [`WidgetResolver`] directly on their tree-wrapper type.
-///
-/// If this blanket impl turns out unusable in real code, it can be removed
-/// without breaking callers that implement the trait directly (pre-publish,
-/// per `AGENTS.md` § *API Stability*).
 impl<F> WidgetResolver for F
 where
     F: Fn(ObjectId) -> Option<&'static dyn AsWidget>,
