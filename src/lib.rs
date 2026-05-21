@@ -41,9 +41,7 @@ impl Counter {
     }
 }
 
-// Explicit `fn main` keeps the type definitions at module level — the
-// `#[derive]` codegen emits paths that resolve relative to the containing
-// module, which would not resolve under rustdoc's implicit-main wrapper.
+// Explicit fn main keeps the derived types at module scope.
 fn main() {
     let mut c = Counter {
         object_base: ObjectBase::new(),
@@ -124,7 +122,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! ```ignore
 //! use quartzite::prelude::*;
 //!
-//! // Given a tree populated by the runtime:
+//! // Given an ObjectTree containing named objects:
 //! let matches: &[ObjectId] = tree.find_by_name("save_button");
 //! let scoped: Vec<ObjectId> = tree.find_by_name_in(window_id, "save_button");
 //! ```
