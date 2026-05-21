@@ -48,6 +48,8 @@ pub enum ColorRole {
     LinkVisited,
     /// High-contrast text used to attract attention (e.g. on a coloured banner).
     BrightText,
+    /// Stroke colour for the keyboard-focus outline drawn around a focused widget.
+    FocusRing,
 }
 
 impl ColorRole {
@@ -79,6 +81,7 @@ impl ColorRole {
         Self::Link,
         Self::LinkVisited,
         Self::BrightText,
+        Self::FocusRing,
     ];
 }
 
@@ -105,11 +108,12 @@ mod tests {
                 | ColorRole::HighlightedText
                 | ColorRole::Link
                 | ColorRole::LinkVisited
-                | ColorRole::BrightText => count += 1,
+                | ColorRole::BrightText
+                | ColorRole::FocusRing => count += 1,
             }
         }
         assert_eq!(ColorRole::ALL.len(), count);
-        assert_eq!(count, 11);
+        assert_eq!(count, 12);
     }
 
     #[test]
@@ -126,6 +130,7 @@ mod tests {
             ColorRole::Link,
             ColorRole::LinkVisited,
             ColorRole::BrightText,
+            ColorRole::FocusRing,
         ] {
             assert!(ColorRole::ALL.contains(&role), "ALL is missing {role:?}");
         }
