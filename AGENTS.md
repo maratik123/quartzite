@@ -218,6 +218,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
 > | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised; deferred `scripts/check-instruction-file-sizes.sh` (#383) reads the same index once landed) (Size-exemption-index group) |
+> | `.claude/rules/<file>.md` (e.g. `.claude/rules/ast-index.md`) | Run the same grep — the Procedure below catches lingering references. Rule files are read on-demand by agents, so a cross-rule-file edit MUST sweep every instruction directory for sister references. |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 **Procedure:**
