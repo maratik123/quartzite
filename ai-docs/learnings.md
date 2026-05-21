@@ -1340,3 +1340,14 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+
+### 2026-05-21 — process — design doc change during self-review fix requires Design Amendment recipe, not a direct commit
+
+**What happened:** Self-review Round 1 returned finding #1 (major): design doc Task 4 was stale — it described using `with_role_all_groups` for non-stateful roles, but the implementation used a `with_role_dark` helper for all roles. Instead of triggering the Design Amendment recipe (stop, surface to user for approval, update design, re-run design-review, then resume), the fix was committed directly as a code-fix commit in Step 11. The user had to intervene: "design was changed, need go back to design-review loop."
+
+**Rule:** When a self-review finding requires updating the design doc (any finding that says "the design doc is stale" or "the implementation diverged from the design"), treat it as a Design Amendment trigger — NOT a normal code fix. Stop Step 11, surface to the user, update the design doc, re-run design-review (Step 7, max 3 total rounds), then on GO resume the triggering step. A design doc change committed as a review-fix commit without design-review re-approval violates the Design Amendment recipe.
+
+**Kind:** correction
+
+**Escalated?** no

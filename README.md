@@ -45,8 +45,8 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-paint` | ✅ implemented (re-export shell over paint-api + Alignment from geometry + peniko gradient re-exports) |
 | `quartzite-renderer` | ✅ implemented (WindowedApplication + multi-window WindowRegistry + WindowedAppHandler + VelloPainter full 11-method impl with parley/skrifa text; RenderHarness/RenderHarnessBuilder snapshot harness) |
 | `quartzite-widgets` | ✅ implemented (#46) |
-| `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole; #488 DARK_PALETTE) |
-| `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests; #318 Container+LineEdit arms; #458 read-only overlay fix) |
+| `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole; #488 DARK_PALETTE; #402 ColorGroup axis + FocusRing) |
+| `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests; #318 Container+LineEdit arms; #458 read-only overlay fix; #402 ColorGroup palette migration) |
 | `quartzite-style-dispatch` | ✅ implemented (#312, widget-tree paint dispatcher: `dispatch_paint` + `WidgetResolver`) |
 
 ## Usage
