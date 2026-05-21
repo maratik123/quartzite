@@ -1329,3 +1329,14 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+
+### 2026-05-21 — process — `/ui-design` skill not invoked proactively when starting a `/task` for Palette / ColorRole work
+
+**What happened:** Started `/task 402` (palette-state-groups — extends `ColorRole` and `Palette` API with `ColorGroup` axis + `FocusRing` role). The `/ui-design` skill description explicitly lists "Palette / ColorRole edits" as a trigger, and `disable-model-invocation: false` is set (PR #510). Despite the clear match, the model entered the `/task` workflow steps immediately (check progress file, check deferred specs, spawn spec-writer) without invoking `/ui-design` first. The system instructions say skill invocation on a matching trigger is a BLOCKING REQUIREMENT before any other response.
+
+**Rule:** When starting any task — `/task`, standalone spec, or implementation — whose issue title or body mentions `Palette`, `ColorRole`, `DefaultStyle`, `quartzite-style`, `quartzite-widgets`, `quartzite-paint-api`, `snapshot`, or `Style impl`, invoke `/ui-design` as the very first action, before entering the workflow steps. "Workflow execution mode" does not suspend proactive skill invocation.
+
+**Kind:** correction
+
+**Escalated?** no
