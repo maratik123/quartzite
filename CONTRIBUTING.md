@@ -318,3 +318,16 @@ workspace agent-instruction file — and a corrections log lives at
 encouraged to read AGENTS.md but are not required to follow agent-only
 sections (`## Corrections Log`, `## Propagation Rule`) which exist for the
 agent workflow.
+
+### Code-search index (`ast-index`)
+
+Agent code-search runs through `ast-index` per
+[`.claude/rules/ast-index.md`](.claude/rules/ast-index.md). The upstream
+repository
+[`defendend/Claude-ast-index-search`](https://github.com/defendend/Claude-ast-index-search)
+hosts the installation instructions and the full command reference. Once
+the binary is on `PATH`, the `SessionStart` hook in
+[`.claude/settings.json`](.claude/settings.json) refreshes the index
+automatically on each session open. Human contributors do **not** need
+`ast-index` installed for `cargo build` / `cargo test` — it is an
+agent-only tool.
