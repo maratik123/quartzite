@@ -13,10 +13,12 @@
 
 extern crate alloc;
 
+mod color_group;
 mod color_role;
 mod dark_palette;
 mod palette;
 
+pub use color_group::ColorGroup;
 pub use color_role::ColorRole;
 pub use dark_palette::DARK_PALETTE;
 pub use palette::Palette;
