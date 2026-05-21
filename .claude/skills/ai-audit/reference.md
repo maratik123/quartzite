@@ -111,7 +111,7 @@ The Exception-body locations used by the `Escalated?` / `Superseded by:` rows do
 
 ## Checklist M — `agent-writing-style.md` conformance
 
-`ai-docs/agent-writing-style.md` is the canonical style reference for fail-loud rules in instruction files. Checklist M sweeps the audited corpus for drift against the 7 Patterns + Anti-patterns table. **Audited corpus** (named inline; do NOT defer to Step 2.2's inventory which omits some of these): `AGENTS.md` + every `.claude/skills/**/SKILL.md` + every `.claude/agents/**.md` + `ai-docs/code-style.md` + `ai-docs/doc-convention.md` + `ai-docs/agent-writing-style.md` + `ai-docs/corrections-log.md`.
+`ai-docs/agent-writing-style.md` is the canonical style reference for fail-loud rules in instruction files. Checklist M sweeps the audited corpus for drift against the 7 Patterns + Anti-patterns table. **Audited corpus** (named inline; do NOT defer to Step 2.2's inventory which omits some of these): `AGENTS.md` + every `.claude/skills/**/SKILL.md` + every `.claude/agents/**.md` + `ai-docs/code-style.md` + `ai-docs/doc-convention.md` + `ai-docs/agent-writing-style.md` + `ai-docs/corrections-log.md` + `.claude/rules/**/*.md`.
 
 | # | Sub-check | Detection mechanism | Severity |
 |---|---|---|---|
