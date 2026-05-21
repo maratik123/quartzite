@@ -24,7 +24,7 @@
 //! | State | Behaviour on restore |
 //! |---|---|
 //! | `ConnectionTable` entries (signal connections) | **Dropped.** Connections hold runtime closures with no portable representation. Caller re-establishes them after restore. |
-//! | `signals_blocked` flag | **Reset to `false`.** Persisting this state is tracked in [#39](https://github.com/maratik123/quartzite/issues/39). |
+//! | `signals_blocked` flag | **Reset to `false`.** Callers that need to preserve this state must re-set it after restore. |
 //! | Non-`Stored` properties | **Skipped.** Properties without [`PropertyFlag::Stored`](crate::meta::PropertyFlag::Stored) are not included in the snapshot. |
 //!
 //! ## `Value::Custom` round-trip
@@ -131,11 +131,11 @@ pub enum SerializeError {
 #[non_exhaustive]
 pub enum DeserializeError {
     /// The snapshot was produced by a newer version of the schema.
-    #[error("unsupported schema version {found} (this implementation supports up to {supported})")]
+    #[error("unsupported schema version {found} (supported up to {supported})")]
     UnsupportedVersion {
         /// The version found in the payload.
         found: u32,
-        /// The maximum version supported by this implementation ([`CURRENT_SCHEMA_VERSION`]).
+        /// The maximum [`u32`] version this enum variant signals as supported; equal to [`CURRENT_SCHEMA_VERSION`].
         supported: u32,
     },
 

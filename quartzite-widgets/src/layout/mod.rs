@@ -13,9 +13,9 @@ use crate::widget_base::WidgetBase;
 
 /// Resolves [`ObjectId`] values to mutable [`WidgetBase`] references for geometry updates.
 ///
-/// Implemented by the renderer's `ObjectTree` wrapper during layout passes
-/// (plan #47). For unit tests, a `HashMap<ObjectId, WidgetBase>`-backed stub
-/// is used instead.
+/// Implemented by the renderer's `ObjectTree` wrapper during layout passes.
+/// For unit tests, a `HashMap<ObjectId, WidgetBase>`-backed stub is used
+/// instead.
 ///
 /// For the read-only, paint-time counterpart see
 /// `quartzite_style_dispatch::WidgetResolver`.
