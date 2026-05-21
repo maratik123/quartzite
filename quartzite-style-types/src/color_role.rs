@@ -18,11 +18,11 @@
 /// # Examples
 ///
 /// ```
-/// use quartzite_style_types::{ColorRole, Palette};
+/// use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 ///
 /// let palette = Palette::default();
-/// let _window_bg = palette.color(ColorRole::Window);
-/// let _text = palette.color(ColorRole::Text);
+/// let _window_bg = palette.color(ColorRole::Window, ColorGroup::Normal);
+/// let _text = palette.color(ColorRole::Text, ColorGroup::Normal);
 /// ```
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ColorRole {
