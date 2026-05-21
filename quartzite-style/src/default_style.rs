@@ -128,15 +128,33 @@ impl Paint<Label> for DefaultStyle {
     fn paint(&self, w: &Label, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
         let font = w.widget_base().font.clone();
+        let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
 
-        painter.fill_rect(geom, &brush(palette, ColorRole::Window));
-        painter.draw_text_in(
-            geom,
-            &w.text,
-            &font,
-            &brush(palette, ColorRole::WindowText),
-            w.alignment,
-        );
+        let group = state_group(pressed, hovered);
+        let (fill_role, text_role) = if pressed {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
+        } else {
+            (ColorRole::Window, ColorRole::WindowText)
+        };
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
+
+        painter.fill_rect(geom, &Brush::solid(fill_color));
+        // `focused` is an additive 2 px FocusRing outline; never alpha-halved.
+        if focused {
+            painter.draw_rect(
+                geom,
+                &Pen::new(
+                    palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                    FOCUS_RING_WIDTH,
+                ),
+                &Brush::solid(Color::TRANSPARENT),
+            );
+        }
+        painter.draw_text_in(geom, &w.text, &font, &Brush::solid(text_color), w.alignment);
     }
 }
 
