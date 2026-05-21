@@ -197,7 +197,7 @@ Number all proposals. Let user choose.
 
 **Apply in two commits on the same feature branch:**
 
-1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / skill / agent / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation.
+1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / skill / agent / `rules:[name]` / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation.
 
 2. **Commit B — backfill `Escalated?` and (when applicable) `Superseded by:`.** Two kinds of field updates may happen here, on EXISTING entries only (NEVER append new entries):
 

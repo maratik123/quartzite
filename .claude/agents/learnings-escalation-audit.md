@@ -29,6 +29,7 @@ Per AGENTS.md "Learning Log":
 | `AGENTS.md` | Rule lives in `AGENTS.md`. | Find a section/sentence in `AGENTS.md` that addresses the mistake. |
 | `skill:[name]` | Rule lives in `.claude/skills/<name>/SKILL.md`. | File exists; rule is there. |
 | `agent:[name]` | Rule lives in `.claude/agents/<name>.md`. | File exists; rule is there. |
+| `rules:[name]` | Rule lives in `.claude/rules/<name>.md`. | File exists; rule is there. |
 | `hook` | Rule is a hook in `.claude/settings.json`. | A hook with a matcher + command that addresses the mistake exists. |
 | `settings` | Rule is a non-hook setting (permission allow/deny, env). | Listed in `.claude/settings.json` `permissions.*` or `env`. |
 | `doc-convention` | Rule lives in `ai-docs/doc-convention.md`. | File exists; rule is there. Use only for documentation-style rules that genuinely belong in the workspace doc-convention reference. |
@@ -59,6 +60,7 @@ For each entry where `Escalated?` is **not** `no`:
   - **`AGENTS.md`** — `rg -n "<keyword from rule>" AGENTS.md`. The rule keyword should be a distinctive phrase from the `Rule:` field, not generic (avoid "test", "commit"). If no match → mismatch.
   - **`skill:<name>`** — verify `.claude/skills/<name>/SKILL.md` exists, then grep for keyword. If file missing → blocker (file deleted or renamed). If file exists but no keyword → mismatch.
   - **`agent:<name>`** — same as `skill:` against `.claude/agents/<name>.md`.
+  - **`rules:<name>`** — same as `skill:` against `.claude/rules/<name>.md`. If file missing → blocker (file deleted or renamed). If file exists but no keyword → mismatch.
   - **`hook`** — read `.claude/settings.json`, scan `hooks.*[].hooks[].command` for the keyword. If no hook references the relevant tool/behavior → mismatch.
   - **`settings`** — scan `.claude/settings.json` `permissions.allow`, `permissions.deny`, `env`. Mismatch if absent.
   - **`doc-convention`** — verify `ai-docs/doc-convention.md` exists, then grep for keyword. If file missing → blocker. If keyword absent → mismatch.
