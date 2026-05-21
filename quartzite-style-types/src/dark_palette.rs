@@ -8,20 +8,9 @@
 //! 6 % / 16 % respectively. [`ColorRole::FocusRing`] Hover / Pressed cells
 //! mirror Normal per spec § *Out of scope*.
 
+use crate::palette::{HOVER_BLEND_FACTOR, PRESSED_BLEND_FACTOR};
 use crate::{ColorGroup, ColorRole, Palette};
 use quartzite_paint_api::Color;
-
-/// Blend factor for the `Hover` derived cells in [`DARK_PALETTE`]: 6 % toward MERCURY.
-///
-/// Mirrors the value in `palette.rs`; repeated here so the per-group
-/// overrides in [`DARK_PALETTE`] use the same formula constant.
-const HOVER_BLEND_FACTOR: f32 = 0.06;
-
-/// Blend factor for the `Pressed` derived cells in [`DARK_PALETTE`]: 16 % toward MERCURY.
-///
-/// Mirrors the value in `palette.rs`; repeated here so the per-group
-/// overrides in [`DARK_PALETTE`] use the same formula constant.
-const PRESSED_BLEND_FACTOR: f32 = 0.16;
 
 /// Seeds `(role, Normal)` to `color`, then derives `Hover` and `Pressed` by
 /// blending `color` toward [`Color::MERCURY`] at 6 % / 16 % respectively.

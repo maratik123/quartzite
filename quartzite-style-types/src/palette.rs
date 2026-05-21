@@ -13,10 +13,10 @@ const ROLE_COUNT: usize = ColorRole::ALL.len();
 const GROUP_COUNT: usize = ColorGroup::ALL.len();
 
 /// Blend factor for the `Hover` derived cells: 6 % toward `WindowText × Normal`.
-const HOVER_BLEND_FACTOR: f32 = 0.06;
+pub(crate) const HOVER_BLEND_FACTOR: f32 = 0.06;
 
 /// Blend factor for the `Pressed` derived cells: 16 % toward `WindowText × Normal`.
-const PRESSED_BLEND_FACTOR: f32 = 0.16;
+pub(crate) const PRESSED_BLEND_FACTOR: f32 = 0.16;
 
 /// A colour lookup table keyed by [`ColorRole`] and [`ColorGroup`].
 ///
