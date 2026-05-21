@@ -106,7 +106,10 @@ impl Paint<Button> for DefaultStyle {
 
         // `focused` is an additive outline modifier — always 2 px FocusRing, never alpha-halved.
         let (outline_color, outline_width) = if focused {
-            (palette.color(ColorRole::FocusRing, ColorGroup::Normal), FOCUS_RING_WIDTH)
+            (
+                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                FOCUS_RING_WIDTH,
+            )
         } else {
             (text_color, 1.0)
         };
