@@ -177,7 +177,7 @@ pub struct DispatcherAlreadySet;
 /// use std::sync::Arc;
 /// use quartzite_core::signal::{QueuedDispatcher, set_queued_dispatcher};
 ///
-/// // Normally called by Application::new(); shown here for illustration.
+/// // The dispatcher slot can be set once per process; the higher-level runtime does this automatically.
 /// // set_queued_dispatcher(Arc::new(my_dispatcher));
 /// ```
 #[cfg(feature = "std")]

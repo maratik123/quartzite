@@ -19,16 +19,20 @@ across the workspace. Every public item in every workspace crate
 <a id="self-sufficiency-no-repo-internal-references"></a>
 ### Self-sufficiency: no repo-internal references
 
-Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. Two families of repo-internal references are forbidden:
+Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. Three families of repo-internal references are forbidden:
 
 - **Family A — internal-artefact citations.** GitHub issue / PR numbers (`#NN`, `github.com/.../issues/N`); repo-internal paths (`ai-docs/...`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `design-system/...`, `.claude/...`, `scripts/...`, `.github/...`); internal-artefact references ("plan #N", "spec AC<n>", "the X spec", "tracked in", "deferred to a future plan / spec / follow-up", "per AGENTS.md"). Replace with self-contained behaviour wording, an intra-doc link to an in-workspace item, or a docs.rs / external-spec URL.
 - **Family B — contributor-tooling instructions.** Verify-locally / how-to-verify command incantations directed at a contributor (`cargo build -p X`, `cargo test`, `cargo clippy`, `RUSTDOCFLAGS=...`, `cargo doc --no-deps`); references to repo-internal scripts (`scripts/<name>.sh`) or workflow files (`.github/workflows/...`); coupling-to-the-development-process language ("this PR", "this commit", "this implementation"). Drop the sentence or replace with a worked API-use example.
+- **Family C — inline `// …` comments inside doc-comment code fences.** Every inline `// …` line inside a `///` / `//!` code fence (any fence kind — `rust`, `no_run`, `ignore`, `text`) AND every inline `// …` line inside a `#[doc = r#"..."#]` / `#[doc = "..."]` / `#![doc = ...]` raw-string attribute body must pass the §3 classification rule: (i) **useful to a docs.rs reader** (step label, behavioural assertion, placeholder for elided code, fact about the Rust ecosystem) → keep; (ii) **assumes repo-internal architecture or contributor convention** (names a concrete sibling-crate type the reader has no context for, asserts a `Style` / runtime / paint-API implementation detail, explains a contributor-only mental model) → rewrite to drop the repo-internal reference, or drop the comment entirely. The non-conforming form below names the concrete `DefaultStyle` type — a docs.rs reader looking at `Paint::paint_widget`'s doc page has no context for `DefaultStyle` and need not have. The conforming form names the trait method shown above the fence and carries no crate-internal type.
 
 **Non-conforming (Family A):** `/// Every ColorRole slot is set to the RGBA value that design-system/README.md § Dark theme specifies for that role.`
 **Conforming:** `/// Every ColorRole slot is set to a dark-theme RGBA value converted from sRGB hex to 3-decimal linear floats.`
 
 **Non-conforming (Family B):** `//! Verify locally with cargo build -p quartzite --no-default-features.`
 **Conforming:** *(drop the sentence; surrounding prose already conveys the behavioural content.)*
+
+**Non-conforming (Family C):** `/// // Inside DefaultStyle::draw_widget:`
+**Conforming:** `/// // In a Style::draw_widget body:`
 
 **Local enforcement.** Two ripgrep audits scoped to `--type rust` excluding `tests/`, `benches/`, `quartzite-test-helpers/src/**`, and `#[cfg(test)]` regions:
 

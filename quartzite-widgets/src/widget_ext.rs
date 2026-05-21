@@ -476,7 +476,7 @@ pub trait WidgetExt: AsWidget {
     ///
     /// let mut w = WidgetBase::new();
     /// assert!(!w.is_pressed());
-    /// // The default impl sets pressed=true; the input-plumbing pass calls this.
+    /// // The default impl sets pressed=true via set_pressed().
     /// // Directly verify the accessor:
     /// w.set_pressed(true);
     /// assert!(w.is_pressed());

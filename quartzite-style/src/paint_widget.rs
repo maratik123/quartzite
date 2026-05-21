@@ -17,7 +17,7 @@ use quartzite_widgets::AsWidget;
 /// reference and calls `self.paint(w, painter, palette)`.
 ///
 /// ```text
-/// // Inside DefaultStyle::draw_widget:
+/// // In a Style::draw_widget body:
 /// match widget.widget_view() {
 ///     WidgetView::Button(w) => self.paint(w, painter, palette),
 ///     WidgetView::Other(_)  => {}  // silent no-op — documented contract
@@ -56,11 +56,10 @@ use quartzite_widgets::AsWidget;
 /// use quartzite_style::{Paint, Palette, Style};
 /// use quartzite_widgets::{AsWidget, WidgetBase, WidgetView};
 ///
-/// // A widget defined outside quartzite-widgets.  No #[widget_view] attribute
-/// // → widget_view() returns WidgetView::Other(self).
+/// // A user-defined widget without a registered WidgetView variant defaults to WidgetView::Other(self).
 /// struct MyWidget { widget_base: WidgetBase }
 /// # impl MyWidget { fn new() -> Self { Self { widget_base: WidgetBase::new() } } }
-/// // (AsWidget impl omitted for brevity — use #[derive(Extend)] in practice)
+/// // (AsWidget impl elided for example brevity.)
 ///
 /// struct MyStyle;
 ///
