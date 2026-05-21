@@ -86,13 +86,7 @@ impl Paint<Button> for DefaultStyle {
         let focused = w.is_focused();
 
         // State group: pressed wins over hovered; Normal is the idle default.
-        let group = if pressed {
-            ColorGroup::Pressed
-        } else if hovered {
-            ColorGroup::Hover
-        } else {
-            ColorGroup::Normal
-        };
+        let group = state_group(pressed, hovered);
 
         // Role selection: pressed or checked maps to Highlight/HighlightedText.
         // `disabled` is an alpha modifier applied after role selection (not a role-selector).
@@ -236,6 +230,21 @@ impl Paint<LineEdit> for DefaultStyle {
             (w.text.as_str(), Brush::solid(text_role_color))
         };
         painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
+    }
+}
+
+/// Resolves the [`ColorGroup`] for a widget given its `pressed` / `hovered` flags.
+///
+/// `pressed` wins over `hovered`; falls back to [`ColorGroup::Normal`] otherwise.
+/// Shared selector for every state-aware `Paint<W>` impl in this module.
+#[inline]
+const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
+    if pressed {
+        ColorGroup::Pressed
+    } else if hovered {
+        ColorGroup::Hover
+    } else {
+        ColorGroup::Normal
     }
 }
 
