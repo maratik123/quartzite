@@ -1329,3 +1329,25 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+
+### 2026-05-21 — process — `/ui-design` skill not invoked proactively when starting a `/task` for Palette / ColorRole work
+
+**What happened:** Started `/task 402` (palette-state-groups — extends `ColorRole` and `Palette` API with `ColorGroup` axis + `FocusRing` role). The `/ui-design` skill description explicitly lists "Palette / ColorRole edits" as a trigger, and `disable-model-invocation: false` is set (PR #510). Despite the clear match, the model entered the `/task` workflow steps immediately (check progress file, check deferred specs, spawn spec-writer) without invoking `/ui-design` first. The system instructions say skill invocation on a matching trigger is a BLOCKING REQUIREMENT before any other response.
+
+**Rule:** When starting any task — `/task`, standalone spec, or implementation — whose issue title or body mentions `Palette`, `ColorRole`, `DefaultStyle`, `quartzite-style`, `quartzite-widgets`, `quartzite-paint-api`, `snapshot`, or `Style impl`, invoke `/ui-design` as the very first action, before entering the workflow steps. "Workflow execution mode" does not suspend proactive skill invocation.
+
+**Kind:** correction
+
+**Escalated?** no
+
+
+### 2026-05-21 — process — design doc change during self-review fix requires Design Amendment recipe, not a direct commit
+
+**What happened:** Self-review Round 1 returned finding #1 (major): design doc Task 4 was stale — it described using `with_role_all_groups` for non-stateful roles, but the implementation used a `with_role_dark` helper for all roles. Instead of triggering the Design Amendment recipe (stop, surface to user for approval, update design, re-run design-review, then resume), the fix was committed directly as a code-fix commit in Step 11. The user had to intervene: "design was changed, need go back to design-review loop."
+
+**Rule:** When a self-review finding requires updating the design doc (any finding that says "the design doc is stale" or "the implementation diverged from the design"), treat it as a Design Amendment trigger — NOT a normal code fix. Stop Step 11, surface to the user, update the design doc, re-run design-review (Step 7, max 3 total rounds), then on GO resume the triggering step. A design doc change committed as a review-fix commit without design-review re-approval violates the Design Amendment recipe.
+
+**Kind:** correction
+
+**Escalated?** no

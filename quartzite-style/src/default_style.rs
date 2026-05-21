@@ -1,7 +1,7 @@
 //! [`DefaultStyle`] — built-in flat default style for quartzite widgets.
 
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
-use quartzite_style_types::{ColorRole, Palette};
+use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
     Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetExt,
     WidgetView,
@@ -18,6 +18,9 @@ const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
 ///
 /// Preserves legibility while visually conveying the non-editable state.
 const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
+
+/// Stroke width in pixels for the focus-ring outline drawn around a focused [`Button`].
+const FOCUS_RING_WIDTH: f32 = 2.0;
 
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
@@ -82,29 +85,31 @@ impl Paint<Button> for DefaultStyle {
         let pressed = w.is_pressed();
         let focused = w.is_focused();
 
-        // Precedence for fill/text axis: pressed > checked > hovered > idle.
-        // `disabled` is an alpha modifier applied after role selection (not a role-selector).
-        let fill_color = if pressed || w.checked {
-            maybe_disabled(palette.color(ColorRole::Highlight), enabled)
+        // State group: pressed wins over hovered; Normal is the idle default.
+        let group = if pressed {
+            ColorGroup::Pressed
         } else if hovered {
-            let blended = palette
-                .color(ColorRole::Button)
-                .blend(palette.color(ColorRole::Highlight), 0.25);
-            maybe_disabled(blended, enabled)
+            ColorGroup::Hover
         } else {
-            maybe_disabled(palette.color(ColorRole::Button), enabled)
+            ColorGroup::Normal
         };
 
-        let text_role = if pressed || w.checked {
-            ColorRole::HighlightedText
+        // Role selection: pressed or checked maps to Highlight/HighlightedText.
+        // `disabled` is an alpha modifier applied after role selection (not a role-selector).
+        let (fill_role, text_role) = if pressed || w.checked {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
         } else {
-            ColorRole::ButtonText
+            (ColorRole::Button, ColorRole::ButtonText)
         };
-        let text_color = maybe_disabled(palette.color(text_role), enabled);
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
 
-        // `focused` is an additive outline modifier — always 2 px Highlight, never alpha-halved.
+        // `focused` is an additive outline modifier — always 2 px FocusRing, never alpha-halved.
         let (outline_color, outline_width) = if focused {
-            (palette.color(ColorRole::Highlight), 2.0)
+            (
+                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                FOCUS_RING_WIDTH,
+            )
         } else {
             (text_color, 1.0)
         };
@@ -152,15 +157,15 @@ impl Paint<TextEdit> for DefaultStyle {
         }
         painter.draw_rect(
             geom,
-            &Pen::new(palette.color(ColorRole::Text), 1.0),
+            &Pen::new(palette.color(ColorRole::Text, ColorGroup::Normal), 1.0),
             &Brush::solid(Color::TRANSPARENT),
         );
         let text_color = if w.read_only {
             palette
-                .color(ColorRole::Text)
+                .color(ColorRole::Text, ColorGroup::Normal)
                 .with_alpha(READ_ONLY_TEXT_ALPHA)
         } else {
-            palette.color(ColorRole::Text)
+            palette.color(ColorRole::Text, ColorGroup::Normal)
         };
         painter.draw_text_in(
             geom,
@@ -178,7 +183,10 @@ impl Paint<ScrollArea> for DefaultStyle {
         painter.fill_rect(geom, &brush(palette, ColorRole::Base));
         painter.draw_rect(
             geom,
-            &Pen::new(palette.color(ColorRole::WindowText), 1.0),
+            &Pen::new(
+                palette.color(ColorRole::WindowText, ColorGroup::Normal),
+                1.0,
+            ),
             &Brush::solid(Color::TRANSPARENT),
         );
     }
@@ -190,7 +198,10 @@ impl Paint<Container> for DefaultStyle {
         painter.fill_rect(geom, &brush(palette, ColorRole::Window));
         painter.draw_rect(
             geom,
-            &Pen::new(palette.color(ColorRole::WindowText), 1.0),
+            &Pen::new(
+                palette.color(ColorRole::WindowText, ColorGroup::Normal),
+                1.0,
+            ),
             &Brush::solid(Color::TRANSPARENT),
         );
     }
@@ -207,10 +218,10 @@ impl Paint<LineEdit> for DefaultStyle {
         }
         painter.draw_rect(
             geom,
-            &Pen::new(palette.color(ColorRole::Text), 1.0),
+            &Pen::new(palette.color(ColorRole::Text, ColorGroup::Normal), 1.0),
             &Brush::solid(Color::TRANSPARENT),
         );
-        let text_role_color = palette.color(ColorRole::Text);
+        let text_role_color = palette.color(ColorRole::Text, ColorGroup::Normal);
         let (text_arg, text_brush) = if w.text.is_empty() && !w.placeholder.is_empty() {
             (
                 w.placeholder.as_str(),
@@ -228,10 +239,10 @@ impl Paint<LineEdit> for DefaultStyle {
     }
 }
 
-/// Returns a solid [`Brush`] using the colour at `role` in `palette`.
+/// Returns a solid [`Brush`] using the `Normal`-group colour at `role` in `palette`.
 #[inline]
 const fn brush(palette: &Palette, role: ColorRole) -> Brush {
-    Brush::solid(palette.color(role))
+    Brush::solid(palette.color(role, ColorGroup::Normal))
 }
 
 /// Halves the alpha of `color` to signal the "disabled" visual state.
@@ -251,7 +262,7 @@ fn disabled(color: Color) -> Color {
 #[inline]
 const fn read_only_overlay(palette: &Palette) -> Color {
     palette
-        .color(ColorRole::WindowText)
+        .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(READ_ONLY_OVERLAY_ALPHA)
 }
 

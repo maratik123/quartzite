@@ -29,7 +29,6 @@ A short manifest of the root:
 |---|---|
 | `README.md` | This file. Brand context, content fundamentals, visual foundations, iconography. |
 | `SKILL.md` | Agent-Skills-compatible entry point so this folder can be loaded as a skill. |
-| `colors_and_type.css` | CSS custom properties + element styles mirroring `Palette::default` and `Font::default`. |
 | `fonts/` | (empty — see _Typography_ below.) |
 | `assets/` | Logos and snapshot pngs. |
 | `assets/quartzite-mark.svg` | 64 px crystalline mark. |
@@ -99,9 +98,9 @@ restatements of that file.
 
 ### Color
 
-- **12 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`, `FocusRing`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA. (`FocusRing` is added by issue #402; its default value equals `Highlight × Normal`.)
+- **12 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`, `FocusRing`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA. `FocusRing` defaults to the same value as `Highlight × Normal`.
 - **`Palette::default` seeds every slot to a non-transparent value.** Backgrounds white, foregrounds black, `Highlight` sky-blue (`#0080FF`), `Link` blue (`#0000FF`), `HighlightedText` and `BrightText` white, `FocusRing` sky-blue (matching `Highlight`). The defaults are explicitly described in source as "intentionally minimal — the goal is to satisfy the `default != Color::TRANSPARENT` invariant for every role rather than to produce a polished theme."
-- **State groups.** Issue #402 adds a `ColorGroup` axis (`Normal` / `Hover` / `Pressed`) orthogonal to `ColorRole`. Lookups become `palette.color(role, group)`. `Hover` and `Pressed` cells are **derived** from the role's `Normal` value at construction time via `Hover(c) = c.blend(WindowText.Normal, 0.06)` and `Pressed(c) = c.blend(WindowText.Normal, 0.16)`. For the default light palette this lands on `#F0F0F0` / `#D6D6D6` (Button) and `#0078F0` / `#006CD6` (Highlight). Themes opt out per cell.
+- **State groups.** A `ColorGroup` axis (`Normal` / `Hover` / `Pressed`) is orthogonal to `ColorRole`. Lookups are `palette.color(role, group)`. `Hover` and `Pressed` cells are **derived** from the role's `Normal` value at construction time via `Hover(c) = c.blend(WindowText.Normal, 0.06)` and `Pressed(c) = c.blend(WindowText.Normal, 0.16)`. For the default light palette this lands on `#F0F0F0` / `#D6D6D6` (Button) and `#0078F0` / `#006CD6` (Highlight). Themes opt out per cell.
 - **Disabled state** halves the alpha of whatever role-color was selected (`color.with_alpha(color.a() * 0.5)`). It is an alpha modifier, not a role swap. Not a `ColorGroup` variant — stays as mathematical post-processing.
 - **Pressed and checked** both swap to the `Highlight` role for fill + `HighlightedText` for text. Pressed reads `Highlight × Pressed`; checked reads `Highlight × Normal`. Pressed wins over checked on the group axis.
 - **Focus** is additive: a 2 px outline reading `ColorRole::FocusRing × Normal` overlaid on top of the idle/hover/pressed look. `FocusRing` defaults to `Highlight`'s value; themes that need a divergent focus ring (high-contrast amber, etc.) override the slot directly.
@@ -223,15 +222,13 @@ base mark; selection ring overlaid).
 
 The framework ships a single `Palette::default` (light) plus a
 single `DefaultStyle`. **A dark theme is a Palette override**, not
-a new `Style` — same 11 `ColorRole` slots, different RGBA in each
+a new `Style` — same 12 `ColorRole` slots, different RGBA in each
 slot. Both palettes must satisfy the same two invariants:
 
 1. Every role is non-transparent.
 2. `Highlight` is visually distinct from `HighlightedText`.
 
-The dark seeds proposed in `colors_and_type.css`
-(`[data-theme="dark"]`) and demonstrated in
-`preview/dark-*.html`:
+The `DARK_PALETTE` constant seeds (Normal cells):
 
 | Role | Light seed | **Dark seed** | Common name (dark) |
 |---|---|---|---|
@@ -246,7 +243,7 @@ The dark seeds proposed in `colors_and_type.css`
 | `Link`            | `#0000FF` | **`#5BB0FF`** | Light Dodger Blue (coined — no catalogued match; `#0000FF` is illegible against `#2B2B2B`) |
 | `LinkVisited`     | `#0000FF` | **`#C58AFF`** | Charoite (coined — purple silicate mineral; sister to `Quartzite`. No catalogued match.) |
 | `BrightText`      | `#FFFFFF` | **`#FF6B6B`** | Pastel Red (Qt convention: red signals attention against a coloured banner) |
-| `FocusRing` *(new, #402)* | `#0080FF` | **`#1E90FF`** | DodgerBlue — mirrors `Highlight` by default; theme-overridable |
+| `FocusRing`               | `#0080FF` | **`#1E90FF`** | DodgerBlue — mirrors `Highlight` by default; theme-overridable |
 
 > **Naming source.** "Common name" labels are documentation-only —
 > the framework does not use them. They come from curated
@@ -285,18 +282,18 @@ by registering a new `Style` impl in `StyleRegistry`:
 
 ```rust
 let dark = Palette::default()
-    .with_role(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B  Mine Shaft
-    .with_role(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0)) // #3C3C3C  Eclipse
-    .with_role(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0)) // #1E1E1E  Nero
-    .with_role(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF  DodgerBlue (X11)
-    .with_role(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
-    .with_role(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
-    .with_role(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
-    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)) // #FF6B6B Pastel Red
-    .with_role(ColorRole::FocusRing,       Color::new(0.118, 0.564, 1.000, 1.0)); // #1E90FF DodgerBlue (mirrors Highlight)
+    .with_role_all_groups(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B  Mine Shaft
+    .with_role_all_groups(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role_all_groups(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0)) // #3C3C3C  Eclipse
+    .with_role_all_groups(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role_all_groups(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0)) // #1E1E1E  Nero
+    .with_role_all_groups(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role_all_groups(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF  DodgerBlue (X11)
+    .with_role_all_groups(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
+    .with_role_all_groups(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
+    .with_role_all_groups(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
+    .with_role_all_groups(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)) // #FF6B6B  Pastel Red
+    .with_role_all_groups(ColorRole::FocusRing,       Color::new(0.118, 0.564, 1.000, 1.0)); // #1E90FF  DodgerBlue (mirrors Highlight)
 ```
 
 The UI-kit demo at `ui_kits/widgets/index.html` carries a
