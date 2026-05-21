@@ -5,6 +5,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "if command -v ast-index >/dev/null 2>&1; then ast-index stats >/dev/null 2>&1 || ast-index rebuild; else echo 'ast-index not found'; fi",
+            "timeout": 120,
+            "statusMessage": "Checking ast-index..."
+          }
+        ],
+        "matcher": "startup"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
             "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"REQUIRED SESSION START to read rules from CLAUDE.md. Show user a summary of these rules\"}}'",
             "timeout": 30,
             "statusMessage": "Read session rules..."
