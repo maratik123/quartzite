@@ -221,13 +221,35 @@ impl Paint<TextEdit> for DefaultStyle {
 impl Paint<ScrollArea> for DefaultStyle {
     fn paint(&self, w: &ScrollArea, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
-        painter.fill_rect(geom, &brush(palette, ColorRole::Base));
+        let enabled = w.is_enabled();
+        let hovered = w.is_hovered();
+        let pressed = w.is_pressed();
+        let focused = w.is_focused();
+
+        let group = state_group(pressed, hovered);
+        // Idle/hover keep outline = WindowText; pressed swaps to HighlightedText
+        // for legibility under the inverted Highlight fill.
+        let (fill_role, outline_role_idle) = if pressed {
+            (ColorRole::Highlight, ColorRole::HighlightedText)
+        } else {
+            (ColorRole::Base, ColorRole::WindowText)
+        };
+        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
+        let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
+
+        painter.fill_rect(geom, &Brush::solid(fill_color));
+        // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
+        let (outline_color, outline_width) = if focused {
+            (
+                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+                FOCUS_RING_WIDTH,
+            )
+        } else {
+            (outline_color_idle, 1.0)
+        };
         painter.draw_rect(
             geom,
-            &Pen::new(
-                palette.color(ColorRole::WindowText, ColorGroup::Normal),
-                1.0,
-            ),
+            &Pen::new(outline_color, outline_width),
             &Brush::solid(Color::TRANSPARENT),
         );
     }
