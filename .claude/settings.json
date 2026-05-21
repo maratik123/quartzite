@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if command -v ast-index >/dev/null 2>&1; then if ast-index stats >/dev/null 2>&1; then ast-index update >/dev/null 2>&1 || true; else ast-index rebuild >/dev/null 2>&1 || true; fi; else true; fi",
+            "command": "if command -v ast-index >/dev/null 2>&1; then if ast-index stats >/dev/null 2>&1; then ast-index update >/dev/null 2>&1 || true; echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ast-index: index updated\"}}'; else ast-index rebuild >/dev/null 2>&1 || true; echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ast-index: index rebuilt\"}}'; fi; else echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"ast-index: not found\"}}'; fi",
             "timeout": 120,
             "statusMessage": "Syncing ast-index..."
           }
