@@ -321,7 +321,7 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 **What happened:** [quote or paraphrase]
 **Rule:** [what to do instead, or what to keep doing]
 **Kind:** correction | validation    (optional; defaults to `correction` when omitted)
-**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | doc-convention | code-style (comma-separate multiple)
+**Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | rules:[name] | doc-convention | code-style (comma-separate multiple)
 **Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
 ```
 
