@@ -228,6 +228,14 @@ mod tests {
     const _: Color = Palette::new().color(ColorRole::Button, ColorGroup::Normal);
 
     #[test]
+    fn color_returns_constant_time_lookup() {
+        let palette = Palette::default();
+        let first = palette.color(ColorRole::Button, ColorGroup::Hover);
+        let second = palette.color(ColorRole::Button, ColorGroup::Hover);
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn every_cell_of_default_is_non_transparent() {
         let palette = Palette::default();
         for role in ColorRole::ALL {

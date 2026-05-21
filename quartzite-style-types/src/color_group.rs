@@ -53,7 +53,6 @@ impl ColorGroup {
     /// assert!(ColorGroup::ALL.contains(&ColorGroup::Normal));
     /// assert_eq!(ColorGroup::ALL.first().copied(), Some(ColorGroup::Normal));
     /// ```
-    // _Simple._
     pub const ALL: &'static [Self] = &[Self::Normal, Self::Hover, Self::Pressed];
 }
 
