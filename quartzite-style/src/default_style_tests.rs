@@ -9,7 +9,7 @@
 use quartzite_core::ObjectId;
 use quartzite_geometry::{Point, Rect};
 use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
-use quartzite_style_types::{ColorRole, Palette};
+use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
     Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetBase,
     WidgetExt,
@@ -275,7 +275,7 @@ fn text_edit_records_fill_outline_and_text() {
     assert!(
         matches!(first_fill(&painter.events),
             PaintEvent::FillRect { brush, .. }
-                if brush_color(brush) == palette.color(ColorRole::Base)),
+                if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
         "TextEdit fill must use ColorRole::Base"
     );
     assert!(
@@ -302,7 +302,7 @@ fn text_edit_read_only_inserts_overlay_fill() {
         "expected 4 events for TextEdit (read_only=true)"
     );
     let expected_overlay = palette
-        .color(ColorRole::WindowText)
+        .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
     assert!(
         matches!(&painter.events[1],
@@ -328,7 +328,7 @@ fn text_edit_read_only_dims_text() {
     );
     assert!(
         matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
         "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
@@ -360,8 +360,11 @@ fn text_edit_writable_keeps_full_alpha_text() {
 
 #[test]
 fn read_only_overlay_derives_from_custom_window_text() {
-    let palette =
-        Palette::default().with_role(ColorRole::WindowText, Color::new(0.0, 0.5, 1.0, 1.0));
+    let palette = Palette::default().with_role(
+        ColorRole::WindowText,
+        ColorGroup::Normal,
+        Color::new(0.0, 0.5, 1.0, 1.0),
+    );
     let mut edit = TextEdit::new();
     edit.read_only = true;
     let mut painter = RecordingPainter::default();
@@ -424,7 +427,8 @@ fn checked_button_uses_highlight_colour() {
     // Construct an explicit palette pinning Highlight to Color::SKY_BLUE so the
     // assertion is meaningful regardless of any future change to Palette::default's
     // seeded Highlight value (today Palette::default already uses Color::SKY_BLUE).
-    let palette = Palette::default().with_role(ColorRole::Highlight, Color::SKY_BLUE);
+    let palette =
+        Palette::default().with_role(ColorRole::Highlight, ColorGroup::Normal, Color::SKY_BLUE);
 
     let idle_btn = Button::new("x".into());
     let mut checked_btn = Button::new("x".into());
@@ -456,12 +460,12 @@ fn checked_button_uses_highlight_colour() {
     );
     assert_eq!(
         idle_color,
-        palette.color(ColorRole::Button),
+        palette.color(ColorRole::Button, ColorGroup::Normal),
         "idle fill must use ColorRole::Button"
     );
     assert_eq!(
         checked_color,
-        palette.color(ColorRole::Highlight),
+        palette.color(ColorRole::Highlight, ColorGroup::Normal),
         "checked fill must use ColorRole::Highlight"
     );
 }
@@ -531,24 +535,23 @@ fn disabled_button_halves_fill_and_text_alpha() {
 
 fn pinned_palette() -> Palette {
     Palette::default()
-        .with_role(ColorRole::Button, Color::WHITE)
-        .with_role(ColorRole::Highlight, Color::SKY_BLUE)
-        .with_role(ColorRole::ButtonText, Color::BLACK)
-        .with_role(ColorRole::HighlightedText, Color::WHITE)
+        .with_role(ColorRole::Button, ColorGroup::Normal, Color::WHITE)
+        .with_role(ColorRole::Highlight, ColorGroup::Normal, Color::SKY_BLUE)
+        .with_role(ColorRole::ButtonText, ColorGroup::Normal, Color::BLACK)
+        .with_role(ColorRole::HighlightedText, ColorGroup::Normal, Color::WHITE)
 }
 
 #[test]
-fn hovered_button_uses_blended_fill() {
+fn hovered_button_uses_derived_hover_fill() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
     btn.set_hovered(true);
     let mut painter = RecordingPainter::default();
     DefaultStyle.draw_widget(&btn, &mut painter, &palette);
 
-    let expected_blend = palette
-        .color(ColorRole::Button)
-        .blend(palette.color(ColorRole::Highlight), 0.25);
-    let idle_fill = palette.color(ColorRole::Button);
+    // Expected fill: palette.color(Button, Hover) — derived from the pinned palette.
+    let expected_fill = palette.color(ColorRole::Button, ColorGroup::Hover);
+    let idle_fill = palette.color(ColorRole::Button, ColorGroup::Normal);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -558,8 +561,8 @@ fn hovered_button_uses_blended_fill() {
         },
     );
     assert_eq!(
-        fill_color, expected_blend,
-        "hovered fill must be 25% blend toward Highlight"
+        fill_color, expected_fill,
+        "hovered fill must equal palette.color(Button, Hover)"
     );
     assert_ne!(
         fill_color, idle_fill,
@@ -575,13 +578,13 @@ fn hovered_button_uses_blended_fill() {
     );
     assert_eq!(
         text_color,
-        palette.color(ColorRole::ButtonText),
-        "hovered button text role must remain ButtonText"
+        palette.color(ColorRole::ButtonText, ColorGroup::Hover),
+        "hovered button text must use ButtonText Hover group"
     );
 }
 
 #[test]
-fn pressed_button_uses_highlight_roles() {
+fn pressed_button_uses_highlight_pressed() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
     btn.set_pressed(true);
@@ -597,12 +600,12 @@ fn pressed_button_uses_highlight_roles() {
     );
     assert_eq!(
         fill_color,
-        palette.color(ColorRole::Highlight),
-        "pressed fill must be Highlight"
+        palette.color(ColorRole::Highlight, ColorGroup::Pressed),
+        "pressed fill must be Highlight × Pressed"
     );
     assert_ne!(
         fill_color,
-        palette.color(ColorRole::Button),
+        palette.color(ColorRole::Button, ColorGroup::Normal),
         "pressed fill must differ from idle baseline"
     );
 
@@ -615,8 +618,8 @@ fn pressed_button_uses_highlight_roles() {
     );
     assert_eq!(
         text_color,
-        palette.color(ColorRole::HighlightedText),
-        "pressed text must be HighlightedText"
+        palette.color(ColorRole::HighlightedText, ColorGroup::Pressed),
+        "pressed text must be HighlightedText × Pressed"
     );
 }
 
@@ -625,7 +628,7 @@ fn pressed_button_uses_highlight_roles() {
     clippy::float_cmp,
     reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
 )]
-fn focused_button_uses_2px_highlight_outline() {
+fn focused_button_uses_2px_focus_ring_outline() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
     btn.set_focused(true);
@@ -640,8 +643,8 @@ fn focused_button_uses_2px_highlight_outline() {
         };
     assert_eq!(
         pen_color,
-        palette.color(ColorRole::Highlight),
-        "focused outline color must be Highlight"
+        palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+        "focused outline color must be FocusRing × Normal"
     );
     assert_eq!(pen_width, 2.0, "focused outline must be 2 px wide");
 
@@ -675,8 +678,8 @@ fn precedence_disabled_pressed_focused() {
     let mut painter = RecordingPainter::default();
     DefaultStyle.draw_widget(&btn, &mut painter, &palette);
 
-    // Fill: pressed selects Highlight, then disabled halves its alpha.
-    let expected_highlight = palette.color(ColorRole::Highlight);
+    // Fill: pressed selects Highlight × Pressed, then disabled halves its alpha.
+    let expected_highlight_pressed = palette.color(ColorRole::Highlight, ColorGroup::Pressed);
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
             brush
@@ -686,26 +689,27 @@ fn precedence_disabled_pressed_focused() {
     );
     assert_eq!(
         fill_color.r(),
-        expected_highlight.r(),
-        "disabled+pressed fill r must match Highlight r"
+        expected_highlight_pressed.r(),
+        "disabled+pressed fill r must match Highlight×Pressed r"
     );
     assert_eq!(
         fill_color.g(),
-        expected_highlight.g(),
-        "disabled+pressed fill g must match Highlight g"
+        expected_highlight_pressed.g(),
+        "disabled+pressed fill g must match Highlight×Pressed g"
     );
     assert_eq!(
         fill_color.b(),
-        expected_highlight.b(),
-        "disabled+pressed fill b must match Highlight b"
+        expected_highlight_pressed.b(),
+        "disabled+pressed fill b must match Highlight×Pressed b"
     );
     assert_eq!(
         fill_color.a(),
-        expected_highlight.a() * 0.5,
-        "disabled fill alpha must be half of Highlight's alpha"
+        expected_highlight_pressed.a() * 0.5,
+        "disabled fill alpha must be half of Highlight×Pressed alpha"
     );
 
-    // Focused outline survives disabled: 2 px, full-alpha Highlight.
+    // Focused outline survives disabled: 2 px, full-alpha FocusRing × Normal.
+    let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
             (pen.color(), pen.width())
@@ -713,8 +717,8 @@ fn precedence_disabled_pressed_focused() {
             panic!("expected DrawRect")
         };
     assert_eq!(
-        pen_color, expected_highlight,
-        "focus outline color must be full-alpha Highlight even when disabled"
+        pen_color, expected_focus_ring,
+        "focus outline color must be full-alpha FocusRing×Normal even when disabled"
     );
     assert_eq!(
         pen_width, 2.0,
@@ -738,10 +742,11 @@ fn precedence_checked_hovered_keeps_checked_fill() {
             panic!("expected FillRect")
         },
     );
+    // checked wins over hover: group = Hover, role = Highlight.
     assert_eq!(
         fill_color,
-        palette.color(ColorRole::Highlight),
-        "checked wins over hover: fill must be Highlight"
+        palette.color(ColorRole::Highlight, ColorGroup::Hover),
+        "checked wins over hover: fill must be Highlight × Hover"
     );
 }
 
@@ -763,27 +768,28 @@ fn precedence_pressed_checked_both_map_to_highlight() {
     );
     assert_eq!(
         fill_color,
-        palette.color(ColorRole::Highlight),
-        "pressed+checked both map to Highlight role"
+        palette.color(ColorRole::Highlight, ColorGroup::Pressed),
+        "pressed+checked both map to Highlight × Pressed"
     );
 }
 
+/// AC10 — disabled AND focused button paints half-alpha fill plus 2 px focus outline.
+///
+/// `disabled` is an alpha modifier; `focused` is an additive outline modifier.
+/// Both coexist: the idle fill is halved and the focus ring is drawn at full alpha.
 #[test]
 #[allow(
     clippy::float_cmp,
     reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
 )]
-fn precedence_focused_hovered_blend_plus_outline() {
+fn disabled_and_focused_button_paints_half_alpha_fill_plus_outline() {
     let palette = pinned_palette();
     let mut btn = Button::new("x".into());
+    btn.set_enabled(false);
     btn.set_focused(true);
-    btn.set_hovered(true);
     let mut painter = RecordingPainter::default();
     DefaultStyle.draw_widget(&btn, &mut painter, &palette);
 
-    let expected_blend = palette
-        .color(ColorRole::Button)
-        .blend(palette.color(ColorRole::Highlight), 0.25);
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
             brush
@@ -791,11 +797,14 @@ fn precedence_focused_hovered_blend_plus_outline() {
             panic!("expected FillRect")
         },
     );
+    // Idle role (not pressed, not checked) → Button × Normal, then alpha-halved.
     assert_eq!(
-        fill_color, expected_blend,
-        "focused+hovered fill must be 25% blend"
+        fill_color.a(),
+        palette.color(ColorRole::Button, ColorGroup::Normal).a() * 0.5,
+        "disabled fill alpha must be half of Button×Normal alpha"
     );
 
+    // Focus ring: 2 px, full-alpha FocusRing × Normal.
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
             (pen.color(), pen.width())
@@ -804,8 +813,79 @@ fn precedence_focused_hovered_blend_plus_outline() {
         };
     assert_eq!(
         pen_color,
-        palette.color(ColorRole::Highlight),
-        "focused outline color must be Highlight"
+        palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+        "focus outline color must be FocusRing × Normal even when disabled"
+    );
+    assert_eq!(
+        pen_width, 2.0,
+        "focus outline must be 2 px wide even when disabled"
+    );
+}
+
+/// AC10 — pressed AND checked button picks Highlight × Pressed for fill.
+///
+/// Exercises the `pressed || checked` role-selection branch with both bits set.
+#[test]
+fn pressed_and_checked_button_picks_highlight_pressed() {
+    let palette = pinned_palette();
+    let mut btn = Button::new("x".into());
+    btn.set_pressed(true);
+    btn.checked = true;
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color,
+        palette.color(ColorRole::Highlight, ColorGroup::Pressed),
+        "pressed+checked button fill must be Highlight × Pressed"
+    );
+}
+
+#[test]
+#[allow(
+    clippy::float_cmp,
+    reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+)]
+fn precedence_focused_hovered_hover_fill_plus_focus_ring_outline() {
+    let palette = pinned_palette();
+    let mut btn = Button::new("x".into());
+    btn.set_focused(true);
+    btn.set_hovered(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+
+    // Fill: hover state → Button × Hover (derived, no blend heuristic).
+    let expected_hover_fill = palette.color(ColorRole::Button, ColorGroup::Hover);
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color, expected_hover_fill,
+        "focused+hovered fill must equal Button × Hover"
+    );
+
+    // Outline: FocusRing × Normal, 2 px.
+    let (pen_color, pen_width) =
+        if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+            (pen.color(), pen.width())
+        } else {
+            panic!("expected DrawRect")
+        };
+    assert_eq!(
+        pen_color,
+        palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+        "focused outline color must be FocusRing × Normal"
     );
     assert_eq!(pen_width, 2.0, "focused outline must be 2 px wide");
 }
@@ -834,8 +914,8 @@ fn idle_button_three_events_unchanged() {
                 panic!()
             }
         ),
-        palette.color(ColorRole::Button),
-        "idle fill is Button role"
+        palette.color(ColorRole::Button, ColorGroup::Normal),
+        "idle fill is Button × Normal"
     );
     let outline_width = if let PaintEvent::DrawRect { pen, .. } = &painter.events[1] {
         pen.width()
@@ -849,8 +929,16 @@ fn idle_button_three_events_unchanged() {
 
 fn container_palette() -> Palette {
     Palette::default()
-        .with_role(ColorRole::Window, Color::new(0.9, 0.9, 0.9, 1.0))
-        .with_role(ColorRole::WindowText, Color::new(0.1, 0.1, 0.1, 1.0))
+        .with_role(
+            ColorRole::Window,
+            ColorGroup::Normal,
+            Color::new(0.9, 0.9, 0.9, 1.0),
+        )
+        .with_role(
+            ColorRole::WindowText,
+            ColorGroup::Normal,
+            Color::new(0.1, 0.1, 0.1, 1.0),
+        )
 }
 
 #[test]
@@ -868,13 +956,13 @@ fn container_records_fill_and_outline() {
     assert!(
         matches!(&painter.events[0], PaintEvent::FillRect { rect, brush }
             if *rect == c.widget_base().geometry
-                && brush_color(brush) == palette.color(ColorRole::Window)),
+                && brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal)),
         "events[0] must be FillRect(Window) covering widget geometry"
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::DrawRect { rect, pen, brush }
             if *rect == c.widget_base().geometry
-                && pen.color() == palette.color(ColorRole::WindowText)
+                && pen.color() == palette.color(ColorRole::WindowText, ColorGroup::Normal)
                 && pen.width() == 1.0
                 && brush_color(brush) == Color::TRANSPARENT),
         "events[1] must be DrawRect with WindowText 1px outline"
@@ -904,19 +992,27 @@ fn container_routing_ignores_children() {
     );
     assert!(
         matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Window)),
+            if brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal)),
         "FillRect must still use Window role regardless of children"
     );
 }
 
 fn line_edit_palette() -> Palette {
     Palette::default()
-        .with_role(ColorRole::Base, Color::new(0.95, 0.95, 0.95, 1.0))
-        .with_role(ColorRole::Text, Color::BLACK)
+        .with_role(
+            ColorRole::Base,
+            ColorGroup::Normal,
+            Color::new(0.95, 0.95, 0.95, 1.0),
+        )
+        .with_role(ColorRole::Text, ColorGroup::Normal, Color::BLACK)
 }
 
 fn line_edit_read_only_palette() -> Palette {
-    line_edit_palette().with_role(ColorRole::Window, Color::new(0.9, 0.9, 0.9, 1.0))
+    line_edit_palette().with_role(
+        ColorRole::Window,
+        ColorGroup::Normal,
+        Color::new(0.9, 0.9, 0.9, 1.0),
+    )
 }
 
 #[test]
@@ -937,12 +1033,12 @@ fn line_edit_records_fill_outline_and_empty_text() {
     );
     assert!(
         matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base)),
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
         "events[0] must be FillRect(Base)"
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::DrawRect { pen, brush, .. }
-            if pen.color() == palette.color(ColorRole::Text)
+            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Normal)
                 && pen.width() == 1.0
                 && brush_color(brush) == Color::TRANSPARENT),
         "events[1] must be DrawRect with Text 1px outline"
@@ -951,7 +1047,7 @@ fn line_edit_records_fill_outline_and_empty_text() {
         matches!(&painter.events[2], PaintEvent::DrawTextIn { text, alignment, brush, .. }
             if text.is_empty()
                 && *alignment == Alignment::Left
-                && brush_color(brush) == palette.color(ColorRole::Text)),
+                && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
         "events[2] must be DrawTextIn with empty text, Left align, full-alpha Text brush"
     );
 }
@@ -969,7 +1065,7 @@ fn line_edit_records_text_when_non_empty() {
             PaintEvent::DrawTextIn { text, alignment, brush, .. }
                 if text == "abc"
                     && *alignment == Alignment::Left
-                    && brush_color(brush) == palette.color(ColorRole::Text)),
+                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
         "DrawTextIn must carry 'abc', Left, full-alpha Text brush"
     );
 }
@@ -996,7 +1092,7 @@ fn line_edit_placeholder_drawn_when_text_empty() {
             PaintEvent::DrawTextIn { text, alignment, brush, .. }
                 if text == "hint"
                     && *alignment == Alignment::Left
-                    && brush_color(brush) == super::disabled(palette.color(ColorRole::Text))),
+                    && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
         "placeholder DrawTextIn must carry 'hint', Left, half-alpha Text brush"
     );
 }
@@ -1014,7 +1110,7 @@ fn line_edit_non_empty_text_ignores_placeholder() {
         matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, brush, .. }
                 if text == "abc"
-                    && brush_color(brush) == palette.color(ColorRole::Text)),
+                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
         "non-empty text wins over placeholder: DrawTextIn must carry 'abc' with full-alpha Text"
     );
 }
@@ -1034,12 +1130,12 @@ fn line_edit_read_only_inserts_overlay() {
     );
     assert!(
         matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base)),
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
         "events[0] must be FillRect(Base background)"
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
         "events[1] must be FillRect(WindowText @ READ_ONLY_OVERLAY_ALPHA) read-only overlay"
     );
     assert!(
@@ -1069,14 +1165,14 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
     );
     assert!(
         matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
         "events[1] must be the read-only overlay"
     );
     assert!(
         matches!(&painter.events[3], PaintEvent::DrawTextIn { text, alignment, brush, .. }
             if text == "hint"
                 && *alignment == Alignment::Left
-                && brush_color(brush) == super::disabled(palette.color(ColorRole::Text))),
+                && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
         "events[3] must be DrawTextIn('hint', Left, half-alpha Text) — placeholder path"
     );
 }
@@ -1097,7 +1193,7 @@ fn line_edit_read_only_dims_text() {
     );
     assert!(
         matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
         "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
@@ -1115,13 +1211,13 @@ fn line_edit_read_only_empty_text_dims_text() {
     // Overlay brush check
     assert!(
         matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
         "events[1] must be the read-only overlay"
     );
     // Text brush check — empty text, no placeholder → read-only text path
     assert!(
         matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
         "events[3] DrawTextIn brush must be dimmed for read-only even with empty text"
     );
 }

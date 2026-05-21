@@ -149,9 +149,9 @@ mod tests {
         );
     }
 
-    /// AC8 — FocusRing Hover and Pressed must mirror Normal in the dark theme.
+    /// AC8 — `FocusRing` Hover and Pressed must mirror Normal in the dark theme.
     ///
-    /// Enforces spec § *Out of scope*: FocusRing has no meaningful state variant in v1.
+    /// Enforces spec § *Out of scope*: `FocusRing` has no meaningful state variant in v1.
     #[test]
     fn dark_palette_focus_ring_per_group_mirrors_normal() {
         let normal = DARK_PALETTE.color(ColorRole::FocusRing, ColorGroup::Normal);
