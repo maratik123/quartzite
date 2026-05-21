@@ -16,6 +16,7 @@ across the workspace. Every public item in every workspace crate
     - Methods inside `impl Trait for Type { … }` blocks (trait-impl methods —
       see *Trait-impl exemption* below).
 
+<a id="self-sufficiency-no-repo-internal-references"></a>
 ### Self-sufficiency: no repo-internal references
 
 Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. Two families of repo-internal references are forbidden:
