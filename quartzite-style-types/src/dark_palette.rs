@@ -48,6 +48,7 @@ const PRESSED_BLEND_FACTOR: f32 = 0.16;
 ///     Color::MINE_SHAFT.blend(Color::MERCURY, 0.06),
 /// );
 /// ```
+#[inline]
 const fn with_role_dark(palette: Palette, role: ColorRole, color: Color) -> Palette {
     palette
         .with_role(role, ColorGroup::Normal, color)

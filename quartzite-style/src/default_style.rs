@@ -19,6 +19,9 @@ const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
 /// Preserves legibility while visually conveying the non-editable state.
 const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 
+/// Stroke width in pixels for the focus-ring outline drawn around a focused [`Button`].
+const FOCUS_RING_WIDTH: f32 = 2.0;
+
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
 /// `DefaultStyle` is a zero-sized, `Default`-implementing struct that ships
@@ -103,7 +106,7 @@ impl Paint<Button> for DefaultStyle {
 
         // `focused` is an additive outline modifier — always 2 px FocusRing, never alpha-halved.
         let (outline_color, outline_width) = if focused {
-            (palette.color(ColorRole::FocusRing, ColorGroup::Normal), 2.0)
+            (palette.color(ColorRole::FocusRing, ColorGroup::Normal), FOCUS_RING_WIDTH)
         } else {
             (text_color, 1.0)
         };

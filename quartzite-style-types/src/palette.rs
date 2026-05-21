@@ -76,7 +76,6 @@ impl Palette {
     ///     Color::TRANSPARENT,
     /// );
     /// ```
-    #[inline]
     pub const fn new() -> Self {
         // Seed every cell to White as the baseline; overrides follow.
         let mut colors = [[Color::WHITE; GROUP_COUNT]; ROLE_COUNT];
