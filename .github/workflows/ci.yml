@@ -437,7 +437,8 @@ jobs:
         run: |
           sudo apt-get update
           # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys)
-          sudo apt-get install -y libfontconfig1-dev
+          # ripgrep: required by scripts/check-rustdoc-internal-refs.sh
+          sudo apt-get install -y libfontconfig1-dev ripgrep
       - name: Docs
         run: cargo doc --no-deps --workspace --all-features
         env:
