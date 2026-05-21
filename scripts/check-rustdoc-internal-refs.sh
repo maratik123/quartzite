@@ -83,7 +83,7 @@ fi
 # spec's ## Audit patterns section (Pattern A includes the round-3 design-system/,
 # CONTRIBUTING.md, .claude/ tokens AND the round-5 bare \b#[0-9]{1,4}\b token;
 # Pattern B includes the 2026-05-14 contributor-tooling tokens).
-PATTERN_A='^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
+PATTERN_A='^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull|tree|blob|commit|raw)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
 PATTERN_B='^\s*(///|//!).*(\bVerify locally|\bcargo build -p|\bcargo test\b|\bcargo clippy\b|\bcargo fmt\b|RUSTDOCFLAGS|cargo doc --|scripts/[a-z]|\bthis PR\b|\bthis commit\b|\bthis implementation\b)'
 
 # Raw hit list from both patterns, scoped to published-surface paths.

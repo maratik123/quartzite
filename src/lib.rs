@@ -163,8 +163,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! };
 //! ```
 //!
-//! See [`runtime::Timer`] and [`runtime::TimerConfig`]. A complete example
-//! lives at [`examples/timer.rs`](https://github.com/maratik123/quartzite/tree/master/examples/timer.rs).
+//! See [`runtime::Timer`] and [`runtime::TimerConfig`].
 //!
 //! # Ecosystem
 //!

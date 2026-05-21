@@ -34,7 +34,7 @@ Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc su
 
 ```bash
 # Pattern A — internal-artefact citations
-rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
+rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull|tree|blob|commit|raw)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
 
 # Pattern B — contributor-tooling instructions
 rg --type rust -n '^\s*(///|//!).*(\bVerify locally|\bcargo build -p|\bcargo test\b|\bcargo clippy\b|\bcargo fmt\b|RUSTDOCFLAGS|cargo doc --|scripts/[a-z]|\bthis PR\b|\bthis commit\b|\bthis implementation\b)'

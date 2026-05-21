@@ -99,10 +99,10 @@ PR #515 (merged 2026-05-21) had previously cleaned a stale `design-system/colors
 
 Two patterns. Both must be re-run at implementation pickup; both must return empty against the published surface on completion. Both apply to the same file glob: `--type rust` excluding `tests/`, `benches/`, and `#[cfg(test)]` regions (the latter cannot be expressed in `rg` alone — manual context check per match, as the issue body instructs).
 
-**Pattern A — internal-artefact citations** (issue body, broadened in round 3 to add `design-system/` and `CONTRIBUTING.md` after PR #515 missed two `dark_palette.rs` hits; further broadened in round 5 with a bare `\b#[0-9]{1,4}\b` defence-in-depth token after a 2026-05-21 audit surfaced that the existing `[#39]` hit at `quartzite-core/src/snapshot.rs:27` was caught only because companion tokens (`tracked in`, GitHub URL) happened to share the line):
+**Pattern A — internal-artefact citations** (issue body, broadened in round 3 to add `design-system/` and `CONTRIBUTING.md` after PR #515 missed two `dark_palette.rs` hits; further broadened in round 5 with a bare `\b#[0-9]{1,4}\b` defence-in-depth token after a 2026-05-21 audit surfaced that the existing `[#39]` hit at `quartzite-core/src/snapshot.rs:27` was caught only because companion tokens (`tracked in`, GitHub URL) happened to share the line; further broadened post-Step-12 with `tree|blob|commit|raw` GitHub subpath tokens after the user surfaced that `src/lib.rs:167` cited `github.com/.../tree/master/examples/timer.rs` and the narrower `(issues|pull)/` token did not catch it):
 
 ```bash
-rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
+rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull|tree|blob|commit|raw)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
 ```
 
 **Pattern B — contributor-tooling instructions** (added per 2026-05-14 owner comment):
