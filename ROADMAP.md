@@ -159,3 +159,4 @@ core-types ✅
 
 | Plan | Crate(s) | Status | Blocked by |
 |------|----------|--------|------------|
+| [hover-focused-label-textedit-scroll](ai-docs/plans/deferred/2026-05-21-hover-focused-label-textedit-scroll.spec.md) | `quartzite-style` (`DefaultStyle` paint impls for `Label` / `TextEdit` / `ScrollArea`) | 🟡 spec-only | #402 (palette state-groups + `ColorRole::FocusRing`) |
