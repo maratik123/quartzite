@@ -69,7 +69,7 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 >
 > Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/SKILL.md .claude/agents/**.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`. Until `scripts/check-instruction-file-sizes.sh` lands as a pre-commit / CI gate, any `/task` whose work touches an instruction file should run this command before commit.
 
-Search: `rg <pattern> --type rust [-l | -C 3]`
+Search: `ast-index` first (see [`.claude/rules/ast-index.md`](.claude/rules/ast-index.md)); fall back to `rg <pattern> --type rust [-l | -C 3]` when `ast-index` returns empty.
 
 ## API Stability
 
