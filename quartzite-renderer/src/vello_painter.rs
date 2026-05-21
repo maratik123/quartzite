@@ -35,7 +35,7 @@ use crate::font::FontCache;
 /// let mut painter = VelloPainter::new(&mut scene)
 ///     .with_scale(1.0)
 ///     .with_fonts(&mut cache);
-/// // pass to widget.paint(&mut painter)
+/// // Use painter as a &mut dyn Painter argument.
 /// ```
 pub struct VelloPainter<'a> {
     scene: &'a mut Scene,

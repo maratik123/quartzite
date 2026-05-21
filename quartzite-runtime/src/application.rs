@@ -157,7 +157,7 @@ impl Application {
     /// use quartzite_runtime::Application;
     ///
     /// let app = Application::new().unwrap();
-    /// // post a quit event immediately so the loop exits right away in tests
+    /// // Post a quit before exec() so the loop exits immediately.
     /// let app2 = Application::global().unwrap();
     /// app.post_event(Box::new(move || app2.quit()));
     /// app.exec();
