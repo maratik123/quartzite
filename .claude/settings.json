@@ -5,12 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if command -v ast-index >/dev/null 2>&1; then ast-index stats >/dev/null 2>&1 || ast-index rebuild; else echo 'ast-index not found'; fi",
+            "command": "if command -v ast-index >/dev/null 2>&1; then ast-index stats >/dev/null 2>&1 || ast-index rebuild >/dev/null 2>&1 || true; else true; fi",
             "timeout": 120,
             "statusMessage": "Checking ast-index..."
           }
-        ],
-        "matcher": "startup"
+        ]
       },
       {
         "hooks": [
