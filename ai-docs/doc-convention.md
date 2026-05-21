@@ -16,6 +16,31 @@ across the workspace. Every public item in every workspace crate
     - Methods inside `impl Trait for Type { … }` blocks (trait-impl methods —
       see *Trait-impl exemption* below).
 
+### Self-sufficiency: no repo-internal references
+
+Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. Two families of repo-internal references are forbidden:
+
+- **Family A — internal-artefact citations.** GitHub issue / PR numbers (`#NN`, `github.com/.../issues/N`); repo-internal paths (`ai-docs/...`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `design-system/...`, `.claude/...`, `scripts/...`, `.github/...`); internal-artefact references ("plan #N", "spec AC<n>", "the X spec", "tracked in", "deferred to a future plan / spec / follow-up", "per AGENTS.md"). Replace with self-contained behaviour wording, an intra-doc link to an in-workspace item, or a docs.rs / external-spec URL.
+- **Family B — contributor-tooling instructions.** Verify-locally / how-to-verify command incantations directed at a contributor (`cargo build -p X`, `cargo test`, `cargo clippy`, `RUSTDOCFLAGS=...`, `cargo doc --no-deps`); references to repo-internal scripts (`scripts/<name>.sh`) or workflow files (`.github/workflows/...`); coupling-to-the-development-process language ("this PR", "this commit", "this implementation"). Drop the sentence or replace with a worked API-use example.
+
+**Non-conforming (Family A):** `/// Every ColorRole slot is set to the RGBA value that design-system/README.md § Dark theme specifies for that role.`
+**Conforming:** `/// Every ColorRole slot is set to a dark-theme RGBA value converted from sRGB hex to 3-decimal linear floats.`
+
+**Non-conforming (Family B):** `//! Verify locally with cargo build -p quartzite --no-default-features.`
+**Conforming:** *(drop the sentence; surrounding prose already conveys the behavioural content.)*
+
+**Local enforcement.** Two ripgrep audits scoped to `--type rust` excluding `tests/`, `benches/`, `quartzite-test-helpers/src/**`, and `#[cfg(test)]` regions:
+
+```bash
+# Pattern A — internal-artefact citations
+rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
+
+# Pattern B — contributor-tooling instructions
+rg --type rust -n '^\s*(///|//!).*(\bVerify locally|\bcargo build -p|\bcargo test\b|\bcargo clippy\b|\bcargo fmt\b|RUSTDOCFLAGS|cargo doc --|scripts/[a-z]|\bthis PR\b|\bthis commit\b|\bthis implementation\b)'
+```
+
+Both must return empty against the published surface. CI runs them via `scripts/check-rustdoc-internal-refs.sh` (wired into `.github/workflows/ci.yml`'s `docs:` job).
+
 ## References
 
 The convention is the union of the four sources cited in issue #80:
