@@ -116,10 +116,7 @@ where
 ///     }
 /// }
 ///
-/// // In a WidgetRoot::paint implementation:
-/// // fn paint(&self, painter: &mut dyn quartzite_paint_api::Painter) {
-/// //     dispatch_paint(self.root_id, &self.resolver, painter, &self.palette);
-/// // }
+/// // Then call dispatch_paint(root, &resolver, painter, palette).
 /// ```
 pub fn dispatch_paint(
     root: ObjectId,

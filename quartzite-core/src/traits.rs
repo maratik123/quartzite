@@ -39,6 +39,8 @@ pub trait AsObject {
 
     /// Returns a mutable reference to this object's [`ObjectBase`].
     ///
+    /// Note: prefer `ObjectTree::rename` for renames so the name index stays consistent.
+    ///
     /// _Simple._
     ///
     /// # Examples
@@ -46,7 +48,6 @@ pub trait AsObject {
     /// ```no_run
     /// use quartzite_core::AsObject;
     /// # fn example(obj: &mut impl AsObject) {
-    /// // To rename an object, use ObjectTree::rename so the name index stays consistent.
     /// let _base = obj.object_base_mut();
     /// # }
     /// ```

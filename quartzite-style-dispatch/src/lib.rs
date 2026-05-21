@@ -44,7 +44,7 @@
 //! map.insert(label_id, Box::new(label) as Box<dyn AsWidget>);
 //! let resolver = MapResolver(map);
 //!
-//! // 4. Call dispatch_paint from inside WidgetRoot::paint (or a test).
+//! // 4. Call dispatch_paint with the root id, resolver, painter, and palette.
 //! struct NullPainter;
 //! impl quartzite_paint_api::Painter for NullPainter {
 //!     fn draw_rect(&mut self, _r: quartzite_geometry::Rect, _p: &quartzite_paint_api::Pen, _b: &quartzite_paint_api::Brush) {}
