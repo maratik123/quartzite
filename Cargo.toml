@@ -80,6 +80,9 @@ serde = ["quartzite-core/serde", "quartzite-runtime/serde"]
 ## `quartzite-style-types` leaf via `quartzite-style`'s own re-export) for
 ## one-stop styling-vocabulary access.
 style = ["dep:quartzite-style"]
+## Enable widget-tree paint dispatch (`quartzite-style-dispatch` crate).
+## When enabled, `quartzite::style_dispatch` re-exports the `dispatch_paint` free function and the `WidgetResolver` trait. Implies `style` and `widgets`.
+style-dispatch = ["dep:quartzite-style-dispatch", "style", "widgets"]
 
 #! ### Diagnostic features
 #!
@@ -100,6 +103,7 @@ quartzite-paint-api    = { path = "quartzite-paint-api", default-features = fals
 quartzite-paint        = { path = "quartzite-paint" }
 quartzite-style        = { path = "quartzite-style", optional = true }
 quartzite-widgets      = { path = "quartzite-widgets", optional = true }
+quartzite-style-dispatch = { path = "quartzite-style-dispatch", optional = true }
 document-features      = "0.2"
 
 [[example]]
@@ -146,6 +150,6 @@ required-features = ["derive"]
 
 [package.metadata.docs.rs]
 no-default-features = true
-features = ["std", "derive", "widgets", "serde", "style", "verbose-tracing"]
+features = ["std", "derive", "widgets", "serde", "style", "style-dispatch", "verbose-tracing"]
 rustdoc-args = ["--cfg", "docsrs"]
 rustc-args = ["--cfg", "docsrs"]
