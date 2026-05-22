@@ -59,15 +59,15 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 > What `actionlint` catches that `cargo` cannot: runner-version mismatches, deprecated action versions, expression-syntax errors, shell-quoting issues.
 
 > **AXIOM — Every project instruction file Claude loads per invocation MUST stay below 40,000 chars.**
-> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/SKILL.md`, every `.claude/agents/**.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
+> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/*.md`, every `.claude/agents/**.md`, every `.claude/rules/*.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
 >
 > | If `wc -c <file>` reports... | Action |
 > |---|---|
-> | ≥ 40,000 chars | **STOP**. Plan extraction / dedup before the next commit — same model PR #324 used for AGENTS.md (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
-> | 35,000–39,999 chars | Proactive extraction pass; do not let the next `/task` push it over 40k. |
+> | ≥ 40,000 chars | **`major`** — plan extraction / dedup for the next `/ai-audit` pass; same model PR #324 used for AGENTS.md (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
+> | 35,000–39,999 chars | **`minor`** — proactive extraction pass; do not let the next `/task` push it over 40k. |
 > | < 35,000 chars | OK. |
 >
-> Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/SKILL.md .claude/agents/**.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`. Until `scripts/check-instruction-file-sizes.sh` lands as a pre-commit / CI gate, any `/task` whose work touches an instruction file should run this command before commit.
+> Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/*.md .claude/agents/**.md .claude/rules/*.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
 
 Search: `ast-index` first (see [`.claude/rules/ast-index.md`](.claude/rules/ast-index.md)); fall back to `rg <pattern> --type rust [-l | -C 3]` when `ast-index` returns empty.
 
