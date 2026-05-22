@@ -2,9 +2,9 @@
 
 **Status:** Phase 0 merged in PR #166; Phase 1 complete (issues #167, #168–#171, #174 — all closed); v4.4 replay batch validated 6/6; v5 retrofit bakes lessons into prescriptive workflow.
 
-**Workflow version: v5.** Phase 2 / new-file applications follow v5 by default. v4.x retrospective sections ([`## Known biases & limitations`](../instruction-file-validation.md#known-biases--limitations), [`## Historical replay testing`](../instruction-file-validation.md#historical-replay-testing)) remain as the rationale for v5's design — read them when applying the workflow to understand WHY each step is structured the way it is.
+**Workflow version: v5.** Phase 2 / new-file applications follow v5 by default. v4.x retrospective sections ([`## Known biases & limitations`](../../instruction-file-validation.md#known-biases--limitations), [`## Historical replay testing`](../../instruction-file-validation.md#historical-replay-testing)) remain as the rationale for v5's design — read them when applying the workflow to understand WHY each step is structured the way it is.
 **Started:** 2026-05-08
-**Style reference:** [`ai-docs/agent-writing-style.md`](../agent-writing-style.md)
+**Style reference:** [`ai-docs/agent-writing-style.md`](../../agent-writing-style.md)
 **Tracked in:** none (this meta-plan has no single GitHub issue; each Phase 1 file has its own — see table below)
 
 ## Goal
@@ -12,7 +12,7 @@
 Rewrite the workspace's instruction files so that both Opus 4.7 and Sonnet 4.6
 reading the same paragraph land on the same interpretation, and stress-test
 that interpretation with structured probes. **What this empirically validates
-is bounded — see [`## Known biases & limitations`](../instruction-file-validation.md#known-biases--limitations).**
+is bounded — see [`## Known biases & limitations`](../../instruction-file-validation.md#known-biases--limitations).**
 
 Reusable: this plan is intended as a template for future dual-model rewrites
 (e.g., Phase 2 procedural skills, or any new instruction-file family). Cite
@@ -67,7 +67,7 @@ reason to.
 
 ## Phase 0 — Style spec (1 PR, complete in PR #166)
 
-Land [`ai-docs/agent-writing-style.md`](../agent-writing-style.md) as the
+Land [`ai-docs/agent-writing-style.md`](../../agent-writing-style.md) as the
 citable reference for binary-rule writing style. After merge, all subsequent
 PRs cite this doc as the standard.
 
@@ -238,19 +238,19 @@ no plan-level rule forces it.
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Probe taxonomy](../instruction-file-validation.md#probe-taxonomy).
+> Moved to [`ai-docs/instruction-file-validation.md` § Probe taxonomy](../../instruction-file-validation.md#probe-taxonomy).
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Coverage rules](../instruction-file-validation.md#coverage-rules).
+> Moved to [`ai-docs/instruction-file-validation.md` § Coverage rules](../../instruction-file-validation.md#coverage-rules).
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Rubric framework](../instruction-file-validation.md#rubric-framework).
+> Moved to [`ai-docs/instruction-file-validation.md` § Rubric framework](../../instruction-file-validation.md#rubric-framework).
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Workflow gates](../instruction-file-validation.md#workflow-gates).
+> Moved to [`ai-docs/instruction-file-validation.md` § Workflow gates](../../instruction-file-validation.md#workflow-gates).
 
 ---
 
@@ -275,13 +275,13 @@ revisit after Phase 1.
 ## Citation in future PRs
 
 When a future PR applies this methodology, cite the permanent reference doc
-[`ai-docs/instruction-file-validation.md`](../instruction-file-validation.md)
+[`ai-docs/instruction-file-validation.md`](../../instruction-file-validation.md)
 for the methodology itself; this archived plan is cited only as **historical
 decision context** (see § Decision history below for the v1→v5 evolution).
 
 When a PR follows the dual-model workflow, cite the methodology doc in its body:
 
-> Per [`ai-docs/instruction-file-validation.md` § Templates](../instruction-file-validation.md#templates),
+> Per [`ai-docs/instruction-file-validation.md` § Templates](../../instruction-file-validation.md#templates),
 > this PR rewrites `<file>` using probes drafted at Gate 1 (commit `<sha>`)
 > and the section-share-aware coverage rule.
 
@@ -289,20 +289,20 @@ When a future rewrite plan reuses this template (e.g., Phase 2 procedural
 skills, or a different instruction-file family), cite the methodology doc as
 the source template:
 
-> Workflow patterned on [`ai-docs/instruction-file-validation.md`](../instruction-file-validation.md),
+> Workflow patterned on [`ai-docs/instruction-file-validation.md`](../../instruction-file-validation.md),
 > adapted for procedural skills as follows: \<deltas\>.
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Templates](../instruction-file-validation.md#templates).
+> Moved to [`ai-docs/instruction-file-validation.md` § Templates](../../instruction-file-validation.md#templates).
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Known biases & limitations](../instruction-file-validation.md#known-biases--limitations).
+> Moved to [`ai-docs/instruction-file-validation.md` § Known biases & limitations](../../instruction-file-validation.md#known-biases--limitations).
 
 ---
 
-> Moved to [`ai-docs/instruction-file-validation.md` § Historical replay testing](../instruction-file-validation.md#historical-replay-testing).
+> Moved to [`ai-docs/instruction-file-validation.md` § Historical replay testing](../../instruction-file-validation.md#historical-replay-testing).
 
 ---
 
