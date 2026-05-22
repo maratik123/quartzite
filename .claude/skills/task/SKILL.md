@@ -181,7 +181,16 @@ Spawn the `self-review` agent with the spec, design, and progress paths (per `.c
 
 ### Step 11: Review fixes
 
-For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file: **fix** (mark `✅ Fixed`), **design-amend** (trigger the Design Amendment recipe, mark `✅ Fixed (design amended)`), or **object** (`nit`/`minor` autonomously; `major`/`blocker` only after user approval — mark `⚠️ Objected: <reason>`). See `reference.md` § Step 11 — review-fix narrative for the full procedure including the unconditional PR-body re-read and review-thread-resolution recipe.
+> **AXIOM — A self-review finding whose proposed fix diff touches `*.design.md` or `*.spec.md` in `ai-docs/plans/` is a Design/Spec Amendment trigger, NOT an ordinary Step-11 code-fix.**
+> Mechanical detection at the top of every fix round; the trigger fires regardless of how small the doc edit appears. Recurrences: 2026-05-13 (notes not folded back), 2026-05-15 GO-with-notes resolution, 2026-05-21 design doc change committed directly during self-review fix (the latest is the propagation gap — Step 11 self-review fix flow was missing from the prior escalation set; see `ai-docs/learnings.md` 2026-05-21).
+>
+> | If the proposed Step 11 fix diff includes... | Action |
+> |---|---|
+> | A `*.design.md` file under `ai-docs/plans/` (active or `done/`) | **STOP.** Trigger the **Design Amendment recipe** above — surface to user, update the design, re-run Step 7 design-review on the amended design (max 3 rounds), then resume Step 11 from the GO verdict. Mark the originating finding `✅ Fixed (design amended)`. Do NOT commit the design-doc edit as a code-fix commit. |
+> | A `*.spec.md` file under `ai-docs/plans/` (active or `done/`) | **STOP.** Trigger the **Spec Amendment recipe** (`reference.md` § Spec Amendment recipe) — surface to user, update the spec, re-run Step 6 design → Step 7 design-review on the amended (spec, design) pair, then resume Step 11. Mark the originating finding `✅ Fixed (spec amended)`. |
+> | Only `*.rs` / `*.toml` / non-`ai-docs/plans/` `*.md` / other source files | Normal Step 11 code-fix path — apply, re-run gates, push. |
+
+For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of the progress file: **fix** (mark `✅ Fixed`), **design-amend** (trigger the Design Amendment recipe per the table above, mark `✅ Fixed (design amended)`), **spec-amend** (trigger the Spec Amendment recipe per the table above, mark `✅ Fixed (spec amended)`), or **object** (`nit`/`minor` autonomously; `major`/`blocker` only after user approval — mark `⚠️ Objected: <reason>`). See `reference.md` § Step 11 — review-fix narrative for the full procedure including the unconditional PR-body re-read and review-thread-resolution recipe.
 
 After all findings are resolved, run gates (`cargo build`, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`) and:
 

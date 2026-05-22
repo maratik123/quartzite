@@ -138,6 +138,10 @@ For each `⚠️ Objected` item in the progress file:
 - `cargo fmt` output / HTML rendering — run `cargo doc` for warnings (checklist §6), but do not open a browser or visually inspect rendered pages
 - Subjective preferences — only objective violations
 
+## Findings that require Design/Spec Amendment, not a code fix
+
+Any finding whose proposed resolution requires editing `ai-docs/plans/**/*.{spec,design}.md` (active or `done/`) is a **Spec/Design Amendment trigger** — the orchestrator must re-run design-review (and design, for spec amendments) on the amended artefact BEFORE the code change lands. Do NOT classify such findings as ordinary `nit` / `minor` / `major` code-fix candidates. Surface them explicitly with the suggestion text "**Design Amendment trigger** — design doc <path>:<line> contradicts the implementation; recipe at `.claude/skills/task/SKILL.md` Step 11 fail-loud table" (or "Spec Amendment trigger" for `*.spec.md`). The calling skill (`/task` Step 11, `/pr-commented` Step 4 fix round, `/pr-ci-failed`, `/master-ci-failed`) reads this signal and routes through the appropriate Amendment recipe. See `ai-docs/learnings.md` 2026-05-13 (notes not folded back), 2026-05-21 (design doc change committed directly during self-review fix).
+
 ## Findings format (written to progress file)
 
 Append **exactly** this section to the progress file:
