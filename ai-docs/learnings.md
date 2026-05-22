@@ -1351,3 +1351,18 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+
+### 2026-05-22 — process — gh issue payload for `/interview` should be persisted to `<spec>.state.md`, not just inlined in the round-1 prompt
+
+**What happened:** During `/task 531`, the orchestrator fetched `gh issue view 531 --json title,body,state,labels,body` and `gh issue view 531 --json comments` once at Step 1, then forwarded only the `issue_body` field inline (as a `|`-block) inside each spec-writer round's prompt. The other gh fields — `title`, `state`, `labels`, `comments`, plus any future linked-issue / linked-PR pointers — were never written to the durable `<spec>.state.md` artefact. The user observed: the spec-writer subagent logs showed zero `gh *` calls (correct per `.claude/agents/spec-writer.md:31` — the body is passed verbatim in the prompt) but the rest of the gh metadata had no durable home. On auto-compaction / cold re-entry the round-1 prompt is gone; round N+1 must either re-issue `gh issue view` or live without labels / linked-PR context.
+
+**Rule:** When the `/interview` orchestrator resolves an issue ref in Step 1, write the **full** `gh issue view <N> --json title,body,state,labels,comments` payload (plus any linked-issue / linked-PR pointers it discovers) into `<spec>.state.md` under a dedicated `gh_issue:` YAML block — adjacent to `issue_ref:`. Subsequent rounds (and post-compaction re-entries) consume the gh metadata from the state file, not from the round-1 prompt. The round-N prompt to the spec-writer can then carry a short pointer ("gh metadata in state.md `gh_issue:` block") instead of the full body. Durable handoff → cheaper re-entry → keeps title / state / labels / comments / linked-PR pointers available even after the round-1 prompt has been compacted away.
+
+**Why:** The current orchestrator pattern bundles gh data ephemerally into the agent prompt. Compaction or a cold re-spawn drops the prompt; the state file survives. The cost of writing a few extra YAML keys into `.state.md` at Step 2 is trivial; the cost of an orchestrator round forgetting the labels or comment thread is a missed `blocked`-label reconciliation (`/task ⚡ Fourth`) or a missed cross-thread context the spec-writer would otherwise weigh.
+
+**How to apply:** When `/interview` Step 1 detects issue-ref entry mode → also persist `gh_issue:` (a `title:` / `state:` / `labels:` / `body:` block-scalar / `comments:` list / `linked_issues:` / `linked_prs:` keys) into the freshly-created `<spec>.state.md`. Round-N prompts reference the state file rather than re-embed the body.
+
+**Kind:** correction
+
+**Escalated?** no
