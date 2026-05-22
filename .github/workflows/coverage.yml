@@ -69,6 +69,8 @@ jobs:
         # `timeout 600` is generous (the suite typically finishes well
         # under that) but bounds runaway loops.
         run: timeout 600 xvfb-run -a cargo llvm-cov --workspace --lcov --output-path lcov.info --doctests
+        env:
+          RUSTDOCFLAGS: "-D warnings -D missing-docs"
       - name: Upload to Codecov
         uses: codecov/codecov-action@v6
         with:
