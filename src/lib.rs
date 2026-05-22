@@ -404,4 +404,13 @@ mod tests {
     fn prelude_compiles() {
         let _: ObjectId = ObjectBase::new().id();
     }
+
+    #[cfg(all(test, feature = "style-dispatch"))]
+    #[test]
+    fn style_dispatch_re_exports_resolve() {
+        let _: fn(_, _, _, _) = crate::style_dispatch::dispatch_paint;
+        let _: Option<&dyn crate::style_dispatch::WidgetResolver> = None;
+        let _: crate::style::Palette = crate::style::Palette::default();
+        let _ = core::mem::size_of::<crate::widgets::WidgetBase>();
+    }
 }
