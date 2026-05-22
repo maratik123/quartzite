@@ -2814,6 +2814,7 @@ dependencies = [
  "quartzite-paint",
  "quartzite-paint-api",
  "quartzite-renderer",
+ "quartzite-style",
  "quartzite-style-types",
  "rstest",
  "tempfile",
