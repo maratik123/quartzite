@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: project-review
 description: "Whole-codebase review on the current branch (or branch given as argument). Reads all source files and done plans, runs fix loop and self-review loop until APPROVE, then commits."
 disable-model-invocation: true
 argument-hint: "[branch-name]"
@@ -19,7 +19,7 @@ Whole-codebase review workflow. Steps execute **strictly in sequence**.
 >    prescribes). The probe both finds the path AND decides whether to
 >    RESUME, delete, park, or treat the situation as fresh.
 > 2. Once the probe identifies the correct durable-state file
->    (the matched `ai-docs/plans/YYYY-MM-DD-code-review.progress.md`), read it **top-to-bottom in one
+>    (the matched `ai-docs/plans/YYYY-MM-DD-project-review.progress.md`), read it **top-to-bottom in one
 >    pass** — every line, including older sections and the `## Decisions
 >    log` section. Do not skim. The recorded `current_step` is a
 >    cross-check, never an instruction to skip the read.
@@ -61,14 +61,14 @@ git rev-parse HEAD
 
 ### Step 2: Spawn review agent
 
-Create the progress file path: `ai-docs/plans/YYYY-MM-DD-code-review.progress.md` (use today's date). The progress file MUST include the canonical schema header fields per [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md): `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, and a `## Decisions log` h2 section. Initialise `**current_step:** Phase 1 — review-findings` before spawning the agent.
+Create the progress file path: `ai-docs/plans/YYYY-MM-DD-project-review.progress.md` (use today's date). The progress file MUST include the canonical schema header fields per [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md): `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, and a `## Decisions log` h2 section. Initialise `**current_step:** Phase 1 — review-findings` before spawning the agent.
 
 ```
 Agent(subagent_type="general-purpose", prompt="
   Read .claude/agents/review-findings.md and follow it exactly.
   Branch: [branch name]
   base_commit: [base_commit]
-  Write progress file to: ai-docs/plans/YYYY-MM-DD-code-review.progress.md
+  Write progress file to: ai-docs/plans/YYYY-MM-DD-project-review.progress.md
 ")
 ```
 
@@ -114,7 +114,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 ```
 Agent(subagent_type="general-purpose", prompt="
   Read .claude/agents/self-review.md and follow it.
-  Progress: ai-docs/plans/YYYY-MM-DD-code-review.progress.md
+  Progress: ai-docs/plans/YYYY-MM-DD-project-review.progress.md
   base_commit is recorded in the progress file.
   There is no spec or design doc — this is a review-driven task.
   Treat the findings table in ## AC Status as the acceptance criteria.
@@ -125,7 +125,7 @@ Agent(subagent_type="general-purpose", prompt="
 1. **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 4 — self-review APPROVE (Round N)`; append a `## Decisions log` bullet recording the round count and any objections accepted (one line, prefixed `Phase 4:`).
 2. `cargo fmt` (final pass)
 3. Commit all changes (see commit rules below)
-4. Delete `ai-docs/plans/YYYY-MM-DD-code-review.progress.md`
+4. Delete `ai-docs/plans/YYYY-MM-DD-project-review.progress.md`
 5. Done.
 
 **On REJECT:**
