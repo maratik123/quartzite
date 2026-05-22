@@ -19,9 +19,6 @@ absent by definition — anything cat-1 would have been extracted).
   (a) a SKILL > 200 lines is NOT in the index ("oversized + no exemption") or
   (b) a SKILL listed here drifts from its cited `wc -l` ("`<path>`: index
   cites X lines, live is Y lines").
-- `scripts/check-instruction-file-sizes.sh` (deferred, planned in #383) — once
-  landed, the mechanical pre-commit gate will read this same index so the
-  audit-side back-stop and the gate share one source of truth.
 
 **Entry-removal rule.** When a SKILL drops to ≤ 200 lines, **delete** its entry
 from this file in the same commit that triggered the shrink. The index records
@@ -107,8 +104,3 @@ finding.
   triggered the shrink. The index records exemptions; "entry exists" ⇔
   "exemption applies". A SKILL at ≤ 200 lines listed here is itself a
   Checklist K item 1 drift finding.
-- **Deferred `scripts/check-instruction-file-sizes.sh` (#383).** Once the
-  mechanical pre-commit gate lands (tracked in #383 + the existing
-  `ai-docs/deferred/_inbox.md` rows), it will read this same index file so the
-  audit-side back-stop (`/ai-audit` Checklist K item 1) and the gate share one
-  source of truth. Until then, only `/ai-audit` consumes this file.
