@@ -4,9 +4,9 @@
 //! `quartzite-style/tests/support/mod.rs` (snapshot-helper group).
 //! A change to one MUST be mirrored to the other in the same PR.
 //!
-//! Provides [`snapshot_assert`] and [`harness_or_skip`] used by the widget
-//! snapshot suite (`tests/snapshots.rs`) and by the helper-internal unit
-//! tests (`tests/support_internals.rs`).
+//! Provides [`snapshot_assert`], [`harness_or_skip`], and [`snapshot_widget`]
+//! used by the widget snapshot suite (`tests/snapshots.rs`) and by the
+//! helper-internal unit tests (`tests/support_internals.rs`).
 //!
 //! The helper is intentionally **test-only** — `mod`-included from sibling
 //! integration-test files via `mod support;`. It is not exported from the
@@ -53,7 +53,9 @@ use std::path::{Path, PathBuf};
 use image::{Rgb, RgbImage, RgbaImage};
 use nv_flip::{DEFAULT_PIXELS_PER_DEGREE, FlipImageRgb8, FlipPool, flip, magma_lut};
 use quartzite_renderer::{RenderHarness, RenderHarnessBuilder};
-use quartzite_widgets::WidgetExt;
+use quartzite_style::{DefaultStyle, Style};
+use quartzite_style_types::Palette;
+use quartzite_widgets::AsWidget;
 
 /// Workspace-wide perceptual-diff tolerance. The mean FLIP score across
 /// the image must be at or below this value for a snapshot to pass.
@@ -211,12 +213,13 @@ pub fn snapshot_assert(name: &str, image: &RgbaImage) {
     snapshot_assert_at(&default_snapshot_root(), name, image);
 }
 
-/// Renders `widget` into `harness` and asserts against the committed
-/// golden for `name`.
+/// Renders `widget` into `harness` via [`DefaultStyle::draw_widget`] and
+/// asserts against the committed golden for `name`.
 ///
 /// The closure form of [`RenderHarness::render_widget`] is wrapped here
-/// so the widget snapshot tests don't repeat the `|p| widget.paint(p)`
-/// idiom on every line.
+/// so the widget snapshot tests don't repeat the
+/// `DefaultStyle.draw_widget(widget, p, &Palette::default())` call on
+/// every line.
 ///
 /// **Skip-env layering** (v1 call path, see `tests/snapshots.rs`):
 /// each `#[test]` fn calls a `harness_or_skip` helper that checks
@@ -226,8 +229,8 @@ pub fn snapshot_assert(name: &str, image: &RgbaImage) {
 /// env, which protects callers that skip the outer guard (e.g. tests
 /// that opt to construct a harness for unrelated reasons and only later
 /// decide to snapshot).
-pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn WidgetExt) {
-    let image = harness.render_widget(|p| widget.paint(p));
+pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn AsWidget) {
+    let image = harness.render_widget(|p| DefaultStyle.draw_widget(widget, p, &Palette::default()));
     snapshot_assert(name, &image);
 }
 

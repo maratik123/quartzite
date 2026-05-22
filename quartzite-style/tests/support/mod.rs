@@ -10,7 +10,7 @@
 //! `quartzite-style/tests/snapshots` instead of
 //! `quartzite-widgets/tests/snapshots`. The `snapshot_widget` helper is
 //! **not** included here — style tests drive [`DefaultStyle::draw_widget`]
-//! directly from the test closure rather than going through `WidgetExt::paint`.
+//! directly from the test closure.
 //!
 //! Workflow:
 //! - `SKIP_RENDER_SNAPSHOT=1` in env → early return with an `eprintln!`

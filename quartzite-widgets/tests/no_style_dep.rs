@@ -1,11 +1,13 @@
-//! AC13 mechanical contract: `quartzite-widgets` must NOT pull in `quartzite-style`.
+//! AC13 mechanical contract: `quartzite-widgets` must NOT pull in `quartzite-style`
+//! via a production edge.
 //!
 //! The leaf crate `quartzite-style-types` is the cycle-break: widgets re-exports
 //! `Palette` / `ColorRole` from the leaf, so the downstream `quartzite-style`
 //! crate (which itself depends on widgets) never closes a cycle. This test
-//! shells out to `cargo tree -p quartzite-widgets` and asserts that no line in
+//! shells out to `cargo tree -p quartzite-widgets --edges=normal` (production
+//! edges only; dev-dependencies are excluded) and asserts that no line in
 //! the resolved dependency tree names `quartzite-style` (the trailing space in
-//! the grep avoids false-positives against `quartzite-style-types`).
+//! the check avoids false-positives against `quartzite-style-types`).
 
 // Skipped under Miri at the file level: this is a build-graph contract test
 // that subprocesses `cargo tree` via `std::process::Command::output()`. The
@@ -26,6 +28,8 @@ fn quartzite_widgets_does_not_depend_on_quartzite_style() {
             "tree",
             "-p",
             "quartzite-widgets",
+            "--edges",
+            "normal",
             "--prefix",
             "none",
             "--no-dedupe",
