@@ -143,7 +143,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 Tracked future work without dedicated specs (cross-cutting items only — not plans). INDEX.md-only footnote; not surfaced in `ROADMAP.md`.
 
 - **#35** dynamic_properties — runtime read/write of non-schema properties
-- **#39** signals_blocked serde — ✅ implemented in PR #<N>
+- **#39** signals_blocked serde — ✅ implemented in PR #537
 - **#48** BlockingQueued connection type — ready (per-thread loops ✅ implemented)
 - **#52** object mobility / thread migration with stale `thread_id` invalidation
 - **#53** multi-window support — ✅ implemented (see Active plans row)
