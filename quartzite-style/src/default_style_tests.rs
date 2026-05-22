@@ -1243,6 +1243,370 @@ fn line_edit_writable_keeps_full_alpha_text() {
     );
 }
 
+// ── LineEdit state branches (issue #406; folds in #407) ─────────────────
+
+#[test]
+fn hovered_line_edit_uses_derived_hover_fill() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_hovered(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color,
+        palette.color(ColorRole::Base, ColorGroup::Hover),
+        "hovered LineEdit fill must equal palette.color(Base, Hover)"
+    );
+
+    let pen_color = if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+        pen.color()
+    } else {
+        panic!("expected DrawRect")
+    };
+    assert_eq!(
+        pen_color,
+        palette.color(ColorRole::Text, ColorGroup::Hover),
+        "hovered LineEdit outline must equal palette.color(Text, Hover)"
+    );
+
+    let text_color = brush_color(
+        if let PaintEvent::DrawTextIn { brush, .. } = first_draw_text_in(&painter.events) {
+            brush
+        } else {
+            panic!("expected DrawTextIn")
+        },
+    );
+    assert_eq!(
+        text_color,
+        palette.color(ColorRole::Text, ColorGroup::Hover),
+        "hovered LineEdit text must equal palette.color(Text, Hover)"
+    );
+}
+
+#[test]
+fn pressed_line_edit_uses_highlight_pressed() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_pressed(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color,
+        palette.color(ColorRole::Highlight, ColorGroup::Pressed),
+        "pressed LineEdit fill must equal palette.color(Highlight, Pressed)"
+    );
+
+    let pen_color = if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+        pen.color()
+    } else {
+        panic!("expected DrawRect")
+    };
+    assert_eq!(
+        pen_color,
+        palette.color(ColorRole::HighlightedText, ColorGroup::Pressed),
+        "pressed LineEdit outline must equal palette.color(HighlightedText, Pressed)"
+    );
+
+    let text_color = brush_color(
+        if let PaintEvent::DrawTextIn { brush, .. } = first_draw_text_in(&painter.events) {
+            brush
+        } else {
+            panic!("expected DrawTextIn")
+        },
+    );
+    assert_eq!(
+        text_color,
+        palette.color(ColorRole::HighlightedText, ColorGroup::Pressed),
+        "pressed LineEdit text must equal palette.color(HighlightedText, Pressed)"
+    );
+}
+
+#[test]
+#[allow(
+    clippy::float_cmp,
+    reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+)]
+fn focused_line_edit_uses_2px_focus_ring_outline() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_focused(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let (pen_color, pen_width) =
+        if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+            (pen.color(), pen.width())
+        } else {
+            panic!("expected DrawRect")
+        };
+    assert_eq!(
+        pen_color,
+        palette.color(ColorRole::FocusRing, ColorGroup::Normal),
+        "focused LineEdit outline color must be FocusRing × Normal"
+    );
+    assert_eq!(pen_width, 2.0, "focused LineEdit outline must be 2 px wide");
+}
+
+#[test]
+#[allow(
+    clippy::float_cmp,
+    reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+)]
+fn disabled_and_focused_line_edit_paints_outline_under_disabled() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_enabled(false);
+    e.set_focused(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
+    let (pen_color, pen_width) =
+        if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+            (pen.color(), pen.width())
+        } else {
+            panic!("expected DrawRect")
+        };
+    assert_eq!(
+        pen_color, expected_focus_ring,
+        "focus outline color must be full-alpha FocusRing×Normal even when disabled"
+    );
+    assert_eq!(
+        pen_color.a(),
+        expected_focus_ring.a(),
+        "FocusRing pen alpha must NOT be halved under disabled"
+    );
+    assert_eq!(
+        pen_width, 2.0,
+        "focus outline must still be 2 px wide when disabled"
+    );
+}
+
+#[test]
+fn precedence_pressed_hovered_line_edit_picks_pressed_fill() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_pressed(true);
+    e.set_hovered(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color,
+        palette.color(ColorRole::Highlight, ColorGroup::Pressed),
+        "pressed wins over hovered: LineEdit fill must be Highlight × Pressed"
+    );
+}
+
+/// AC2 / #407 fold-in anchor — disabled-idle `LineEdit` halves alpha on
+/// Base fill + Text outline + Text glyph brush. The pre-spec impl wraps
+/// zero colours in `maybe_disabled`, so this test would fail against it.
+#[test]
+#[allow(
+    clippy::float_cmp,
+    reason = "exact representable f32/f64 literal comparison in test — value is a power-of-two or integer-encoded fraction"
+)]
+fn line_edit_disabled_idle_dims_base_text_outline() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.set_enabled(false);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let fill_color = brush_color(
+        if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
+            brush
+        } else {
+            panic!("expected FillRect")
+        },
+    );
+    assert_eq!(
+        fill_color,
+        super::maybe_disabled(palette.color(ColorRole::Base, ColorGroup::Normal), false),
+        "disabled LineEdit fill must equal maybe_disabled(Base × Normal, false) (≈ × 0.5 alpha)"
+    );
+
+    let (pen_color, pen_width) =
+        if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
+            (pen.color(), pen.width())
+        } else {
+            panic!("expected DrawRect")
+        };
+    assert_eq!(
+        pen_color,
+        super::maybe_disabled(palette.color(ColorRole::Text, ColorGroup::Normal), false),
+        "disabled LineEdit outline color must equal maybe_disabled(Text × Normal, false)"
+    );
+    assert_eq!(
+        pen_width, 1.0,
+        "disabled-idle LineEdit outline must still be 1 px wide"
+    );
+
+    let text_color = brush_color(
+        if let PaintEvent::DrawTextIn { brush, .. } = first_draw_text_in(&painter.events) {
+            brush
+        } else {
+            panic!("expected DrawTextIn")
+        },
+    );
+    assert_eq!(
+        text_color,
+        super::maybe_disabled(palette.color(ColorRole::Text, ColorGroup::Normal), false),
+        "disabled LineEdit text glyph brush must equal maybe_disabled(Text × Normal, false)"
+    );
+}
+
+/// AC5 — `read_only` overlays the hover-state base fill.
+///
+/// Captures 4 events: fill(Base × Hover) / fill(`WindowText` overlay at `READ_ONLY_OVERLAY_ALPHA`) /
+/// outline(Text × Hover @ 1 px) / text(Text × Hover @ `READ_ONLY_TEXT_ALPHA`).
+#[test]
+fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.text = "abc".into();
+    e.read_only = true;
+    e.set_hovered(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.len(),
+        4,
+        "expected 4 events for read-only + hovered LineEdit"
+    );
+
+    // events[0] — Base × Hover fill.
+    assert!(
+        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Hover)),
+        "events[0] FillRect brush must be Base × Hover"
+    );
+
+    // events[1] — read-only overlay derived from WindowText × Normal.
+    let expected_overlay = palette
+        .color(ColorRole::WindowText, ColorGroup::Normal)
+        .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
+    assert!(
+        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == expected_overlay),
+        "events[1] FillRect brush must be the WindowText overlay at READ_ONLY_OVERLAY_ALPHA"
+    );
+
+    // events[2] — outline Text × Hover.
+    assert!(
+        matches!(&painter.events[2], PaintEvent::DrawRect { pen, .. }
+            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover)),
+        "events[2] DrawRect pen must be Text × Hover"
+    );
+
+    // events[3] — text Text × Hover, dimmed to READ_ONLY_TEXT_ALPHA.
+    let expected_text = palette
+        .color(ColorRole::Text, ColorGroup::Hover)
+        .with_alpha(super::READ_ONLY_TEXT_ALPHA);
+    assert!(
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == expected_text),
+        "events[3] DrawTextIn brush must be Text × Hover dimmed to READ_ONLY_TEXT_ALPHA"
+    );
+}
+
+/// AC4 — placeholder tracks the state-resolved text colour through hover.
+#[test]
+fn line_edit_hovered_placeholder_tracks_hover_text() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.placeholder = "hint".into();
+    e.set_hovered(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let expected = super::disabled(palette.color(ColorRole::Text, ColorGroup::Hover));
+    assert!(
+        matches!(first_draw_text_in(&painter.events),
+            PaintEvent::DrawTextIn { text, brush, .. }
+                if text == "hint" && brush_color(brush) == expected),
+        "hovered placeholder must be drawn at disabled(Text × Hover)"
+    );
+}
+
+/// AC4 — placeholder tracks the state-resolved text colour through pressed.
+///
+/// `HighlightedText` is intentional here (role-swap on press for legibility
+/// under the inverted Highlight fill — see spec § Key decisions row
+/// "Outline role mapping"), NOT a copy-paste of `Text`.
+#[test]
+fn line_edit_pressed_placeholder_tracks_pressed_text() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.placeholder = "hint".into();
+    e.set_pressed(true);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    // `HighlightedText` (not `Text`) is the role-swap on press per
+    // spec § Key decisions row "Outline role mapping".
+    let expected = super::disabled(palette.color(ColorRole::HighlightedText, ColorGroup::Pressed));
+    assert!(
+        matches!(first_draw_text_in(&painter.events),
+            PaintEvent::DrawTextIn { text, brush, .. }
+                if text == "hint" && brush_color(brush) == expected),
+        "pressed placeholder must be drawn at disabled(HighlightedText × Pressed)"
+    );
+}
+
+/// AC4 / #407 fold-in flows through placeholder — disabled-placeholder
+/// composes `disabled()` × `maybe_disabled(_, false)` ≈ `× 0.25` alpha.
+#[test]
+fn line_edit_disabled_placeholder_composes_double_dim() {
+    let palette = Palette::default();
+    let mut e = LineEdit::new();
+    e.placeholder = "hint".into();
+    e.set_enabled(false);
+    let mut painter = RecordingPainter::default();
+    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+
+    let expected = super::disabled(super::maybe_disabled(
+        palette.color(ColorRole::Text, ColorGroup::Normal),
+        false,
+    ));
+    assert!(
+        matches!(first_draw_text_in(&painter.events),
+            PaintEvent::DrawTextIn { text, brush, .. }
+                if text == "hint" && brush_color(brush) == expected),
+        "disabled placeholder must be drawn at disabled(maybe_disabled(Text × Normal, false)) ≈ × 0.25 alpha"
+    );
+}
+
 // ── Label / TextEdit / ScrollArea state branches (spec 2026-05-21 / issue #403) ─
 
 // Label state tests ─ AC1 + AC4 / AC5
