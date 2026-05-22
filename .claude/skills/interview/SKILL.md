@@ -64,6 +64,19 @@ Transient handoff between rounds. Deleted on terminal exit.
 schema_version: 1
 spec_path: ai-docs/plans/YYYY-MM-DD-name.spec.md
 issue_ref: "#188"
+gh_issue:                          # present only when issue_ref resolves to a real gh issue; omitted for free-text entry mode
+  title: "<verbatim from gh issue view>"
+  state: open                      # open | closed
+  labels: ["enhancement"]          # may be empty
+  body: |
+    <verbatim issue body block-scalar>
+  comments:
+    - author: "..."
+      body: "..."
+  linked_issues: ["#42"]           # extracted from body / comments via #\d+ regex; may be empty
+  linked_prs: ["#100"]             # same; may be empty
+task_description: |                # present only in free-text entry mode (mutually exclusive with gh_issue:)
+  <user's free-text task description>
 round_cap: 4
 questions_per_round_cap: 3
 round: 2
@@ -78,13 +91,15 @@ prior_qa:
 ```
 ```
 
+The `gh_issue:` / `task_description:` blocks are the durable home for the spec-writer's original inputs. The round prompts (Step 3a) carry the same content inline today, but persistence to `.state.md` survives auto-compaction and cold re-spawns where the round prompt has been dropped — the orchestrator can rebuild the prompt from `.state.md` on re-entry without re-issuing `gh issue view`.
+
 ## Workflow
 
 ### Step 1: Detect entry mode
 
 Inspect `$ARGUMENTS`:
 
-- **Issue ref** — matches `^#?\d+$`: load `gh issue view <N> --json title,body,comments` once. Record `tracking_issue = <N>`.
+- **Issue ref** — matches `^#?\d+$`: load `gh issue view <N> --json title,body,state,labels,comments` once. Record `tracking_issue = <N>`. Extract `#\d+` references from the body + comments → `linked_issues` / `linked_prs` (split on whether the referenced number is an issue or a PR; cheap heuristic — running `gh pr view <M>` once per match is acceptable, or treating ambiguous refs as `linked_issues` is acceptable until a downstream consumer needs the precise split).
 - **Free text / empty**: use as task description, or ask "What do you want to plan?" if empty. `tracking_issue` is unset until Step 5.
 
 ### Step 2: Compute paths and seed state
@@ -92,7 +107,7 @@ Inspect `$ARGUMENTS`:
 1. Derive a kebab-case spec slug from the issue title (or task description), ≤ 5 words.
 2. `spec_path = ai-docs/plans/<TODAY>-<slug>.spec.md`
 3. `state_path = <spec_path>.state.md`
-4. Write the initial state file with `round: 1`, `prior_qa: []`, `agent_id: null`.
+4. Write the initial state file with `round: 1`, `prior_qa: []`, `agent_id: null`, **plus the Step 1 payload**: issue-ref mode emits a `gh_issue:` block populated with `title` / `state` / `labels` / `body` / `comments` / `linked_issues` / `linked_prs`; free-text mode emits a `task_description:` block carrying the user's description verbatim. The two blocks are mutually exclusive — exactly one is present per state file.
 
 ### Step 3: Round loop
 

@@ -38,6 +38,8 @@ Every suspicion — **investigate via Read/grep**, don't guess and don't give be
 5. **If not the first round** — check that blockers from previous feedback were resolved
 6. **Issue feedback** — strictly in the format below
 
+> **Design-Amendment re-entry.** When invoked from `/task` Step 11's *Design Amendment recipe* (a self-review finding whose proposed fix touched `*.design.md` under `ai-docs/plans/`), the orchestrator passes the amended design plus the previous-round verdict. Re-run the full checklist against the amended sections; verdict GO closes the Amendment loop and resumes Step 11. See `.claude/skills/task/SKILL.md` Step 11 fail-loud table for the trigger contract.
+
 ## Verdict format
 
 **CRITICAL:** first line of response — verdict in exact format for parsing.

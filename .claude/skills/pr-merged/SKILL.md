@@ -36,3 +36,23 @@ Otherwise, run in order. **Capture `<previous-branch>` from the `Current branch:
    Deferred-task progress files (`ai-docs/plans/deferred/`) are intentionally NOT touched — deferral is its own workflow and a deferred task has no merged PR to drive cleanup. Source: [`scripts/cleanup-progress.sh`](scripts/cleanup-progress.sh).
 
 4. `git branch -d <previous-branch>` — always `-d`, never `-D`. If `-d` refuses because the branch is not fully merged, stop and report the message; do not force-delete.
+
+## Patterns
+
+### 1. Auto-delete the merged local branch without a confirmation pause
+
+*Default to* running `git branch -d <previous-branch>` immediately at step 4 of the workflow without pausing for user confirmation. *Prefer* the silent auto-delete over an `AskUserQuestion` prompt — `git branch -d` is the safe form (refuses to delete unmerged branches), and the user has already invoked this skill specifically to perform cleanup; pausing for a yes/no on a guaranteed-safe operation is friction without protection. If `-d` refuses (branch not fully merged), stop and report; do NOT escalate to `-D` without an explicit user instruction.
+
+Validated by user feedback (`feedback_remove_merged_branches.md` in user-local auto-memory): "Remove merged local branches without asking — `git branch -d` merged branches after `git pull`; do not pause to confirm". Carrot surfaced via `/improve` 2026-05-22 Step 1c.
+
+### 2. The `design-system` branch is a long-lived exemption from auto-delete
+
+*Default to* leaving the `design-system` branch alone — DO NOT include it in the step-4 `git branch -d` call even when `git branch --merged master` reports it as merged. The branch is intentionally long-lived and lives on both local + origin even after individual merges back into master.
+
+When sweeping merged branches in bulk (manual cleanup outside the `<previous-branch>` argument), explicitly exclude `design-system`:
+
+```bash
+git branch --merged master | grep -v -E '^\*|^\s*(master|design-system)\s*$' | xargs -r git branch -d
+```
+
+Validated by user feedback (`project_design_system_branch.md` in user-local auto-memory): "`design-system` branch is long-lived — exempt from auto-delete; keep on both local + origin even after merges". Carrot surfaced via `/improve` 2026-05-22 Step 1c.
