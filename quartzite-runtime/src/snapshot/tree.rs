@@ -72,7 +72,7 @@ fn capture_node(tree: &ObjectTree, id: ObjectId) -> Result<ObjectNode, Serialize
 /// - Each object is constructed via the process-wide [`ObjectFactory`](crate::factory::ObjectFactory).
 /// - `Stored` properties are written back; non-`Stored` properties retain their defaults.
 /// - Signal connections are **dropped** — the restored objects start with empty connection
-///   tables and `signals_blocked = false`.
+///   tables.
 /// - Intra-tree [`WeakObjectRef`] payloads in `Stored` `Value::Object` properties are
 ///   **remapped** to the new IDs via an `OldObjectId → NewObjectId` table built during restore.
 ///   `WeakObjectRef`s embedded inside `Value::Custom` payloads are opaque and are **not**
@@ -441,6 +441,7 @@ mod tests {
                 snapshot: quartzite_core::snapshot::ObjectSnapshot {
                     class_name: "X".into(),
                     properties: Default::default(),
+                    signals_blocked: false,
                 },
                 children: vec![],
                 object_id: 0,
@@ -498,7 +499,7 @@ mod tests {
     }
 
     #[test]
-    fn signals_blocked_resets_on_restore() {
+    fn signals_blocked_persists_across_restore() {
         let _lock = quartzite_test_helpers::test_lock();
         install_factory();
         let mut tree = ObjectTree::new();
@@ -510,12 +511,12 @@ mod tests {
         let snap = capture_tree(&tree, root_id).unwrap();
         let (restored, new_root) = restore_tree(&snap).unwrap();
 
-        // signals_blocked is NOT persisted — must be false after restore (AC6).
+        // signals_blocked IS persisted — must be true after restore (AC4).
         // The fixture's connect_signal always returns None so no connections are
         // ever formed; the ConnectionTable is therefore vacuously empty after restore.
         assert_eq!(
             restored.with(new_root, |o| o.object_base().signals_blocked()),
-            Some(false)
+            Some(true)
         );
     }
 }

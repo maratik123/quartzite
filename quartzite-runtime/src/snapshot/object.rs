@@ -48,6 +48,7 @@ pub fn capture_object(obj: &dyn Object) -> Result<ObjectSnapshot, SerializeError
     Ok(ObjectSnapshot {
         class_name,
         properties,
+        signals_blocked: obj.object_base().signals_blocked(),
     })
 }
 
@@ -59,7 +60,9 @@ pub fn capture_object(obj: &dyn Object) -> Result<ObjectSnapshot, SerializeError
 /// default-constructed values.
 ///
 /// Signal connections are **not** restored — the restored object starts with an
-/// empty connection table and `signals_blocked = false`.
+/// empty connection table. The `signals_blocked` flag is preserved from the
+/// snapshot: when the snapshot carries `true`, `block_signals()` is called on
+/// the restored object.
 ///
 /// # Parameters
 ///
@@ -100,6 +103,9 @@ pub fn restore_object(snap: &ObjectSnapshot) -> Result<Box<dyn Object>, Deserial
                 property: name.clone(),
             });
         }
+    }
+    if snap.signals_blocked {
+        obj.object_base_mut().block_signals();
     }
     Ok(obj)
 }
@@ -305,6 +311,7 @@ mod tests {
         let snap = ObjectSnapshot {
             class_name: "DoesNotExist".into(),
             properties: Default::default(),
+            signals_blocked: false,
         };
         assert!(matches!(
             restore_object(&snap),
@@ -320,6 +327,7 @@ mod tests {
         let snap = ObjectSnapshot {
             class_name: "SnapshotSample".into(),
             properties: [("count".into(), Value::Bool(true))].into_iter().collect(),
+            signals_blocked: false,
         };
         assert!(matches!(
             restore_object(&snap),
@@ -414,5 +422,29 @@ mod tests {
             capture_object(obj.as_ref()),
             Err(SerializeError::PropertyMissing { property, .. }) if property == "broken"
         ));
+    }
+
+    #[test]
+    fn signals_blocked_false_round_trips() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_factory();
+
+        let s = Sample::new_boxed();
+        // signals_blocked is false by default — leave it untouched.
+        assert!(!s.object_base().signals_blocked());
+
+        let snap = capture_object(s.as_ref()).unwrap();
+        let restored = restore_object(&snap).unwrap();
+
+        assert!(!restored.object_base().signals_blocked());
+    }
+
+    #[test]
+    fn v1_payload_without_signals_blocked_deserializes_to_false() {
+        // A v1-shaped payload that predates the signals_blocked field must
+        // deserialize cleanly and yield signals_blocked == false (AC7).
+        let json = r#"{"class_name":"SnapshotSample","properties":{}}"#;
+        let result: ObjectSnapshot = serde_json::from_str(json).unwrap();
+        assert!(!result.signals_blocked);
     }
 }

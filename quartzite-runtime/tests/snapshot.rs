@@ -442,6 +442,7 @@ fn schema_version_rejected() {
             snapshot: ObjectSnapshot {
                 class_name: "SerdeFixture".into(),
                 properties: Default::default(),
+                signals_blocked: false,
             },
             children: vec![],
             object_id: 0,
@@ -457,7 +458,7 @@ fn schema_version_rejected() {
 }
 
 #[test]
-fn signals_blocked_resets_after_restore() {
+fn signals_blocked_persists_across_restore() {
     let _lock = quartzite_test_helpers::test_lock();
     install_factory();
 
@@ -472,7 +473,7 @@ fn signals_blocked_resets_after_restore() {
 
     assert_eq!(
         restored.with(new_root, |o| o.object_base().signals_blocked()),
-        Some(false),
-        "signals_blocked must be reset to false after restore"
+        Some(true),
+        "signals_blocked must be preserved across restore"
     );
 }
