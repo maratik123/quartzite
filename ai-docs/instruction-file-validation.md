@@ -8,8 +8,8 @@ Scope: any forward-living instruction file under `AGENTS.md`, `CLAUDE.md`,
 `ai-docs/{code-style,doc-convention,agent-writing-style,corrections-log}.md`
 that an agent reads at session start or on demand. The methodology was
 extracted verbatim from the original 2026-05-08 rewrite plan; see
-[`plans/done/2026-05-08-instruction-file-rewrite.md`](plans/done/2026-05-08-instruction-file-rewrite.md)
-§ *Decision history* for the v1 → v5 evolution and the Phase 1 retrospective
+[`plans/done/2026-05-08-instruction-file-rewrite.md` § Decision history](plans/done/2026-05-08-instruction-file-rewrite.md#decision-history)
+for the v1 → v5 evolution and the Phase 1 retrospective
 that motivated each v5 addition (Class D calibration probes, open-ended probe
 quota, decoupled probe-author flow, historical replay testing). Treat the
 sections below as the prescriptive reference; treat the archived plan as the
