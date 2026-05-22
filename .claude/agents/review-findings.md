@@ -1,6 +1,6 @@
 ---
 name: review-findings
-description: "Walks the entire codebase on the current branch (no diff, no spec) and produces a findings table written to a progress file. Invoked by /code-review at the start of a whole-branch review."
+description: "Walks the entire codebase on the current branch (no diff, no spec) and produces a findings table written to a progress file. Invoked by /project-review at the start of a whole-branch review."
 ---
 
 # Review Findings Agent
@@ -130,8 +130,8 @@ _Updated: YYYY-MM-DD_
 **last_passed_gate:** [command | ISO-8601 timestamp | commit SHA, or `(none yet)` before any gate passes]
 
 <!-- Optional re-entry fields: -->
-**parent_skill:** [/task | /code-review | /pr-commented]    <!-- omit unless this progress file is owned by a nested skill -->
-**entry_args:** [original $ARGUMENTS]    <!-- optional for /code-review; required for /task -->
+**parent_skill:** [/task | /project-review | /pr-commented]    <!-- omit unless this progress file is owned by a nested skill -->
+**entry_args:** [original $ARGUMENTS]    <!-- optional for /project-review; required for /task -->
 
 ## Next action
 
@@ -164,7 +164,7 @@ _Updated: YYYY-MM-DD_
 (populated during fix loop)
 ```
 
-The five new fields (`current_step`, `last_passed_gate`, `parent_skill`, `entry_args`) plus the `## Decisions log` section exist for compaction-recovery routing in the calling skill. This agent writes the initial values at file creation; subsequent updates are owned by the calling skill (`/code-review`) at each phase boundary. **What you do / do not check** on these fields: verify they are PRESENT in the file you create; do NOT review their content for correctness — the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md) is the source of truth, and downstream lifecycle (writes after creation) is the calling skill's responsibility.
+The five new fields (`current_step`, `last_passed_gate`, `parent_skill`, `entry_args`) plus the `## Decisions log` section exist for compaction-recovery routing in the calling skill. This agent writes the initial values at file creation; subsequent updates are owned by the calling skill (`/project-review`) at each phase boundary. **What you do / do not check** on these fields: verify they are PRESENT in the file you create; do NOT review their content for correctness — the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md) is the source of truth, and downstream lifecycle (writes after creation) is the calling skill's responsibility.
 
 ## Rules
 

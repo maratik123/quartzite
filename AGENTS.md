@@ -199,9 +199,9 @@ When adding or editing dependencies in `Cargo.toml`:
 >
 > | If you edit... | You MUST also check / update... |
 > |---|---|
-> | `.claude/skills/code-review/SKILL.md` | `.claude/agents/review-findings.md` AND `.claude/agents/self-review.md` (Review group) |
-> | `.claude/agents/review-findings.md` | `.claude/skills/code-review/SKILL.md` AND `.claude/agents/self-review.md` (Review group) |
-> | `.claude/agents/self-review.md` | `.claude/skills/code-review/SKILL.md` AND `.claude/agents/review-findings.md` (Review group) |
+> | `.claude/skills/project-review/SKILL.md` | `.claude/agents/review-findings.md` AND `.claude/agents/self-review.md` (Review group) |
+> | `.claude/agents/review-findings.md` | `.claude/skills/project-review/SKILL.md` AND `.claude/agents/self-review.md` (Review group) |
+> | `.claude/agents/self-review.md` | `.claude/skills/project-review/SKILL.md` AND `.claude/agents/review-findings.md` (Review group) |
 > | `.claude/skills/interview/SKILL.md` | `.claude/agents/spec-writer.md` (Interview group — Rule-5 substring blacklist mirrors live in `spec-writer.md`) |
 > | `.claude/agents/spec-writer.md` | `.claude/skills/interview/SKILL.md` (Interview group — orchestrator-side validation may need to update if the contract shifts) |
 > | `.claude/skills/triage/SKILL.md` | `.claude/agents/triage-runner.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
@@ -226,7 +226,7 @@ When adding or editing dependencies in `Cargo.toml`:
 2. Apply the same change (or the corresponding enforcement adjustment) in every match.
 3. AGENTS.md rule exemptions especially must propagate to agent checklists that enforce the rule (`self-review.md`, `review-findings.md`).
 
-Do not refer to a skill as an "agent" or vice versa — the distinction matters for spawning. (`code-review` is a skill; `review-findings` and `self-review` are agents spawned by it.)
+Do not refer to a skill as an "agent" or vice versa — the distinction matters for spawning. (`project-review` is a skill; `review-findings` and `self-review` are agents spawned by it.)
 
 ## Communication
 
