@@ -134,7 +134,8 @@ After running Checklist M, surface findings using the same severity-driven apply
 Detection mechanism. Run this verbatim invocation:
 
 ```bash
-wc -c AGENTS.md CLAUDE.md .claude/skills/*/SKILL.md .claude/agents/*.md \
+wc -c AGENTS.md CLAUDE.md .claude/skills/**/*.md .claude/agents/*.md \
+      .claude/rules/*.md \
       ai-docs/code-style.md ai-docs/doc-convention.md ai-docs/context.md \
       ai-docs/agent-writing-style.md ai-docs/corrections-log.md
 ```
@@ -145,13 +146,13 @@ Apply the three-band severity table to every reported size:
 |---|---|---|
 | `< 35,000` | none | — |
 | `35,000–39,999` | `<path>: <count> chars — early warning (≥ 35,000)` | `minor` |
-| `≥ 40,000` | `<path>: <count> chars — AXIOM violation (≥ 40,000)` | `blocker` |
+| `≥ 40,000` | `<path>: <count> chars — AXIOM violation (≥ 40,000)` | `major` |
 
 The covered file set is enumerated verbatim from `AGENTS.md § Build & Test` (the source-of-truth AXIOM) and restated in `ai-docs/agent-writing-style.md § 8. 40k char-cap on instruction files`. A future change to the covered file set MUST update Sub-check 9 in the same PR per the Propagation Rule.
 
-Note: the shell-glob form (`.claude/skills/*/SKILL.md`, `.claude/agents/*.md`) is acceptable here because Pattern 4's explicit-path requirement applies to the *fail-loud bullet list* in Pattern 8 (so static readers see the covered set), not to the shell command that consumes the set.
+Note: the shell-glob form (`.claude/skills/**/*.md`, `.claude/agents/*.md`, `.claude/rules/*.md`) is acceptable here because Pattern 4's explicit-path requirement applies to the *fail-loud bullet list* in Pattern 8 (so static readers see the covered set), not to the shell command that consumes the set.
 
-This sub-check is the audit-side back-stop. The mechanical pre-commit gate is planned in #383; until that lands, Sub-check 9 fires per-`/ai-audit`-run.
+Sub-check 9 is the sole enforcement surface for the size-cap rule — there is no separate mechanical gate. The audit fires per-`/ai-audit`-run.
 
 ### Sub-check 10 — style-guide audit coverage map
 
