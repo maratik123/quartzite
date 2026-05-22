@@ -1350,7 +1350,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Kind:** correction
 
-**Escalated?** no
+**Escalated?** skill:task, agent:self-review, agent:design-review, AGENTS.md
 
 
 ### 2026-05-22 — process — gh issue payload for `/interview` should be persisted to `<spec>.state.md`, not just inlined in the round-1 prompt
@@ -1365,4 +1365,4 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Kind:** correction
 
-**Escalated?** no
+**Escalated?** skill:interview, agent:spec-writer
