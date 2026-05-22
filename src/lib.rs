@@ -182,6 +182,7 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //!   the event-types primitives in `quartzite-event-types`.
 //! - [`paint`] (`quartzite-paint-api`) — `no_std`-compatible shared paint vocabulary:
 //!   [`Color`](paint::Color), [`Pen`](paint::Pen), [`Brush`](paint::Brush), [`BrushKind`](paint::BrushKind), [`Painter`](paint::Painter) trait, [`PaintError`](paint::PaintError).
+//! - [`style_dispatch`] (`quartzite-style-dispatch`) — widget-tree paint dispatcher. Requires the `style-dispatch` feature.
 //!
 //! Add quartzite to your `Cargo.toml`:
 //!
