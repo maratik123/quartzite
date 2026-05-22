@@ -7,12 +7,111 @@
 
 extern crate alloc;
 
+use quartzite_geometry::Point;
+use quartzite_paint_api::Painter;
+
+/// RAII guard that saves the painter state, translates the origin, and
+/// restores it on drop.
+///
+/// Constructing a `TranslateGuard` calls [`Painter::save`] then
+/// [`Painter::translate`] with the given `origin` in that order.  When the
+/// guard is dropped, [`Painter::restore`] is called exactly once — even if the
+/// guarded body panics.
+///
+/// ## Accessor shape (AC3)
+///
+/// The wrapped painter is exposed via an explicit [`painter`](TranslateGuard::painter)
+/// accessor returning `&mut dyn Painter`, rather than implementing
+/// `DerefMut<Target = dyn Painter>`.  An explicit accessor preserves the
+/// existing call shape (`visit(…, guard.painter(), …)`) with no autoderef
+/// surprise, sets no new `DerefMut` precedent in the workspace, and keeps
+/// object-safety of [`Painter`] explicit and unambiguous.
+///
+/// ## Lifetime relationship (AC8)
+///
+/// The guard borrows `&'a mut dyn Painter` for its entire lifetime `'a`.
+/// [`painter`](TranslateGuard::painter) re-exposes that borrow as
+/// `&mut dyn Painter` whose lifetime is tied to `&mut self`, so the caller
+/// cannot alias the painter while the guard is live.  When the guard is
+/// dropped at the end of `'a`, [`Painter::restore`] unwinds the saved state.
+///
+/// # Examples
+///
+/// ```
+/// use quartzite_geometry::{Alignment, Point, Rect, Size};
+/// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+/// use quartzite_paint_util::TranslateGuard;
+///
+/// struct NullPainter;
+///
+/// impl Painter for NullPainter {
+///     fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
+///     fn fill_rect(&mut self, _rect: Rect, _brush: &Brush) {}
+///     fn draw_line(&mut self, _from: Point, _to: Point, _pen: &Pen) {}
+///     fn clip_rect(&mut self, _rect: Rect) {}
+///     fn translate(&mut self, _delta: Point) {}
+///     fn save(&mut self) {}
+///     fn restore(&mut self) {}
+///     fn draw_text(&mut self, _pos: Point, _text: &str, _font: &Font, _brush: &Brush) {}
+///     fn draw_text_in(
+///         &mut self,
+///         _rect: Rect,
+///         _text: &str,
+///         _font: &Font,
+///         _brush: &Brush,
+///         _alignment: Alignment,
+///     ) {}
+///     fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
+///     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
+/// }
+///
+/// let mut painter = NullPainter;
+/// let origin = Point::new(10, 20);
+/// {
+///     // save() + translate(origin) called here
+///     let mut guard = TranslateGuard::new(&mut painter, origin);
+///     // Obtain the underlying painter to draw in the translated frame
+///     let p: &mut dyn Painter = guard.painter();
+///     // Subsequent draw calls (fill_rect, draw_text, recursive visit, …)
+///     // use the translated coordinate system.
+///     let _ = p;
+///     // restore() called here when guard drops at end of scope
+/// }
+/// ```
+pub struct TranslateGuard<'a> {
+    painter: &'a mut dyn Painter,
+}
+
+impl<'a> TranslateGuard<'a> {
+    /// Creates a new guard: calls `save()` then `translate(origin)` on `painter`.
+    #[inline]
+    pub fn new(painter: &'a mut dyn Painter, origin: Point) -> Self {
+        painter.save();
+        painter.translate(origin);
+        Self { painter }
+    }
+
+    /// Returns a mutable reference to the wrapped painter.
+    #[inline]
+    pub fn painter(&mut self) -> &mut dyn Painter {
+        self.painter
+    }
+}
+
+impl Drop for TranslateGuard<'_> {
+    /// Calls `restore()` on the wrapped painter.
+    #[inline]
+    fn drop(&mut self) {
+        self.painter.restore();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
 
-    use quartzite_geometry::Point;
-    use quartzite_paint_api::Painter;
+    use quartzite_geometry::{Point, Rect, Size};
+    use quartzite_paint_api::{Brush, Color, Painter};
 
     use crate::TranslateGuard;
 
@@ -118,10 +217,15 @@ mod tests {
     fn constructor_records_save_then_translate() {
         let mut p = RecordingPainter::new();
         let origin = Point::new(3, 4);
-        let guard = TranslateGuard::new(&mut p, origin);
-        // Before drop: expect [Save, Translate(origin)]
-        assert_eq!(p.events, [PaintEvent::Save, PaintEvent::Translate(origin)]);
-        drop(guard);
+        {
+            let _guard = TranslateGuard::new(&mut p, origin);
+            // guard borrows p — check after drop
+        }
+        // The first two events (recorded by the constructor) are Save then Translate(origin)
+        assert_eq!(
+            &p.events[..2],
+            [PaintEvent::Save, PaintEvent::Translate(origin)]
+        );
     }
 
     #[test]
@@ -173,11 +277,9 @@ mod tests {
         {
             let mut guard = TranslateGuard::new(&mut p, origin);
             // Access the painter through the guard and call fill_rect
-            use quartzite_geometry::{Rect, Size};
-            use quartzite_paint_api::Brush;
             guard.painter().fill_rect(
                 Rect::new(Point::new(0, 0), Size::new(10, 10)),
-                &Brush::solid(quartzite_paint_api::Color::WHITE),
+                &Brush::solid(Color::WHITE),
             );
         }
         assert_eq!(
