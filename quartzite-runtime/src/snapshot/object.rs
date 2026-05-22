@@ -60,7 +60,9 @@ pub fn capture_object(obj: &dyn Object) -> Result<ObjectSnapshot, SerializeError
 /// default-constructed values.
 ///
 /// Signal connections are **not** restored — the restored object starts with an
-/// empty connection table and `signals_blocked = false`.
+/// empty connection table. The `signals_blocked` flag is preserved from the
+/// snapshot: when the snapshot carries `true`, `block_signals()` is called on
+/// the restored object.
 ///
 /// # Parameters
 ///
@@ -101,6 +103,9 @@ pub fn restore_object(snap: &ObjectSnapshot) -> Result<Box<dyn Object>, Deserial
                 property: name.clone(),
             });
         }
+    }
+    if snap.signals_blocked {
+        obj.object_base_mut().block_signals();
     }
     Ok(obj)
 }
