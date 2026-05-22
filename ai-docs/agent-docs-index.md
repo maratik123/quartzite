@@ -32,6 +32,10 @@ Live-lookup reference for Cargo / GitHub Action versions and Action behaviour ve
 
 Style for binary rules in instruction files (dual-model readability) — read on demand and when editing any of `AGENTS.md`, `.claude/skills/**`, `.claude/agents/**`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`.
 
+### ai-docs/instruction-file-validation.md
+
+Dual-model instruction-file-clarity test methodology: probe taxonomy (Classes A/B/C/D), coverage rules, rubric framework, approval gates, subagent prompt templates, the 8-bias taxonomy, and the historical-replay protocol. Extracted from the 2026-05-08 instruction-file-rewrite plan (now archived at `plans/done/2026-05-08-instruction-file-rewrite.md`) — read on demand when validating an instruction-file rewrite.
+
 ### ai-docs/templates/
 
 Shared reference templates consumed by multiple skills / agents. Multi-consumer reference material lives here (project-level reference, not Claude Code configuration). Single-consumer skill templates remain inside the owning skill directory per the Claude Code [supporting-files pattern](https://code.claude.com/docs/en/skills#add-supporting-files).
