@@ -423,4 +423,28 @@ mod tests {
             Err(SerializeError::PropertyMissing { property, .. }) if property == "broken"
         ));
     }
+
+    #[test]
+    fn signals_blocked_false_round_trips() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_factory();
+
+        let s = Sample::new_boxed();
+        // signals_blocked is false by default — leave it untouched.
+        assert!(!s.object_base().signals_blocked());
+
+        let snap = capture_object(s.as_ref()).unwrap();
+        let restored = restore_object(&snap).unwrap();
+
+        assert!(!restored.object_base().signals_blocked());
+    }
+
+    #[test]
+    fn v1_payload_without_signals_blocked_deserializes_to_false() {
+        // A v1-shaped payload that predates the signals_blocked field must
+        // deserialize cleanly and yield signals_blocked == false (AC7).
+        let json = r#"{"class_name":"SnapshotSample","properties":{}}"#;
+        let result: ObjectSnapshot = serde_json::from_str(json).unwrap();
+        assert!(!result.signals_blocked);
+    }
 }

@@ -499,7 +499,7 @@ mod tests {
     }
 
     #[test]
-    fn signals_blocked_resets_on_restore() {
+    fn signals_blocked_persists_across_restore() {
         let _lock = quartzite_test_helpers::test_lock();
         install_factory();
         let mut tree = ObjectTree::new();
@@ -511,12 +511,12 @@ mod tests {
         let snap = capture_tree(&tree, root_id).unwrap();
         let (restored, new_root) = restore_tree(&snap).unwrap();
 
-        // signals_blocked is NOT persisted — must be false after restore (AC6).
+        // signals_blocked IS persisted — must be true after restore (AC4).
         // The fixture's connect_signal always returns None so no connections are
         // ever formed; the ConnectionTable is therefore vacuously empty after restore.
         assert_eq!(
             restored.with(new_root, |o| o.object_base().signals_blocked()),
-            Some(false)
+            Some(true)
         );
     }
 }
