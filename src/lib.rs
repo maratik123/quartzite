@@ -333,6 +333,17 @@ pub mod widgets {
     pub use quartzite_widgets::*;
 }
 
+/// Re-exports the widget-tree paint dispatcher from [`quartzite_style_dispatch`].
+///
+/// Provides [`dispatch_paint`](style_dispatch::dispatch_paint) and the [`WidgetResolver`](style_dispatch::WidgetResolver) trait.
+///
+/// Requires the `style-dispatch` feature.
+#[cfg(feature = "style-dispatch")]
+#[cfg_attr(docsrs, doc(cfg(feature = "style-dispatch")))]
+pub mod style_dispatch {
+    pub use quartzite_style_dispatch::*;
+}
+
 /// Re-exports a curated set of types needed for typical usage — one glob covers a working import.
 ///
 /// Use `use quartzite::prelude::*;` to get the object model, signal types, derive
