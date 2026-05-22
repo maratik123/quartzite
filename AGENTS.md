@@ -217,7 +217,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
-> | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised; deferred `scripts/check-instruction-file-sizes.sh` (#383) reads the same index once landed) (Size-exemption-index group) |
+> | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised) (Size-exemption-index group) |
 > | `.claude/rules/<file>.md` (e.g. `.claude/rules/ast-index.md`) | Run the same grep — the Procedure below catches lingering references. Rule files are read on-demand by agents, so a cross-rule-file edit MUST sweep every instruction directory for sister references. |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
@@ -250,7 +250,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
 | `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
 | `ai-docs/api-naming.md` | `_unchecked` AXIOM + naming rules. Read on demand. |
-| `ai-docs/skill-size-exemptions.md` | Audited list of `.claude/skills/*/SKILL.md` files exempted from the 200-line soft target; consumed by `/ai-audit` Checklist K item 1 + deferred `scripts/check-instruction-file-sizes.sh`. |
+| `ai-docs/skill-size-exemptions.md` | Audited list of `.claude/skills/*/SKILL.md` files exempted from the 200-line soft target; consumed by `/ai-audit` Checklist K item 1. |
 | `ai-docs/templates/` | Shared templates consumed by multiple skills / agents |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec (template + lifecycle) |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |
