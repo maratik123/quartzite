@@ -59,15 +59,15 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 > What `actionlint` catches that `cargo` cannot: runner-version mismatches, deprecated action versions, expression-syntax errors, shell-quoting issues.
 
 > **AXIOM — Every project instruction file Claude loads per invocation MUST stay below 40,000 chars.**
-> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/SKILL.md`, every `.claude/agents/**.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
+> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/*.md`, every `.claude/agents/**.md`, every `.claude/rules/*.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
 >
 > | If `wc -c <file>` reports... | Action |
 > |---|---|
-> | ≥ 40,000 chars | **STOP**. Plan extraction / dedup before the next commit — same model PR #324 used for AGENTS.md (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
-> | 35,000–39,999 chars | Proactive extraction pass; do not let the next `/task` push it over 40k. |
+> | ≥ 40,000 chars | **`major`** — plan extraction / dedup for the next `/ai-audit` pass; same model PR #324 used for AGENTS.md (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
+> | 35,000–39,999 chars | **`minor`** — proactive extraction pass; do not let the next `/task` push it over 40k. |
 > | < 35,000 chars | OK. |
 >
-> Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/SKILL.md .claude/agents/**.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`. Until `scripts/check-instruction-file-sizes.sh` lands as a pre-commit / CI gate, any `/task` whose work touches an instruction file should run this command before commit.
+> Quick scan: `wc -c AGENTS.md CLAUDE.md .claude/skills/**/*.md .claude/agents/**.md .claude/rules/*.md ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
 
 Search: `ast-index` first (see [`.claude/rules/ast-index.md`](.claude/rules/ast-index.md)); fall back to `rg <pattern> --type rust [-l | -C 3]` when `ast-index` returns empty.
 
@@ -217,7 +217,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
-> | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised; deferred `scripts/check-instruction-file-sizes.sh` (#383) reads the same index once landed) (Size-exemption-index group) |
+> | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised) (Size-exemption-index group) |
 > | `.claude/rules/<file>.md` (e.g. `.claude/rules/ast-index.md`) | Run the same grep — the Procedure below catches lingering references. Rule files are read on-demand by agents, so a cross-rule-file edit MUST sweep every instruction directory for sister references. |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
@@ -250,7 +250,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
 | `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
 | `ai-docs/api-naming.md` | `_unchecked` AXIOM + naming rules. Read on demand. |
-| `ai-docs/skill-size-exemptions.md` | Audited list of `.claude/skills/*/SKILL.md` files exempted from the 200-line soft target; consumed by `/ai-audit` Checklist K item 1 + deferred `scripts/check-instruction-file-sizes.sh`. |
+| `ai-docs/skill-size-exemptions.md` | Audited list of `.claude/skills/*/SKILL.md` files exempted from the 200-line soft target; consumed by `/ai-audit` Checklist K item 1. |
 | `ai-docs/templates/` | Shared templates consumed by multiple skills / agents |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec (template + lifecycle) |
 | `ai-docs/plans/INDEX.md` | Plan index — statuses and dependency order |

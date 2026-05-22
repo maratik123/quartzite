@@ -148,24 +148,23 @@ When adding the callout to a new code-side skill, pick the variant matching the 
 Source-of-truth AXIOM lives in `AGENTS.md § Build & Test`. Pattern 8 is the
 style-guide-side restatement so the rule is discoverable from the writing
 conventions reference and audit-able via `/ai-audit` Phase 2 Checklist M.
-Mechanical pre-commit gate planned in #383; this audit-side back-stop fires
-in the meantime.
 
 > **AXIOM — Every covered instruction file MUST stay below 40,000 chars at every commit boundary.**
 > The harness applies a soft cap on per-invocation instruction-file load; crossing 40,000 chars imposes measurable per-invocation cost on every agent spawn and skill invocation. The 35,000-char early-warning band gives one full `/task` cycle of headroom before the harness warning starts firing.
 >
 > | If `wc -c <file>` reports... | Action |
 > |---|---|
-> | `≥ 40,000` chars | **STOP**. Plan extraction / dedup before the next commit. Same model as PR #324 (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
-> | `35,000–39,999` chars | Proactive extraction pass; do not let the next `/task` push it over 40,000. |
+> | `≥ 40,000` chars | **`major`** — plan extraction / dedup for the next `/ai-audit` pass; same model as PR #324 (extract verbose subsections into `ai-docs/<topic>.md` reference pages with anchored links from the source file). |
+> | `35,000–39,999` chars | **`minor`** — proactive extraction pass; do not let the next `/task` push it over 40,000. |
 > | `< 35,000` chars | OK. |
 
 **Covered file set** (enumerate verbatim; no glob-as-the-entire-list per Pattern 4):
 
 - `AGENTS.md`
 - `CLAUDE.md`
-- `.claude/skills/**/SKILL.md` (every file under this directory)
+- `.claude/skills/**/*.md` (every markdown file under this directory — `SKILL.md` + `reference.md` siblings)
 - `.claude/agents/**.md` (every file under this directory)
+- `.claude/rules/*.md` (flat — `.claude/rules/` has no subdirectories today)
 - `ai-docs/code-style.md`
 - `ai-docs/doc-convention.md`
 - `ai-docs/context.md`
