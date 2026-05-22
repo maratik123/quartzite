@@ -785,7 +785,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** Always run `cargo clippy --workspace -- -D warnings` (not just `cargo clippy -- -D warnings`) to catch lints in leaf crates. The default-dep-tree clippy run is a subset, not a full check.
 
-**Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:code-review
+**Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:project-review
 
 ### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
 

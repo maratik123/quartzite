@@ -16,10 +16,10 @@ Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 > summary/compaction block appears at the top of context, or workflow
 > context feels thin), STOP before any tool call and:
 >
-> 1. **Locate the durable-state file** — list `ls ai-docs/bugfix/trace-*.md 2>/dev/null`. If
->    exactly one in-flight artefact exists, that's the durable state. If
->    none exists, this is a fresh invocation. (Multiple matches: surface
->    to the user before continuing.)
+> 1. **Locate the durable-state file** — list `ls ai-docs/bugfix/trace-*.md 2>/dev/null`.
+>    If exactly one in-flight artefact exists, that's the durable state.
+>    If none exists, this is a fresh invocation. (Multiple matches:
+>    surface to the user before continuing.)
 > 2. Read it **top-to-bottom in one pass** — every line, including older
 >    sections. Do not skim. The recorded `current_step` is a
 >    cross-check, never an instruction to skip the read.
