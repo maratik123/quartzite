@@ -9,13 +9,12 @@ use quartzite_paint_api::Painter;
 /// Implement this trait and pass your implementation to
 /// [`WindowRegistry::try_create_window`] to receive events for that window.
 ///
-/// The `paint` receiver is `&self` to match `WidgetExt::paint` in
-/// `quartzite-widgets`. State mutation belongs to the lifecycle hooks
-/// (`on_resize`, `on_mouse_press`, etc.); `paint` is a read-only projection
-/// of the widget's current state onto the [`Painter`]. If a widget needs
-/// interior mutability during paint (e.g. caching tessellated paths), use
-/// `Cell` / `RefCell` inside the implementation — do not escalate the trait
-/// receiver to `&mut self`.
+/// The `paint` receiver is `&self` because painting is a read-only projection
+/// of the widget's current state onto the [`Painter`]. State mutation belongs
+/// to the lifecycle hooks (`on_resize`, `on_mouse_press`, etc.). If a widget
+/// needs interior mutability during paint (e.g. caching tessellated paths),
+/// use `Cell` / `RefCell` inside the implementation — do not escalate the
+/// trait receiver to `&mut self`.
 ///
 /// [`WindowRegistry::try_create_window`]: crate::window_registry::WindowRegistry::try_create_window
 ///

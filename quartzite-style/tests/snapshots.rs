@@ -4,10 +4,9 @@
 //! [`RenderHarness`] closure and compares the rendered image against a
 //! committed golden PNG via the local [`support::snapshot_assert`].
 //!
-//! Tests deliberately do **not** call `WidgetExt::paint` — the harness
-//! closure is the bridge between `&mut dyn Painter` and the harness's
-//! owned painter, exercising `DefaultStyle`'s routing and drawing code
-//! rather than the widget's own (no-op) paint method (AC13).
+//! Tests drive [`DefaultStyle::draw_widget`] through the harness closure —
+//! the bridge between `&mut dyn Painter` and the harness's owned painter —
+//! exercising `DefaultStyle`'s routing and drawing code directly (AC13).
 
 // Skipped under Miri at the file level: GPU init. The whole-file shape is
 // required (not per-test `cfg_attr`) because every test routes through

@@ -297,15 +297,14 @@ impl RenderHarness {
     /// Drives `paint` against an internal [`VelloPainter`], renders the
     /// resulting scene to the offscreen texture, and reads the pixels back.
     ///
-    /// The harness takes a closure rather than a
-    /// [`WidgetExt`](https://docs.rs/quartzite-widgets/latest/quartzite_widgets/trait.WidgetExt.html)
-    /// bound, because `WidgetExt` lives in `quartzite-widgets` and that
-    /// crate is the renderer's *dev-dependency* — taking the bound directly
-    /// would close a regular dependency cycle. Callers wrap the widget at
-    /// the call site:
+    /// The harness takes a closure rather than a widget bound, because
+    /// widget types live in `quartzite-widgets` and that crate is the
+    /// renderer's *dev-dependency* — taking the bound directly would close
+    /// a regular dependency cycle. Callers wrap the widget at the call site
+    /// (e.g. via `Style::draw_widget`):
     ///
     /// ```ignore
-    /// harness.render_widget(|p| label.paint(p));
+    /// harness.render_widget(|p| style.draw_widget(&label, p, &palette));
     /// ```
     ///
     /// The widget-specific shorthand is provided by the test-side helper.

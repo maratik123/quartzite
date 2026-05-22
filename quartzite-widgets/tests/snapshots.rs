@@ -6,8 +6,8 @@
 //! or asserts pixel-level properties directly.
 //!
 //! v1 goldens for the layout/widget tests encode the wgpu clear-colour
-//! baseline — widget `WidgetExt::paint` overrides are still no-ops.
-//! `VelloPainter` draw methods are now real and exercised via the
+//! baseline — widgets render via `Style::draw_widget`, which is a no-op for
+//! the default style at v1.  `VelloPainter` draw methods are now real and exercised via the
 //! painter-method tests in this file (AC1–AC9, AC11–AC12; issue #281
 //! gradient AC7–AC10).
 
