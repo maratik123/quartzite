@@ -445,6 +445,8 @@ jobs:
           RUSTDOCFLAGS: "-D warnings -D missing-docs"
       - name: Check rustdoc has no repo-internal references
         run: bash scripts/check-rustdoc-internal-refs.sh
+      - name: Check RUSTFLAGS uniformity
+        run: bash scripts/check-rustflags-uniformity.sh
 
   docs-pass:
     name: Docs
