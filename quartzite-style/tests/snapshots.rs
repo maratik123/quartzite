@@ -24,7 +24,7 @@ use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::Painter;
 use quartzite_style::{DefaultStyle, Style};
 use quartzite_style_types::{DARK_PALETTE, Palette};
-use quartzite_widgets::{AsWidget, Button, Label, ScrollArea, TextEdit, WidgetExt};
+use quartzite_widgets::{AsWidget, Button, Label, LineEdit, ScrollArea, TextEdit, WidgetExt};
 
 use support::{harness_or_skip, snapshot_assert};
 
@@ -454,6 +454,138 @@ fn dark_scroll_area_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     render_dark("dark_scroll_area_focused", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// LineEdit single-flag goldens (issue #406; folds in #407)
+// ---------------------------------------------------------------------------
+//
+// `line_edit_disabled.png` is the visible #407 fold-in anchor — half-alpha
+// Base fill + half-alpha Text outline + half-alpha Text glyphs, distinct
+// from `line_edit_idle.png` (full-alpha equivalent).
+
+#[test]
+fn line_edit_idle_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_idle_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_idle", &image);
+}
+
+#[test]
+fn line_edit_hovered_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_hovered_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_hovered(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_hovered", &image);
+}
+
+#[test]
+fn line_edit_pressed_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_pressed_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_pressed(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_pressed", &image);
+}
+
+#[test]
+fn line_edit_focused_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_focused_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_focused", &image);
+}
+
+#[test]
+fn line_edit_disabled_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_disabled_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_enabled(false);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_disabled", &image);
+}
+
+#[test]
+fn line_edit_read_only_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_read_only_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.read_only = true;
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_read_only", &image);
+}
+
+#[test]
+fn line_edit_placeholder_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_placeholder_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.placeholder = "hint".into();
+    let image = harness.render_widget(|painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+    });
+    snapshot_assert("line_edit_placeholder", &image);
+}
+
+#[test]
+fn dark_line_edit_idle_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    render_dark("dark_line_edit_idle", |painter| {
+        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+#[test]
+fn dark_line_edit_focused_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_focused(true);
+    render_dark("dark_line_edit_focused", |painter| {
         DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
