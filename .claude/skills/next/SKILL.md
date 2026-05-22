@@ -69,6 +69,7 @@ Selection rules:
 - A time-sensitive GitHub issue (bug, regression, security) outranks a plan of comparable readiness.
 - Skip items marked 🔴 blocked or 🟡 spec-only without a design.
 - Skip GitHub issues carrying the `blocked` label (see *Blocked-issues label* below) — body text like "Blocked by: #N" is not visible here, so the label is the canonical signal.
+- Skip GitHub issues carrying the `ui-design` label (see *UI-designer label* below) — work cannot proceed in this harness until the human designer hands back assets.
 
 ### Small mode (`/next small`)
 
@@ -79,6 +80,7 @@ Selection rules:
 - Prefer items that unblock or de-risk a larger plan further down the dependency chain — consult the "Dependency order" section of `INDEX.md` and pick prerequisites of bigger blocked plans.
 - Skip items marked 🔴 blocked or full-milestone plans (multi-crate, design-heavy).
 - Skip GitHub issues carrying the `blocked` label (see *Blocked-issues label* below).
+- Skip GitHub issues carrying the `ui-design` label (see *UI-designer label* below).
 - 🟡 spec-only items qualify only if writing the design itself is the small task.
 - If an issue bundles one small sub-item with larger ones, recommend it scope-narrowed to the small sub-item and call out that the issue should be split.
 
@@ -89,6 +91,14 @@ This skill fetches issues via `gh issue list --json number,title,labels,updatedA
 - After opening or triaging a new issue that depends on another open issue, run `gh issue edit <N> --add-label blocked` (creating the label first via `gh label create blocked` if the repo doesn't have it yet).
 - When the blocking dependency is resolved, run `gh issue edit <N> --remove-label blocked`.
 - `/next` filters out any issue whose `labels` array contains `blocked` in both default and small modes.
+
+### UI-designer label
+
+Issues that need an out-of-harness designer pass (Figma asset, visual spec, `design-system/` work) carry the `ui-design` label (color `#E91E63`, description "Design-system designer pass / visual spec work required"). Like `blocked`, the label is the canonical signal because issue bodies are not visible to this skill. The convention is:
+
+- When an issue is identified as needing a human designer pass, run `gh issue edit <N> --add-label ui-design` (the label already exists in this repo; created 2026-05-23).
+- When the design-system assets land and the issue can proceed in-harness, run `gh issue edit <N> --remove-label ui-design`.
+- `/next` filters out any issue whose `labels` array contains `ui-design` from Recommendation and Runner-ups in both default and small modes, and surfaces them in the *Candidates for UI-designer handoff (informational)* section instead.
 
 ### Deferred-file rows (8 thematic + widget-backlog)
 
@@ -106,3 +116,4 @@ Apply this classification to every row in the deferred files surfaced above (`ci
 - **Recommendation:** title + link or file path + a 2–4 sentence rationale (scope, readiness, why now; in small mode, also why it counts as small and which larger work it sets up).
 - **Runner-ups (2–3):** one line each, with the reason each ranked lower.
 - **Candidates needing `/triage` (informational):** any untracked rows from the deferred files. Title each row with the row's `Item`-cell text and cite the source file. **Items in this section are never the top-line recommendation or a runner-up** — they are listed for situational awareness only. End the section with a one-sentence reminder that `/triage` ships in Issue B (#204) and until then the user can act on a candidate manually via `/interview`.
+- **Candidates for UI-designer handoff (informational):** any open GitHub issue whose `labels` array contains `ui-design`. Format each row as `#N — <title> (<link>): <one-line rationale>` — default rationale "needs design-system visual spec / designer pass" unless the issue body's first line gives a more specific cue. **Items in this section are never the top-line recommendation or a runner-up** — they are listed for situational awareness only. End the section with a one-sentence reminder that items here need an out-of-harness designer pass (Figma / `design-system/` folder) and unblock once the designer's PR lands and the `ui-design` label is removed. **Section always renders** — when zero issues carry the label, the body is the single line `No issues currently labelled \`ui-design\`.` (schema stability for `/next` consumers).
