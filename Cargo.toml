@@ -7,6 +7,7 @@ members = [
     "quartzite-events",
     "quartzite-event-types",
     "quartzite-paint-api",
+    "quartzite-paint-util",
     "quartzite-paint",
     "quartzite-renderer",
     "quartzite-style-types",

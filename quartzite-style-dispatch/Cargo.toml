@@ -9,11 +9,12 @@ repository.workspace = true
 description = "Widget-tree paint dispatch bridging quartzite-widgets and quartzite-style"
 
 [dependencies]
-quartzite-core      = { path = "../quartzite-core" }
-quartzite-paint-api = { path = "../quartzite-paint-api", default-features = false }
-quartzite-style     = { path = "../quartzite-style" }
-quartzite-widgets   = { path = "../quartzite-widgets" }
-tracing             = { version = "0.1", default-features = false }
+quartzite-core       = { path = "../quartzite-core" }
+quartzite-paint-api  = { path = "../quartzite-paint-api", default-features = false }
+quartzite-paint-util = { path = "../quartzite-paint-util", default-features = false }
+quartzite-style      = { path = "../quartzite-style" }
+quartzite-widgets    = { path = "../quartzite-widgets" }
+tracing              = { version = "0.1", default-features = false }
 
 [dev-dependencies]
 quartzite-geometry     = { path = "../quartzite-geometry", default-features = false }

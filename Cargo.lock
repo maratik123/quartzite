@@ -2705,6 +2705,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-paint-util"
+version = "0.1.0"
+dependencies = [
+ "quartzite-geometry",
+ "quartzite-paint-api",
+]
+
+[[package]]
 name = "quartzite-renderer"
 version = "0.1.0"
 dependencies = [
@@ -2775,6 +2783,7 @@ dependencies = [
  "quartzite-core",
  "quartzite-geometry",
  "quartzite-paint-api",
+ "quartzite-paint-util",
  "quartzite-style",
  "quartzite-test-helpers",
  "quartzite-widgets",

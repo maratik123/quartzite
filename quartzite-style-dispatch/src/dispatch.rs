@@ -2,6 +2,7 @@
 
 use quartzite_core::ObjectId;
 use quartzite_paint_api::Painter;
+use quartzite_paint_util::TranslateGuard;
 use quartzite_style::Palette;
 use quartzite_style::Style;
 use quartzite_style::StyleRegistry;
@@ -157,10 +158,8 @@ fn visit(
             continue;
         }
         let origin = child.widget_base().geometry.origin();
-        painter.save();
-        painter.translate(origin);
-        visit(child_id, resolver, painter, palette, style);
-        painter.restore();
+        let mut guard = TranslateGuard::new(painter, origin);
+        visit(child_id, resolver, guard.painter(), palette, style);
     }
 }
 

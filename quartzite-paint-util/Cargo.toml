@@ -1,0 +1,34 @@
+[package]
+name = "quartzite-paint-util"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "RAII painting utilities for quartzite (no_std)"
+
+[features]
+default = ["std"]
+## Enable standard-library support.
+std = []
+## Enable `libm`-based float support for `no_std + alloc` environments.
+## Required when `std` is disabled on `quartzite-paint-api`.
+libm = ["quartzite-paint-api/libm"]
+
+[dependencies]
+quartzite-paint-api = { path = "../quartzite-paint-api", default-features = false }
+quartzite-geometry  = { path = "../quartzite-geometry",  default-features = false }
+
+[dev-dependencies]
+quartzite-geometry = { path = "../quartzite-geometry" }
+quartzite-paint-api = { path = "../quartzite-paint-api" }
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+no-default-features = true
+features = ["std", "libm"]
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]
