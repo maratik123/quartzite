@@ -12,12 +12,14 @@
 //!    payloads are remapped to the fresh [`ObjectId`](quartzite_core::ObjectId)s
 //!    minted during restore.
 //!
+//! The `signals_blocked` flag **is** preserved — objects that had signals
+//! blocked before capture will have signals blocked after restore.
+//!
 //! ## What is NOT preserved
 //!
 //! | State | After restore |
 //! |---|---|
 //! | Signal connections | Dropped (re-establish after restore) |
-//! | `signals_blocked` flag | Reset to `false` |
 //! | Non-`Stored` properties | Keep their default-constructed values |
 //! | `Value::Custom` cross-refs | Opaque — not remapped |
 

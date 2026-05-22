@@ -19,12 +19,15 @@
 //!    relationships (produced by `quartzite_runtime::snapshot::capture_tree`,
 //!    restored by `quartzite_runtime::snapshot::restore_tree`).
 //!
+//! The `signals_blocked` flag on each object **is** serialized and preserved
+//! across restore — an object whose signals were blocked before capture will
+//! have signals blocked after restore.
+//!
 //! ## Transient state — what is NOT serialized
 //!
 //! | State | Behaviour on restore |
 //! |---|---|
 //! | `ConnectionTable` entries (signal connections) | **Dropped.** Connections hold runtime closures with no portable representation. Caller re-establishes them after restore. |
-//! | `signals_blocked` flag | **Reset to `false`.** Callers that need to preserve this state must re-set it after restore. |
 //! | Non-`Stored` properties | **Skipped.** Properties without [`PropertyFlag::Stored`](crate::meta::PropertyFlag::Stored) are not included in the snapshot. |
 //!
 //! ## `Value::Custom` round-trip

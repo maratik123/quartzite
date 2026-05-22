@@ -72,7 +72,7 @@ fn capture_node(tree: &ObjectTree, id: ObjectId) -> Result<ObjectNode, Serialize
 /// - Each object is constructed via the process-wide [`ObjectFactory`](crate::factory::ObjectFactory).
 /// - `Stored` properties are written back; non-`Stored` properties retain their defaults.
 /// - Signal connections are **dropped** — the restored objects start with empty connection
-///   tables and `signals_blocked = false`.
+///   tables.
 /// - Intra-tree [`WeakObjectRef`] payloads in `Stored` `Value::Object` properties are
 ///   **remapped** to the new IDs via an `OldObjectId → NewObjectId` table built during restore.
 ///   `WeakObjectRef`s embedded inside `Value::Custom` payloads are opaque and are **not**
