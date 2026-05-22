@@ -181,6 +181,7 @@ mod tests {
                 snapshot: ObjectSnapshot {
                     class_name: "R".into(),
                     properties: Default::default(),
+                    signals_blocked: false,
                 },
                 children: vec![],
                 object_id: 0,
@@ -197,6 +198,7 @@ mod tests {
                 snapshot: ObjectSnapshot {
                     class_name: "R".into(),
                     properties: Default::default(),
+                    signals_blocked: false,
                 },
                 children: vec![],
                 object_id: 0,

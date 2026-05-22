@@ -441,6 +441,7 @@ mod tests {
                 snapshot: quartzite_core::snapshot::ObjectSnapshot {
                     class_name: "X".into(),
                     properties: Default::default(),
+                    signals_blocked: false,
                 },
                 children: vec![],
                 object_id: 0,

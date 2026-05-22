@@ -442,6 +442,7 @@ fn schema_version_rejected() {
             snapshot: ObjectSnapshot {
                 class_name: "SerdeFixture".into(),
                 properties: Default::default(),
+                signals_blocked: false,
             },
             children: vec![],
             object_id: 0,

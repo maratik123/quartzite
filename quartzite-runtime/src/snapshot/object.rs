@@ -48,6 +48,7 @@ pub fn capture_object(obj: &dyn Object) -> Result<ObjectSnapshot, SerializeError
     Ok(ObjectSnapshot {
         class_name,
         properties,
+        signals_blocked: obj.object_base().signals_blocked(),
     })
 }
 
@@ -305,6 +306,7 @@ mod tests {
         let snap = ObjectSnapshot {
             class_name: "DoesNotExist".into(),
             properties: Default::default(),
+            signals_blocked: false,
         };
         assert!(matches!(
             restore_object(&snap),
@@ -320,6 +322,7 @@ mod tests {
         let snap = ObjectSnapshot {
             class_name: "SnapshotSample".into(),
             properties: [("count".into(), Value::Bool(true))].into_iter().collect(),
+            signals_blocked: false,
         };
         assert!(matches!(
             restore_object(&snap),

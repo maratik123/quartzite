@@ -14,6 +14,7 @@ use super::object::ObjectSnapshot;
 ///     snapshot: ObjectSnapshot {
 ///         class_name: "Root".into(),
 ///         properties: Default::default(),
+///         signals_blocked: false,
 ///     },
 ///     children: vec![],
 ///     object_id: 0,
@@ -49,7 +50,7 @@ pub struct ObjectNode {
 /// let snap = TreeSnapshot {
 ///     schema_version: CURRENT_SCHEMA_VERSION,
 ///     root: ObjectNode {
-///         snapshot: ObjectSnapshot { class_name: "Root".into(), properties: Default::default() },
+///         snapshot: ObjectSnapshot { class_name: "Root".into(), properties: Default::default(), signals_blocked: false },
 ///         children: vec![],
 ///         object_id: 0,
 ///     },
@@ -81,7 +82,7 @@ impl TreeSnapshot {
     /// let snap = TreeSnapshot {
     ///     schema_version: CURRENT_SCHEMA_VERSION,
     ///     root: ObjectNode {
-    ///         snapshot: ObjectSnapshot { class_name: "R".into(), properties: Default::default() },
+    ///         snapshot: ObjectSnapshot { class_name: "R".into(), properties: Default::default(), signals_blocked: false },
     ///         children: vec![],
     ///         object_id: 0,
     ///     },
