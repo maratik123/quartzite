@@ -1,7 +1,6 @@
 //! [`WidgetExt`] — ergonomic blanket extension for all `AsWidget` types.
 
 use quartzite_geometry::{Point, Rect, Size};
-use quartzite_paint_api::Painter;
 
 use quartzite_events::{KeyEvent, MouseEvent};
 
@@ -432,16 +431,6 @@ pub trait WidgetExt: AsWidget {
     }
 
     // ── lifecycle hooks (default no-op) ───────────────────────────────────────
-
-    /// Paints the widget using `painter`. Default implementation is a no-op.
-    ///
-    /// Override in concrete widgets to render content.
-    ///
-    /// # Parameters
-    ///
-    /// - `painter`: mutable reference to the abstract paint interface.
-    #[inline]
-    fn paint(&self, _painter: &mut dyn Painter) {}
 
     /// Called when the widget is resized to `size`.
     ///
