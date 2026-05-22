@@ -38,7 +38,7 @@ Shared reference templates consumed by multiple skills / agents. Multi-consumer 
 
 ### ai-docs/templates/progress-format.md
 
-Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/code-review`, `/pr-commented`, `review-findings`, `self-review`.
+Canonical `.progress.md` format spec — template + required vs optional fields + lifecycle. Consumed by `/task`, `/project-review`, `/pr-commented`, `review-findings`, `self-review`.
 
 ### ai-docs/plans/INDEX.md
 
@@ -54,7 +54,7 @@ Active task design documents.
 
 ### ai-docs/plans/*.progress.md
 
-Active task progress / handoff state — **local-only (gitignored)**. Carries the extended compaction-recovery schema (`current_step`, `last_passed_gate`, optional `parent_skill`, optional `entry_args`) plus a `## Decisions log` section per the canonical template at `ai-docs/templates/progress-format.md`. Writers: `/task` (creates at Step 8 and writes at each Step 8–12 boundary), `/code-review` (creates at Phase 1 and writes at each phase boundary), `/pr-commented` (extends with per-round sections), `/bugfix` (extends its own trace file with the same fields inline — see row below). Deleted by `/pr-merged` after the PR merges. Never committed.
+Active task progress / handoff state — **local-only (gitignored)**. Carries the extended compaction-recovery schema (`current_step`, `last_passed_gate`, optional `parent_skill`, optional `entry_args`) plus a `## Decisions log` section per the canonical template at `ai-docs/templates/progress-format.md`. Writers: `/task` (creates at Step 8 and writes at each Step 8–12 boundary), `/project-review` (creates at Phase 1 and writes at each phase boundary), `/pr-commented` (extends with per-round sections), `/bugfix` (extends its own trace file with the same fields inline — see row below). Deleted by `/pr-merged` after the PR merges. Never committed.
 
 ### ai-docs/pr-comments/pr-<N>.progress.md
 

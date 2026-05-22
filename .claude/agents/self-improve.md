@@ -52,7 +52,7 @@ For each `feedback_*.md`, decide whether it **names a workflow primitive**. The 
 ```
 Slash commands:
   /task, /improve, /pr-commented, /bugfix, /interview, /context-reset,
-  /code-review, /ai-audit, /triage, /master-ci-failed, /pr-ci-failed, /pr-merged
+  /project-review, /ai-audit, /triage, /master-ci-failed, /pr-ci-failed, /pr-merged
 
 Agent stems (file stems under .claude/agents/):
   self-improve, design, design-review, review-findings, self-review,

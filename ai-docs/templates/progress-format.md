@@ -1,6 +1,6 @@
 # `.progress.md` format (canonical)
 
-Single source of truth for the progress-file format. `/task`, `/code-review`, `/pr-commented`, `/bugfix`, and the `review-findings` / `self-review` agents all read and write it; the **required** fields below must be present in every progress file regardless of which workflow created it. `/interview`, `/verify`, and `/pr-merged` are exempt (see *Exemptions* below).
+Single source of truth for the progress-file format. `/task`, `/project-review`, `/pr-commented`, `/bugfix`, and the `review-findings` / `self-review` agents all read and write it; the **required** fields below must be present in every progress file regardless of which workflow created it. `/interview`, `/verify`, and `/pr-merged` are exempt (see *Exemptions* below).
 
 ```markdown
 # Progress: [task name] — ACTIVE
@@ -12,7 +12,7 @@ _Updated: YYYY-MM-DD HH:MM_
 **base_commit:** [git rev-parse HEAD output]
 **Last build:** PASS / FAIL / not run
 
-<!-- Optional, /task only — omit for /code-review: -->
+<!-- Optional, /task only — omit for /project-review: -->
 **Issue:** [#number or URL]
 **Spec:** ai-docs/plans/YYYY-MM-DD-name.spec.md
 
@@ -21,7 +21,7 @@ _Updated: YYYY-MM-DD HH:MM_
 **last_passed_gate:** [command + ISO-8601 timestamp + commit SHA, e.g. `cargo clippy --workspace -- -D warnings | 2026-05-15T18:42Z | 549282b`]
 
 <!-- Optional re-entry fields: -->
-**parent_skill:** [/task | /code-review | /pr-commented]    <!-- when this progress file is owned by a nested skill (e.g. /bugfix invoked from inside /task Step 8); omit when the current skill IS the parent flow -->
+**parent_skill:** [/task | /project-review | /pr-commented]    <!-- when this progress file is owned by a nested skill (e.g. /bugfix invoked from inside /task Step 8); omit when the current skill IS the parent flow -->
 **entry_args:** [the original $ARGUMENTS that started this flow]   <!-- required for /task progress files (recorded at Step 8 creation, read-only thereafter); optional elsewhere. Routes /task's three preambles correctly on re-entry after compaction. -->
 
 ## Next action
@@ -69,7 +69,7 @@ Append-only, one line per non-trivial decision. Each line is prefixed with the s
 
 | Field | Writer(s) | Lifecycle |
 |---|---|---|
-| `**Branch:**` | Creator (`/task` Step 8 or `/code-review` Phase 1) | Immutable after creation |
+| `**Branch:**` | Creator (`/task` Step 8 or `/project-review` Phase 1) | Immutable after creation |
 | `**base_commit:**` | Creator | Immutable after creation |
 | `**Last build:**` | Every step boundary | Overwritten — most recent state only |
 | `**Issue:**`, `**Spec:**` | `/task` only, at creation | Immutable after creation |
@@ -82,11 +82,11 @@ Append-only, one line per non-trivial decision. Each line is prefixed with the s
 
 ## Lifecycle (process)
 
-- **Created by:** `/task` Step 8 (start of implementation) or `/code-review` Phase 1 (review-findings agent).
+- **Created by:** `/task` Step 8 (start of implementation) or `/project-review` Phase 1 (review-findings agent).
 - **Extended by:** subtask updates (Step 8 per-subtask); `self-review` agent appends `## Self-Review (Round N)` sections at each round (Step 10); `/pr-commented` appends `## Comment cycle round M` sections after merge-base on reviewer comments. The new compaction-recovery fields (`**current_step:**`, `**last_passed_gate:**`, `## Decisions log`) are written at every step boundary, before further tool calls.
 - **Gitignored:** `/ai-docs/plans/**/*.progress.md` and `/ai-docs/pr-comments/` in `.gitignore`. Never committed.
 - **Deleted by:** `/pr-merged` after the PR merges (uses PR-linkage to derive the spec name → progress-file path).
-- **Exception:** `/code-review`'s own `ai-docs/plans/YYYY-MM-DD-code-review.progress.md` is deleted explicitly by `/code-review` SKILL on self-review APPROVE — a separate lifecycle from `/task`'s.
+- **Exception:** `/project-review`'s own `ai-docs/plans/YYYY-MM-DD-project-review.progress.md` is deleted explicitly by `/project-review` SKILL on self-review APPROVE — a separate lifecycle from `/task`'s.
 
 ## Exemptions
 

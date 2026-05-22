@@ -8,7 +8,7 @@ The `SKILL.md` body keeps a collapsed table of every checklist letter + one-line
 
 - Every relative link (`../`, `./`, file references in prose) resolves to an existing file. Verify with `realpath` from the link's source directory or with `find`.
 - Every `[text](file.md)` and bare `file.md` mentioned in instructions points to a file that exists.
-- Every skill or agent named in another skill/agent (e.g., `code-review` references `review-findings`, `self-review`) actually has a matching file.
+- Every skill or agent named in another skill/agent (e.g., `project-review` references `review-findings`, `self-review`) actually has a matching file.
 
 ## Checklist B — Conflicting / duplicated rules
 
@@ -59,7 +59,7 @@ Per the official docs:
 
 ## Checklist I — File-size & structure (instruction files)
 
-- No `SKILL.md` or agent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `code-review` / `task` skills use this pattern).
+- No `SKILL.md` or agent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `project-review` / `task` skills use this pattern).
 - Each skill directory contains exactly one `SKILL.md` (no extra markdown unless intentional reference material).
 
 ## Checklist J — Allow-list / permission consistency

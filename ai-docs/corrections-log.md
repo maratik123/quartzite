@@ -12,7 +12,7 @@ This page extracts the field-level glossary and exception bodies from [`AGENTS.m
 > - by the `learnings-escalation-audit` agent (invoked via `/ai-audit` Phase 1):
 >   - fix drift in `Escalated?` (target file no longer contains the rule, OR `Escalated? no` despite the rule existing in a target file);
 >   - fix drift in `Superseded by:` (date reference doesn't match any later entry; `PR #N` reference is not a real merged PR);
->   - fix obvious typos within either value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:code-review`, missing comma between two targets, mistyped date in `Superseded by:`).
+>   - fix obvious typos within either value (e.g., `AGENTS,md` → `AGENTS.md`, `skillcode-review` → `skill:project-review`, missing comma between two targets, mistyped date in `Superseded by:`).
 >
 > All other lines of the entry (date, category, description, **What happened**, **Rule**) remain immutable. New learning entries are still append-only. Manual user edits to `Escalated?` / `Superseded by:` are NOT authorised by this exception — invoke `/ai-audit` or explicitly request the change.
 
@@ -30,7 +30,7 @@ This page extracts the field-level glossary and exception bodies from [`AGENTS.m
 >
 > The two failure modes Boundary Rule 2's main body protects against — "I wrote a learning, therefore I'm authorised to escalate it" and "the user asked me to record this, therefore I should also fix AGENTS.md" — both remain forbidden. This exception only lets the corpus-building action ("I noticed something useful while implementing the spec; let me record it before compaction") survive the in-flight `/task` workflow without an artificial turn split.
 >
-> Outside a `/task` flow (bare instruction-file edits, `/improve`, `/ai-audit`, `/code-review`, `/pr-commented`, `/triage`, ad-hoc rule changes), the main rule still applies — NEW learning entries are forbidden in the same turn as instruction-file edits. The carve-out is `/task`-specific because the staging conflict is `/task`-specific.
+> Outside a `/task` flow (bare instruction-file edits, `/improve`, `/ai-audit`, `/project-review`, `/pr-commented`, `/triage`, ad-hoc rule changes), the main rule still applies — NEW learning entries are forbidden in the same turn as instruction-file edits. The carve-out is `/task`-specific because the staging conflict is `/task`-specific.
 
 ## Entry format — field glossary
 

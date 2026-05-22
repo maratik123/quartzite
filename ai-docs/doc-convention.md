@@ -368,7 +368,7 @@ no gated module ever silently slips out of the doc build:
    mode — they go stale the moment a new gated module is added.
 
 The local `AGENTS.md` *Build & Test* doc-gate command (and the matching
-copies in `.claude/skills/task/SKILL.md`, `.claude/skills/code-review/SKILL.md`,
+copies in `.claude/skills/task/SKILL.md`, `.claude/skills/project-review/SKILL.md`,
 and `.claude/agents/self-review.md`) are **the local mirror** of site 1 —
 they exist so an agent reproduces the CI doc gate before pushing. They use
 the same `--all-features` flag.
@@ -396,7 +396,7 @@ in place of the default rule:
   docs.rs metadata is the failure mode (PR #339 reviewer flagged
   `quartzite-paint-api` and root `quartzite` for `all-features = true`
   activating both `std` and `libm`).
-- **Self-review / `code-review`** — when the diff introduces a mutually-
+- **Self-review / `project-review`** — when the diff introduces a mutually-
   exclusive feature pair, the `all-features = true` REJECT does NOT
   fire for the affected crate; the reviewer instead verifies the explicit
   `features = [...]` list is present and representative.
@@ -609,7 +609,7 @@ Lints cannot verify:
   trait-impl method for missing `# Errors` even though the trait
   definition documents it; reviewer judgement applies).
 
-These are checked by the `code-review` skill
-(`.claude/skills/code-review/SKILL.md`) and the `review-findings` /
+These are checked by the `project-review` skill
+(`.claude/skills/project-review/SKILL.md`) and the `review-findings` /
 `self-review` agents on every PR. Both agents read this file as their
 reference.
