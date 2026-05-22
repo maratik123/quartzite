@@ -20,6 +20,10 @@ libm = ["quartzite-paint-api/libm"]
 quartzite-paint-api = { path = "../quartzite-paint-api", default-features = false }
 quartzite-geometry  = { path = "../quartzite-geometry",  default-features = false }
 
+[dev-dependencies]
+quartzite-geometry = { path = "../quartzite-geometry" }
+quartzite-paint-api = { path = "../quartzite-paint-api" }
+
 [lints]
 workspace = true
 
