@@ -18,7 +18,7 @@ use quartzite_paint_api::Painter;
 /// guard is dropped, [`Painter::restore`] is called exactly once — even if the
 /// guarded body panics.
 ///
-/// ## Accessor shape (AC3)
+/// ## Accessor shape
 ///
 /// The wrapped painter is exposed via an explicit [`painter`](TranslateGuard::painter)
 /// accessor returning `&mut dyn Painter`, rather than implementing
@@ -27,7 +27,7 @@ use quartzite_paint_api::Painter;
 /// surprise, sets no new `DerefMut` precedent in the workspace, and keeps
 /// object-safety of [`Painter`] explicit and unambiguous.
 ///
-/// ## Lifetime relationship (AC8)
+/// ## Lifetime relationship
 ///
 /// The guard borrows `&'a mut dyn Painter` for its entire lifetime `'a`.
 /// [`painter`](TranslateGuard::painter) re-exposes that borrow as
@@ -84,6 +84,39 @@ pub struct TranslateGuard<'a> {
 
 impl<'a> TranslateGuard<'a> {
     /// Creates a new guard: calls `save()` then `translate(origin)` on `painter`.
+    ///
+    /// # Parameters
+    ///
+    /// - `painter`: the painter to borrow for the lifetime of this guard.
+    /// - `origin`: the translation delta passed to [`Painter::translate`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_geometry::{Alignment, Point, Rect, Size};
+    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+    /// use quartzite_paint_util::TranslateGuard;
+    ///
+    /// struct NullPainter;
+    /// impl Painter for NullPainter {
+    ///     fn draw_rect(&mut self, _r: Rect, _p: &Pen, _b: &Brush) {}
+    ///     fn fill_rect(&mut self, _r: Rect, _b: &Brush) {}
+    ///     fn draw_line(&mut self, _a: Point, _b: Point, _p: &Pen) {}
+    ///     fn clip_rect(&mut self, _r: Rect) {}
+    ///     fn translate(&mut self, _d: Point) {}
+    ///     fn save(&mut self) {}
+    ///     fn restore(&mut self) {}
+    ///     fn draw_text(&mut self, _pos: Point, _t: &str, _f: &Font, _b: &Brush) {}
+    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
+    ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
+    ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
+    /// }
+    ///
+    /// let mut painter = NullPainter;
+    /// let _guard = TranslateGuard::new(&mut painter, Point::new(5, 10));
+    /// // save() and translate(Point::new(5, 10)) have been called on painter
+    /// // restore() will be called when _guard drops
+    /// ```
     #[inline]
     pub fn new(painter: &'a mut dyn Painter, origin: Point) -> Self {
         painter.save();
@@ -92,6 +125,34 @@ impl<'a> TranslateGuard<'a> {
     }
 
     /// Returns a mutable reference to the wrapped painter.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_geometry::{Alignment, Point, Rect, Size};
+    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+    /// use quartzite_paint_util::TranslateGuard;
+    ///
+    /// struct NullPainter;
+    /// impl Painter for NullPainter {
+    ///     fn draw_rect(&mut self, _r: Rect, _p: &Pen, _b: &Brush) {}
+    ///     fn fill_rect(&mut self, _r: Rect, _b: &Brush) {}
+    ///     fn draw_line(&mut self, _a: Point, _b: Point, _p: &Pen) {}
+    ///     fn clip_rect(&mut self, _r: Rect) {}
+    ///     fn translate(&mut self, _d: Point) {}
+    ///     fn save(&mut self) {}
+    ///     fn restore(&mut self) {}
+    ///     fn draw_text(&mut self, _pos: Point, _t: &str, _f: &Font, _b: &Brush) {}
+    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
+    ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
+    ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
+    /// }
+    ///
+    /// let mut painter = NullPainter;
+    /// let mut guard = TranslateGuard::new(&mut painter, Point::new(0, 0));
+    /// let p: &mut dyn Painter = guard.painter();
+    /// p.fill_rect(Rect::new(Point::new(0, 0), Size::new(10, 10)), &Brush::solid(Color::WHITE));
+    /// ```
     #[inline]
     pub fn painter(&mut self) -> &mut dyn Painter {
         self.painter

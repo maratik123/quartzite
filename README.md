@@ -43,6 +43,7 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
 | `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush/BrushKind incl. LinearGradient/RadialGradient/Custom gradient, Font, Image, Path, 11-method Painter trait) |
 | `quartzite-paint` | ✅ implemented (re-export shell over paint-api + Alignment from geometry + peniko gradient re-exports) |
+| `quartzite-paint-util` | ✅ implemented (#410, `TranslateGuard` RAII wrapper for `save`/`translate`/`restore` triplet; `no_std` + panic-safe) |
 | `quartzite-renderer` | ✅ implemented (WindowedApplication + multi-window WindowRegistry + WindowedAppHandler + VelloPainter full 11-method impl with parley/skrifa text; RenderHarness/RenderHarnessBuilder snapshot harness) |
 | `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole; #488 DARK_PALETTE; #402 ColorGroup axis + FocusRing) |
