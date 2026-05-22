@@ -250,6 +250,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/agent-writing-style.md` | Binary-rule writing style for dual-model readability |
 | `ai-docs/agent-docs-index.md` | Verbose bodies of `§ Agent Docs` rows. Read on demand. |
 | `ai-docs/api-naming.md` | `_unchecked` AXIOM + naming rules. Read on demand. |
+| `ai-docs/instruction-file-validation.md` | Dual-model instruction-file-clarity test methodology + bias taxonomy + subagent prompt templates. Read on demand. |
 | `ai-docs/skill-size-exemptions.md` | Audited list of `.claude/skills/*/SKILL.md` files exempted from the 200-line soft target; consumed by `/ai-audit` Checklist K item 1. |
 | `ai-docs/templates/` | Shared templates consumed by multiple skills / agents |
 | `ai-docs/templates/progress-format.md` | Canonical `.progress.md` format spec (template + lifecycle) |
