@@ -75,8 +75,8 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/interview/SKILL.md` |
-| **wc -l at audit time** | 227 |
-| **wc -c at audit time** | 12,127 |
+| **wc -l at audit time** | 242 |
+| **wc -c at audit time** | 13,882 |
 | **Load-bearing reason** | No category-(1) content; Workflow Steps 1–4 narrative (cat-3) + State file YAML template (cat-2 round-template scaffolding) + Round/question caps table (cat-3) all load-bearing. |
 | **Category map** | cat-2 round-template scaffolding (State file YAML template) + cat-3 workflow narrative (Steps 1–4) + cat-3 workflow-time tables (Round/question caps table). |
 
@@ -85,8 +85,8 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/task/SKILL.md` |
-| **wc -l at audit time** | 219 |
-| **wc -c at audit time** | 25,002 |
+| **wc -l at audit time** | 228 |
+| **wc -c at audit time** | 26,707 |
 | **Load-bearing reason** | Residue is cat-(3) workflow (four ⚡ entry-routing preambles fire before any tool call + Step 8 every-group handoff + Step 12 commit/PR sub-steps); cat-(1) candidates already moved to `reference.md` + `inbox-propagation.md` (category-4 prior extraction). |
 | **Category map** | cat-3 workflow narrative (four ⚡ entry-routing preambles, Step 8 every-group handoff, Step 12 commit/PR sub-steps). |
 

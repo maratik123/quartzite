@@ -785,7 +785,7 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Rule:** Always run `cargo clippy --workspace -- -D warnings` (not just `cargo clippy -- -D warnings`) to catch lints in leaf crates. The default-dep-tree clippy run is a subset, not a full check.
 
-**Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:code-review
+**Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:project-review
 
 ### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
 
@@ -1366,3 +1366,18 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** skill:interview, agent:spec-writer
+
+
+### 2026-05-22 — process — /ai-audit M9 35,000-char early-warning findings must be actioned in-pass (proactive extraction), not deferred as a passive heads-up
+
+**What happened:** During two consecutive `/ai-audit` runs on PR #535, the M9 sub-check fired on `AGENTS.md` (36,334 chars — over the 35,000 early-warning band, under the 40,000 hard cap). Both runs surfaced it as "Heads-up surfaced (no fix this pass)" and deferred extraction to "a future `/ai-audit` pass". The user clarified: the 35,000–39,999 band is itself a `minor` proactive-extraction trigger per the `AGENTS.md § Build & Test` AXIOM — the audit should propose the extraction in the same pass, asking the user for approval like any other `minor` finding, NOT defer.
+
+**Rule:** When M9 fires in the 35,000–39,999 char band, treat it as an actionable `minor` finding — surface a proposed extraction plan (which verbose subsection moves to which `ai-docs/<topic>.md` reference page, with the AGENTS.md-side anchored pointer to leave behind) and ask the user to approve, per Step 2.5's "`minor` / `nit`: may apply autonomously if the fix is mechanical and obvious; otherwise ask." An M9 early-warning-band finding is by nature non-mechanical (judgment about which subsections to extract) → must `ask`. Do NOT classify it as a passive heads-up.
+
+**Why:** The whole point of the 35k early-warning band — separate from the 40k hard cap — is to give one full `/task` cycle of headroom for proactive extraction. Deferring the finding to "next `/ai-audit`" wastes that headroom: if a `/task` lands more text in the meantime, the file crosses 40k and becomes a `major` AXIOM violation. The user wants `/ai-audit` to consume the headroom it's designed to provide, not roll the finding forward.
+
+**How to apply:** `/ai-audit` Phase 2 Sub-check M9 (and the consumer surface in `.claude/skills/ai-audit/SKILL.md` Step 2.5): when an M9 finding lands in the 35,000–39,999 char band, present the file with the same "ask-to-apply" treatment as other `minor` findings — list the candidate subsections for extraction with target `ai-docs/<topic>.md` paths, and ask the user to approve. The "heads-up — no fix this pass" wording is reserved for findings genuinely outside the audit's scope (e.g., signals routed to `/improve`).
+
+**Kind:** correction
+
+**Escalated?** no
