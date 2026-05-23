@@ -12,7 +12,7 @@
 //!   `Button` → silent no-op (AC2 documented fallback).
 
 use quartzite_macros::Extend;
-use quartzite_paint_api::Painter;
+use quartzite_paint_api::{Painter, TextCaretCursor, TextVisualLine, TextVisualLineCursor};
 use quartzite_style::{DefaultStyle, Paint, Palette, Style};
 use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt, WidgetView};
 
@@ -41,11 +41,38 @@ impl ThirdPartyWidget {
 /// Records each `paint` call so tests can assert dispatch happened.
 struct RecordingPainter {
     paint_calls: usize,
+    null_caret: NullCaretCursor,
+    null_lines: NullLineCursor,
 }
 
 impl RecordingPainter {
     const fn new() -> Self {
-        Self { paint_calls: 0 }
+        Self {
+            paint_calls: 0,
+            null_caret: NullCaretCursor,
+            null_lines: NullLineCursor,
+        }
+    }
+}
+
+struct NullCaretCursor;
+impl TextCaretCursor for NullCaretCursor {
+    fn advance_to(&mut self, _byte_offset: usize) {}
+    fn caret_x(&self) -> i32 {
+        0
+    }
+    fn line_top(&self) -> i32 {
+        0
+    }
+    fn line_height(&self) -> i32 {
+        0
+    }
+}
+
+struct NullLineCursor;
+impl TextVisualLineCursor for NullLineCursor {
+    fn next_line(&mut self) -> Option<TextVisualLine> {
+        None
     }
 }
 
@@ -96,6 +123,21 @@ impl Painter for RecordingPainter {
         _pen: &quartzite_paint_api::Pen,
         _brush: &quartzite_paint_api::Brush,
     ) {
+    }
+    fn text_carets(
+        &mut self,
+        _text: &str,
+        _font: &quartzite_paint_api::Font,
+    ) -> &mut dyn TextCaretCursor {
+        &mut self.null_caret
+    }
+    fn text_visual_lines(
+        &mut self,
+        _text: &str,
+        _font: &quartzite_paint_api::Font,
+        _wrap_width: i32,
+    ) -> &mut dyn TextVisualLineCursor {
+        &mut self.null_lines
     }
 }
 

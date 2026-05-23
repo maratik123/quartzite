@@ -114,7 +114,10 @@ pub trait Paint<W: AsWidget + ?Sized> {
 #[cfg(test)]
 mod tests {
     use quartzite_geometry::{Alignment, Point, Rect};
-    use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
+    use quartzite_paint_api::{
+        Brush, Font, Image, Painter, Path, Pen, TextCaretCursor, TextVisualLine,
+        TextVisualLineCursor,
+    };
     use quartzite_style_types::Palette;
     use quartzite_widgets::Button;
 
@@ -126,7 +129,40 @@ mod tests {
         fn paint(&self, _widget: &Button, _painter: &mut dyn Painter, _palette: &Palette) {}
     }
 
-    struct NullPainter;
+    struct NullPainter {
+        null_caret: NullCaretCursor,
+        null_lines: NullLineCursor,
+    }
+
+    impl NullPainter {
+        fn new() -> Self {
+            Self {
+                null_caret: NullCaretCursor,
+                null_lines: NullLineCursor,
+            }
+        }
+    }
+
+    struct NullCaretCursor;
+    impl TextCaretCursor for NullCaretCursor {
+        fn advance_to(&mut self, _byte_offset: usize) {}
+        fn caret_x(&self) -> i32 {
+            0
+        }
+        fn line_top(&self) -> i32 {
+            0
+        }
+        fn line_height(&self) -> i32 {
+            0
+        }
+    }
+
+    struct NullLineCursor;
+    impl TextVisualLineCursor for NullLineCursor {
+        fn next_line(&mut self) -> Option<TextVisualLine> {
+            None
+        }
+    }
 
     impl Painter for NullPainter {
         fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
@@ -148,6 +184,17 @@ mod tests {
         }
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
         fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
+        fn text_carets(&mut self, _text: &str, _font: &Font) -> &mut dyn TextCaretCursor {
+            &mut self.null_caret
+        }
+        fn text_visual_lines(
+            &mut self,
+            _text: &str,
+            _font: &Font,
+            _wrap_width: i32,
+        ) -> &mut dyn TextVisualLineCursor {
+            &mut self.null_lines
+        }
     }
 
     fn assert_send_sync<T: Send + Sync>() {}
@@ -171,7 +218,7 @@ mod tests {
     fn paint_method_is_callable() {
         let style = FakeStyle;
         let widget = Button::new("ok".into());
-        let mut painter = NullPainter;
+        let mut painter = NullPainter::new();
         let palette = Palette::default();
         style.paint(&widget, &mut painter, &palette);
     }

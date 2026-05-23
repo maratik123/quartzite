@@ -1,11 +1,15 @@
 //! [`VelloPainter`] — vello + wgpu backed [`Painter`] implementation.
 
 use parley::{
-    Alignment as ParleyAlignment, AlignmentOptions, FontFamilyName, FontStyle as ParleyFontStyle,
-    FontWeight as ParleyFontWeight, Layout, PositionedLayoutItem, RangedBuilder, StyleProperty,
+    Affinity, Alignment as ParleyAlignment, AlignmentOptions, Cursor as ParleyCursor,
+    FontFamilyName, FontStyle as ParleyFontStyle, FontWeight as ParleyFontWeight, Layout,
+    PositionedLayoutItem, RangedBuilder, StyleProperty,
 };
 use quartzite_geometry::{Alignment, Point, Rect};
-use quartzite_paint_api::{Brush, BrushKind, Font, Image, Painter, Path, Pen, Segment};
+use quartzite_paint_api::{
+    Brush, BrushKind, Font, Image, Painter, Path, Pen, Segment, TextCaretCursor, TextVisualLine,
+    TextVisualLineCursor,
+};
 use vello::peniko::kurbo;
 use vello::peniko::{self, Blob, Fill, ImageAlphaType, ImageData, ImageFormat};
 use vello::{Glyph, Scene};
@@ -45,6 +49,94 @@ pub struct VelloPainter<'a> {
     xforms: Vec<kurbo::Affine>,
     /// Per-save-frame count of `push_layer` calls; same length as `xforms`.
     clips: Vec<u32>,
+    /// Slot for the caret cursor returned by `text_carets`; reset on each call.
+    caret_cursor_slot: Option<Box<ParleyCaretCursor>>,
+    /// Slot for the visual-line cursor returned by `text_visual_lines`; reset on each call.
+    line_cursor_slot: Option<Box<ParleyLineCursor>>,
+}
+
+// ── Parley-backed text cursors ───────────────────────────────────────────────
+
+/// Caret cursor backed by a [`parley::Layout`].
+///
+/// Returned by [`VelloPainter::text_carets`]; the layout is rebuilt on every call
+/// (acceptable cost for the snapshot suite — the live-renderer perf optimisation
+/// lands in a later spec when real input editing arrives).
+struct ParleyCaretCursor {
+    layout: Layout<[u8; 4]>,
+    text: String,
+    /// Current caret x (pixel-snapped) and line geometry.
+    x: i32,
+    line_top: i32,
+    line_height: i32,
+}
+
+impl TextCaretCursor for ParleyCaretCursor {
+    fn advance_to(&mut self, byte_offset: usize) {
+        let clamped = byte_offset.min(self.text.len());
+        let cursor = ParleyCursor::from_byte_index(&self.layout, clamped, Affinity::Downstream);
+        // `Cursor::geometry` returns a BoundingBox (x0, y0, x1, y1) for a 1-unit-wide caret.
+        let bb = cursor.geometry(&self.layout, 1.0);
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "intentional pixel-snap: parley advances are sub-pixel f64; truncation to i32 is the spec contract"
+        )]
+        {
+            self.x = bb.x0 as i32;
+            self.line_top = bb.y0 as i32;
+            self.line_height = (bb.y1 - bb.y0) as i32;
+        }
+    }
+    fn caret_x(&self) -> i32 {
+        self.x
+    }
+    fn line_top(&self) -> i32 {
+        self.line_top
+    }
+    fn line_height(&self) -> i32 {
+        self.line_height
+    }
+}
+
+/// Visual-line cursor backed by a [`parley::Layout`].
+///
+/// Returned by [`VelloPainter::text_visual_lines`]; iterates over the visual
+/// lines in top-to-bottom order.
+struct ParleyLineCursor {
+    /// Pre-computed visual lines extracted from the layout.
+    lines: Vec<TextVisualLine>,
+    idx: usize,
+}
+
+impl ParleyLineCursor {
+    fn from_layout(layout: &Layout<[u8; 4]>) -> Self {
+        let mut lines = Vec::new();
+        for line in layout.lines() {
+            let m = line.metrics();
+            let text_range = line.text_range();
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "intentional pixel-snap: parley block coords are f32; truncation to i32 is the spec contract"
+            )]
+            lines.push(TextVisualLine {
+                byte_start: text_range.start,
+                byte_end: text_range.end,
+                top: m.block_min_coord as i32,
+                height: m.line_height as i32,
+            });
+        }
+        Self { lines, idx: 0 }
+    }
+}
+
+impl TextVisualLineCursor for ParleyLineCursor {
+    fn next_line(&mut self) -> Option<TextVisualLine> {
+        let line = self.lines.get(self.idx).copied();
+        if line.is_some() {
+            self.idx += 1;
+        }
+        line
+    }
 }
 
 /// Private renderer-internal classification of [`BrushKind`] into the four variants the
@@ -149,6 +241,8 @@ impl<'a> VelloPainter<'a> {
             scale: 1.0,
             xforms: vec![kurbo::Affine::IDENTITY],
             clips: vec![0],
+            caret_cursor_slot: None,
+            line_cursor_slot: None,
         }
     }
 
@@ -402,6 +496,32 @@ impl<'a> VelloPainter<'a> {
         }
     }
 
+    /// Builds a parley layout for `text` shaped with `font` and wrapped at
+    /// `max_advance` physical pixels (0.0 = no wrap).
+    ///
+    /// Returns `None` when `self.fonts` is `None` (painter was constructed
+    /// without a `FontCache`).
+    fn build_layout(
+        &mut self,
+        text: &str,
+        font: &Font,
+        max_advance: f32,
+    ) -> Option<Layout<[u8; 4]>> {
+        let fonts = self.fonts.as_mut()?;
+        let FontCache { font_cx, layout_cx } = fonts;
+        let mut builder = layout_cx.ranged_builder(font_cx, text, self.scale, false);
+        Self::push_font_style(&mut builder, font);
+        let mut layout = builder.build(text);
+        let wrap = if max_advance > 0.0 {
+            Some(max_advance)
+        } else {
+            None
+        };
+        layout.break_all_lines(wrap);
+        layout.align(ParleyAlignment::Left, AlignmentOptions::default());
+        Some(layout)
+    }
+
     /// Returns `(transform_depth, total_active_clip_layers)` for stack tests.
     ///
     /// `transform_depth` is the current save-frame depth (1 at construction,
@@ -586,6 +706,52 @@ impl Painter for VelloPainter<'_> {
         self.scene
             .stroke(&stroke, xform, Self::pen_color(pen), None, &bez);
     }
+
+    fn text_carets(&mut self, text: &str, font: &Font) -> &mut dyn TextCaretCursor {
+        // Build the layout without a wrap limit (caret cursor is whole-text,
+        // single-line for byte-offset → x-position mapping).
+        let layout = self.build_layout(text, font, 0.0).unwrap_or_default();
+        // Initialise cursor at byte offset 0 so caret_x / line_top / line_height
+        // are valid even before `advance_to` is called.
+        let cursor = ParleyCursor::from_byte_index(&layout, 0, Affinity::Downstream);
+        let bb = cursor.geometry(&layout, 1.0);
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "intentional pixel-snap: parley coordinates are f64; truncation to i32 is the spec contract"
+        )]
+        let c = ParleyCaretCursor {
+            layout,
+            text: text.to_owned(),
+            x: bb.x0 as i32,
+            line_top: bb.y0 as i32,
+            line_height: (bb.y1 - bb.y0) as i32,
+        };
+        self.caret_cursor_slot = Some(Box::new(c));
+        self.caret_cursor_slot.as_mut().unwrap().as_mut()
+    }
+
+    fn text_visual_lines(
+        &mut self,
+        text: &str,
+        font: &Font,
+        wrap_width: i32,
+    ) -> &mut dyn TextVisualLineCursor {
+        #[allow(
+            clippy::cast_precision_loss,
+            reason = "wrap_width is a logical pixel count; f32 precision is sufficient for layout purposes"
+        )]
+        let max_advance = if wrap_width > 0 {
+            wrap_width as f32 * self.scale
+        } else {
+            0.0
+        };
+        let layout = self
+            .build_layout(text, font, max_advance)
+            .unwrap_or_default();
+        let c = ParleyLineCursor::from_layout(&layout);
+        self.line_cursor_slot = Some(Box::new(c));
+        self.line_cursor_slot.as_mut().unwrap().as_mut()
+    }
 }
 
 #[cfg(test)]
@@ -685,6 +851,17 @@ mod tests {
         p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
+        {
+            let cursor = p.text_carets("hello", &font);
+            cursor.advance_to(3);
+            let _ = cursor.caret_x();
+            let _ = cursor.line_top();
+            let _ = cursor.line_height();
+        }
+        {
+            let cursor = p.text_visual_lines("hello world", &font, 64);
+            while cursor.next_line().is_some() {}
+        }
 
         // gradient brushes must not panic
         let linear = Brush::linear_gradient(origin, Point::new(10, 0), Color::RED, Color::BLUE);

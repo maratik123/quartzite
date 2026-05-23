@@ -140,7 +140,10 @@ impl StyleRegistry {
 mod tests {
     use super::*;
     use core::sync::atomic::{AtomicUsize, Ordering};
-    use quartzite_paint_api::{Brush, Font, Image, Painter, Path, Pen};
+    use quartzite_paint_api::{
+        Brush, Font, Image, Painter, Path, Pen, TextCaretCursor, TextVisualLine,
+        TextVisualLineCursor,
+    };
     use quartzite_style_types::Palette;
     use quartzite_widgets::AsWidget;
 
@@ -177,7 +180,40 @@ mod tests {
     }
 
     /// No-op `Painter` used solely to satisfy the trait-method signature.
-    struct NullPainter;
+    struct NullPainter {
+        null_caret: NullCaretCursor,
+        null_lines: NullLineCursor,
+    }
+
+    impl NullPainter {
+        fn new() -> Self {
+            Self {
+                null_caret: NullCaretCursor,
+                null_lines: NullLineCursor,
+            }
+        }
+    }
+
+    struct NullCaretCursor;
+    impl TextCaretCursor for NullCaretCursor {
+        fn advance_to(&mut self, _byte_offset: usize) {}
+        fn caret_x(&self) -> i32 {
+            0
+        }
+        fn line_top(&self) -> i32 {
+            0
+        }
+        fn line_height(&self) -> i32 {
+            0
+        }
+    }
+
+    struct NullLineCursor;
+    impl TextVisualLineCursor for NullLineCursor {
+        fn next_line(&mut self) -> Option<TextVisualLine> {
+            None
+        }
+    }
 
     impl Painter for NullPainter {
         fn draw_rect(&mut self, _rect: quartzite_geometry::Rect, _pen: &Pen, _brush: &Brush) {}
@@ -212,6 +248,17 @@ mod tests {
         }
         fn draw_image(&mut self, _rect: quartzite_geometry::Rect, _image: &Image) {}
         fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
+        fn text_carets(&mut self, _text: &str, _font: &Font) -> &mut dyn TextCaretCursor {
+            &mut self.null_caret
+        }
+        fn text_visual_lines(
+            &mut self,
+            _text: &str,
+            _font: &Font,
+            _wrap_width: i32,
+        ) -> &mut dyn TextVisualLineCursor {
+            &mut self.null_lines
+        }
     }
 
     #[test]
@@ -263,7 +310,7 @@ mod tests {
         StyleRegistry::set_style(Box::new(StyleA));
         let style = StyleRegistry::try_style().expect("style was just installed");
         let widget = quartzite_widgets::WidgetBase::new();
-        let mut painter = NullPainter;
+        let mut painter = NullPainter::new();
         let palette = Palette::default();
         style.draw_widget(&widget, &mut painter, &palette);
 

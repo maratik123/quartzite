@@ -8,7 +8,10 @@
 
 use quartzite_core::ObjectId;
 use quartzite_geometry::{Point, Rect};
-use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+use quartzite_paint_api::{
+    Brush, Color, Font, Image, Painter, Path, Pen, TextCaretCursor, TextVisualLine,
+    TextVisualLineCursor,
+};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
     Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetBase,
@@ -54,9 +57,153 @@ enum PaintEvent {
     },
 }
 
+// ── Fake fixed-width shaper (inline per-impl, design decision §3) ────────
+//
+// Contract: one cluster per `char`, 8 px advance, line_height = font.size_pt()
+// rounded to the nearest integer, wraps at wrap_width / 8 chars per line.
+
+/// Pixel advance per character cluster in the fake shaper.
+const FAKE_ADVANCE: i32 = 8;
+
+fn fake_line_height(font: &Font) -> i32 {
+    #[allow(
+        clippy::cast_possible_truncation,
+        reason = "test-only: font size is always a small representable value"
+    )]
+    let lh = font.size_pt().round() as i32;
+    lh
+}
+
+fn fake_chars_per_line(wrap_width: i32) -> usize {
+    if wrap_width > 0 {
+        #[allow(
+            clippy::cast_sign_loss,
+            reason = "test-only: wrap_width > 0 guard makes the cast safe"
+        )]
+        let n = (wrap_width / FAKE_ADVANCE).max(1) as usize;
+        n
+    } else {
+        usize::MAX
+    }
+}
+
+struct FakeCaretCursor {
+    text: String,
+    positions: Vec<(i32, i32, i32)>,
+    idx: usize,
+}
+
+impl FakeCaretCursor {
+    fn new(text: &str, font: &Font) -> Self {
+        let lh = fake_line_height(font);
+        let mut positions = Vec::new();
+        let mut x = 0i32;
+        for _ in text.chars() {
+            positions.push((x, 0, lh));
+            x += FAKE_ADVANCE;
+        }
+        positions.push((x, 0, lh));
+        Self {
+            text: text.to_owned(),
+            positions,
+            idx: 0,
+        }
+    }
+
+    fn current(&self) -> (i32, i32, i32) {
+        self.positions
+            .get(self.idx)
+            .copied()
+            .unwrap_or_else(|| *self.positions.last().unwrap_or(&(0, 0, 0)))
+    }
+}
+
+impl TextCaretCursor for FakeCaretCursor {
+    fn advance_to(&mut self, byte_offset: usize) {
+        let clamped = byte_offset.min(self.text.len());
+        self.idx = self.text[..clamped].chars().count();
+    }
+    fn caret_x(&self) -> i32 {
+        self.current().0
+    }
+    fn line_top(&self) -> i32 {
+        self.current().1
+    }
+    fn line_height(&self) -> i32 {
+        self.current().2
+    }
+}
+
+struct FakeLineCursor {
+    lines: Vec<TextVisualLine>,
+    idx: usize,
+}
+
+impl FakeLineCursor {
+    fn new(text: &str, font: &Font, wrap_width: i32) -> Self {
+        let lh = fake_line_height(font);
+        let chars_per = fake_chars_per_line(wrap_width);
+        let mut lines = Vec::new();
+        let mut top = 0i32;
+        let mut byte_pos = 0usize;
+        let mut line_char_count = 0usize;
+        let mut line_start_byte = 0usize;
+        for ch in text.chars() {
+            let ch_bytes = ch.len_utf8();
+            if ch == '\n' {
+                lines.push(TextVisualLine {
+                    byte_start: line_start_byte,
+                    byte_end: byte_pos + ch_bytes,
+                    top,
+                    height: lh,
+                });
+                top += lh;
+                byte_pos += ch_bytes;
+                line_start_byte = byte_pos;
+                line_char_count = 0;
+                continue;
+            }
+            if line_char_count == chars_per {
+                lines.push(TextVisualLine {
+                    byte_start: line_start_byte,
+                    byte_end: byte_pos,
+                    top,
+                    height: lh,
+                });
+                top += lh;
+                line_start_byte = byte_pos;
+                line_char_count = 0;
+            }
+            byte_pos += ch_bytes;
+            line_char_count += 1;
+        }
+        lines.push(TextVisualLine {
+            byte_start: line_start_byte,
+            byte_end: byte_pos,
+            top,
+            height: lh,
+        });
+        Self { lines, idx: 0 }
+    }
+}
+
+impl TextVisualLineCursor for FakeLineCursor {
+    fn next_line(&mut self) -> Option<TextVisualLine> {
+        let line = self.lines.get(self.idx).copied();
+        if line.is_some() {
+            self.idx += 1;
+        }
+        line
+    }
+}
+
+// ── Recording painter ────────────────────────────────────────────────────
+
 #[derive(Default)]
 struct RecordingPainter {
     events: Vec<PaintEvent>,
+    caret_cursor: Option<FakeCaretCursor>,
+    line_cursor: Option<FakeLineCursor>,
 }
 
 impl Painter for RecordingPainter {
@@ -121,6 +268,19 @@ impl Painter for RecordingPainter {
     }
     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {
         unreachable!("DefaultStyle never calls draw_path");
+    }
+    fn text_carets(&mut self, text: &str, font: &Font) -> &mut dyn TextCaretCursor {
+        self.caret_cursor = Some(FakeCaretCursor::new(text, font));
+        self.caret_cursor.as_mut().unwrap()
+    }
+    fn text_visual_lines(
+        &mut self,
+        text: &str,
+        font: &Font,
+        wrap_width: i32,
+    ) -> &mut dyn TextVisualLineCursor {
+        self.line_cursor = Some(FakeLineCursor::new(text, font, wrap_width));
+        self.line_cursor.as_mut().unwrap()
     }
 }
 

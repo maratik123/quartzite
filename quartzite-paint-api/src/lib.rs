@@ -15,6 +15,7 @@ mod image;
 mod painter;
 mod path;
 mod pen;
+mod text_cursor;
 
 pub use brush::{Brush, BrushKind};
 pub use color::Color;
@@ -24,3 +25,4 @@ pub use image::{Image, ImageError};
 pub use painter::Painter;
 pub use path::{Path, Segment};
 pub use pen::Pen;
+pub use text_cursor::{TextCaretCursor, TextVisualLine, TextVisualLineCursor};

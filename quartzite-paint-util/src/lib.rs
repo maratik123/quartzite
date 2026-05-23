@@ -39,10 +39,26 @@ use quartzite_paint_api::Painter;
 ///
 /// ```
 /// use quartzite_geometry::{Alignment, Point, Rect, Size};
-/// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+/// use quartzite_paint_api::{
+///     Brush, Color, Font, Image, Painter, Path, Pen,
+///     TextCaretCursor, TextVisualLine, TextVisualLineCursor,
+/// };
 /// use quartzite_paint_util::TranslateGuard;
 ///
-/// struct NullPainter;
+/// struct NullCaret;
+/// impl TextCaretCursor for NullCaret {
+///     fn advance_to(&mut self, _: usize) {}
+///     fn caret_x(&self) -> i32 { 0 }
+///     fn line_top(&self) -> i32 { 0 }
+///     fn line_height(&self) -> i32 { 0 }
+/// }
+/// struct NullLines;
+/// impl TextVisualLineCursor for NullLines {
+///     fn next_line(&mut self) -> Option<TextVisualLine> { None }
+/// }
+///
+/// struct NullPainter { caret: NullCaret, lines: NullLines }
+/// impl NullPainter { fn new() -> Self { Self { caret: NullCaret, lines: NullLines } } }
 ///
 /// impl Painter for NullPainter {
 ///     fn draw_rect(&mut self, _rect: Rect, _pen: &Pen, _brush: &Brush) {}
@@ -63,9 +79,11 @@ use quartzite_paint_api::Painter;
 ///     ) {}
 ///     fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
 ///     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
+///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
+///     fn text_visual_lines(&mut self, _t: &str, _f: &Font, _w: i32) -> &mut dyn TextVisualLineCursor { &mut self.lines }
 /// }
 ///
-/// let mut painter = NullPainter;
+/// let mut painter = NullPainter::new();
 /// let origin = Point::new(10, 20);
 /// {
 ///     // save() + translate(origin) called here
@@ -94,10 +112,24 @@ impl<'a> TranslateGuard<'a> {
     ///
     /// ```
     /// use quartzite_geometry::{Alignment, Point, Rect, Size};
-    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen,
+    ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor};
     /// use quartzite_paint_util::TranslateGuard;
     ///
-    /// struct NullPainter;
+    /// struct NullCaret;
+    /// impl TextCaretCursor for NullCaret {
+    ///     fn advance_to(&mut self, _: usize) {}
+    ///     fn caret_x(&self) -> i32 { 0 }
+    ///     fn line_top(&self) -> i32 { 0 }
+    ///     fn line_height(&self) -> i32 { 0 }
+    /// }
+    /// struct NullLines;
+    /// impl TextVisualLineCursor for NullLines {
+    ///     fn next_line(&mut self) -> Option<TextVisualLine> { None }
+    /// }
+    ///
+    /// struct NullPainter { caret: NullCaret, lines: NullLines }
+    /// impl NullPainter { fn new() -> Self { Self { caret: NullCaret, lines: NullLines } } }
     /// impl Painter for NullPainter {
     ///     fn draw_rect(&mut self, _r: Rect, _p: &Pen, _b: &Brush) {}
     ///     fn fill_rect(&mut self, _r: Rect, _b: &Brush) {}
@@ -110,9 +142,11 @@ impl<'a> TranslateGuard<'a> {
     ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
     ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
     ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
+    ///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
+    ///     fn text_visual_lines(&mut self, _t: &str, _f: &Font, _w: i32) -> &mut dyn TextVisualLineCursor { &mut self.lines }
     /// }
     ///
-    /// let mut painter = NullPainter;
+    /// let mut painter = NullPainter::new();
     /// let _guard = TranslateGuard::new(&mut painter, Point::new(5, 10));
     /// // save() and translate(Point::new(5, 10)) have been called on painter
     /// // restore() will be called when _guard drops
@@ -130,10 +164,24 @@ impl<'a> TranslateGuard<'a> {
     ///
     /// ```
     /// use quartzite_geometry::{Alignment, Point, Rect, Size};
-    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen};
+    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen,
+    ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor};
     /// use quartzite_paint_util::TranslateGuard;
     ///
-    /// struct NullPainter;
+    /// struct NullCaret;
+    /// impl TextCaretCursor for NullCaret {
+    ///     fn advance_to(&mut self, _: usize) {}
+    ///     fn caret_x(&self) -> i32 { 0 }
+    ///     fn line_top(&self) -> i32 { 0 }
+    ///     fn line_height(&self) -> i32 { 0 }
+    /// }
+    /// struct NullLines;
+    /// impl TextVisualLineCursor for NullLines {
+    ///     fn next_line(&mut self) -> Option<TextVisualLine> { None }
+    /// }
+    ///
+    /// struct NullPainter { caret: NullCaret, lines: NullLines }
+    /// impl NullPainter { fn new() -> Self { Self { caret: NullCaret, lines: NullLines } } }
     /// impl Painter for NullPainter {
     ///     fn draw_rect(&mut self, _r: Rect, _p: &Pen, _b: &Brush) {}
     ///     fn fill_rect(&mut self, _r: Rect, _b: &Brush) {}
@@ -146,9 +194,11 @@ impl<'a> TranslateGuard<'a> {
     ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
     ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
     ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
+    ///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
+    ///     fn text_visual_lines(&mut self, _t: &str, _f: &Font, _w: i32) -> &mut dyn TextVisualLineCursor { &mut self.lines }
     /// }
     ///
-    /// let mut painter = NullPainter;
+    /// let mut painter = NullPainter::new();
     /// let mut guard = TranslateGuard::new(&mut painter, Point::new(0, 0));
     /// let p: &mut dyn Painter = guard.painter();
     /// p.fill_rect(Rect::new(Point::new(0, 0), Size::new(10, 10)), &Brush::solid(Color::WHITE));
@@ -172,7 +222,9 @@ mod tests {
     use alloc::vec::Vec;
 
     use quartzite_geometry::{Point, Rect, Size};
-    use quartzite_paint_api::{Brush, Color, Painter};
+    use quartzite_paint_api::{
+        Brush, Color, Font, Painter, TextCaretCursor, TextVisualLine, TextVisualLineCursor,
+    };
 
     use crate::TranslateGuard;
 
@@ -187,13 +239,41 @@ mod tests {
         Other,
     }
 
+    // Fake fixed-width shaper for cursor impls (inline per-impl per design decision §3).
+    struct NullCaretCursor;
+    impl TextCaretCursor for NullCaretCursor {
+        fn advance_to(&mut self, _byte_offset: usize) {}
+        fn caret_x(&self) -> i32 {
+            0
+        }
+        fn line_top(&self) -> i32 {
+            0
+        }
+        fn line_height(&self) -> i32 {
+            0
+        }
+    }
+
+    struct NullLineCursor;
+    impl TextVisualLineCursor for NullLineCursor {
+        fn next_line(&mut self) -> Option<TextVisualLine> {
+            None
+        }
+    }
+
     struct RecordingPainter {
         events: Vec<PaintEvent>,
+        null_caret: NullCaretCursor,
+        null_lines: NullLineCursor,
     }
 
     impl RecordingPainter {
         fn new() -> Self {
-            Self { events: Vec::new() }
+            Self {
+                events: Vec::new(),
+                null_caret: NullCaretCursor,
+                null_lines: NullLineCursor,
+            }
         }
     }
 
@@ -271,6 +351,19 @@ mod tests {
             _brush: &quartzite_paint_api::Brush,
         ) {
             self.events.push(PaintEvent::Other);
+        }
+
+        fn text_carets(&mut self, _text: &str, _font: &Font) -> &mut dyn TextCaretCursor {
+            &mut self.null_caret
+        }
+
+        fn text_visual_lines(
+            &mut self,
+            _text: &str,
+            _font: &Font,
+            _wrap_width: i32,
+        ) -> &mut dyn TextVisualLineCursor {
+            &mut self.null_lines
         }
     }
 
