@@ -1411,3 +1411,13 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+### 2026-05-24 — code-style — `#[inline]` / `_Simple._` axiom violations across 4 self-review rounds on a single PR
+
+**What happened:** During `/task #317` (textedit-caret-selection) self-review caught 4 distinct `#[inline]`/`_Simple._` co-occurrence or missing-`#[inline]` violations across 4 consecutive REJECT rounds before APPROVE on round 5. Round 1: concrete `impl Style for DefaultStyle` methods `caret_visible_now` and `prefers_reduced_motion` carried both `// _Simple._` and `#[inline]` — co-occurrence violation. Round 2: concrete `impl Default for StyleClock::default()` carried `/// _Simple._` + `#[inline]`; separately, default trait method `Style::prefers_reduced_motion` was missing `#[inline]`. Round 3: concrete `impl TextCaretCursor for ParleyCaretCursor` simple getter methods (`caret_x`, `line_top`, `line_height`) missing `#[inline]`. Round 4 (non-inline violation): `/// # Features` non-canonical doc section heading in `start_blink_timer`.
+
+**Rule:** Before committing any new method in a `impl Trait for ConcreteFoo` block (no generics): (a) ALL methods must carry `#[inline]` — including simple single-expression bodies; (b) NO `_Simple._` marker in any form (`// _Simple._`, `/// _Simple._`) — `_Simple._` belongs only to generic free fns / inherent generic methods / trait method *declarations* in the trait body. Default methods inside a `pub trait` declaration (not `impl`) are treated as concrete-row for `#[inline]` purposes and must carry `#[inline]` when simple. Run a self-check before every commit: `grep -n "_Simple_" <new-file>` must return empty for any new `impl Trait for ConcreteFoo` block file; `grep -n "#\[inline\]" <new-file>` must be present for every simple concrete-impl method.
+
+**Kind:** correction
+
+**Escalated?** no
