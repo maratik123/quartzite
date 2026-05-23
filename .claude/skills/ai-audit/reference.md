@@ -8,7 +8,7 @@ The `SKILL.md` body keeps a collapsed table of every checklist letter + one-line
 
 - Every relative link (`../`, `./`, file references in prose) resolves to an existing file. Verify with `realpath` from the link's source directory or with `find`.
 - Every `[text](file.md)` and bare `file.md` mentioned in instructions points to a file that exists.
-- Every skill or agent named in another skill/agent (e.g., `project-review` references `review-findings`, `self-review`) actually has a matching file.
+- Every Skill or Subagent named in another Skill/Subagent (e.g., `project-review` references `review-findings`, `self-review`) actually has a matching file.
 
 ## Checklist B — Conflicting / duplicated rules
 
@@ -20,7 +20,7 @@ The `SKILL.md` body keeps a collapsed table of every checklist letter + one-line
 
 - Skills/agents named in `AGENTS.md` "Sync groups" must exist. (E.g., the AGENTS.md note about `task` ↔ `task-issue` collapse — verify no stale references remain.)
 - Agent names referenced in skills must match a file under `.claude/agents/`.
-- `ai-docs/plans/done/` references in agent checklists must still resolve.
+- `ai-docs/plans/done/` references in Subagent checklists must still resolve.
 
 ## Checklist D — Frontmatter conformance (skills)
 
@@ -34,9 +34,9 @@ Per the official docs:
 
 ## Checklist E — Frontmatter conformance (agents)
 
-- Every `.claude/agents/*.md` starts with YAML frontmatter (`---`-delimited block at top of file). An agent without frontmatter is not a subagent — it's a stray document. Enumerate the directory at audit time rather than baking in a count.
+- Every `.claude/agents/*.md` starts with YAML frontmatter (`---`-delimited block at top of file). A file in `.claude/agents/` without frontmatter is not a Subagent — it's a stray document. Enumerate the directory at audit time rather than baking in a count.
 - `name` field equals the file basename.
-- `description` is one line and tells the orchestrator when to spawn this agent.
+- `description` is one line and tells the orchestrator when to spawn this Subagent.
 
 ## Checklist F — Hooks (`.claude/settings.json`)
 
@@ -49,7 +49,7 @@ Per the official docs:
 ## Checklist G — AGENTS.md "Propagation Rule" coherence
 
 - Every "sync group" listed in AGENTS.md still has all listed members present and cross-referenced.
-- Behaviors described in AGENTS.md and replicated in agent checklists agree (e.g., file-size hard/soft limits in `review-findings.md` match AGENTS.md).
+- Behaviors described in AGENTS.md and replicated in Subagent checklists agree (e.g., file-size hard/soft limits in `review-findings.md` match AGENTS.md).
 - Exemptions in AGENTS.md (e.g., `examples/` and `benches/` no-test exemptions, trait-impl doc-convention exemption) appear in every enforcement file.
 
 ## Checklist H — Documentation conformance pointers
@@ -59,7 +59,7 @@ Per the official docs:
 
 ## Checklist I — File-size & structure (instruction files)
 
-- No `SKILL.md` or agent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `project-review` / `task` skills use this pattern).
+- No `SKILL.md` or Subagent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `project-review` / `task` Skills use this pattern).
 - Each skill directory contains exactly one `SKILL.md` (no extra markdown unless intentional reference material).
 
 ## Checklist J — Allow-list / permission consistency
@@ -79,11 +79,11 @@ Per the [Claude Code skill-directory pattern](https://code.claude.com/docs/en/sk
 
    Mechanical pre-commit gate planned in #383; this audit-side back-stop fires in the meantime.
 
-2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 skill or agent**, propose moving it from the owning skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another skill's body. Severity `minor`.
+2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 Skill or Subagent**, propose moving it from the owning Skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning Skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another Skill's body. Severity `minor`.
 
 3. **Inline-script extraction candidates.** Identify `SKILL.md` sections containing **self-contained `bash` blocks** — a complete, executable recipe with at most one or two `<placeholder>` substitutions, NOT orchestration guidance that Claude reconstructs dynamically per call. For each, propose extraction to `.claude/skills/<skill>/scripts/<descriptive-name>.sh`, invoked via the canonical `${CLAUDE_SKILL_DIR}/scripts/<name>.sh <args>` pattern. After extraction, narrow the skill's `allowed-tools` from per-command patterns to a single `Bash(.claude/skills/<skill>/scripts/<name>.sh *)` entry. Severity `minor`.
 
-   **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the agent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the agent to call a helper for guidance it can express inline. Skip those.
+   **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the Subagent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the Subagent to call a helper for guidance it can express inline. Skip those.
 
 ## Checklist L — Learning-Log field coherence
 
@@ -205,7 +205,7 @@ The carrot-side analog of Checklist C (dead references). Every promoted-from-val
 
 **Forward-sweep carrier-vs-template exemption.** Entries WITHOUT carrot verbs (template scaffolding, non-promoted prose, structural placeholders) are out of scope for the forward sweep — the audit greps for carrot-verb presence within each `### N. <Name>` block **before** requiring a back-link. The named exempt source is `ai-docs/agent-writing-style.md § Patterns` (template source, not a promoted-from-validation carrier). Other `## Patterns` sections that grow in future PRs are subject to the same carrot-verb-presence filter — no further per-file exemptions.
 
-**Reverse direction.** Every `Kind: validation` entry in `ai-docs/learnings.md` whose `Escalated?` ≠ `no` MUST have a corresponding `## Patterns` block in each named target file (skill / agent / AGENTS.md). Detection recipe: parse each `Kind: validation` entry's `Escalated?` line; for each comma-separated target value, confirm the named file contains a `## Patterns` block AND that block contains an entry back-linking to this validation entry. Predicate gate: entries with `Escalated? no` are NOT subject to reverse-direction enforcement — only entries the operator has promoted (`Escalated? ≠ no`) require a paired `## Patterns` block.
+**Reverse direction.** Every `Kind: validation` entry in `ai-docs/learnings.md` whose `Escalated?` ≠ `no` MUST have a corresponding `## Patterns` block in each named target file (Skill / Subagent / AGENTS.md). Detection recipe: parse each `Kind: validation` entry's `Escalated?` line; for each comma-separated target value, confirm the named file contains a `## Patterns` block AND that block contains an entry back-linking to this validation entry. Predicate gate: entries with `Escalated? no` are NOT subject to reverse-direction enforcement — only entries the operator has promoted (`Escalated? ≠ no`) require a paired `## Patterns` block.
 
 Multi-target reverse direction. The `Escalated?` field may name multiple comma-separated targets (e.g., `skill:context-reset, AGENTS.md`). The reverse sweep iterates each value independently — a validation entry escalated to two targets must have a `## Patterns` block in BOTH files; missing in either flags.
 

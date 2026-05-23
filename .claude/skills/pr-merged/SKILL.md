@@ -22,7 +22,7 @@ Otherwise, run in order. **Capture `<previous-branch>` from the `Current branch:
 
 1. `git checkout master`
 2. `git pull`
-3. **Delete the merged branch's local progress files** (gitignored agent artefacts; no longer needed). Run the cleanup script:
+3. **Delete the merged branch's local progress files** (gitignored Subagent artefacts; no longer needed). Run the cleanup script:
 
    ```bash
    ${CLAUDE_SKILL_DIR}/scripts/cleanup-progress.sh <previous-branch>

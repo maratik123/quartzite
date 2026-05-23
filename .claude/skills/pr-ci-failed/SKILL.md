@@ -212,7 +212,7 @@ For inline-fix classes only, continue to Step 5–7 below.
 
 Enforces the AGENTS.md `## Workflow` axiom **"CI-fix commits get self-review too"** — applies to every code-producing commit on the branch, including one-liner fixes in test code.
 
-Spawn the existing `self-review` agent. Prompt scope:
+Spawn the existing `self-review` Subagent. Prompt scope:
 
 - **Diff:** `git diff <round-M-base-sha>..HEAD` (the cycle base SHA recorded at Step 1).
 - **Failing-run context:** the run URL, class, classifier's evidence, and the verbatim log excerpt (so self-review can verify the fix addresses the actual error, not a guess).
@@ -306,7 +306,7 @@ Re-invoke /pr-ci-failed after the next CI run if it turns red again.
 - **Never stack fix-up commits inside one round** — if self-review REJECTs, amend the single commit; loop cap 3.
 - **Never run this skill on `master`** — preconditions block it; use `/master-ci-failed` for master-side red CI.
 - **Never run `gh run rerun`** as a fix — that's "fix the symptom, not the cause". The skill exists to land a real code fix.
-- **Never stage progress file changes.** Both `ai-docs/plans/*.progress.md` and `ai-docs/ci-fixes/pr-<N>.progress.md` are gitignored. They are local-only agent artefacts. If `git status` ever lists one as modified/untracked-but-staged, unstage immediately.
+- **Never stage progress file changes.** Both `ai-docs/plans/*.progress.md` and `ai-docs/ci-fixes/pr-<N>.progress.md` are gitignored. They are local-only Subagent artefacts. If `git status` ever lists one as modified/untracked-but-staged, unstage immediately.
 
 ## Gate checklist
 

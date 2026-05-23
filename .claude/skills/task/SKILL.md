@@ -111,13 +111,13 @@ Never proceed silently when any blocker is open. The `blocked` label is the proj
 
 `/task` does not duplicate the interview workflow. Treat Steps 1–5 as a single delegated phase. If a saved spec already exists under `ai-docs/plans/`, confirm with the user and skip to Step 6. Otherwise invoke `Skill(skill="interview", args="$ARGUMENTS")` — the interview handles entry-mode detection, scope confirmation, clarifying-question rounds, tracking-issue resolution, spec writing, and the cross-link comment. Spec-only runs move the spec to `ai-docs/plans/deferred/` and stop. **Before Step 6:** confirm the spec exists at `ai-docs/plans/YYYY-MM-DD-name.spec.md` and the user has approved its `## Acceptance Criteria`. Full delegation narrative: `reference.md` § Steps 1–5 — spec creation delegation (detail).
 
-### Step 6: Design agent
+### Step 6: Design Subagent
 
-First action: confirm the spec exists. Spawn the `design` agent (per `.claude/agents/design.md`) with the spec path; result: `ai-docs/plans/YYYY-MM-DD-name.design.md`.
+First action: confirm the spec exists. Spawn the `design` Subagent (per `.claude/agents/design.md`) with the spec path; result: `ai-docs/plans/YYYY-MM-DD-name.design.md`.
 
 ### Step 7: Design review
 
-Spawn the `design-review` agent (per `.claude/agents/design-review.md`) with the spec + design paths.
+Spawn the `design-review` Subagent (per `.claude/agents/design-review.md`) with the spec + design paths.
 
 Verdict: GO / ITERATE / STOP.
 - **GO** → proceed to Step 8. Spec-amending notes (AC/constraint changes) need Step 6 → Step 7 re-run, not a fold-in — see `reference.md` § Spec Amendment recipe.
@@ -171,7 +171,7 @@ Then proceed to Step 10.
 
 ### Step 10: Self-review loop (max 3 rounds)
 
-Spawn the `self-review` agent with the spec, design, and progress paths (per `.claude/agents/self-review.md`).
+Spawn the `self-review` Subagent with the spec, design, and progress paths (per `.claude/agents/self-review.md`).
 
 **On APPROVE:** proceed to Step 12. The progress file is gitignored and **stays in the working tree** — `/pr-commented` extends it across reviewer rounds, `/pr-merged` deletes it post-merge. Do NOT `rm` it here. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 10 — self-review APPROVE (Round N)`; append a `## Decisions log` bullet recording the round count (one line, prefixed `Step 10:`).
 

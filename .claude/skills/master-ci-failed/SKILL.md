@@ -221,7 +221,7 @@ Now root-cause the failure from the log + reproducer output. Two paths:
 
 Enforces the AGENTS.md `## Workflow` axiom **"CI-fix commits get self-review too"** — applies even to one-liner fixes.
 
-Spawn the existing `self-review` agent. Prompt scope:
+Spawn the existing `self-review` Subagent. Prompt scope:
 
 - **Diff:** `git diff master..HEAD` (the new branch's diff against master, since the cycle base IS master HEAD).
 - **Failing-run context:** the run URL, class, classifier's evidence, verbatim log excerpt.
@@ -353,7 +353,7 @@ After the new PR merges, /pr-merged will clean up ai-docs/master-ci/<run-id>.pro
 - **Never stack fix-up commits inside one round** — if self-review REJECTs, amend the single commit; loop cap 3.
 - **Never run `gh run rerun`** as a fix — that's "fix the symptom, not the cause".
 - **Never revert silently.** If a forward-fix is infeasible and a revert is the right call, surface and bail; the user runs `git revert` manually.
-- **Never stage progress file changes.** `ai-docs/master-ci/<run-id>.progress.md` is gitignored. It is a local-only agent artefact. If `git status` ever lists it as modified/untracked-but-staged, unstage immediately.
+- **Never stage progress file changes.** `ai-docs/master-ci/<run-id>.progress.md` is gitignored. It is a local-only Subagent artefact. If `git status` ever lists it as modified/untracked-but-staged, unstage immediately.
 
 ## Gate checklist
 

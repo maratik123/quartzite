@@ -190,7 +190,7 @@ Now open Edit.
 4. Run `cargo fmt`
 5. **Write progress at this step boundary** before further tool calls: rewrite `**current_step:**` to `Step 6: Verify — green`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet recording any non-trivial regressions caught and resolved (one line, prefixed `Step 6:`; omit the bullet if no decision was needed).
 
-> ⛔ **Do NOT delete the trace artifact yet — Step 6.5 still needs it as the spec-equivalent input for the self-review agent.**
+> ⛔ **Do NOT delete the trace artifact yet — Step 6.5 still needs it as the spec-equivalent input for the `self-review` Subagent.**
 
 ---
 
@@ -199,10 +199,10 @@ Now open Edit.
 > ⛔ **`/bugfix` cannot report Step 6 as complete and proceed to commit / push until self-review issues APPROVE.** A `/bugfix` PR has the same code-quality bar as a `/task` PR — both land on master after merge. Build-system gates (clippy / fmt / test) catch what the compiler and lints know about; they do NOT catch "this literal should be a named const", "this rustdoc paragraph contradicts the fix", "this fix touches a sibling concern that should be a separate PR" — exactly the class of nits a human reviewer raises. _See `ai-docs/learnings.md` 2026-05-13 `/bugfix`-Step-6-lacks-self-review entry: PR #333 shipped a magic-number literal that `self-review` would have caught pre-push but didn't run, costing one extra `/pr-commented` round._
 
 1. Determine the diff window:
-   - **Standalone `/bugfix`** (entry point was a user bug report): `<base>` is the branch's merge-base against `origin/master` when no commits exist yet; once N commits are staged or committed (but not pushed) on the branch, `<base>` is `HEAD~N` against the pre-fix tip. Pass the resolved base as the `base_commit` to the agent.
+   - **Standalone `/bugfix`** (entry point was a user bug report): `<base>` is the branch's merge-base against `origin/master` when no commits exist yet; once N commits are staged or committed (but not pushed) on the branch, `<base>` is `HEAD~N` against the pre-fix tip. Pass the resolved base as the `base_commit` to the Subagent.
    - **`/bugfix` invoked from `/task` Steps 8–12** (per the task SKILL Step 8 "Bug report during impl → activate `/bugfix`" hand-off): the diff window is the bugfix's own staged-but-not-pushed commits — NOT the entire `/task` diff. Parent `/task` Step 10 covers the full task diff later; the per-bugfix self-review catches nits inside the bug's window before they get conflated with task-scope feedback.
 
-2. Spawn the agent with the trace artifact as the spec-equivalent input:
+2. Spawn the `self-review` Subagent with the trace artifact as the spec-equivalent input:
 
    ```
    Agent(subagent_type="general-purpose", prompt="
