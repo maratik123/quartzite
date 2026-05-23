@@ -226,8 +226,8 @@ Enforces the [AGENTS.md `## Propagation Rule` clash-rename AXIOM](../../../AGENT
 **Recipe.** Enumerate two sorted lists and intersect them; empty intersection passes.
 
 1. **Project names** — collect every name the project DEFINES across the four axes. Hook **matcher** values are NOT project-defined (they reference embedded Tool names) and are excluded:
-   - Subagent names: `awk 'BEGIN{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/agents/*.md`
-   - Skill names: `awk 'BEGIN{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/skills/*/SKILL.md`
+   - Subagent names: `awk 'FNR==1{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/agents/*.md` — the `FNR==1{f=0}` reset is load-bearing: it scopes the in-frontmatter flag to each file. Without it, a file with an odd number of `---` delimiters leaks state into the next file in the glob, silently dropping `name:` matches.
+   - Skill names: `awk 'FNR==1{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/skills/*/SKILL.md` — same `FNR==1` per-file reset rationale.
    - Hook event names (top-level `hooks.<Event>` keys): `jq -r '.hooks | keys[]' .claude/settings.json`. Event names like `SessionStart` / `PreToolUse` / `PostToolUse` are themselves harness-defined; they appear in §4 of `claude-tools-hierarchy.md` (which is NOT in the embedded-name corpus below). Including them in `project-names.txt` is intentional — if a future PR introduces a project-defined hook event, the scan catches a collision with §4's enumerated event set.
    - Sort + dedupe → `project-names.txt`.
 2. **Embedded names** — extract names from the FIRST column (the Tool / Subagent / Skill column) of `ai-docs/claude-tools-hierarchy.md` §§1a + 1b + 2a + 3a + 3b table rows. Restricting to the first column avoids false-positives from parameter columns (which also backtick token names like `file_path`). Namespaced names like `ast-index:initialize-rust` count as ONE token; do NOT split on `:`:

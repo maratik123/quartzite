@@ -117,7 +117,7 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | `task` | Full task lifecycle (Steps 1–12) orchestrator |
 | `bugfix` | Trace → root-cause → failing test → fix |
 | `context-reset` | Handoff for large tasks / post-compaction re-entry |
-| `verify-change` | Run app + observe behaviour |
+| `verify-change` | Run `cargo test [filter]` to verify a change passes tests |
 | `pr-commented` | One round of reviewer-comment response |
 | `pr-ci-failed` | One CI-failure round on PR branch |
 | `pr-merged` | Post-merge cleanup |

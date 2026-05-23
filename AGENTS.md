@@ -217,7 +217,7 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
 > | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised) (Size-exemption-index group) |
 > | `.claude/rules/<file>.md` (e.g. `.claude/rules/ast-index.md`) | Run the same grep — the Procedure below catches lingering references. Rule files are read on-demand by agents, so a cross-rule-file edit MUST sweep every instruction directory for sister references. |
-> | Any edit that changes a Tool / Subagent / Skill / Hook contract OR renames a stable anchor in `claude-tools-hierarchy.md` | Update `ai-docs/claude-tools-hierarchy.md` same PR (contract); update every inbound deep-link (anchor rename). |
+> | Any edit that changes a Tool / Subagent / Skill / Hook contract OR renames a stable anchor in `claude-tools-hierarchy.md` | Update `ai-docs/claude-tools-hierarchy.md` in the same PR (contract changes) AND every inbound deep-link to renamed anchors (anchor renames). |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 **Procedure:**
