@@ -54,21 +54,48 @@ Reactive bug-fixing workflow. **Fundamentally different from `/task`:**
 > Code shows what CAN happen. Data shows what DID happen.
 > Hypothesis without data = guess.
 
-Using only read-only tools (`rg`, `Read`, logs, test output), trace the actual execution path and draw an ASCII sequence diagram:
+Spawn the embedded `Explore` Subagent via the `Agent` Tool to trace the actual execution path. `Explore` is read-only by contract (no `Edit` / `Write` / nested `Agent`); it returns the ASCII sequence diagram AND the file:line citations supporting each arrow. The orchestrator (this skill) writes the trace artefact below from `Explore`'s output — `Explore` cannot write files.
+
+The spawn `prompt` MUST embed the verbatim `ast-index.md § Rules for subagents` block (the subagent does NOT inherit `.claude/rules/ast-index.md`).
 
 ```
-[ACTUAL]
-Caller -(method())-> ServiceA -(query())-> DaoB
-DaoB -(N records)-> ServiceA
-ServiceA: applies logic X, but expected logic Y
-ServiceA -(wrong result)-> Caller
+Agent(subagent_type="Explore", prompt="
+  Trace the actual execution path for this bug and return:
+  (1) an ASCII sequence diagram matching the template below — adapt the components to the real ones, label the divergence point explicitly;
+  (2) file:line citations supporting each arrow in the diagram.
 
-[EXPECTED]
-Caller -(method())-> ServiceA
-ServiceA -(correct result)-> Caller
+  Template to fill:
+  ```
+  [ACTUAL]
+  Caller -(method())-> ServiceA -(query())-> DaoB
+  DaoB -(N records)-> ServiceA
+  ServiceA: applies logic X, but expected logic Y
+  ServiceA -(wrong result)-> Caller
+
+  [EXPECTED]
+  Caller -(method())-> ServiceA
+  ServiceA -(correct result)-> Caller
+  ```
+
+  Use `ast-index` via Bash for code search (NOT grep / the `Grep` Tool):
+    ast-index search \"query\"           — universal search
+    ast-index file \"Name\"              — find a file by name fragment
+    ast-index symbol \"Name\"            — find a symbol definition
+    ast-index class \"Name\"             — find a class / trait / struct / enum
+    ast-index usages \"Name\"            — every usage of a symbol
+    ast-index callers \"func\"           — functions that call this one
+    ast-index implementations \"Trait\"  — concrete implementors of a trait
+    ast-index refs \"Name\"              — cross-references (defs + imports + usages)
+  Use Grep ONLY if ast-index returned empty.
+
+  Before Read-ing any file over 500 lines, FIRST run
+    ast-index outline <file>
+  to get its structure, then Read only the targeted slice via offset/limit.
+  Never bulk-read large files.
+")
 ```
 
-Adapt the diagram to the actual components involved. Label the divergence point explicitly.
+`Explore`'s returned diagram + citations feed into Step 1's inner-step 1 (artefact creation) below.
 
 **Inner steps — in this exact order:**
 
