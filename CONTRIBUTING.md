@@ -343,7 +343,9 @@ Claude Code exposes an embedded `LSP` Tool (deferred — load its schema
 once per session via `ToolSearch query="select:LSP"`). It routes through
 the locally-configured LSP server for the file type, so a
 `rust-analyzer` binary on `PATH` is required for any operation against
-`.rs` files. Operations available: `goToDefinition`, `findReferences`,
+`.rs` files — see
+[`rust-analyzer`'s upstream documentation](https://rust-analyzer.github.io/)
+for install instructions. Operations available: `goToDefinition`, `findReferences`,
 `hover`, `documentSymbol`, `workspaceSymbol`, `goToImplementation`,
 `prepareCallHierarchy`, `incomingCalls`, `outgoingCalls`. All operations
 take `filePath` + 1-based `line` + 1-based `character`. Prefer `LSP`
