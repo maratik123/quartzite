@@ -214,6 +214,7 @@ pub trait Style: Send + Sync {
     /// // Default impl returns false — no reduced-motion signal.
     /// assert!(!NoopStyle.prefers_reduced_motion());
     /// ```
+    #[inline]
     fn prefers_reduced_motion(&self) -> bool {
         false
     }

@@ -143,7 +143,6 @@ impl StyleClock {
 }
 
 impl Default for StyleClock {
-    /// _Simple._
     #[inline]
     fn default() -> Self {
         Self::new()
