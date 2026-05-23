@@ -1,10 +1,11 @@
 //! [`DefaultStyle`] — built-in flat default style for quartzite widgets.
 
+mod text_edit;
+
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
-    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetExt,
-    WidgetView,
+    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, WidgetExt, WidgetView,
 };
 
 use crate::clock::StyleClock;
@@ -13,15 +14,15 @@ use crate::{Paint, Style};
 /// Alpha applied to [`ColorRole::WindowText`] to form the read-only surface overlay.
 ///
 /// Low enough to remain translucent, high enough to be visually distinct on any palette.
-const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
+pub(super) const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
 
 /// Alpha applied to [`ColorRole::Text`] when a widget is in read-only mode.
 ///
 /// Preserves legibility while visually conveying the non-editable state.
-const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
+pub(super) const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 
 /// Stroke width in pixels for the focus-ring outline drawn around a focused [`Button`].
-const FOCUS_RING_WIDTH: f32 = 2.0;
+pub(super) const FOCUS_RING_WIDTH: f32 = 2.0;
 
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
@@ -230,66 +231,6 @@ impl Paint<Label> for DefaultStyle {
     }
 }
 
-impl Paint<TextEdit> for DefaultStyle {
-    fn paint(&self, w: &TextEdit, painter: &mut dyn Painter, palette: &Palette) {
-        let geom = w.geometry();
-        let font = w.widget_base().font.clone();
-        let enabled = w.is_enabled();
-        let hovered = w.is_hovered();
-        let pressed = w.is_pressed();
-        let focused = w.is_focused();
-
-        let group = state_group(pressed, hovered);
-        let (fill_role, text_role) = if pressed {
-            (ColorRole::Highlight, ColorRole::HighlightedText)
-        } else {
-            (ColorRole::Base, ColorRole::Text)
-        };
-        // Idle/hover keep outline = Text (tracks the text colour); pressed
-        // swaps to HighlightedText for legibility under the inverted fill.
-        let outline_role_idle = if pressed {
-            ColorRole::HighlightedText
-        } else {
-            ColorRole::Text
-        };
-        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
-        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
-        let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
-
-        painter.fill_rect(geom, &Brush::solid(fill_color));
-        if w.read_only {
-            painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
-        }
-        // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
-        let (outline_color, outline_width) = if focused {
-            (
-                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
-                FOCUS_RING_WIDTH,
-            )
-        } else {
-            (outline_color_idle, 1.0)
-        };
-        painter.draw_rect(
-            geom,
-            &Pen::new(outline_color, outline_width),
-            &Brush::solid(Color::TRANSPARENT),
-        );
-        // Read-only dims the state-resolved text colour; does NOT collapse to idle.
-        let final_text_color = if w.read_only {
-            text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
-        } else {
-            text_color
-        };
-        painter.draw_text_in(
-            geom,
-            &w.plain_text,
-            &font,
-            &Brush::solid(final_text_color),
-            Alignment::Left,
-        );
-    }
-}
-
 impl Paint<ScrollArea> for DefaultStyle {
     fn paint(&self, w: &ScrollArea, painter: &mut dyn Painter, palette: &Palette) {
         let geom = w.geometry();
@@ -409,7 +350,7 @@ impl Paint<LineEdit> for DefaultStyle {
 /// `pressed` wins over `hovered`; falls back to [`ColorGroup::Normal`] otherwise.
 /// Shared selector for every state-aware `Paint<W>` impl in this module.
 #[inline]
-const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
+pub(super) const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
     if pressed {
         ColorGroup::Pressed
     } else if hovered {
@@ -421,7 +362,7 @@ const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
 
 /// Returns a solid [`Brush`] using the `Normal`-group colour at `role` in `palette`.
 #[inline]
-const fn brush(palette: &Palette, role: ColorRole) -> Brush {
+pub(super) const fn brush(palette: &Palette, role: ColorRole) -> Brush {
     Brush::solid(palette.color(role, ColorGroup::Normal))
 }
 
@@ -429,7 +370,7 @@ const fn brush(palette: &Palette, role: ColorRole) -> Brush {
 ///
 /// With the default palette (all roles fully opaque), maps `1.0 → 0.5`.
 #[inline]
-fn disabled(color: Color) -> Color {
+pub(super) fn disabled(color: Color) -> Color {
     color.with_alpha(color.a() * 0.5)
 }
 
@@ -440,7 +381,7 @@ fn disabled(color: Color) -> Color {
 /// and `Base` share a colour (as on `Palette::default`) — because
 /// `WindowText` always carries contrast against `Window` and `Base`.
 #[inline]
-const fn read_only_overlay(palette: &Palette) -> Color {
+pub(super) const fn read_only_overlay(palette: &Palette) -> Color {
     palette
         .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(READ_ONLY_OVERLAY_ALPHA)
@@ -451,10 +392,10 @@ const fn read_only_overlay(palette: &Palette) -> Color {
     clippy::doc_link_code,
     reason = "adjacency-to-(args) pattern: renders disabled(color) with disabled intra-doc-linked; flattening to [disabled](path) would drop the surrounding code styling on (color)"
 )]
-fn maybe_disabled(color: Color, enabled: bool) -> Color {
+pub(super) fn maybe_disabled(color: Color, enabled: bool) -> Color {
     if enabled { color } else { disabled(color) }
 }
 
 #[cfg(test)]
-#[path = "default_style_tests.rs"]
+#[path = "../default_style_tests.rs"]
 mod tests;

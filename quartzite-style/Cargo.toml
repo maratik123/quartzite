@@ -12,6 +12,7 @@ description = "Style trait and StyleRegistry for quartzite (std)"
 quartzite-style-types = { path = "../quartzite-style-types" }
 quartzite-paint        = { path = "../quartzite-paint" }
 quartzite-paint-api    = { path = "../quartzite-paint-api" }
+quartzite-geometry     = { path = "../quartzite-geometry" }
 quartzite-widgets      = { path = "../quartzite-widgets" }
 parking_lot            = "0.12"
 
