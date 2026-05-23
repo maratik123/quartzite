@@ -51,7 +51,7 @@ Required body sections (populated as phases run, **not** upfront):
 
 - `## Phase 4 dedupe map summary` — `{number → {state, title, labels, body}}` counts after Phase 4 lands (the `labels` + `body` fields support the Phase 6.5 / Phase 7 UI-design gate's umbrella-discovery filter and keyword-overlap ranking; see the *Design-work classification gate* section below).
 - `## Phase 4.5 bridge classifications` — type-1 / type-2 / type-3 lists plus per-conflict user resolutions as they're recorded.
-- `## Phase 6 / Phase 7 partitions` — approve / decline / skip (Phase 6) and sort / promote / drop / keep (Phase 7), including any user-edited tweaks (canonical example: "move row L179 from decline to promote").
+- `## Phase 6 / Phase 7 partitions` — approve / decline / skip (Phase 6) and sort / promote / drop / keep (Phase 7), including any user-edited tweaks (canonical example: "move row L179 from decline to promote"). Each per-row record carries a `design_link:` sub-field — one of `none` (plain row), `umbrella=#N` (existing pick), `umbrella=#N (new)` (newly-created), `skip-link` (`none` chosen), `defer` (`defer` chosen). Written IMMEDIATELY after the gate decision (mirrors Phase 4.5 per-conflict timing); on resume, rows already carrying the field are NOT re-prompted.
 - `## Next action` — the phase the next subagent invocation should resume from. Always updated after every phase completes.
 
 The file is gitignored via `.gitignore` (`/ai-docs/triage/**/*.progress.md`); never staged in any commit emitted by this agent.
@@ -152,23 +152,7 @@ Conflict N of M — <type 1: stale tracked | type 2: status mismatch>
 Action? (m)update md / (i)update issue / (k)keep both
 ```
 
-**Action semantics:**
-
-- **`update md`** (write to md, no gh mutation):
-  - **Type 1 (stale tracked):** rewrite the cell to keep `#N` and append ` (closed)` after it.
-    - Thematic-file cell 4: `#60` → `#60 (closed)`.
-    - `_inbox.md` cell 4: same — `#60` → `#60 (closed)`.
-    - `widget-backlog.md` `Notes`: `tracked: #60 — needs button group` → `tracked: #60 (closed) — needs button group`.
-  - **Type 2 (status mismatch, widget-backlog `Status: ✅` vs OPEN gh issue):** follow-up prompt picks one of `🟡 v2` / `🤔 undecided` / `❌ dropped` / `📭 future` to replace `✅`. Defensible default: `🟡 v2` (OPEN means still planned but not done). `Notes` cell unchanged.
-  - **Concurrent-edit guard** (B's Phase 6 / Phase 7.5 rule, verbatim): re-read the row immediately before the write; abort with diff on mismatch; mtime not part of the check.
-
-- **`update issue`** (write to gh, no md mutation):
-  - **Type 1:** user asserts md row is right (work still open) — `gh issue reopen <N>`. Diff preview: `CLOSED` → `OPEN`. User confirms via yes/no prompt before the call runs.
-  - **Type 2:** user asserts md row is right (work done) — `gh issue close <N>`. Diff preview: `OPEN` → `CLOSED`. User confirms.
-  - **No `gh issue edit` calls in v1** — body drift is out of scope for the bridge.
-  - **Failure handling:** if `gh issue close/reopen` fails, surface the error, leave the conflict unresolved in the run summary, continue with next conflict. No retry, no md mutation.
-
-- **`keep both`**: no mutation. Capture user-supplied free-text reason in the bridge sub-section. Conflict re-surfaces on next `/triage` run (no marker is written that short-circuits it).
+See [triage-runner-bridge.md](../../ai-docs/triage-runner-bridge.md) § *Bridge action semantics* for the verbatim per-conflict-type action recipe.
 
 **Phase 4.5 is read-only on `ai-docs/deferred/**` until the user resolves conflicts.** Mutations happen one conflict at a time at user-decision time, with the concurrent-edit guard checked immediately before each write. No batched mutation pass — this matches Phase 7's drain shape.
 
@@ -352,6 +336,12 @@ defer  Skip creating this row's issue; return to _inbox.md
 - **`Body-edit failed — gh API error`** — per-run **transient** state. Fires when sub-step 4e returns non-zero (network, rate limit, auth expiry, etc.); parse + idempotency + compose succeeded, only push-back failed. Emit inline `Umbrella #<N> body edit failed: <gh stderr first-line>`; record `#N` + child `#C` + the stderr line under this **separate** Phase 8 sub-list. The child already carries `**Blocked by:** #N` — a future `/triage` run sees the idempotency check unsatisfied and re-applies the body edit (recoverable).
 
 **Ordering invariant.** Sub-steps 3 + 4 both run AFTER `gh issue create` returns `#C`. Sub-step 3 failure does NOT block sub-step 4 (independent); sub-step 4a anchor-missing leaves the child labelled but the umbrella in hand-edit territory.
+
+**`new` branch.** Two follow-ups (`Umbrella title:` / `Umbrella body:`) collect the new umbrella; enqueue a `kind: "umbrella"` entry with the `ui-design` label into the same Phase 7.5 queue. **Queue partition (R6):** Phase 7.5 sorts `[umbrellas..., children...]` so each new umbrella's `#N` is known before its dependent child is constructed. The child then runs the numbered-pick sub-steps 2 + 3 + 4 against that `#N`. Persist `design_link: umbrella=#N (new)`.
+
+**`none` branch.** Queue the child normally — no `link_to_umbrella`, no `**Blocked by:**`, no labels, no umbrella body edit. Persist `design_link: skip-link`; record in Phase 8 as `#<C> (skip-link)`.
+
+**`defer` branch.** Remove the row from Phase 7.5's queue. `_inbox.md`-origin rows stay in `_inbox.md` unchanged; Phase 6-origin approves downgrade to "deferred (gate)" with the source cell untouched (`defer` ≠ decline). No create, no labels, no umbrella body edit. Persist `design_link: defer`; record in Phase 8 as `<row> deferred`.
 
 ### Phase 7: Drain `_inbox.md`
 

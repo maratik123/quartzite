@@ -243,6 +243,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/context.md` | Project context — read on demand |
 | `ai-docs/code-style.md` | Workspace code-style reference — read on demand |
 | `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
+| `ai-docs/triage-runner-bridge.md` | Extracted Phase 4.5 bridge `Action semantics` block from `.claude/agents/triage-runner.md` (verbatim per-conflict-type action recipe). Read on demand. |
 | `ai-docs/corrections-log.md` | Extracted § Learning Log carve-outs + field glossary |
 | `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
 | `ai-docs/plans-summary.md` | Maintenance-plans (cross-cutting) detail bodies from context.md |

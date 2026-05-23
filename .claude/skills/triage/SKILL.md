@@ -14,7 +14,7 @@ A multi-turn `/triage` run persists state to `ai-docs/triage/triage-YYYY-MM-DD.p
 
 - Phase 4 dedupe map summary (`{number → {state, title, labels, body}}` counts; the `labels` + `body` fields support the Phase 6.5 / Phase 7 UI-design gate's umbrella discovery + ranking — see `## Design-work classification gate` below).
 - Phase 4.5 bridge classifications (type-1 / type-2 / type-3 lists + per-conflict user resolutions as they land).
-- Phase 6 / Phase 7 candidate partitions (approve / decline / sort / promote / drop / keep — including any user-edited tweaks to the proposed split).
+- Phase 6 / Phase 7 candidate partitions (approve / decline / sort / promote / drop / keep — including any user-edited tweaks to the proposed split). Each per-row record carries a `design_link:` sub-field — `none` / `umbrella=#N` / `umbrella=#N (new)` / `skip-link` / `defer` — written immediately after the gate decision; on resume, rows already carrying the field are NOT re-prompted.
 - `## Next action` — the phase the next subagent invocation should resume from.
 
 Lifecycle (mirrors `/task` and `/pr-commented` progress files):
@@ -127,6 +127,12 @@ Every row that reaches the Phase 7.5 `gh issue create` queue is first classified
 
 - **`Body-edit skipped — anchor absent`** — fires when the umbrella body has no `## Child issues (blocked on this epic)` substring (user-created umbrellas that diverge from the #539–#542 convention). Per-umbrella **structural state**: same on every `/triage` run until the umbrella body is hand-edited. A warning is emitted inline; the body edit is skipped; the umbrella is listed in Phase 8 under this sub-list with a one-line reminder.
 - **`Body-edit failed — gh API error`** — fires when `gh issue edit #N --body-file <tmpfile>` returns non-zero (network error, rate limit, auth expiry, etc.). Per-run **transient state**: a re-run may succeed because the idempotency check (the `#<C> ` sentinel) is not yet satisfied. The child issue itself is already created with the back-reference; the umbrella is listed in Phase 8 under this sub-list with the captured `gh` stderr line so the maintainer can heal manually or via a re-run.
+
+**Text-option branches.**
+
+- **`new`** — two follow-ups (`Umbrella title:` / `Umbrella body:`) collect the new umbrella; an `umbrella`-kind entry enters the same Phase 7.5 queue with the `ui-design` label. The queue partitions `[umbrellas..., children...]` so each new umbrella's `#N` is known before its dependent child is created; the child then runs the numbered-pick branch's body-prefix + labels + umbrella body edit against that `#N`.
+- **`none`** — the row's issue is created normally (no labels, no `**Blocked by:**`, no umbrella body edit). Recorded in Phase 8 *Design-link outcomes* as "design-work issue without umbrella link".
+- **`defer`** — no `gh issue create` runs this run; the row is returned to `_inbox.md` (or left there). Recorded in Phase 8 as a deferred row.
 
 See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt, the body-edit machinery, and the progress-file `design_link:` audit trail.
 

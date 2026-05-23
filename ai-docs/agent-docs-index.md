@@ -16,6 +16,10 @@ Workspace code-style reference — read on demand.
 
 Extracted narrative passages from `AGENTS.md` § *Workflow* (PR review comment resolution GraphQL recipe). Read on demand.
 
+### ai-docs/triage-runner-bridge.md
+
+Extracted Phase 4.5 bridge `Action semantics` block from `.claude/agents/triage-runner.md` — the verbatim per-conflict-type action recipe (`update md` / `update issue` / `keep both`) for each of the three bridge conflict types. Lives as a sibling reference file under `ai-docs/` to keep `triage-runner.md` under the 40k AGENTS.md hard cap; `triage-runner.md` § Phase 4.5 carries a one-line pointer in the slot where the block was inlined. Read on demand when working on the bridge sweep or extending its conflict-type set.
+
 ### ai-docs/corrections-log.md
 
 Extracted carve-outs from `AGENTS.md` § *Learning Log* (Boundary rule 1 / 2 Exception bodies + entry-format field glossary). Read on demand.
