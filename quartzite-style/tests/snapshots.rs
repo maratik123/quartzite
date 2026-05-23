@@ -21,7 +21,7 @@ mod support;
 
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::Painter;
-use quartzite_style::{DefaultStyle, Style};
+use quartzite_style::{DefaultStyle, Style, StyleClock};
 use quartzite_style_types::{DARK_PALETTE, Palette};
 use quartzite_widgets::{AsWidget, Button, Label, LineEdit, ScrollArea, TextEdit, WidgetExt};
 
@@ -586,5 +586,163 @@ fn dark_line_edit_focused_renders() {
     w.set_focused(true);
     render_dark("dark_line_edit_focused", |painter| {
         DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// TextEdit caret + selection snapshot goldens (issue #317)
+// ---------------------------------------------------------------------------
+//
+// All four light tests use `DefaultStyle::with_clock(StyleClock::pinned(true))`
+// so the caret is always visible and the golden is deterministic.
+
+#[test]
+fn text_edit_focused_caret_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_focused_caret_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 5;
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_focused_caret", &image);
+}
+
+#[test]
+fn text_edit_selection_wrap_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_selection_wrap_renders") else {
+        return;
+    };
+    // Text long enough to wrap on a 64px canvas (≥ 9 chars).
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 9;
+    w.selection_anchor = Some(0);
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_selection_wrap", &image);
+}
+
+#[test]
+fn text_edit_read_only_selection_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_read_only_selection_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Read only".into();
+    w.read_only = true;
+    w.caret = 4;
+    w.selection_anchor = Some(0);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_read_only_selection", &image);
+}
+
+#[test]
+fn text_edit_unfocused_selection_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_unfocused_selection_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello".into();
+    w.caret = 5;
+    w.selection_anchor = Some(0);
+    // Not focused — selection alpha is half.
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_unfocused_selection", &image);
+}
+
+#[test]
+fn dark_text_edit_focused_caret_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 5;
+    w.set_focused(true);
+    render_dark("dark_text_edit_focused_caret", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_selection_wrap_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 9;
+    w.selection_anchor = Some(0);
+    w.set_focused(true);
+    render_dark("dark_text_edit_selection_wrap", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_read_only_selection_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Read only".into();
+    w.read_only = true;
+    w.caret = 4;
+    w.selection_anchor = Some(0);
+    render_dark("dark_text_edit_read_only_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_unfocused_selection_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello".into();
+    w.caret = 5;
+    w.selection_anchor = Some(0);
+    // Not focused — selection alpha is half.
+    render_dark("dark_text_edit_unfocused_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
     });
 }
