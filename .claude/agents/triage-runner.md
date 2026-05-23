@@ -343,6 +343,8 @@ defer  Skip creating this row's issue; return to _inbox.md
 
 **`defer` branch.** Remove the row from Phase 7.5's queue. `_inbox.md`-origin rows stay in `_inbox.md` unchanged; Phase 6-origin approves downgrade to "deferred (gate)" with the source cell untouched (`defer` ≠ decline). No create, no labels, no umbrella body edit. Persist `design_link: defer`; record in Phase 8 as `<row> deferred`.
 
+**Scope.** Gate is FORWARD-only — no retroactive sweep of the 277 existing `_inbox.md` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
+
 ### Phase 7: Drain `_inbox.md`
 
 Per-entry user prompt for every `_inbox.md` row tagged in Phase 3. For each row, present:
@@ -403,6 +405,7 @@ Emit the run-output summary per the skill body's *Run-output summary* section. S
   gh issue calls made by bridge this run:
     <list of close/reopen commands actually executed>
   ```
+- **Design-link outcomes** — sub-section shape: [triage-runner-design-links.md](../../ai-docs/triage-runner-design-links.md). Mandatory per-mutated-umbrella `grep -n "#<N>" .claude/skills/next/SKILL.md` recorded per AC10.
 - Issues created (`#N` + one-line title each).
 - Rows declined (file path + `Item` cell content).
 - Inbox actions (sort / promote / drop, with destination thematic file).

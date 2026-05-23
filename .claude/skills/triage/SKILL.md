@@ -134,13 +134,16 @@ Every row that reaches the Phase 7.5 `gh issue create` queue is first classified
 - **`none`** — the row's issue is created normally (no labels, no `**Blocked by:**`, no umbrella body edit). Recorded in Phase 8 *Design-link outcomes* as "design-work issue without umbrella link".
 - **`defer`** — no `gh issue create` runs this run; the row is returned to `_inbox.md` (or left there). Recorded in Phase 8 as a deferred row.
 
-See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt, the body-edit machinery, and the progress-file `design_link:` audit trail.
+See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt, the body-edit machinery, and the progress-file `design_link:` audit trail. Phase 8 `Design-link outcomes` shape: [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md); mandatory per-mutated-umbrella grep against `next/SKILL.md` (AC10).
+
+**Scope.** Gate is FORWARD-only — no retroactive sweep of the 277 existing `_inbox.md` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
 
 ## Run-output summary
 
 At the end of every `/triage` run the subagent emits:
 
 - Status table covering all 10 row sources with candidate counts (before / after).
+- Design-link outcomes — see [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md).
 - List of issues created (`#N` + one-line title each).
 - List of rows declined (file path + `Item` cell content).
 - List of inbox actions taken (sort / promote / drop, with destination thematic file when applicable).
