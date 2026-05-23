@@ -7,7 +7,7 @@
 //! calls remain valid.
 
 use quartzite_core::ObjectId;
-use quartzite_geometry::{Point, Rect};
+use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::{
     Brush, Color, Font, Image, Painter, Path, Pen, TextCaretCursor, TextVisualLine,
     TextVisualLineCursor,
@@ -18,7 +18,7 @@ use quartzite_widgets::{
     WidgetExt,
 };
 
-use crate::{DefaultStyle, Style, StyleRegistry};
+use crate::{DefaultStyle, Style, StyleClock, StyleRegistry};
 
 // ── Recording painter fixture ────────────────────────────────────────────
 
@@ -486,10 +486,11 @@ fn text_edit_read_only_dims_text() {
         4,
         "expected 4 events for read-only TextEdit with text"
     );
+    // New paint order: fill → overlay → text → outline (caret absent: unfocused).
     assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
             if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
-        "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
+        "events[2] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
 
@@ -511,8 +512,9 @@ fn text_edit_writable_keeps_full_alpha_text() {
         3,
         "expected 3 events for writable TextEdit"
     );
+    // New paint order: fill → text → outline (caret absent: unfocused).
     assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
+        matches!(&painter.events[1], PaintEvent::DrawTextIn { brush, .. }
             if brush_color(brush).a() == 1.0),
         "writable TextEdit text brush must have full alpha"
     );
@@ -2145,21 +2147,22 @@ fn text_edit_read_only_hovered_overlay_plus_hover_base_fill() {
         "events[1] FillRect brush must be the WindowText overlay at READ_ONLY_OVERLAY_ALPHA"
     );
 
-    // events[2] — outline Text × Hover.
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawRect { pen, .. }
-            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover)),
-        "events[2] DrawRect pen must be Text × Hover"
-    );
-
-    // events[3] — text Text × Hover, dimmed to READ_ONLY_TEXT_ALPHA.
+    // events[2] — text Text × Hover, dimmed to READ_ONLY_TEXT_ALPHA.
+    // New paint order: fill → overlay → text → outline (caret absent: unfocused).
     let expected_text = palette
         .color(ColorRole::Text, ColorGroup::Hover)
         .with_alpha(super::READ_ONLY_TEXT_ALPHA);
     assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
             if brush_color(brush) == expected_text),
-        "events[3] DrawTextIn brush must be Text × Hover dimmed to READ_ONLY_TEXT_ALPHA"
+        "events[2] DrawTextIn brush must be Text × Hover dimmed to READ_ONLY_TEXT_ALPHA"
+    );
+
+    // events[3] — outline Text × Hover.
+    assert!(
+        matches!(&painter.events[3], PaintEvent::DrawRect { pen, .. }
+            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover)),
+        "events[3] DrawRect pen must be Text × Hover"
     );
 }
 
@@ -2342,5 +2345,398 @@ fn registry_round_trip_dispatches_default_style() {
             PaintEvent::DrawTextIn { text, alignment, .. }
                 if text == "OK" && *alignment == Alignment::Center),
         "registry-dispatched DefaultStyle must produce the same events as AC2"
+    );
+}
+
+// ── Subtask 12: Paint<TextEdit> symbolic AC tests (RecordingPainter) ──────
+
+/// Geometry used for tests that require a non-zero widget width (selection/wrap).
+fn text_edit_geom() -> Rect {
+    Rect::new(Point::new(0, 0), Size::new(100, 20))
+}
+
+/// Geometry that forces exactly 8 chars per line under the fake shaper (`FAKE_ADVANCE=8`).
+fn wrap_geom() -> Rect {
+    Rect::new(Point::new(0, 0), Size::new(64, 40))
+}
+
+/// Returns true if `event` is a 1-px-wide `FillRect` (caret shape).
+fn is_caret_fill(event: &PaintEvent) -> bool {
+    matches!(event, PaintEvent::FillRect { rect, .. } if rect.size().width() == 1)
+}
+
+// AC4 positive: caret rect emitted when focused + enabled + writable + phase on.
+#[test]
+fn caret_rect_emitted_when_focused_enabled_writable_phase_on() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_focused(true);
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    // Paint order: FillRect(base) → DrawTextIn → DrawRect(outline) → FillRect(caret 1px).
+    let caret_count = painter.events.iter().filter(|e| is_caret_fill(e)).count();
+    assert_eq!(
+        caret_count, 1,
+        "exactly one 1-px FillRect (caret) must be emitted"
+    );
+    // Caret must come after the outline.
+    let outline_idx = painter
+        .events
+        .iter()
+        .position(|e| matches!(e, PaintEvent::DrawRect { .. }))
+        .expect("DrawRect outline must be present");
+    let caret_idx = painter
+        .events
+        .iter()
+        .position(is_caret_fill)
+        .expect("caret FillRect must be present");
+    assert!(
+        caret_idx > outline_idx,
+        "caret must come after the outline in event order"
+    );
+}
+
+// AC4 negative — caret absent when not focused.
+#[test]
+fn caret_rect_absent_when_not_focused() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    // focused defaults to false
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "caret must be absent when not focused"
+    );
+}
+
+// AC4 negative — caret absent when read_only.
+#[test]
+fn caret_rect_absent_when_read_only() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_focused(true);
+    edit.read_only = true;
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "caret must be absent when read_only is true"
+    );
+}
+
+// AC4 negative — caret absent when disabled.
+#[test]
+fn caret_rect_absent_when_disabled() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_focused(true);
+    edit.set_enabled(false);
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "caret must be absent when disabled"
+    );
+}
+
+// AC4 negative — caret absent when phase off (caret_visible_now = false).
+#[test]
+fn caret_rect_absent_when_phase_off() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_focused(true);
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    // pinned(false) → caret_visible_now() returns false.
+    DefaultStyle::with_clock(StyleClock::pinned(false)).draw_widget(&edit, &mut painter, &palette);
+
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "caret must be absent when caret phase is off (pinned false)"
+    );
+}
+
+// AC5: single-line selection emits exactly one selection FillRect.
+//
+// Uses a partial selection (first 2 of 5 chars) so the selection fill is narrower
+// than the widget (not full-width), making the width assertion deterministic.
+#[test]
+fn single_line_selection_emits_one_fill_rect() {
+    let mut edit = TextEdit::new();
+    // 5 chars; select only the first 2 (anchor=0, caret=2).
+    edit.plain_text = "abcde".into();
+    edit.caret = 2;
+    edit.set_selection_anchor(Some(0));
+    edit.set_focused(true);
+    edit.set_geometry(text_edit_geom()); // width=100, 5 chars × 8px = 40px < 100px → single line
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(false)).draw_widget(&edit, &mut painter, &palette);
+
+    // selection_range = Some((0, 2)) — two chars, single visual line, partial-width fill.
+    // paint_selection emits: FillRect(sel bg, width=16) + Save + ClipRect + DrawTextIn + Restore.
+    // FillRects in stream: base(width=100) + selection(width=16).
+    let fill_rects: Vec<_> = painter
+        .events
+        .iter()
+        .filter(|e| matches!(e, PaintEvent::FillRect { .. }))
+        .collect();
+    // Caret absent (pinned false); 2 fill rects: base + selection.
+    assert_eq!(
+        fill_rects.len(),
+        2,
+        "expected 2 FillRects: base fill + one selection fill (no caret: phase off)"
+    );
+    // The selection fill (index 1) must be narrower than the widget (partial selection).
+    if let PaintEvent::FillRect { rect, .. } = fill_rects[1] {
+        assert_eq!(
+            rect.size().width(),
+            16, // 2 chars × FAKE_ADVANCE(8) = 16px
+            "selection fill width must equal 2 chars × 8px = 16px"
+        );
+    } else {
+        panic!("expected FillRect");
+    }
+    // Verify Save/Restore block (overdraw) is present.
+    assert!(
+        painter.events.iter().any(|e| matches!(e, PaintEvent::Save)),
+        "selection overdraw Save must be present"
+    );
+}
+
+// AC6: wrapped selection emits one FillRect per visual line.
+#[test]
+fn wrap_selection_emits_two_rects_for_two_line_text() {
+    // With wrap_geom() width=64 and FAKE_ADVANCE=8 → 8 chars per line.
+    // "abcdefghijklmnop" is 16 chars → 2 lines.
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abcdefghijklmnop".into();
+    edit.caret = 16;
+    edit.set_selection_anchor(Some(0));
+    edit.set_focused(true);
+    edit.set_geometry(wrap_geom());
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(false)).draw_widget(&edit, &mut painter, &palette);
+
+    // FillRects in event stream:
+    //   [0] base fill (width=64 — full width)
+    //   [1] selection fill line 0 (width=64 — full line)
+    //   [2] selection fill line 1 (width=64 — full line)
+    // Caret is absent (pinned(false) → caret_visible_now = false).
+    // 1 base fill + 2 selection fills = 3 total.
+    assert_eq!(
+        painter
+            .events
+            .iter()
+            .filter(|e| matches!(e, PaintEvent::FillRect { .. }))
+            .count(),
+        3,
+        "expected 3 FillRects: base fill + 2 selection fills for 2-line selection"
+    );
+}
+
+// AC7: unfocused widget with selection uses half-alpha highlight fill + Text overdraw brush.
+#[test]
+#[allow(
+    clippy::float_cmp,
+    reason = "exact representable f32/f64 literal comparison in test — half-alpha is 0.5 × full-alpha"
+)]
+fn unfocused_with_selection_uses_alpha_half_highlight() {
+    let palette = Palette::default();
+    let highlight = palette.color(ColorRole::Highlight, ColorGroup::Normal);
+
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 3;
+    edit.set_selection_anchor(Some(0));
+    // NOT focused — unfocused-with-selection path.
+    edit.set_geometry(text_edit_geom());
+    let mut painter = RecordingPainter::default();
+    DefaultStyle::with_clock(StyleClock::pinned(false)).draw_widget(&edit, &mut painter, &palette);
+
+    // Find the selection fill: first non-base non-caret FillRect (index 1 in non-caret list).
+    let non_caret_fills: Vec<_> = painter
+        .events
+        .iter()
+        .filter(|e| matches!(e, PaintEvent::FillRect { rect, .. } if rect.size().width() > 1))
+        .collect();
+    assert!(
+        non_caret_fills.len() >= 2,
+        "expected at least 2 non-caret FillRects (base + selection)"
+    );
+    let PaintEvent::FillRect {
+        brush: sel_fill_brush,
+        ..
+    } = non_caret_fills[1]
+    else {
+        panic!("expected FillRect");
+    };
+    let sel_fill_color = brush_color(sel_fill_brush);
+    // Unfocused selection fill = disabled(Highlight) = Highlight × 0.5 alpha.
+    assert_eq!(
+        sel_fill_color.a(),
+        highlight.a() * 0.5,
+        "unfocused selection fill must use half-alpha Highlight"
+    );
+
+    // Find the overdraw DrawTextIn (inside the Save/Restore block after the selection fills).
+    // It must come after a ClipRect event.
+    let clip_idx = painter
+        .events
+        .iter()
+        .position(|e| matches!(e, PaintEvent::ClipRect(_)))
+        .expect("ClipRect must be present for selection overdraw");
+    let overdraw = painter.events[clip_idx + 1..]
+        .iter()
+        .find(|e| matches!(e, PaintEvent::DrawTextIn { .. }));
+    let Some(PaintEvent::DrawTextIn {
+        brush: overdraw_brush,
+        ..
+    }) = overdraw
+    else {
+        panic!("expected DrawTextIn overdraw after ClipRect");
+    };
+    // Unfocused overdraw glyph colour is Text (not HighlightedText).
+    assert_eq!(
+        brush_color(overdraw_brush),
+        palette.color(ColorRole::Text, ColorGroup::Normal),
+        "unfocused overdraw glyph brush must be ColorRole::Text"
+    );
+}
+
+// AC8: disabled widget emits no caret and no selection but preserves state.
+#[test]
+fn disabled_emits_no_caret_no_selection_preserves_state() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_selection_anchor(Some(0));
+    edit.set_focused(true);
+    edit.set_enabled(false);
+    edit.set_geometry(text_edit_geom());
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    // State is preserved (not mutated during paint):
+    assert_eq!(edit.caret, 1);
+    assert_eq!(edit.selection_anchor, Some(0));
+
+    // No caret fill:
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "disabled widget must emit no caret"
+    );
+    // No selection fill (paint_selection guards on is_enabled()):
+    assert!(
+        !painter.events.iter().any(|e| matches!(e, PaintEvent::Save)),
+        "disabled widget must emit no selection overdraw (no Save event)"
+    );
+}
+
+// AC9: read_only with selection emits selection fills but no caret.
+#[test]
+fn read_only_with_selection_emits_selection_no_caret() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 3;
+    edit.set_selection_anchor(Some(0));
+    edit.set_focused(true);
+    edit.read_only = true;
+    edit.set_geometry(text_edit_geom());
+    let mut painter = RecordingPainter::default();
+    let palette = Palette::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(&edit, &mut painter, &palette);
+
+    // Selection fill must be present.
+    assert!(
+        painter.events.iter().any(|e| matches!(e, PaintEvent::Save)),
+        "read_only with selection must emit selection overdraw (Save event present)"
+    );
+    // Caret must be absent (paint_caret guards on !w.read_only).
+    assert_eq!(
+        painter.events.iter().filter(|e| is_caret_fill(e)).count(),
+        0,
+        "read_only widget must emit no caret"
+    );
+}
+
+// AC12: Style trait-object dispatches both new methods.
+#[test]
+fn style_trait_object_dispatches_both_new_methods() {
+    let style = DefaultStyle::with_clock(StyleClock::pinned(true));
+    let s: &dyn Style = &style;
+    // Both methods must be callable through &dyn Style without panicking.
+    let visible = s.caret_visible_now();
+    let reduced = s.prefers_reduced_motion();
+    assert!(
+        visible,
+        "pinned(true) must return true through trait object"
+    );
+    assert!(
+        !reduced,
+        "prefers_reduced_motion must return false (default)"
+    );
+}
+
+// AC14: pinned-clock flips caret paint output.
+#[test]
+fn pinned_clock_flips_caret_paint_output() {
+    let mut edit = TextEdit::new();
+    edit.plain_text = "abc".into();
+    edit.caret = 1;
+    edit.set_focused(true);
+    let palette = Palette::default();
+
+    let mut painter_on = RecordingPainter::default();
+    DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+        &edit,
+        &mut painter_on,
+        &palette,
+    );
+    let caret_on = painter_on
+        .events
+        .iter()
+        .filter(|e| is_caret_fill(e))
+        .count();
+
+    let mut painter_off = RecordingPainter::default();
+    DefaultStyle::with_clock(StyleClock::pinned(false)).draw_widget(
+        &edit,
+        &mut painter_off,
+        &palette,
+    );
+    let caret_off = painter_off
+        .events
+        .iter()
+        .filter(|e| is_caret_fill(e))
+        .count();
+
+    assert_eq!(caret_on, 1, "pinned(true) must emit exactly one caret fill");
+    assert_eq!(caret_off, 0, "pinned(false) must emit zero caret fills");
+    assert_eq!(
+        caret_on.abs_diff(caret_off),
+        1,
+        "pinned clock flip must differ by exactly 1 caret fill"
     );
 }

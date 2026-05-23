@@ -39,10 +39,37 @@ impl Paint<TextEdit> for DefaultStyle {
         let text_color = maybe_disabled(palette.color(text_role, group), enabled);
         let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
 
+        // 1. Base fill.
         painter.fill_rect(geom, &Brush::solid(fill_color));
+        // 2. Read-only overlay (if applicable).
         if w.read_only {
             painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
         }
+
+        // 3. Main text draw (all text, normal colour).
+        // Read-only dims the state-resolved text colour; does NOT collapse to idle.
+        let final_text_color = if w.read_only {
+            text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
+        } else {
+            text_color
+        };
+        painter.draw_text_in(
+            geom,
+            &w.plain_text,
+            &font,
+            &Brush::solid(final_text_color),
+            Alignment::Left,
+        );
+
+        // 4–5. Selection fill (covers normal text in selected region) + selected-glyph overdraw
+        // (re-renders selected glyphs with highlight colour). Both emitted by `paint_selection`;
+        // called AFTER the main draw_text_in so the fill overlays the normal-coloured glyphs and
+        // the overdraw renders highlighted glyphs on top. Skipped when disabled or no selection.
+        if enabled && w.selection_range().is_some() {
+            paint_selection(w, painter, palette, focused);
+        }
+
+        // 6. Outline — drawn after the text and selection so it is always visible on top.
         // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
         let (outline_color, outline_width) = if focused {
             (
@@ -57,19 +84,9 @@ impl Paint<TextEdit> for DefaultStyle {
             &Pen::new(outline_color, outline_width),
             &Brush::solid(Color::TRANSPARENT),
         );
-        // Read-only dims the state-resolved text colour; does NOT collapse to idle.
-        let final_text_color = if w.read_only {
-            text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
-        } else {
-            text_color
-        };
-        painter.draw_text_in(
-            geom,
-            &w.plain_text,
-            &font,
-            &Brush::solid(final_text_color),
-            Alignment::Left,
-        );
+
+        // 7. Caret — last, so it is always on top of the outline.
+        paint_caret(w, painter, palette, self);
     }
 }
 
@@ -82,8 +99,6 @@ impl Paint<TextEdit> for DefaultStyle {
 ///
 /// - `w`: the [`TextEdit`] widget being painted.
 /// - `palette`: the active colour palette.
-// Wired into Paint<TextEdit>::paint in subtask 10.
-#[allow(dead_code)]
 pub(super) fn state_resolved_text_color(w: &TextEdit, palette: &Palette) -> Color {
     let enabled = w.is_enabled();
     let hovered = w.is_hovered();
@@ -119,8 +134,6 @@ pub(super) fn state_resolved_text_color(w: &TextEdit, palette: &Palette) -> Colo
 /// - `painter`: the active painter.
 /// - `palette`: the active colour palette.
 /// - `style`: the owning [`DefaultStyle`]; used to query `caret_visible_now`.
-// Wired into Paint<TextEdit>::paint in subtask 10.
-#[allow(dead_code)]
 pub(super) fn paint_caret(
     w: &TextEdit,
     painter: &mut dyn Painter,
@@ -168,8 +181,6 @@ pub(super) fn paint_caret(
 /// - `painter`: the active painter.
 /// - `palette`: the active colour palette.
 /// - `is_focused`: whether the widget currently has keyboard focus.
-// Wired into Paint<TextEdit>::paint in subtask 10.
-#[allow(dead_code)]
 pub(super) fn paint_selection(
     w: &TextEdit,
     painter: &mut dyn Painter,
