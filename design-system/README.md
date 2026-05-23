@@ -48,6 +48,15 @@ A short manifest of the root:
 | `ui_kits/widgets/index.html` | Working `quartzite-widgets` demo: Counter + new-note form + Signal log. |
 | `ui_kits/widgets/{Button,Label,LineEdit,TextEdit,ScrollArea,Container,WindowFrame,App}.jsx` | Per-widget React components mirroring real props + signals. |
 | `proposals/text-edit-read-only-overlay.md` | Proposed framework fix for the invisible read-only overlay on `Palette::default`. |
+| `proposals/caret-and-selection.md` | Caret + selection visual spec for `LineEdit` and `TextEdit`. Unblocks #405, #317. |
+| `proposals/scrollbar.md` | `ColorRole::ScrollBar` + track / thumb geometry for `ScrollArea`. Unblocks #315. |
+| `proposals/cursor-shapes.md` | Per-widget cursor defaults + state overrides + endorsed `winit::CursorIcon` subset. Unblocks #404. |
+| `proposals/popups-and-tooltips.md` | Popup + tooltip chrome + `ZLayer` paint pass; keeps the no-shadow rule. Unblocks #408. |
+| `preview/comp-line-edit-caret.html` | Caret geometry + blink phases. |
+| `preview/comp-line-edit-selection.html` | Single-line selection states (focused / unfocused / read-only / disabled). |
+| `preview/comp-text-edit-selection.html` | Multi-line wrapped selection geometry. |
+| `preview/comp-popup.html` | Popup chrome, row states, `ZLayer` stack. |
+| `preview/comp-tooltip.html` | Tooltip chrome, inversion, wrap. |
 
 ## Brand context
 
@@ -98,9 +107,9 @@ restatements of that file.
 
 ### Color
 
-- **12 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`, `FocusRing`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA. `FocusRing` defaults to the same value as `Highlight × Normal`.
+- **13 semantic roles**, declared in `ColorRole`: `Window`, `WindowText`, `Button`, `ButtonText`, `Base`, `Text`, `Highlight`, `HighlightedText`, `Link`, `LinkVisited`, `BrightText`, `FocusRing`, `ScrollBar`. These are slots, not concrete colors — a dark theme and a light theme populate the same slots with different RGBA. (`FocusRing` is added by issue #402; its default value equals `Highlight × Normal`. `ScrollBar` is added by `proposals/scrollbar.md`; only the thumb reads from it — the track is `Base`.)
 - **`Palette::default` seeds every slot to a non-transparent value.** Backgrounds white, foregrounds black, `Highlight` sky-blue (`#0080FF`), `Link` blue (`#0000FF`), `HighlightedText` and `BrightText` white, `FocusRing` sky-blue (matching `Highlight`). The defaults are explicitly described in source as "intentionally minimal — the goal is to satisfy the `default != Color::TRANSPARENT` invariant for every role rather than to produce a polished theme."
-- **State groups.** A `ColorGroup` axis (`Normal` / `Hover` / `Pressed`) is orthogonal to `ColorRole`. Lookups are `palette.color(role, group)`. `Hover` and `Pressed` cells are **derived** from the role's `Normal` value at construction time via `Hover(c) = c.blend(WindowText.Normal, 0.06)` and `Pressed(c) = c.blend(WindowText.Normal, 0.16)`. For the default light palette this lands on `#F0F0F0` / `#D6D6D6` (Button) and `#0078F0` / `#006CD6` (Highlight). Themes opt out per cell.
+- **State groups.** Issue #402 adds a `ColorGroup` axis (`Normal` / `Hover` / `Pressed`) orthogonal to `ColorRole`. Lookups become `palette.color(role, group)`. `Hover` and `Pressed` cells are **derived** from the role's `Normal` value at construction time via `Hover(c) = c.blend(WindowText.Normal, 0.06)` and `Pressed(c) = c.blend(WindowText.Normal, 0.16)`. For the default light palette this lands on `#F0F0F0` / `#D6D6D6` (Button) and `#0078F0` / `#006CD6` (Highlight). Themes opt out per cell.
 - **Disabled state** halves the alpha of whatever role-color was selected (`color.with_alpha(color.a() * 0.5)`). It is an alpha modifier, not a role swap. Not a `ColorGroup` variant — stays as mathematical post-processing.
 - **Pressed and checked** both swap to the `Highlight` role for fill + `HighlightedText` for text. Pressed reads `Highlight × Pressed`; checked reads `Highlight × Normal`. Pressed wins over checked on the group axis.
 - **Focus** is additive: a 2 px outline reading `ColorRole::FocusRing × Normal` overlaid on top of the idle/hover/pressed look. `FocusRing` defaults to `Highlight`'s value; themes that need a divergent focus ring (high-contrast amber, etc.) override the slot directly.
@@ -155,6 +164,205 @@ restatements of that file.
 ### Layout chrome
 
 - **No fixed nav bars, no sticky headers, no chrome.** `Container` is a generic widget that holds child ids; the only adornment is a 1 px `WindowText` outline. `ScrollArea` paints `Base` + 1 px outline and delegates content to children.
+
+## WIDGET SPECS
+
+The rules below are per-widget contracts on top of the
+system-wide *Visual Foundations*. Each subsection corresponds to
+a proposal under `proposals/` that the upstream repo treats as
+the binding spec.
+
+### Text input
+
+Caret and selection rules for `LineEdit` and `TextEdit`. Full
+proposal: `proposals/caret-and-selection.md`. Reference cards:
+`preview/comp-line-edit-caret.html`,
+`preview/comp-line-edit-selection.html`,
+`preview/comp-text-edit-selection.html`.
+
+- **Caret width: `1 px`.** Matches the widget-frame stroke
+  convention. Two-pixel carets compete visually with the 2 px
+  `FocusRing` overlay.
+- **Caret height: full line-box** for the current `Font` (`ascent + descent + line_gap`).
+  Same height the selection rectangle uses, so the two
+  affordances are dimensionally consistent.
+- **Caret color: `ColorRole::Text`** \u2014 not `WindowText`. The
+  caret is glyph-adjacent; inputs paint glyphs from `Text` over
+  `Base`.
+- **Caret position is pixel-snapped** to an integer column. No
+  AA. Matches the integer-pixel geometry rule.
+- **Caret position when empty: left-aligned at the padding inset.**
+  Vertically centered for `LineEdit`, top-left of the content
+  rect for `TextEdit`. Matches the `Alignment::Left` the text
+  would render at if non-empty \u2014 the caret does not jump on
+  first keystroke.
+- **Caret blink: `530 ms` on / `530 ms` off**, `1.06 s` square-
+  wave cycle. Mirrors the X11/GNOME default
+  `QApplication::cursorFlashTime()` on a stock install. Phase is
+  global on `Application` so multiple visible carets blink in
+  lockstep.
+- **Reduced-motion fallback: steady-on.** When the host reports
+  `prefers_reduced_motion`, the paint pass treats
+  `caret_visible_now` as `true` unconditionally.
+- **Selection rectangle hugs the line-box**, not glyph metrics.
+  Pixel-snapped, no AA.
+- **Selection fill: `ColorRole::Highlight \u00d7 Normal`.** Selected
+  glyphs are overdrawn in `ColorRole::HighlightedText` clipped
+  to the selection range.
+- **Multi-line wrap (`TextEdit`):** per-visual-line rectangles
+  tiled vertically with **no inter-line gap**. For each visual
+  line the rect is `[line_start_x, line_end_x)`, where
+  `line_start_x` = `sel_start_x` only if the selection starts
+  on this line (else `content_left`) and `line_end_x` =
+  `sel_end_x` only if the selection ends on this line (else
+  `content_right`). The practical consequence: a multi-line
+  wrapped selection has a tidy right edge — L1 extends to
+  `content_right` because the selection wraps past it, L2 fills
+  the line, L3 hugs `sel_end_x` on the right. Single-line
+  (non-wrapping) selections hug both ends.
+- **Read-only: caret hidden, selection allowed.** Read implies
+  copy; copy requires selection. Removing selection from
+  read-only would contradict the field name.
+- **Disabled: no caret, no selection rendered.** The selection
+  range in `selection_anchor` is **preserved**, not cleared;
+  re-enabling the widget restores its visible selection. The
+  disabled overlay (\u00d7 0.5 alpha) is applied after composition.
+- **Unfocused with selection: macOS-style greyed.** Selection
+  fill is `disabled(Highlight)` (alpha-halved `Highlight`); the
+  glyphs revert to `ColorRole::Text` rather than
+  `HighlightedText`. The selection is preserved \u2014 hiding it on
+  blur would lose user state; saturating it would falsely
+  suggest the widget still holds focus.
+
+### ScrollArea
+
+Track + thumb geometry. Full proposal: `proposals/scrollbar.md`.
+Reference card: `preview/comp-scroll-area.html`.
+
+- **Track width: `12 px`.** Same for both axes.
+- **Thumb min-length: `24 px`.** Clamp when `content / viewport`
+  is large.
+- **Thumb radius: `0 px`.** Per the no-rounded-corners rule.
+- **Thumb inset: `0 px`** on both axes. Thumb fills the full
+  12 px lane.
+- **Track fill: `ColorRole::Base`.** The track is not a new
+  surface; it is the same `Base` the surrounding widget paints,
+  separated from the content rect by a 1 px `WindowText` stroke
+  on the inner edge.
+- **Thumb fill state machine** uses the `ColorGroup` axis from
+  #402:
+  - idle      = `ScrollBar \u00d7 Normal`
+  - hover     = `ScrollBar \u00d7 Hover`   (hover on the **thumb only** \u2014 not the empty track region)
+  - pressed   = `ScrollBar \u00d7 Pressed` (holds for the entire drag, including when the mouse leaves the thumb mid-drag)
+- **Disabled: whole widget \u00d7 0.5 alpha.** Not a role swap.
+- **Two-axis case:** when both lanes are present, the
+  bottom-right `12 \u00d7 12` corner is a `Base` fill with the
+  surrounding 1 px stroke continuation. The corner is not
+  interactive.
+- **Visibility = reserved space, not overlay.** The
+  `ScrollArea` content rect is computed **excluding** the
+  scrollbar lanes. Overlay scrollbars (auto-hiding bars
+  floating over content) are rejected \u2014 they require a fade
+  animation, and the framework has no animation primitive.
+- **`ScrollPolicy`** governs lane presence:
+  - `AsNeeded` (default) \u2014 lane appears when content overflows on that axis.
+  - `AlwaysOn` \u2014 lane always reserved, even with no overflow.
+  - `AlwaysOff` \u2014 lane never reserved; mouse-wheel still scrolls.
+
+### Cursor shapes
+
+Per-widget defaults and the bounded `winit::window::CursorIcon`
+subset endorsed by `DefaultStyle`. Full proposal:
+`proposals/cursor-shapes.md`. No HTML reference card \u2014 cursor
+shape is a host-window call, not a paint output.
+
+- **Hover alone does not change cursor shape.** Cursor follows
+  widget-type identity + state overrides, nothing else. Hover
+  over a `Button` changes the **button's** fill but not the
+  cursor.
+- **Per-widget defaults:**
+
+  | Widget | Default shape | `winit` ident |
+  |---|---|---|
+  | `Button`     | arrow  | `CursorIcon::Default` |
+  | `Label`      | arrow  | `CursorIcon::Default` |
+  | `LineEdit`   | I-beam | `CursorIcon::Text`    |
+  | `TextEdit`   | I-beam | `CursorIcon::Text`    |
+  | `ScrollArea` | arrow  | `CursorIcon::Default` |
+  | `Container`  | arrow  | `CursorIcon::Default` |
+
+- **State-driven overrides** \u2014 the only two:
+  - `enabled == false` on any widget          \u2192 `CursorIcon::NotAllowed`
+  - `ScrollArea` thumb while `is_pressed`      \u2192 `CursorIcon::Grabbing`
+- **Endorsed `CursorIcon` subset:** `Default`, `Text`,
+  `NotAllowed`, `Grabbing`, `Wait`, `Progress`. `Wait` and
+  `Progress` are app-level overrides on `Application`, not
+  per-widget. `Pointer` ("hand") is **not** endorsed \u2014 buttons
+  keep the arrow, matching native convention.
+- **Resolution precedence** (first match wins):
+  1. Application-wide cursor (`Wait` / `Progress`)
+  2. `widget.enabled == false` \u2192 `NotAllowed`
+  3. `ScrollArea` thumb drag \u2192 `Grabbing`
+  4. `WidgetBase::cursor` explicit override
+  5. Per-widget-type default (table above)
+
+### Elevation and overlays
+
+Popups and tooltips, and the carve-out from the no-shadow rule.
+Full proposal: `proposals/popups-and-tooltips.md`. Reference
+cards: `preview/comp-popup.html`, `preview/comp-tooltip.html`.
+
+- **No drop shadows. No inner shadows.** Restated verbatim from
+  *Visual Foundations \u00b7 Borders & strokes*. The paint API has no
+  shadow primitive, and `DefaultStyle` neither adds one nor
+  works around its absence for elevation. Both `Popup` and
+  `Tooltip` solve substrate separation with primitives already
+  in the API.
+- **`Popup` separates from substrate with `2 px WindowText`
+  border** \u2014 twice the widget-frame weight \u2014 plus a `4 px`
+  inset gap from the trigger widget. Border-weight contrast is
+  the only flat primitive that reads as "different surface"
+  without inventing a shadow.
+- **`Popup` chrome:**
+  - fill        = `ColorRole::Window`
+  - border      = 2 px `WindowText`
+  - radius      = 0 px
+  - row hover   = `Highlight \u00d7 Normal` fill + `HighlightedText`
+  - row pressed = `Highlight \u00d7 Pressed` fill + `HighlightedText`
+  - separator   = 1 px `WindowText` full-width line
+  - min width   = `max(trigger.width(), text_max_width)`
+  - max size    = unconstrained; clipped to window bounds
+- **`Tooltip` separates from substrate by inversion** \u2014 fill =
+  `ColorRole::WindowText`, text = `ColorRole::Window`, **no
+  border**. The colour boundary against the substrate is itself
+  the separation signal; a 1 px stroke would compete with the
+  glyphs and the inversion is already full-luminance contrast.
+- **`Tooltip` chrome:**
+  - fill        = `ColorRole::WindowText`
+  - text        = `ColorRole::Window`
+  - border      = none
+  - padding     = 4 px vertical, 8 px horizontal
+  - font        = `Font::default()`
+  - max width   = `280 px` before wrap (theme-overridable)
+  - anchor inset = 4 px from the anchor's bottom edge
+  - delay       = 500 ms hover
+  - tooltips never accept focus and never paint a focus ring.
+- **Z-order is an explicit `ZLayer` field on `WidgetBase`**, not
+  an implicit overlay pass:
+
+  ```rust
+  pub enum ZLayer { Content = 0, Overlay = 1, Tooltip = 2 }
+  ```
+
+  The paint pass walks the tree once per layer in ascending
+  order. `Popup` defaults to `Overlay`; `Tooltip` defaults to
+  `Tooltip`; everything else defaults to `Content`. Making the
+  field public lets downstream apps lift their own widgets
+  above `Content` without subclassing `Popup`.
+- **Stacked popups (nested submenus)** are out of scope for v1.
+  When they ship, the border weight grows by 1 px per level,
+  capped at 3 px. The cap matches the limit of "border weight as
+  depth signal" before the popup itself starts to look heavy.
 
 ## ICONOGRAPHY
 
@@ -222,13 +430,15 @@ base mark; selection ring overlaid).
 
 The framework ships a single `Palette::default` (light) plus a
 single `DefaultStyle`. **A dark theme is a Palette override**, not
-a new `Style` — same 12 `ColorRole` slots, different RGBA in each
+a new `Style` — same 13 `ColorRole` slots, different RGBA in each
 slot. Both palettes must satisfy the same two invariants:
 
 1. Every role is non-transparent.
 2. `Highlight` is visually distinct from `HighlightedText`.
 
-The `DARK_PALETTE` constant seeds (Normal cells):
+The dark seeds proposed in `colors_and_type.css`
+(`[data-theme="dark"]`) and demonstrated in
+`preview/dark-*.html`:
 
 | Role | Light seed | **Dark seed** | Common name (dark) |
 |---|---|---|---|
@@ -243,7 +453,8 @@ The `DARK_PALETTE` constant seeds (Normal cells):
 | `Link`            | `#0000FF` | **`#5BB0FF`** | Light Dodger Blue (coined — no catalogued match; `#0000FF` is illegible against `#2B2B2B`) |
 | `LinkVisited`     | `#0000FF` | **`#C58AFF`** | Charoite (coined — purple silicate mineral; sister to `Quartzite`. No catalogued match.) |
 | `BrightText`      | `#FFFFFF` | **`#FF6B6B`** | Pastel Red (Qt convention: red signals attention against a coloured banner) |
-| `FocusRing`               | `#0080FF` | **`#1E90FF`** | DodgerBlue — mirrors `Highlight` by default; theme-overridable |
+| `FocusRing` *(new, #402)* | `#0080FF` | **`#1E90FF`** | DodgerBlue — mirrors `Highlight` by default; theme-overridable |
+| `ScrollBar` *(new, scrollbar.md)* | **`#C8C8C8`** | **`#5A5A5A`** | Silver Sand / Mortar — thumb only; track is `Base` |
 
 > **Naming source.** "Common name" labels are documentation-only —
 > the framework does not use them. They come from curated
@@ -282,18 +493,19 @@ by registering a new `Style` impl in `StyleRegistry`:
 
 ```rust
 let dark = Palette::default()
-    .with_role_all_groups(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B  Mine Shaft
-    .with_role_all_groups(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role_all_groups(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0)) // #3C3C3C  Eclipse
-    .with_role_all_groups(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role_all_groups(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0)) // #1E1E1E  Nero
-    .with_role_all_groups(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
-    .with_role_all_groups(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF  DodgerBlue (X11)
-    .with_role_all_groups(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
-    .with_role_all_groups(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
-    .with_role_all_groups(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
-    .with_role_all_groups(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)) // #FF6B6B  Pastel Red
-    .with_role_all_groups(ColorRole::FocusRing,       Color::new(0.118, 0.564, 1.000, 1.0)); // #1E90FF  DodgerBlue (mirrors Highlight)
+    .with_role(ColorRole::Window,          Color::new(0.169, 0.169, 0.169, 1.0)) // #2B2B2B  Mine Shaft
+    .with_role(ColorRole::WindowText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Button,          Color::new(0.235, 0.235, 0.235, 1.0)) // #3C3C3C  Eclipse
+    .with_role(ColorRole::ButtonText,      Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Base,            Color::new(0.118, 0.118, 0.118, 1.0)) // #1E1E1E  Nero
+    .with_role(ColorRole::Text,            Color::new(0.910, 0.910, 0.910, 1.0)) // #E8E8E8  Mercury
+    .with_role(ColorRole::Highlight,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF  DodgerBlue (X11)
+    .with_role(ColorRole::HighlightedText, Color::WHITE)                          // #FFFFFF
+    .with_role(ColorRole::Link,            Color::new(0.357, 0.690, 1.000, 1.0)) // #5BB0FF  Light Dodger Blue
+    .with_role(ColorRole::LinkVisited,     Color::new(0.773, 0.541, 1.000, 1.0)) // #C58AFF  Charoite
+    .with_role(ColorRole::BrightText,      Color::new(1.000, 0.420, 0.420, 1.0)) // #FF6B6B Pastel Red
+    .with_role(ColorRole::FocusRing,       Color::new(0.118, 0.564, 1.000, 1.0)) // #1E90FF DodgerBlue (mirrors Highlight)
+    .with_role(ColorRole::ScrollBar,       Color::new(0.353, 0.353, 0.353, 1.0)); // #5A5A5A Mortar
 ```
 
 The UI-kit demo at `ui_kits/widgets/index.html` carries a

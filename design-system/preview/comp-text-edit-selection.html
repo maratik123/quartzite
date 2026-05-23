@@ -1,0 +1,229 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>TextEdit — multi-line selection</title>
+<style>
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; color:rgba(0,0,0,0.75); }
+.cap.dark { color:rgba(232,232,232,0.75); }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55); text-transform:uppercase; margin-bottom:8px; }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
+
+/* TextEdit shell. No white-space:pre-wrap — each visual line is an
+   explicit block child so we don't depend on whitespace handling. */
+.qz-te {
+  display:block; position:relative;
+  background:#FFFFFF; color:#000000; border:1px solid #000000;
+  padding:6px 8px; font-family:'DejaVu Sans','Liberation Sans',sans-serif;
+  font-size:12pt; line-height:22px;
+  width:284px; box-sizing:content-box;
+}
+.qz-te.dark { background:#1E1E1E; color:#E8E8E8; border-color:#E8E8E8; }
+.qz-te.focused { outline:2px solid #0080FF; outline-offset:-2px; }
+.qz-te.dark.focused { outline-color:#1E90FF; }
+.qz-te.read-only::after {
+  content:""; position:absolute; inset:0;
+  background:rgba(0,0,0,0.10); pointer-events:none; z-index:2;
+}
+.qz-te.dark.read-only::after { background:rgba(232,232,232,0.10); }
+
+/* One block div per visual line. Each is a flex container with
+   align-items:stretch so children fill the 22 px cross-axis exactly
+   — sidesteps inline-baseline math that otherwise leaves a 0.5 px
+   sliver between the .sel inline-blocks and the L2 line's own
+   background. */
+.qz-te .line {
+  display:flex; align-items:stretch;
+  height:22px; line-height:22px;
+}
+.qz-te .line > .prefix,
+.qz-te .line > .rest { line-height:22px; }
+
+/* L1: prefix has natural width, .sel grows to content_right. */
+.qz-te .line.line-l1 > .sel { flex:1 0 auto; }
+
+/* L1 + L3: selection wraps glyphs via a flex-item .sel. The flex
+   container is the .line div above. */
+.qz-te .sel {
+  height:22px; line-height:22px;
+  background:#0080FF; color:#FFFFFF;
+}
+.qz-te.dark .sel { background:#1E90FF; }
+.qz-te .sel.unfocused { background:rgba(0,128,255,0.5); color:#000000; }
+.qz-te.dark .sel.unfocused { background:rgba(30,144,255,0.5); color:#E8E8E8; }
+
+/* L2 (middle): selection spans the entire line → the line div itself
+   carries the background, full content width. Block layout means it
+   naturally sits at the content edges (padding inset), so its left
+   edge aligns with L3's inline starting position. */
+.qz-te .line.sel-full {
+  background:#0080FF; color:#FFFFFF;
+}
+.qz-te.dark .line.sel-full { background:#1E90FF; }
+.qz-te .line.sel-full.unfocused { background:rgba(0,128,255,0.5); color:#000000; }
+.qz-te.dark .line.sel-full.unfocused { background:rgba(30,144,255,0.5); color:#E8E8E8; }
+
+/* Line-number markers along the left edge */
+.te-wrap { position:relative; margin-left:30px; }
+.te-wrap .line-marker {
+  position:absolute; left:-26px; font-family:'DejaVu Sans Mono', monospace;
+  font-size:8.5pt; color:rgba(0,0,0,0.55); width:24px; text-align:right;
+  line-height:22px;
+}
+.te-wrap.dark .line-marker { color:rgba(232,232,232,0.55); }
+
+.case { margin-bottom:18px; }
+.case .label { font-family:'DejaVu Sans Mono',monospace;
+  font-size:10pt; margin-bottom:6px; color:rgba(0,0,0,0.7); }
+.case.dark .label { color:rgba(232,232,232,0.7); }
+
+.card.dark { background:#2B2B2B; color:#E8E8E8; }
+.divider { height:1px; background:rgba(0,0,0,0.12); margin:8px 0 16px; }
+.divider.dark { background:rgba(232,232,232,0.12); }
+</style></head>
+<body>
+<div class="card" style="min-height:520px;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+
+    <!-- LIGHT ---------------------------------------------------- -->
+    <div>
+      <div class="col-label">light · multi-line wrap</div>
+
+      <div class="case">
+        <div class="label">focused · 3-line selection</div>
+        <div class="te-wrap">
+          <div class="qz-te focused">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel">GUI framework</span></div>
+            <div class="line sel-full">modelled on Qt's signals</div>
+            <div class="line"><span class="sel">and slots</span>, no FFI.</div>
+          </div>
+          <div class="line-marker" style="top:6px;">L1</div>
+          <div class="line-marker" style="top:28px;">L2</div>
+          <div class="line-marker" style="top:50px;">L3</div>
+        </div>
+        <div class="cap" style="margin-top:6px;">
+          L1: <span class="mono">sel_start_x → content_right</span> ·
+          L2: full content width ·
+          L3: <span class="mono">content_left → sel_end_x</span>.
+          rects share edges (no gap).
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="case">
+        <div class="label">unfocused · same range</div>
+        <div class="te-wrap">
+          <div class="qz-te">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel unfocused">GUI framework</span></div>
+            <div class="line sel-full unfocused">modelled on Qt's signals</div>
+            <div class="line"><span class="sel unfocused">and slots</span>, no FFI.</div>
+          </div>
+        </div>
+        <div class="cap" style="margin-top:6px;">
+          Highlight × α 0.5; glyphs revert to <span class="mono">Text</span>.
+        </div>
+      </div>
+
+      <div class="case">
+        <div class="label">read-only · selection allowed</div>
+        <div class="te-wrap">
+          <div class="qz-te read-only focused">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel">GUI framework</span></div>
+            <div class="line sel-full">modelled on Qt's signals</div>
+            <div class="line"><span class="sel">and slots</span>, no FFI.</div>
+          </div>
+        </div>
+        <div class="cap" style="margin-top:6px;">
+          No caret; copy still works. WindowText × α 0.10 overlay.
+        </div>
+      </div>
+    </div>
+
+    <!-- DARK ----------------------------------------------------- -->
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">dark · multi-line wrap</div>
+
+      <div class="case dark">
+        <div class="label">focused · 3-line selection</div>
+        <div class="te-wrap dark">
+          <div class="qz-te dark focused">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel">GUI framework</span></div>
+            <div class="line sel-full">modelled on Qt's signals</div>
+            <div class="line"><span class="sel">and slots</span>, no FFI.</div>
+          </div>
+          <div class="line-marker" style="top:6px;">L1</div>
+          <div class="line-marker" style="top:28px;">L2</div>
+          <div class="line-marker" style="top:50px;">L3</div>
+        </div>
+        <div class="cap dark" style="margin-top:6px;">
+          L1: <span class="mono">sel_start_x → content_right</span> ·
+          L2: full content width ·
+          L3: <span class="mono">content_left → sel_end_x</span>.
+        </div>
+      </div>
+
+      <div class="divider dark"></div>
+
+      <div class="case dark">
+        <div class="label">unfocused · same range</div>
+        <div class="te-wrap dark">
+          <div class="qz-te dark">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel unfocused">GUI framework</span></div>
+            <div class="line sel-full unfocused">modelled on Qt's signals</div>
+            <div class="line"><span class="sel unfocused">and slots</span>, no FFI.</div>
+          </div>
+        </div>
+        <div class="cap dark" style="margin-top:6px;">
+          Highlight × α 0.5; glyphs revert to <span class="mono">Text</span>.
+        </div>
+      </div>
+
+      <div class="case dark">
+        <div class="label">read-only · selection allowed</div>
+        <div class="te-wrap dark">
+          <div class="qz-te dark read-only focused">
+            <div class="line line-l1"><span class="prefix">A Rust </span><span class="sel">GUI framework</span></div>
+            <div class="line sel-full">modelled on Qt's signals</div>
+            <div class="line"><span class="sel">and slots</span>, no FFI.</div>
+          </div>
+        </div>
+        <div class="cap dark" style="margin-top:6px;">
+          No caret; copy still works. WindowText × α 0.10 overlay.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="kv" style="grid-template-columns:max-content 1fr max-content 1fr;gap:3px 12px;">
+    <div class="k">L1 (leading)</div>  <div class="v">[sel_start_x, content_right)</div>
+    <div class="k">L1.5..N-1</div>     <div class="v">full content width</div>
+    <div class="k">LN (trailing)</div> <div class="v">[content_left, sel_end_x)</div>
+    <div class="k">single-line</div>   <div class="v">[sel_start_x, sel_end_x) (no extend)</div>
+    <div class="k">y-stride</div>      <div class="v">line_h, no gap</div>
+    <div class="k">height</div>        <div class="v">line_h (line-box)</div>
+    <div class="k">caret</div>         <div class="v">hidden when read_only / disabled</div>
+  </div>
+
+  <div class="note" style="margin-top:10px;">
+    Implements §5 of <span class="mono">proposals/caret-and-selection.md</span>.
+    For a multi-line selection L1's right edge extends to
+    <span class="mono">content_right</span> because the selection wraps past this
+    line — so L1, L2, and middle lines share a tidy right edge
+    instead of a ragged one. A non-wrapping single-line selection
+    keeps the natural inline behaviour and hugs the last glyph on
+    both sides. In this mock that's enforced with a flex L1 line
+    where the <span class="mono">.sel</span> span has <span class="mono">flex:1</span> and grows to the line's
+    right edge; middle lines paint the line div itself; trailing
+    lines wrap the head of the line in an inline-block <span class="mono">.sel</span> span.
+  </div>
+</div>
+</body></html>

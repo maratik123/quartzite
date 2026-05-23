@@ -1,121 +1,302 @@
 <!doctype html>
-<html><head><meta charset="utf-8"><title>ScrollArea chrome</title>
+<html><head><meta charset="utf-8"><title>ScrollArea — track + thumb</title>
 <style>
-/* Card chrome — shared by every file under /preview.
-   Cards target ~700×<height>px and render the swatches / specimens
-   /tokens directly with minimal decoration. */
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.card.dark { background:#2B2B2B; color:#E8E8E8; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; color:rgba(0,0,0,0.75); margin-top:6px; }
+.cap.dark { color:rgba(232,232,232,0.75); }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55); text-transform:uppercase; margin-bottom:10px; }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #FFFFFF;
-  color: #000000;
-  font-family: 'DejaVu Sans', 'Liberation Sans', 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+/* ScrollArea — outer frame, content rect, v-lane on the right.
+   All dimensions are integer pixels; outer is 140 × 100, lane 12 px. */
+.sa {
+  position:relative; box-sizing:border-box;
+  width:140px; height:100px;
+  background:#FFFFFF; border:1px solid #000;
 }
+.sa.dark { background:#1E1E1E; border-color:#E8E8E8; color:#E8E8E8; }
+.sa.disabled { opacity:0.5; }
 
-svg { shape-rendering: geometricPrecision; }
-
-.card {
-  width: 700px;
-  box-sizing: border-box;
-  padding: 20px 24px;
-  background: #FFFFFF;
-  color: #000000;
-  font-size: 12pt;
+.sa .content {
+  position:absolute; left:0; top:0;
+  right:12px; bottom:0;
+  padding:6px 8px; box-sizing:border-box;
+  font-size:10pt; line-height:1.3;
+  overflow:hidden;
 }
+.sa .content.no-overflow { right:0; }  /* AsNeeded — no lane reserved */
 
-/* swatch primitives */
-.sw-row    { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
-.sw-col    { display: flex; flex-direction: column; gap: 6px; }
-.sw-grid   { display: grid; gap: 12px; }
-.sw        {
-  width: 64px; height: 64px;
-  border: 1px solid #000000;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10pt;
+/* Vertical lane */
+.sa .v-lane {
+  position:absolute; right:0; top:0; bottom:0;
+  width:12px;
+  background:#FFFFFF;             /* Base */
+  border-left:1px solid #000;     /* WindowText divider */
 }
-.sw.lg     { width: 96px; height: 96px; }
-.sw.sm     { width: 48px; height: 48px; }
-.sw .mono  { font-family: 'DejaVu Sans Mono', monospace; font-size: 9pt; }
-.cap       { font-size: 9pt; color: #000000; letter-spacing: 0.02em; }
-.mono      { font-family: 'DejaVu Sans Mono', 'Liberation Mono', Menlo, Consolas, monospace; }
-.note      { font-size: 9.5pt; color: rgba(0,0,0,0.65); }
-.kbd       { font-family: 'DejaVu Sans Mono', monospace; font-size: 10pt; padding: 1px 5px; border: 1px solid #000; background: #fff; }
+.sa.dark .v-lane { background:#1E1E1E; border-left-color:#E8E8E8; }
 
-/* meta info pair */
-.kv        { display: grid; grid-template-columns: max-content 1fr; gap: 2px 16px; font-size: 10pt; }
-.kv .k     { font-family: 'DejaVu Sans Mono', monospace; }
-.kv .v     { font-family: 'DejaVu Sans Mono', monospace; color: rgba(0,0,0,0.7); }
+.sa .v-thumb {
+  position:absolute; left:0; right:0;
+  background:#C8C8C8;             /* ScrollBar × Normal */
+}
+.sa.dark .v-thumb { background:#5A5A5A; }
+.sa .v-thumb.hover    { background:#BCBCBC; }
+.sa.dark .v-thumb.hover    { background:#636363; }
+.sa .v-thumb.pressed  { background:#A8A8A8; }
+.sa.dark .v-thumb.pressed  { background:#717171; }
 
-/* mirrors of DefaultStyle */
-.qz-button {
-  background: #FFFFFF; color: #000000;
-  border: 1px solid #000000; border-radius: 0;
-  padding: 6px 16px;
-  font: inherit; cursor: pointer; user-select: none;
-  display: inline-flex; align-items: center; justify-content: center;
-  min-width: 64px; min-height: 32px;
+/* Horizontal lane */
+.sa.h .content { bottom:12px; }
+.sa.h.v .content { right:12px; bottom:12px; }
+.sa .h-lane {
+  position:absolute; left:0; bottom:0;
+  height:12px;
+  background:#FFFFFF;
+  border-top:1px solid #000;
 }
-.qz-button.hover    { background: #F0F0F0; }                                /* HOVER_WHITE      */
-.qz-button.pressed  { background: #006CD6; color: #FFFFFF; border-color: #FFFFFF; }   /* PRESSED_SKY_BLUE */
-.qz-button.checked  { background: #0080FF; color: #FFFFFF; border-color: #FFFFFF; }   /* SKY_BLUE         */
-.qz-button.focused  {
-  /* additive 2px highlight outline over idle */
-  box-shadow: inset 0 0 0 2px #0080FF;
+.sa.dark .h-lane { background:#1E1E1E; border-top-color:#E8E8E8; }
+.sa.h.v .h-lane { right:12px; }    /* stop at the corner */
+.sa.h:not(.v) .h-lane { right:0; }
+.sa .h-thumb {
+  position:absolute; top:0; bottom:0;
+  background:#C8C8C8;
 }
-.qz-button.disabled { opacity: 0.5; }
+.sa.dark .h-thumb { background:#5A5A5A; }
 
-.qz-line-edit, .qz-text-edit {
-  background: #FFFFFF; color: #000000;
-  border: 1px solid #000000; border-radius: 0;
-  padding: 4px 6px; font: inherit;
-  display: inline-block;
+/* Corner block when both axes active */
+.sa .corner {
+  position:absolute; right:0; bottom:0;
+  width:12px; height:12px;
+  background:#FFFFFF; border-left:1px solid #000; border-top:1px solid #000;
 }
-.qz-line-edit { min-width: 180px; min-height: 28px; }
-.qz-text-edit { min-width: 220px; min-height: 72px; white-space: pre-wrap; vertical-align: top; }
-.qz-line-edit.read-only, .qz-text-edit.read-only {
-  background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5));
-}
-.qz-line-edit.placeholder { color: rgba(0,0,0,0.5); }
+.sa.dark .corner { background:#1E1E1E; border-color:#E8E8E8; }
 
-.qz-container, .qz-scroll-area {
-  background: #FFFFFF;
-  border: 1px solid #000000;
-  border-radius: 0;
+/* Geometry callout */
+.geom {
+  display:flex; gap:18px; align-items:center;
+  padding:16px; border:1px solid #000;
+  font-family:'DejaVu Sans Mono', monospace; font-size:10pt;
+  background:#FFFFFF;
 }
-.qz-scroll-area { background: #FFFFFF; }
+.geom.dark { background:#1E1E1E; border-color:#E8E8E8; color:#E8E8E8; }
+.geom .dim-col {
+  display:flex; flex-direction:column; gap:18px;
+  width:108px; flex:none;
+}
+.geom .dim {
+  font-size:9pt; color:rgba(0,0,0,0.65);
+  font-family:'DejaVu Sans Mono', monospace;
+  line-height:1.35;
+}
+.geom.dark .dim { color:rgba(232,232,232,0.65); }
+.dim .arrow { display:inline-block; font-family:'DejaVu Sans Mono',monospace; }
 
+.row { display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap; }
+.col-pair { display:flex; flex-direction:column; align-items:flex-start; }
+
+.divider { height:1px; background:rgba(0,0,0,0.12); margin:14px 0; }
+.divider.dark { background:rgba(232,232,232,0.12); }
 </style></head>
-<body><div class="card" style="height:240px;">
-  <div style="display:flex;gap:32px;align-items:flex-start;">
-    <div class="qz-scroll-area" style="width:280px;height:160px;position:relative;overflow:hidden;">
-      <div style="padding:8px;font-size:11pt;line-height:1.4;">
-        ScrollArea paints chrome only:<br>
-        a 1&nbsp;px <span class="mono">WindowText</span> outline
-        over a <span class="mono">Base</span> fill. The content
-        widget is drawn by a separate dispatch pass — `DefaultStyle`
-        deliberately does not traverse children.
+<body>
+<div class="card" style="min-height:740px;">
+
+  <!-- GEOMETRY callout — magnified diagram with labels -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <div>
+      <div class="col-label">light · geometry</div>
+      <div class="geom">
+        <div class="dim-col">
+          <div class="dim">track&nbsp;= 12 px wide<br>(2× shown)</div>
+          <div class="dim">thumb&nbsp;fills lane<br>min&nbsp;24 px<br>radius&nbsp;0</div>
+          <div class="dim">1 px <span class="mono">WindowText</span><br>divider</div>
+        </div>
+        <!-- magnified scroll area, scaled 2× -->
+        <div style="position:relative; width:200px; height:140px;
+                    background:#FFFFFF; border:1px solid #000; flex:none;">
+          <div style="position:absolute; left:0; top:0; right:24px; bottom:0;
+                      padding:6px 8px; font-size:10pt; line-height:1.3; color:#000;">
+            content<br>rect
+          </div>
+          <div style="position:absolute; right:0; top:0; bottom:0; width:24px;
+                      background:#FFFFFF; border-left:1px solid #000;">
+            <div style="position:absolute; left:0; right:0; top:14px; height:60px;
+                        background:#C8C8C8;"></div>
+          </div>
+        </div>
       </div>
-      <!-- vertical scroll bar stylized -->
-      <div style="position:absolute;top:0;right:0;width:12px;height:100%;border-left:1px solid #000;background:#FFFFFF;">
-        <div style="position:absolute;top:8px;left:1px;right:1px;height:48px;background:#000000;opacity:0.85;"></div>
+    </div>
+
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">dark · geometry</div>
+      <div class="geom dark">
+        <div class="dim-col">
+          <div class="dim">track&nbsp;= 12 px wide<br>(2× shown)</div>
+          <div class="dim">thumb&nbsp;fills lane<br>min&nbsp;24 px<br>radius&nbsp;0</div>
+          <div class="dim">1 px <span class="mono">WindowText</span><br>divider</div>
+        </div>
+        <div style="position:relative; width:200px; height:140px;
+                    background:#1E1E1E; border:1px solid #E8E8E8; flex:none;">
+          <div style="position:absolute; left:0; top:0; right:24px; bottom:0;
+                      padding:6px 8px; font-size:10pt; line-height:1.3; color:#E8E8E8;">
+            content<br>rect
+          </div>
+          <div style="position:absolute; right:0; top:0; bottom:0; width:24px;
+                      background:#1E1E1E; border-left:1px solid #E8E8E8;">
+            <div style="position:absolute; left:0; right:0; top:14px; height:60px;
+                        background:#5A5A5A;"></div>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- STATE row — idle / hover / pressed / disabled -->
+  <div class="row">
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content">A scrollable region. Content overflows on the vertical axis.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono">idle · ScrollBar × Normal</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content">Hover lands on the thumb specifically — not the empty track region above or below it.</div>
+        <div class="v-lane"><div class="v-thumb hover" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono">hover · × Hover</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content">Pressed state holds for the entire drag, including when the mouse leaves the thumb mid-drag.</div>
+        <div class="v-lane"><div class="v-thumb pressed" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono">pressed · × Pressed</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa disabled">
+        <div class="content">Disabled widgets dim everything (lane, thumb, content) by ×0.5 alpha — not a role swap.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono">disabled · α × 0.5</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- BOTH AXES + visibility variants -->
+  <div class="row">
+    <div class="col-pair">
+      <div class="sa h v">
+        <div class="content">Both axes overflowing. Bottom-right 12×12 corner is a plain Base fill — not interactive.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:8px;height:34px;"></div></div>
+        <div class="h-lane"><div class="h-thumb" style="left:8px;width:42px;"></div></div>
+        <div class="corner"></div>
+      </div>
+      <div class="cap mono">v + h · corner block</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content no-overflow">Content fits the viewport with room to spare under <span class="mono">ScrollPolicy::AsNeeded</span>.</div>
+      </div>
+      <div class="cap mono">AsNeeded · content fits, no lane</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content">Pinned lane on AlwaysOn — content fits but the bar is still reserved. Thumb expands to fill the track.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:0;bottom:0;"></div></div>
+      </div>
+      <div class="cap mono">AlwaysOn · full-track thumb</div>
+    </div>
+
+    <div class="col-pair">
+      <div class="sa">
+        <div class="content no-overflow">No lane ever; mouse-wheel still scrolls the content widget directly.</div>
+      </div>
+      <div class="cap mono">AlwaysOff · no lane</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- DARK row -->
+  <div class="row">
+    <div class="col-pair">
+      <div class="sa dark">
+        <div class="content">A scrollable region. Content overflows on the vertical axis.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono" style="color:rgba(0,0,0,0.75);">idle</div>
+    </div>
+    <div class="col-pair">
+      <div class="sa dark">
+        <div class="content">Hover.</div>
+        <div class="v-lane"><div class="v-thumb hover" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono" style="color:rgba(0,0,0,0.75);">hover</div>
+    </div>
+    <div class="col-pair">
+      <div class="sa dark">
+        <div class="content">Pressed.</div>
+        <div class="v-lane"><div class="v-thumb pressed" style="top:8px;height:42px;"></div></div>
+      </div>
+      <div class="cap mono" style="color:rgba(0,0,0,0.75);">pressed</div>
+    </div>
+    <div class="col-pair">
+      <div class="sa dark h v">
+        <div class="content">v + h.</div>
+        <div class="v-lane"><div class="v-thumb" style="top:8px;height:34px;"></div></div>
+        <div class="h-lane"><div class="h-thumb" style="left:8px;width:42px;"></div></div>
+        <div class="corner"></div>
+      </div>
+      <div class="cap mono" style="color:rgba(0,0,0,0.75);">both axes</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- TOKEN TABLE -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+    <div class="kv">
+      <div class="k">track width</div>      <div class="v">12 px</div>
+      <div class="k">thumb min</div>        <div class="v">24 px</div>
+      <div class="k">thumb radius</div>     <div class="v">0 px</div>
+      <div class="k">thumb inset</div>      <div class="v">0 px (fills lane)</div>
+      <div class="k">divider</div>          <div class="v">1 px WindowText</div>
+      <div class="k">corner</div>           <div class="v">12 × 12 Base fill</div>
     </div>
     <div class="kv">
-      <div class="k">prop</div><div class="v">horizontal_policy</div>
-      <div class="k">prop</div><div class="v">vertical_policy</div>
-      <div class="k">enum</div><div class="v">ScrollPolicy::AsNeeded</div>
-      <div class="k">enum</div><div class="v">ScrollPolicy::AlwaysOn</div>
-      <div class="k">enum</div><div class="v">ScrollPolicy::AlwaysOff</div>
-      <div class="k">default</div><div class="v">AsNeeded both axes</div>
-      <div class="k">child</div><div class="v">content_widget: Option&lt;ObjectId&gt;</div>
+      <div class="k">track fill</div>      <div class="v">Base</div>
+      <div class="k">thumb idle</div>      <div class="v">ScrollBar × Normal</div>
+      <div class="k">thumb hover</div>     <div class="v">ScrollBar × Hover</div>
+      <div class="k">thumb pressed</div>   <div class="v">ScrollBar × Pressed</div>
+      <div class="k">disabled</div>        <div class="v">whole widget × α 0.5</div>
+      <div class="k">space</div>           <div class="v">reserved (not overlay)</div>
     </div>
   </div>
+
   <div class="note" style="margin-top:10px;">
-    The scrollbar above is a documentation hint — the framework
-    does not yet render a bar primitive. ScrollArea currently
-    paints chrome only.
+    Mirrors <span class="mono">DefaultStyle::paint&lt;ScrollArea&gt;</span> after #315.
+    The 12 px lane is reserved out of the content rect rather than
+    floating over it — the framework has no animation primitive, so
+    auto-hiding overlay bars are rejected as a direction.
   </div>
-</div></body></html>
+
+</div>
+</body></html>
