@@ -26,17 +26,23 @@
 //!         _palette: &Palette,
 //!     ) {
 //!     }
+//!
+//!     fn caret_visible_now(&self) -> bool {
+//!         false
+//!     }
 //! }
 //!
 //! StyleRegistry::set_style(Box::new(NoopStyle));
 //! assert!(StyleRegistry::try_style().is_some());
 //! ```
 
+mod clock;
 mod default_style;
 mod paint_widget;
 mod registry;
 mod style;
 
+pub use clock::StyleClock;
 pub use default_style::DefaultStyle;
 pub use paint_widget::Paint;
 pub use quartzite_style_types::{ColorRole, DARK_PALETTE, Palette};

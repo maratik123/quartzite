@@ -365,7 +365,7 @@ fn brush_color_custom_empty_stops_returns_transparent() {
 fn default_style_is_send_sync() {
     assert_send_sync::<DefaultStyle>();
     assert_send_sync::<Box<dyn Style>>();
-    let _b: Box<dyn Style> = Box::new(DefaultStyle);
+    let _b: Box<dyn Style> = Box::new(DefaultStyle::new());
 }
 
 // ── AC2: Button → fill + outline + centred text ───────────────────────────
@@ -375,7 +375,7 @@ fn button_records_fill_outline_and_centred_text() {
     let btn = Button::new("OK".into());
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     // Enabled idle button: FillRect → DrawRect → DrawTextIn.
     assert_eq!(
@@ -403,7 +403,7 @@ fn label_records_fill_and_text_with_label_alignment() {
     let lbl = Label::new("hi".into());
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     // FillRect → DrawTextIn (2 events).
     assert_eq!(painter.events.len(), 2, "expected 2 events for label");
@@ -424,7 +424,7 @@ fn text_edit_records_fill_outline_and_text() {
     edit.plain_text = "abc".into();
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     // read_only == false: FillRect(base) → DrawRect → DrawTextIn (3 events).
     assert_eq!(
@@ -453,7 +453,7 @@ fn text_edit_read_only_inserts_overlay_fill() {
     edit.read_only = true;
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     // read_only == true: FillRect(base) → FillRect(overlay) → DrawRect → DrawTextIn (4 events).
     assert_eq!(
@@ -479,7 +479,7 @@ fn text_edit_read_only_dims_text() {
     edit.read_only = true;
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -504,7 +504,7 @@ fn text_edit_writable_keeps_full_alpha_text() {
     edit.read_only = false;
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -528,7 +528,7 @@ fn read_only_overlay_derives_from_custom_window_text() {
     let mut edit = TextEdit::new();
     edit.read_only = true;
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let expected_overlay = Color::new(0.0, 0.5, 1.0, super::READ_ONLY_OVERLAY_ALPHA);
     assert!(
@@ -545,7 +545,7 @@ fn scroll_area_records_fill_and_outline_only() {
     let area = ScrollArea::new();
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     // FillRect + DrawRect (2 events), no text draw calls.
     assert_eq!(
@@ -573,7 +573,7 @@ fn unknown_widget_type_produces_no_events() {
     let base = WidgetBase::new();
     let mut painter = RecordingPainter::default();
     let palette = Palette::default();
-    DefaultStyle.draw_widget(&base, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&base, &mut painter, &palette);
     assert!(
         painter.events.is_empty(),
         "unknown widget must produce no painter calls"
@@ -595,7 +595,7 @@ fn checked_button_uses_highlight_colour() {
     checked_btn.checked = true;
 
     let mut idle_painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&idle_btn, &mut idle_painter, &palette);
+    DefaultStyle::new().draw_widget(&idle_btn, &mut idle_painter, &palette);
     let idle_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = &idle_painter.events[0] {
             brush
@@ -605,7 +605,7 @@ fn checked_button_uses_highlight_colour() {
     );
 
     let mut checked_painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&checked_btn, &mut checked_painter, &palette);
+    DefaultStyle::new().draw_widget(&checked_btn, &mut checked_painter, &palette);
     let checked_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = &checked_painter.events[0] {
             brush
@@ -645,10 +645,10 @@ fn disabled_button_halves_fill_and_text_alpha() {
     let palette = Palette::default();
 
     let mut enabled_painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&enabled_btn, &mut enabled_painter, &palette);
+    DefaultStyle::new().draw_widget(&enabled_btn, &mut enabled_painter, &palette);
 
     let mut disabled_painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&disabled_btn, &mut disabled_painter, &palette);
+    DefaultStyle::new().draw_widget(&disabled_btn, &mut disabled_painter, &palette);
 
     let enabled_fill = brush_color(
         if let PaintEvent::FillRect { brush, .. } = &enabled_painter.events[0] {
@@ -707,7 +707,7 @@ fn hovered_button_uses_derived_hover_fill() {
     let mut btn = Button::new("x".into());
     btn.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     // Expected fill: palette.color(Button, Hover) — derived from the pinned palette.
     let expected_fill = palette.color(ColorRole::Button, ColorGroup::Hover);
@@ -749,7 +749,7 @@ fn pressed_button_uses_highlight_pressed() {
     let mut btn = Button::new("x".into());
     btn.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -793,7 +793,7 @@ fn focused_button_uses_2px_focus_ring_outline() {
     let mut btn = Button::new("x".into());
     btn.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
@@ -811,7 +811,7 @@ fn focused_button_uses_2px_focus_ring_outline() {
     // Idle baseline has width 1.0 — verify it changes.
     let mut idle_painter = RecordingPainter::default();
     let idle_btn = Button::new("x".into());
-    DefaultStyle.draw_widget(&idle_btn, &mut idle_painter, &palette);
+    DefaultStyle::new().draw_widget(&idle_btn, &mut idle_painter, &palette);
     let idle_width = if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&idle_painter.events)
     {
         pen.width()
@@ -836,7 +836,7 @@ fn precedence_disabled_pressed_focused() {
     btn.set_focused(true);
     btn.set_enabled(false);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     // Fill: pressed selects Highlight × Pressed, then disabled halves its alpha.
     let expected_highlight_pressed = palette.color(ColorRole::Highlight, ColorGroup::Pressed);
@@ -893,7 +893,7 @@ fn precedence_checked_hovered_keeps_checked_fill() {
     btn.checked = true;
     btn.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -917,7 +917,7 @@ fn precedence_pressed_checked_both_map_to_highlight() {
     btn.set_pressed(true);
     btn.checked = true;
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -948,7 +948,7 @@ fn disabled_and_focused_button_paints_half_alpha_fill_plus_outline() {
     btn.set_enabled(false);
     btn.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -992,7 +992,7 @@ fn pressed_and_checked_button_picks_highlight_pressed() {
     btn.set_pressed(true);
     btn.checked = true;
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1019,7 +1019,7 @@ fn precedence_focused_hovered_hover_fill_plus_focus_ring_outline() {
     btn.set_focused(true);
     btn.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     // Fill: hover state → Button × Hover (derived, no blend heuristic).
     let expected_hover_fill = palette.color(ColorRole::Button, ColorGroup::Hover);
@@ -1059,7 +1059,7 @@ fn idle_button_three_events_unchanged() {
     let btn = Button::new("OK".into());
     let mut painter = RecordingPainter::default();
     let palette = pinned_palette();
-    DefaultStyle.draw_widget(&btn, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&btn, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1110,7 +1110,7 @@ fn container_records_fill_and_outline() {
     let c = Container::new();
     let mut painter = RecordingPainter::default();
     let palette = container_palette();
-    DefaultStyle.draw_widget(&c, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&c, &mut painter, &palette);
 
     assert_eq!(painter.events.len(), 2, "expected 2 events for Container");
     assert!(
@@ -1143,7 +1143,7 @@ fn container_routing_ignores_children() {
     c.add_child(ObjectId::new());
     let mut painter = RecordingPainter::default();
     let palette = container_palette();
-    DefaultStyle.draw_widget(&c, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&c, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1184,7 +1184,7 @@ fn line_edit_records_fill_outline_and_empty_text() {
     let e = LineEdit::new();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1218,7 +1218,7 @@ fn line_edit_records_text_when_non_empty() {
     e.text = "abc".into();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert!(
         matches!(first_draw_text_in(&painter.events),
@@ -1236,7 +1236,7 @@ fn line_edit_placeholder_drawn_when_text_empty() {
     e.placeholder = "hint".into();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let draw_text_count = painter
         .events
@@ -1264,7 +1264,7 @@ fn line_edit_non_empty_text_ignores_placeholder() {
     e.placeholder = "hint".into();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert!(
         matches!(first_draw_text_in(&painter.events),
@@ -1281,7 +1281,7 @@ fn line_edit_read_only_inserts_overlay() {
     e.read_only = true;
     let mut painter = RecordingPainter::default();
     let palette = line_edit_read_only_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1316,7 +1316,7 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
     e.placeholder = "hint".into();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_read_only_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1344,7 +1344,7 @@ fn line_edit_read_only_dims_text() {
     e.read_only = true;
     let mut painter = RecordingPainter::default();
     let palette = line_edit_read_only_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1366,7 +1366,7 @@ fn line_edit_read_only_empty_text_dims_text() {
     e.placeholder = String::new();
     let mut painter = RecordingPainter::default();
     let palette = line_edit_read_only_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     // Overlay brush check
     assert!(
@@ -1393,7 +1393,7 @@ fn line_edit_writable_keeps_full_alpha_text() {
     e.read_only = false;
     let mut painter = RecordingPainter::default();
     let palette = line_edit_palette();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert!(
         matches!(first_draw_text_in(&painter.events),
@@ -1412,7 +1412,7 @@ fn hovered_line_edit_uses_derived_hover_fill() {
     e.text = "abc".into();
     e.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1459,7 +1459,7 @@ fn pressed_line_edit_uses_highlight_pressed() {
     e.text = "abc".into();
     e.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1510,7 +1510,7 @@ fn focused_line_edit_uses_2px_focus_ring_outline() {
     e.text = "abc".into();
     e.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
@@ -1538,7 +1538,7 @@ fn disabled_and_focused_line_edit_paints_outline_under_disabled() {
     e.set_enabled(false);
     e.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
     let (pen_color, pen_width) =
@@ -1570,7 +1570,7 @@ fn precedence_pressed_hovered_line_edit_picks_pressed_fill() {
     e.set_pressed(true);
     e.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1600,7 +1600,7 @@ fn line_edit_disabled_idle_dims_base_text_outline() {
     e.text = "abc".into();
     e.set_enabled(false);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1657,7 +1657,7 @@ fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     e.read_only = true;
     e.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -1708,7 +1708,7 @@ fn line_edit_hovered_placeholder_tracks_hover_text() {
     e.placeholder = "hint".into();
     e.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let expected = super::disabled(palette.color(ColorRole::Text, ColorGroup::Hover));
     assert!(
@@ -1731,7 +1731,7 @@ fn line_edit_pressed_placeholder_tracks_pressed_text() {
     e.placeholder = "hint".into();
     e.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     // `HighlightedText` (not `Text`) is the role-swap on press per
     // spec § Key decisions row "Outline role mapping".
@@ -1753,7 +1753,7 @@ fn line_edit_disabled_placeholder_composes_double_dim() {
     e.placeholder = "hint".into();
     e.set_enabled(false);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&e, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let expected = super::disabled(super::maybe_disabled(
         palette.color(ColorRole::Text, ColorGroup::Normal),
@@ -1777,7 +1777,7 @@ fn hovered_label_uses_derived_hover_fill() {
     let mut lbl = Label::new("hi".into());
     lbl.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1812,7 +1812,7 @@ fn pressed_label_uses_highlight_pressed() {
     let mut lbl = Label::new("hi".into());
     lbl.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1851,7 +1851,7 @@ fn focused_label_uses_2px_focus_ring_outline() {
     let mut lbl = Label::new("hi".into());
     lbl.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
@@ -1878,7 +1878,7 @@ fn disabled_and_focused_label_paints_outline_under_disabled() {
     lbl.set_enabled(false);
     lbl.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
     let (pen_color, pen_width) =
@@ -1909,7 +1909,7 @@ fn precedence_pressed_hovered_label_picks_pressed_fill() {
     lbl.set_pressed(true);
     lbl.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&lbl, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&lbl, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1934,7 +1934,7 @@ fn hovered_text_edit_uses_derived_hover_fill() {
     edit.plain_text = "abc".into();
     edit.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -1981,7 +1981,7 @@ fn pressed_text_edit_uses_highlight_pressed() {
     edit.plain_text = "abc".into();
     edit.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -2032,7 +2032,7 @@ fn focused_text_edit_uses_2px_focus_ring_outline() {
     edit.plain_text = "abc".into();
     edit.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
@@ -2060,7 +2060,7 @@ fn disabled_and_focused_text_edit_paints_outline_under_disabled() {
     edit.set_enabled(false);
     edit.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
     let (pen_color, pen_width) =
@@ -2092,7 +2092,7 @@ fn precedence_pressed_hovered_text_edit_picks_pressed_fill() {
     edit.set_pressed(true);
     edit.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -2120,7 +2120,7 @@ fn text_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     edit.read_only = true;
     edit.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&edit, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     assert_eq!(
         painter.events.len(),
@@ -2171,7 +2171,7 @@ fn hovered_scroll_area_uses_derived_hover_fill() {
     let mut area = ScrollArea::new();
     area.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -2204,7 +2204,7 @@ fn pressed_scroll_area_uses_highlight_pressed() {
     let mut area = ScrollArea::new();
     area.set_pressed(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -2241,7 +2241,7 @@ fn focused_scroll_area_uses_2px_focus_ring_outline() {
     let mut area = ScrollArea::new();
     area.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     let (pen_color, pen_width) =
         if let PaintEvent::DrawRect { pen, .. } = first_draw_rect(&painter.events) {
@@ -2271,7 +2271,7 @@ fn disabled_and_focused_scroll_area_paints_outline_under_disabled() {
     area.set_enabled(false);
     area.set_focused(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     let expected_focus_ring = palette.color(ColorRole::FocusRing, ColorGroup::Normal);
     let (pen_color, pen_width) =
@@ -2302,7 +2302,7 @@ fn precedence_pressed_hovered_scroll_area_picks_pressed_fill() {
     area.set_pressed(true);
     area.set_hovered(true);
     let mut painter = RecordingPainter::default();
-    DefaultStyle.draw_widget(&area, &mut painter, &palette);
+    DefaultStyle::new().draw_widget(&area, &mut painter, &palette);
 
     let fill_color = brush_color(
         if let PaintEvent::FillRect { brush, .. } = first_fill(&painter.events) {
@@ -2324,7 +2324,7 @@ fn precedence_pressed_hovered_scroll_area_picks_pressed_fill() {
 fn registry_round_trip_dispatches_default_style() {
     let _lock = quartzite_test_helpers::test_lock();
     StyleRegistry::clear_for_test();
-    StyleRegistry::set_style(Box::new(DefaultStyle));
+    StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 
     let style = StyleRegistry::try_style().expect("style was just installed");
     let btn = Button::new("OK".into());

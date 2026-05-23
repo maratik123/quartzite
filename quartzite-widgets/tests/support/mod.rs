@@ -230,7 +230,8 @@ pub fn snapshot_assert(name: &str, image: &RgbaImage) {
 /// that opt to construct a harness for unrelated reasons and only later
 /// decide to snapshot).
 pub fn snapshot_widget(harness: &mut RenderHarness, name: &str, widget: &dyn AsWidget) {
-    let image = harness.render_widget(|p| DefaultStyle.draw_widget(widget, p, &Palette::default()));
+    let image =
+        harness.render_widget(|p| DefaultStyle::new().draw_widget(widget, p, &Palette::default()));
     snapshot_assert(name, &image);
 }
 

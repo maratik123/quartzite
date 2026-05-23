@@ -165,6 +165,10 @@ impl Style for ThirdPartyStyle {
         }
         // Built-in variants are not handled — documented no-op per AC2.
     }
+
+    fn caret_visible_now(&self) -> bool {
+        false
+    }
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -200,7 +204,7 @@ fn third_party_widget_view_returns_other() {
 fn third_party_widget_under_default_style_is_noop() {
     let mut w = ThirdPartyWidget::new();
     w.show();
-    let style = DefaultStyle;
+    let style = DefaultStyle::new();
     let mut painter = RecordingPainter::new();
 
     style.draw_widget(&w as &dyn AsWidget, &mut painter, &Palette::default());

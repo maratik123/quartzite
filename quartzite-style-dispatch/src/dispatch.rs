@@ -282,6 +282,10 @@ mod tests {
         ) {
             painter.fill_rect(widget.widget_base().geometry, &Brush::solid(Color::BLACK));
         }
+
+        fn caret_visible_now(&self) -> bool {
+            false
+        }
     }
 
     struct StubResolver(HashMap<ObjectId, Box<dyn AsWidget>>);

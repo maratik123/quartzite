@@ -7,6 +7,7 @@ use quartzite_widgets::{
     WidgetView,
 };
 
+use crate::clock::StyleClock;
 use crate::{Paint, Style};
 
 /// Alpha applied to [`ColorRole::WindowText`] to form the read-only surface overlay.
@@ -24,10 +25,13 @@ const FOCUS_RING_WIDTH: f32 = 2.0;
 
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
-/// `DefaultStyle` is a zero-sized, `Default`-implementing struct that ships
-/// inside `quartzite-style`. Its [`draw_widget`](Style::draw_widget) body
-/// routes on the runtime widget type via [`WidgetView`] pattern matching and
-/// dispatches to the appropriate [`Paint<W>`](crate::Paint) impl:
+/// `DefaultStyle` owns a [`StyleClock`] that drives caret-blink timing.
+/// Construct it with [`DefaultStyle::new`] (wall-clock blink) or
+/// [`DefaultStyle::with_clock`] (custom / pinned clock for tests).
+///
+/// Its [`draw_widget`](Style::draw_widget) body routes on the runtime widget
+/// type via [`WidgetView`] pattern matching and dispatches to the appropriate
+/// [`Paint<W>`](crate::Paint) impl:
 ///
 /// - [`Button`] — flat fill, 1 px outline, centered label; checked/disabled variants.
 /// - [`Label`] — background fill + left-aligned (or widget-specified) text.
@@ -48,7 +52,7 @@ const FOCUS_RING_WIDTH: f32 = 2.0;
 /// ```
 /// use quartzite_style::{DefaultStyle, StyleRegistry};
 ///
-/// StyleRegistry::set_style(Box::new(DefaultStyle));
+/// StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 /// assert!(StyleRegistry::try_style().is_some());
 /// ```
 ///
@@ -56,10 +60,66 @@ const FOCUS_RING_WIDTH: f32 = 2.0;
 /// use quartzite_style::{DefaultStyle, Style};
 ///
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
-/// let _: Box<dyn Style> = Box::new(DefaultStyle);
+/// let _: Box<dyn Style> = Box::new(DefaultStyle::new());
 /// ```
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DefaultStyle;
+#[derive(Clone, Debug)]
+pub struct DefaultStyle {
+    clock: StyleClock,
+}
+
+impl DefaultStyle {
+    /// Constructs a new [`DefaultStyle`] with a wall-clock [`StyleClock`].
+    ///
+    /// The clock starts at [`std::time::Instant::now`] and alternates the caret
+    /// phase every 530 ms.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::DefaultStyle;
+    ///
+    /// let style = DefaultStyle::new();
+    /// ```
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            clock: StyleClock::new(),
+        }
+    }
+
+    /// Constructs a [`DefaultStyle`] with an explicit [`StyleClock`].
+    ///
+    /// Use this in tests or snapshot harnesses to pin the caret phase to a
+    /// deterministic value via [`StyleClock::pinned`].
+    ///
+    /// # Parameters
+    ///
+    /// - `clock`: the clock to use for caret-blink phase queries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::{DefaultStyle, Style, StyleClock};
+    ///
+    /// // Caret always visible — useful for snapshot tests.
+    /// let style = DefaultStyle::with_clock(StyleClock::pinned(true));
+    /// assert!(style.caret_visible_now());
+    /// ```
+    #[inline]
+    pub const fn with_clock(clock: StyleClock) -> Self {
+        Self { clock }
+    }
+}
+
+impl Default for DefaultStyle {
+    /// Returns a [`DefaultStyle`] with a fresh wall-clock [`StyleClock`].
+    ///
+    /// Equivalent to [`DefaultStyle::new`].
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Style for DefaultStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
@@ -73,6 +133,18 @@ impl Style for DefaultStyle {
             // Unknown widget type — deliberate no-op; does not panic.
             _ => {}
         }
+    }
+
+    // _Simple._
+    #[inline]
+    fn caret_visible_now(&self) -> bool {
+        self.clock.caret_visible_now()
+    }
+
+    // _Simple._
+    #[inline]
+    fn prefers_reduced_motion(&self) -> bool {
+        self.clock.prefers_reduced_motion()
     }
 }
 

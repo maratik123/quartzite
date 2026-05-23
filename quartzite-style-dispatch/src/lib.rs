@@ -17,7 +17,7 @@
 //! use quartzite_style_dispatch::{WidgetResolver, dispatch_paint};
 //!
 //! // 1. Install a style (once per process, before painting).
-//! StyleRegistry::set_style(Box::new(DefaultStyle));
+//! StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 //!
 //! // 2. Build a widget tree.
 //! let root_id  = ObjectId::new();

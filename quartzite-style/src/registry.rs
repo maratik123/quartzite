@@ -46,6 +46,10 @@ fn slot() -> &'static Mutex<Option<&'static dyn Style>> {
 ///         _palette: &Palette,
 ///     ) {
 ///     }
+///
+///     fn caret_visible_now(&self) -> bool {
+///         false
+///     }
 /// }
 ///
 /// StyleRegistry::set_style(Box::new(NoopStyle));
@@ -84,6 +88,10 @@ impl StyleRegistry {
     ///         _p: &mut dyn Painter,
     ///         _pal: &Palette,
     ///     ) {}
+    ///
+    ///     fn caret_visible_now(&self) -> bool {
+    ///         false
+    ///     }
     /// }
     ///
     /// StyleRegistry::set_style(Box::new(NoopStyle));
@@ -163,6 +171,10 @@ mod tests {
         ) {
             A_CALLS.fetch_add(1, Ordering::SeqCst);
         }
+
+        fn caret_visible_now(&self) -> bool {
+            false
+        }
     }
 
     /// Marker fixture B (separate type so address-equality tests compile).
@@ -176,6 +188,10 @@ mod tests {
             _palette: &Palette,
         ) {
             B_CALLS.fetch_add(1, Ordering::SeqCst);
+        }
+
+        fn caret_visible_now(&self) -> bool {
+            false
         }
     }
 

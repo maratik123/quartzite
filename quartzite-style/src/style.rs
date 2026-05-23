@@ -99,6 +99,10 @@ use quartzite_widgets::AsWidget;
 ///         _palette: &Palette,
 ///     ) {
 ///     }
+///
+///     fn caret_visible_now(&self) -> bool {
+///         false
+///     }
 /// }
 ///
 /// // Trait is object-safe — boxing through `dyn Style` compiles.
@@ -139,6 +143,80 @@ pub trait Style: Send + Sync {
     /// - `palette`: colour-role lookup used by the implementor when resolving
     ///   widget colours.
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette);
+
+    /// Returns `true` when the caret should be drawn in the current paint pass.
+    ///
+    /// The default implementation returns `false`, keeping the caret invisible.
+    /// Concrete styles that own a [`crate::StyleClock`] should delegate to
+    /// [`StyleClock::caret_visible_now`](crate::StyleClock::caret_visible_now).
+    ///
+    /// Paint paths call this method through `&self` — no `&mut` needed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Palette, Style, StyleClock};
+    /// use quartzite_widgets::AsWidget;
+    ///
+    /// struct PinnedStyle {
+    ///     clock: StyleClock,
+    /// }
+    ///
+    /// impl Style for PinnedStyle {
+    ///     fn draw_widget(
+    ///         &self,
+    ///         _widget: &dyn AsWidget,
+    ///         _painter: &mut dyn Painter,
+    ///         _palette: &Palette,
+    ///     ) {
+    ///     }
+    ///
+    ///     fn caret_visible_now(&self) -> bool {
+    ///         self.clock.caret_visible_now()
+    ///     }
+    /// }
+    ///
+    /// let style = PinnedStyle { clock: StyleClock::pinned(true) };
+    /// assert!(style.caret_visible_now());
+    /// ```
+    fn caret_visible_now(&self) -> bool;
+
+    /// Returns `true` when the platform reports a reduced-motion accessibility
+    /// preference, indicating that blinking animations should be suppressed.
+    ///
+    /// The default implementation returns `false`.  Concrete styles that query
+    /// the platform for this preference should override the default.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Palette, Style};
+    /// use quartzite_widgets::AsWidget;
+    ///
+    /// struct NoopStyle;
+    ///
+    /// impl Style for NoopStyle {
+    ///     fn draw_widget(
+    ///         &self,
+    ///         _widget: &dyn AsWidget,
+    ///         _painter: &mut dyn Painter,
+    ///         _palette: &Palette,
+    ///     ) {
+    ///     }
+    ///
+    ///     fn caret_visible_now(&self) -> bool {
+    ///         false
+    ///     }
+    /// }
+    ///
+    /// // Default impl returns false — no reduced-motion signal.
+    /// assert!(!NoopStyle.prefers_reduced_motion());
+    /// ```
+    fn prefers_reduced_motion(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
@@ -161,6 +239,10 @@ mod tests {
             _palette: &Palette,
         ) {
             DRAW_CALLS.fetch_add(1, Ordering::SeqCst);
+        }
+
+        fn caret_visible_now(&self) -> bool {
+            false
         }
     }
 
@@ -289,6 +371,20 @@ mod tests {
         // bound and that the registry's &'static dyn Style is well-formed.
         assert_send_sync::<Box<dyn Style>>();
         assert_send_sync::<&'static dyn Style>();
+    }
+
+    #[test]
+    fn caret_visible_now_dispatches_through_trait_object() {
+        // Both new methods must be callable through &dyn Style.
+        let style: Box<dyn Style> = Box::new(OnlyDraw);
+        let s: &dyn Style = style.as_ref();
+        // OnlyDraw::caret_visible_now returns false.
+        assert!(!s.caret_visible_now(), "caret_visible_now must dispatch");
+        // prefers_reduced_motion uses the default-impl returning false.
+        assert!(
+            !s.prefers_reduced_motion(),
+            "prefers_reduced_motion must dispatch"
+        );
     }
 
     #[test]
