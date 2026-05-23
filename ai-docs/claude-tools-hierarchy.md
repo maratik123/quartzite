@@ -28,6 +28,8 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | `ScheduleWakeup` | 🟦 | Schedule next `/loop` wake | `delaySeconds`, `reason`, `prompt` |
 | `ShareOnboardingGuide` | 🟦 | Upload ONBOARDING.md | `mode`, `short_code` |
 | `ToolSearch` | 🟦 | Load deferred tool schemas | `query`, `max_results` |
+| `Grep` | 🟦 | Regex search across files | `pattern`, `path`, `glob`, `-i`, `-n`, `-l`, `-A`/`-B`/`-C`, `output_mode`, `type`, `head_limit`, `multiline` |
+| `Glob` | 🟦 | Fast filename pattern matching | `pattern`, `path` |
 
 ### 1b. Deferred tools (load schema via `ToolSearch` first)
 
@@ -49,6 +51,8 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 <!-- stable-anchor: #2-subagents -->
 <a id="2-subagents"></a>
 ## 2. Subagents (via `Agent` Tool)
+
+> **Nested-spawn restriction.** The harness elides `Agent` from a Subagent's runtime tool list — **a Subagent cannot spawn another Subagent**, regardless of what its frontmatter `tools:` field declares. This applies to embedded Subagents (visible in §2a — `Explore` / `Plan` rows explicitly say "All except `Agent`") AND to project-defined Subagents (declaring `Agent` in `.claude/agents/<name>.md` frontmatter does NOT grant the primitive at runtime). All Subagent spawns originate from the orchestrator (main thread) or from a Skill. Empirically confirmed by [`ai-docs/learnings.md`](learnings.md) 2026-05-15 (`self-improve` runtime lacks `Agent`) and a 2026-05-23 `design-review` probe on PR #550.
 
 ### 2a. 🟦 Embedded
 

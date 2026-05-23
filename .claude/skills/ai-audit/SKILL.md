@@ -63,15 +63,21 @@ Skip if `$ARGUMENTS` is `phase1`.
 
 ### Step 2.1: Pull canonical Claude Code docs
 
-Fetch the three primary references via WebFetch (cache them mentally for the rest of the run):
+Spawn the embedded `claude-code-guide` Subagent via the `Agent` Tool. One spawn returns the verbatim shape contracts for the three primary references; inline its output into orchestrator context and re-use the returned text for the rest of the run (no temp-file persistence).
 
-- `https://code.claude.com/docs/en/skills` — skill structure, frontmatter, allowed-tools
-- `https://code.claude.com/docs/en/sub-agents` — Subagent file shape, when Subagents fire
-- `https://code.claude.com/docs/en/hooks-guide` — hook events, matchers, JSON I/O
+```
+Agent(subagent_type="claude-code-guide", prompt="
+  Return the verbatim canonical shape contracts from these three Claude Code documentation pages:
 
-For each fetch use a focused prompt like: *"Extract the canonical schema for skill frontmatter fields and which fields are required vs optional."*
+  - https://code.claude.com/docs/en/skills           — skill frontmatter schema (which fields are required vs optional; allowed-tools shape; argument-hint; disable-model-invocation)
+  - https://code.claude.com/docs/en/sub-agents       — Subagent file structure (frontmatter `name` / `description` / `tools` line; body conventions; when Subagents fire)
+  - https://code.claude.com/docs/en/hooks-guide      — Hook event names, matchers, JSON I/O contract, exit-code semantics
 
-If a referenced behavior in the codebase is unclear, fetch additional pages from `code.claude.com` (settings reference, MCP, slash commands) on demand — do not pre-fetch everything.
+  For each page, extract the verbatim schema text — not a paraphrase. Cite the URL alongside each block so the orchestrator can re-quote it during the audit.
+")
+```
+
+If a referenced behavior in the codebase is unclear, ask `claude-code-guide` for additional pages from `code.claude.com` (settings reference, MCP, slash commands) on demand — do not pre-fetch everything.
 
 ### Step 2.2: Inventory the instruction surface
 
@@ -183,6 +189,6 @@ Per AGENTS.md, **never** `git add -A` / `git add .`.
 
 - Do **not** rewrite `learnings.md` history — it is append-only. Phase 1 may only correct the `Escalated?` field of an existing entry or add a *new* corrective entry; never delete or rephrase past entries.
 - Do **not** invent rules. The audit finds compliance gaps in *existing* rules; new rules go through `/improve`.
-- Do **not** skip the `WebFetch` Tool call in Phase 2. The official docs are the source of truth for Hook/Skill/Subagent shapes — relying on memory is the failure mode this Skill exists to prevent.
+- Do **not** skip the `claude-code-guide` spawn in Phase 2. The official docs are the source of truth for Hook/Skill/Subagent shapes — relying on memory is the failure mode this Skill exists to prevent.
 - Do **not** auto-resolve a blocker without surfacing it. Severity is a signal that human judgment is needed.
 - Do **not** edit `.claude/settings.local.json` from this skill — it is user-local.

@@ -1381,3 +1381,33 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+
+### 2026-05-23 — process — `/interview` orchestrator emits misleading "SendMessage not available — using cold spawn" message every round
+
+**What happened:** During `/task` Steps 1–5 (the `/interview` skill), the orchestrator narrates "SendMessage not available — using cold spawn for round N with full state" before every round 2+ spec-writer invocation. The phrasing implies a degraded fallback path; in this Claude Code build, `SendMessage` is not exposed via the default tool surface (and `ToolSearch query: "select:SendMessage"` returns "No matching deferred tools found"), so the orchestrator always cold-spawns. The user observes this same sentence on every `/interview` invocation and finds it confusing/noisy.
+
+**Rule:** Do NOT frame cold-spawn as a fallback when it is the contract. `.claude/skills/interview/SKILL.md` § Step 3a is explicit: "The cold-spawn path is the **default contract**; warm reuse is an opportunistic optimization conditional on the harness returning a usable `agentId` and `SendMessage` succeeding." When `SendMessage` is not exposed by the current harness build, the orchestrator should silently take the documented default path. If a status message is emitted at all, phrase it as "Spawning round N spec-writer." — not as a fallback announcement. Stop probing for `SendMessage` via `ToolSearch` on every round; the absence is stable per session.
+
+**Why:** "Not available — falling back" reads like a regression; cold-spawn is the documented default per the SKILL. Repeating the misleading framing each round trains the user to mistake the standard path for a problem. The probe is also wasted overhead — one `ToolSearch` per round to confirm a stable, session-wide absence.
+
+**How to apply:** When invoking the spec-writer subagent in `/interview` round 2+: cold-spawn directly with the full state in the prompt; do not first probe for `SendMessage`. If the harness later exposes `SendMessage` as a default tool, the orchestrator can opt into warm reuse without a per-round probe.
+
+**Kind:** correction
+
+**Escalated?** no
+
+
+### 2026-05-23 — process — investigate holding a warmed-up spec-writer across all `/interview` rounds until the skill terminates
+
+**What happened:** Companion to the 2026-05-23 SendMessage entry above. The user asked: instead of cold-spawning the spec-writer once per round (current default per `.claude/skills/interview/SKILL.md` § Step 3a), explore whether the orchestrator can hold a single warmed-up spec-writer subagent **across every round** of one `/interview` invocation — spawn at round 1, hand new rounds to the same agent via the harness's continuation mechanism, only terminate at `ready` / `abort` / `defer_to_deferred`. Open questions: (a) which continuation tool is actually exposed in current Claude Code builds (`SendMessage` is documented but the project has observed it absent at the default tool surface — see prior entry); (b) does the harness preserve the warm agent's context across the orchestrator's intermediate `AskUserQuestion` calls and Read/Write ops, or does it evict between rounds; (c) cost/benefit vs cold spawn — warm reuse avoids re-paying the spec-writer's preamble (read `.claude/agents/spec-writer.md`, AGENTS.md preflight, Rule-5 substring blacklist load) on every round, but cold spawn is robust to harness eviction.
+
+**Rule:** Future investigation — not actionable until evidence collected. When the next `/interview` lands, before falling back to cold spawn, the orchestrator (or a one-shot probe in `/improve` / a dedicated spike) should: (1) enumerate every continuation tool the current harness exposes (`SendMessage`, `Agent` re-entry by `agentId`, anything else); (2) attempt warm-reuse round 2 → round 4 in one `/interview` run; (3) measure whether the warm agent retains its loaded `.claude/agents/spec-writer.md` context, the AGENTS.md preflight cache, and prior_qa state without prompt-side re-injection; (4) if warm reuse works AND retains context, propose an `/interview` SKILL.md amendment switching the contract from "cold-spawn default, warm opportunistic" to "warm-hold default, cold-spawn fallback only on harness eviction"; (5) if warm reuse does NOT work or context is dropped, document the harness limitation in `ai-docs/claude-tools-hierarchy.md` so future readers don't re-investigate.
+
+**Why:** Cold spawn per round repays the subagent's preamble cost (file reads + AGENTS.md preflight + Rule-5 blacklist load) on every round — wasted tokens across the round_cap=4 budget. A warm-held spec-writer is the cheaper protocol if the harness supports it. The prior entry tells the orchestrator to STOP probing per round (the probe itself is wasteful); this entry separately asks WHETHER warm-hold is achievable at all. The two are distinct: stop-probing is a known correction; warm-hold-feasibility is open research.
+
+**How to apply:** Open a follow-up issue (or `ai-docs/deferred/_inbox.md` row when the current `/task` reaches Step 12) titled "Investigate warm-hold spec-writer across `/interview` rounds" with the five sub-steps above. Do NOT amend `/interview` SKILL.md until evidence is collected — the SKILL's current cold-spawn default is correct given the observed `SendMessage` absence.
+
+**Kind:** correction
+
+**Escalated?** no
