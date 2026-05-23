@@ -49,7 +49,7 @@ Then create `ai-docs/triage/triage-YYYY-MM-DD.progress.md` using the canonical s
 
 Required body sections (populated as phases run, **not** upfront):
 
-- `## Phase 4 dedupe map summary` — `{number → {state, title}}` counts after Phase 4 lands.
+- `## Phase 4 dedupe map summary` — `{number → {state, title, labels, body}}` counts after Phase 4 lands (the `labels` + `body` fields support the Phase 6.5 / Phase 7 UI-design gate's umbrella-discovery filter and keyword-overlap ranking; see the *Design-work classification gate* section below).
 - `## Phase 4.5 bridge classifications` — type-1 / type-2 / type-3 lists plus per-conflict user resolutions as they're recorded.
 - `## Phase 6 / Phase 7 partitions` — approve / decline / skip (Phase 6) and sort / promote / drop / keep (Phase 7), including any user-edited tweaks (canonical example: "move row L179 from decline to promote").
 - `## Next action` — the phase the next subagent invocation should resume from. Always updated after every phase completes.
@@ -81,8 +81,13 @@ Per-source candidate rules:
 Run **exactly one** call per `/triage` session:
 
 ```
-gh issue list --state all --json number,state,title --limit 500
+gh issue list --state all --json number,state,title,labels,body --limit 500
 ```
+
+**Why `labels,body` in addition to `number,state,title`.** The Phase 6.5 / Phase 7 UI-design gate (*Design-work classification gate* section below) needs two extra fields from the same bulk call to preserve the "one bulk call per run" contract:
+
+- `labels` — used at gate prompt time to filter the map to `state == "OPEN" ∧ "ui-design" ∈ labels` for umbrella discovery (no second `gh issue list --label ui-design` round-trip).
+- `body` — used at gate prompt time to compute the keyword-overlap ranking score against each candidate umbrella's `title + body`.
 
 **Pagination watchdog.** If the response array has length ≥ 450 (= 0.9 × 500), halt the run with the verbatim message:
 
@@ -93,7 +98,7 @@ either (a) raising the `--limit` via skill code, or (b) introducing
 pagination. No mutations performed in this run.
 ```
 
-Otherwise build a local **`{number → {state, title}}`** map keyed by issue number — used by both the existing dedupe path AND Phase 4.5's bridge sweep. Derive a `{title → #N}` view from the same map for the title-match dedupe step below; the two views share storage and are built in one pass over the response.
+Otherwise build a local **`{number → {state, title, labels, body}}`** map keyed by issue number — used by the existing dedupe path, by Phase 4.5's bridge sweep, AND by the UI-design gate's umbrella discovery + ranking. Derive a `{title → #N}` view from the same map for the title-match dedupe step below; the views share storage and are built in one pass over the response. The pagination watchdog (≥ 450) and the "one bulk call per run" contract are preserved unchanged — only the per-issue field set is widened.
 
 **Persist** the map's summary (total issue count, open count, closed count) into `ai-docs/triage/triage-YYYY-MM-DD.progress.md` under `## Phase 4 dedupe map summary`, then update `## Next action` to `Phase 4.5`. The full map need not be serialised — Phase 4.5 / Phase 7.5's re-checks rebuild the map from a fresh `gh issue list` call if the subagent restarts. The summary is for resume diagnostics + user spot-check.
 
@@ -116,7 +121,7 @@ The bridge detects divergence between md state and `gh issue` state. Runs after 
 - `_inbox.md`: cell 4 (`Tracked`) **only when it holds `#N`** — `—` rows route to Phase 7's drain step and are explicitly excluded.
 - `widget-backlog.md`: `Notes` cell when it holds a `tracked: #N — ` prefix. Anchor on `| Widget | Status | Notes |` column header; ignore bare `Tracked:` substrings in prose (`widget-backlog.md:89` blockquote).
 
-**Look up each `#N` in the Phase 4 `{number → {state, title}}` map.** If `#N` is NOT in the map, record as an *orphan ref* in the diagnostics block of the bridge sub-section — no per-conflict prompt opens for orphans.
+**Look up each `#N` in the Phase 4 `{number → {state, title, labels, body}}` map.** If `#N` is NOT in the map, record as an *orphan ref* in the diagnostics block of the bridge sub-section — no per-conflict prompt opens for orphans. The bridge consults only `state` + `title`; the `labels` + `body` fields are inert here (they serve the UI-design gate).
 
 **Classify each map hit into one of three conflict types:**
 
@@ -199,7 +204,7 @@ Present a table to the user listing every cell-iteration candidate (8 thematic +
 
 User responds per row: approve / decline / skip-this-run.
 
-- **Approve** → append the row's `(title, body, destination)` tuple to the **in-memory approval queue**. **DO NOT call `gh issue create` yet** — all creates are deferred to Phase 7.5 so they share a single contiguous pass with drain promotes (the spec's "one bulk call" contract).
+- **Approve** → **Run the Phase 6.5 / Phase 7 UI-design classification gate** for the row (per the gate section below; the per-row classification fires at this approval moment, BEFORE the row joins the queue). Once the gate fully resolves (classification + umbrella decision), append the row's `(title, body, destination)` tuple to the **in-memory approval queue**. **DO NOT call `gh issue create` yet** — all creates are deferred to Phase 7.5 so they share a single contiguous pass with drain promotes (the spec's "one bulk call" contract).
 - **Decline** → write the decline marker immediately:
   1. **Concurrent-edit guard:** re-read the target file's content and confirm the row's line still matches the start-of-session snapshot. If mismatch: abort that row's rewrite, print the unified diff, name the file, continue with the next row.
   2. On match, write the decline marker per the action table:
@@ -214,7 +219,52 @@ User responds per row: approve / decline / skip-this-run.
 
 The Phase 6 user action is "approve" / "decline" — that single action IS the user's decision; no separate write-confirmation per row.
 
-**Persist** the Phase 6 partition into `## Phase 6 / Phase 7 partitions` of the progress file: list of approves (per-row `file + cell + drafted title`), list of declines (per-row `file + cell + Item`), list of skips (per-row `file + cell + Item`). Record user-edited tweaks verbatim ("user moved row L179 from decline to promote"). Update `## Next action` to `Phase 7` once the Phase 6 table is fully resolved.
+**Persist** the Phase 6 partition into `## Phase 6 / Phase 7 partitions` of the progress file: list of approves (per-row `file + cell + drafted title`), list of declines (per-row `file + cell + Item`), list of skips (per-row `file + cell + Item`). Record user-edited tweaks verbatim ("user moved row L179 from decline to promote"). Update `## Next action` to `Phase 6.5` once the Phase 6 table is fully resolved; resume the gate from Phase 6.5 below for each approved row before reaching Phase 7.
+
+### Phase 6.5 / Phase 7 — UI-design classification gate
+
+The gate fires **per-row** at the approval moment for both Phase 6 (sweep approve) and Phase 7 (drain promote), BEFORE the row enters the Phase 7.5 `gh issue create` queue. The gate is the same contract in both phases — only the queueing source differs (sweep approves vs drain promotes). This section specifies the gate once; Phase 6 and Phase 7 reference it.
+
+**Input string.** For each row entering the gate, build the classification input as:
+
+```
+classify_input = lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec_filename)
+```
+
+(The `Source spec` filename is the bare filename, e.g. `2026-05-21-style-helpers.spec.md` — not the full path.)
+
+**Algorithm.** Two branches:
+
+1. **Hit branch.** Substring-scan `classify_input` against the verbatim keyword list under *Design-work classification keyword list* (below). The list is matched case-insensitively (the input is already lowercased; the keywords are lowercased at compile-time per that sub-section's contract). First-match wins; record the hit keyword `<hit>` for the prompt.
+
+   Emit exactly one y/n confirm prompt (AskUserQuestion):
+
+   ```
+   Row matches design-work keyword `<hit>` — classify as design-work and require ui-design umbrella link? (y/n)
+   ```
+
+   - `y` → classification = `DESIGN-WORK`; continue to umbrella selection (Phase 6.5 / Phase 7 umbrella-prompt below — operationally specified in the design-decomp Task 5+ steps and finalised in later groups).
+   - `n` → classification = `PLAIN`; skip the gate; the row enters Phase 7.5 without `blocked` / `ui-design` labels and without a `**Blocked by:**` body line.
+
+2. **No-hit branch.** When the scan returns zero hits, run the orchestrator-internal LLM auto-detect. The `/triage` orchestrator (Claude Code itself) reads the row's `Item` cell text + the relevant section of the row's `Source spec` file (bounded to that one spec file's content, not the whole repo — exact path-resolution rule + read-budget land in design-decomp Task 4) and INFERS a classification `DESIGN-WORK | PLAIN` together with a one-line reason (≤ 100 chars). Emit exactly one y/n confirm prompt with the inference as the default:
+
+   ```
+   Auto-classification: <DESIGN-WORK | PLAIN> (reason: <one-line summary>). Accept? (y/n)
+   ```
+
+   - `y` honours the inference. If the inference is `DESIGN-WORK`, continue to umbrella selection; if `PLAIN`, skip the gate.
+   - `n` flips to the other classification. If the flipped value is `DESIGN-WORK`, continue to umbrella selection; if `PLAIN`, skip the gate.
+
+   The inference itself uses the orchestrator's own LLM context — there is no external API call, no model-selection plumbing.
+
+**Where the prompt fires within the run.** Per-row, at the moment the row is approved into the Phase 7.5 queue:
+
+- **Phase 6 sweep approval rows** — the gate prompt fires after the user marks the row "approve" in the Phase 6 batched table, BEFORE the approval queue records the entry. A row that flips to `PLAIN` (or whose user picks `defer`) is removed from the queue at this point.
+- **Phase 7 drain-promote rows** — the gate prompt fires after the user picks `promote` (and selects a thematic destination), BEFORE the row joins the same queue.
+
+In both cases the gate fully resolves (classification + umbrella decision + body-edit prerequisites) before the queue accepts the entry. Phase 7.5's bulk create pass sees a fully-resolved queue where every design-work entry already carries its `link_to_umbrella: #N` (or the new-umbrella draft) and every plain entry has no umbrella link.
+
+**Resume semantics.** A row whose progress-file partition record already carries a `design_link:` line is NOT re-prompted at the gate on a resumed `/triage` run — the gate consults the existing `design_link:` value and proceeds. (The full `design_link:` sub-field schema + per-value semantics land in design-decomp Task 8; the resume contract is established here.)
 
 ### Phase 7: Drain `_inbox.md`
 
@@ -232,7 +282,7 @@ Action? (s)ort / (p)romote / (d)rop / (k)eep
 Actions:
 
 - **sort** → follow-up prompt: pick destination thematic file (numbered menu, 1–8). Append the row to that file with cell 4 = `—`; remove from `_inbox.md`. The row remains untracked at the thematic-file level and can be promoted on a future `/triage` run via the standard sweep.
-- **promote** → follow-up prompt: pick destination thematic file (numbered menu). **Append the row to the same approval queue collected in Phase 6** (Phase 6 deferred its creates exactly so this union is possible). The actual create + cell-4-write happens in Phase 7.5. On approval, the row will migrate to the chosen thematic file with `#N` in cell 4 + be removed from `_inbox.md`. On decline, migrate with `untracked` + remove.
+- **promote** → follow-up prompt: pick destination thematic file (numbered menu). **Run the Phase 6.5 / Phase 7 UI-design classification gate** for the row (per the gate section above; this is the Phase 7 application of the same per-row gate that Phase 6 already ran for sweep approvals). Once the gate fully resolves (classification + umbrella decision), **append the row to the same approval queue collected in Phase 6** (Phase 6 deferred its creates exactly so this union is possible). The actual create + cell-4-write happens in Phase 7.5. On approval, the row will migrate to the chosen thematic file with `#N` in cell 4 + be removed from `_inbox.md`. On decline, migrate with `untracked` + remove.
 - **drop** → physically remove the row from `_inbox.md`. No migration. Reserved for legitimately-bad rows.
 - **keep** → leave the row in `_inbox.md` unchanged.
 
@@ -291,6 +341,55 @@ rm -f ai-docs/triage/triage-YYYY-MM-DD.progress.md
 ```
 
 This mirrors the `/pr-merged` `scripts/cleanup-progress.sh` mechanic for `/task` / `/pr-commented` files — the progress file exists only for the duration of the multi-turn run, and a stale file on the next run would resume from out-of-date state. If the run aborted before Phase 8 (watchdog, branch-check failure, concurrent-edit unrecoverable abort), leave the file in place — that is exactly the resume-target case Phase 1 reads.
+
+## Design-work classification keyword list
+
+The verbatim 23-entry keyword list used by the Phase 6.5 / Phase 7 UI-design classification gate (above). The list lives inside `.claude/agents/triage-runner.md` adjacent to the gate code so it is reviewable in PRs and so the gate's two roles (classification + ranking) share a single source-of-truth.
+
+```
+style
+paint
+palette
+colorrole
+widget
+chrome
+visual
+theme
+snapshot
+Highlight
+FocusRing
+caret
+selection
+scrollbar
+popup
+tooltip
+dialog
+modal
+icon
+font
+IME
+RTL
+BiDi
+```
+
+**Match semantics.** Case-insensitive substring match. The list above preserves the original casing as documented in the spec (Technical constraints #2); at match time each keyword is lowercased and matched as a substring against the lowercased input string. Match is a substring hit — `Highlight` matches both `Highlight` and `highlight`; `FocusRing` matches `focusring` (because the input is lowercased before the scan), and intentionally does NOT match `focus_ring` or `focus-ring` (substring match requires the contiguous letters; design-decomp Task 4 / future list-tuning may revisit this if false-negatives accumulate).
+
+**Dual role.** The same list serves two distinct duties:
+
+1. **Classification trigger.** Substring-scanned against `lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec_filename)` per the Phase 6.5 / Phase 7 gate algorithm. First-match wins; the hit keyword feeds the y/n confirm prompt.
+
+2. **Ranking signal.** Used as the overlap signal for ranking the umbrella numbered menu. For each candidate umbrella in the open `ui-design` set (filtered from the Phase 4 dedupe map), the overlap score is:
+
+   ```
+   score(umbrella) =
+       |{ kw ∈ KEYWORD_LIST
+          : kw_lower is substring of lowercase(row.Item_cell_text)
+          ∧ kw_lower is substring of lowercase(umbrella.title + " " + umbrella.body) }|
+   ```
+
+   A shared keyword (substring hit on BOTH the row's `Item` text AND the umbrella's `title + body`) counts +1; a shared NON-keyword token does not count (avoids generic noise like "the", "and", "a"). Sort umbrellas by descending score; tie-break by `#N` ascending (oldest first). The menu still shows ALL open `ui-design` umbrellas — ranking only affects ORDER.
+
+**List extension policy.** The spec lists this as the minimum starting set. Future list-tuning PRs may extend / reorder entries with rationale; the list extension is a one-line `## List extensions` sub-section appended to this section, preserving the original 23 entries verbatim for audit (the dual-role contract above is unchanged by additions).
 
 ## Anti-patterns
 
