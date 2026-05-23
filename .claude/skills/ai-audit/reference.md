@@ -219,6 +219,41 @@ Multi-target reverse direction. The `Escalated?` field may name multiple comma-s
 
 Severity `major` — dead-reference class. The bidirectional shape mirrors Checklist C: every reference resolves AND every target has a back-reference.
 
+## Checklist O — Embedded-name clash scan
+
+Enforces the [AGENTS.md `## Propagation Rule` clash-rename AXIOM](../../../AGENTS.md#propagation-rule). Project-defined Tool / Subagent / Skill / Hook names MUST NOT clash with embedded (Anthropic-shipped or marketplace-plugin) names enumerated in [`ai-docs/claude-tools-hierarchy.md`](../../../ai-docs/claude-tools-hierarchy.md) §§1a + 1b + 2a + 3a + 3b. Any match → `major` finding with rename recommendation (project side renames; the embedded name is never renamed).
+
+**Recipe.** Enumerate two sorted lists and intersect them; empty intersection passes.
+
+1. **Project names** — collect every name the project DEFINES across the four axes. Hook **matcher** values are NOT project-defined (they reference embedded Tool names) and are excluded:
+   - Subagent names: `awk 'BEGIN{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/agents/*.md`
+   - Skill names: `awk 'BEGIN{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/skills/*/SKILL.md`
+   - Hook event names (top-level `hooks.<Event>` keys): `jq -r '.hooks | keys[]' .claude/settings.json`. Event names like `SessionStart` / `PreToolUse` / `PostToolUse` are themselves harness-defined; they appear in §4 of `claude-tools-hierarchy.md` (which is NOT in the embedded-name corpus below). Including them in `project-names.txt` is intentional — if a future PR introduces a project-defined hook event, the scan catches a collision with §4's enumerated event set.
+   - Sort + dedupe → `project-names.txt`.
+2. **Embedded names** — extract names from the FIRST column (the Tool / Subagent / Skill column) of `ai-docs/claude-tools-hierarchy.md` §§1a + 1b + 2a + 3a + 3b table rows. Restricting to the first column avoids false-positives from parameter columns (which also backtick token names like `file_path`). Namespaced names like `ast-index:initialize-rust` count as ONE token; do NOT split on `:`:
+   ```bash
+   awk '
+     /^### 1a\.|^### 1b\.|^### 2a\.|^### 3a\.|^### 3b\./ { in_embed=1; next }
+     /^### / { in_embed=0 }
+     /^## /  { in_embed=0 }
+     in_embed && /^\| `/ {
+       line=$0; sub(/^\| /, "", line)
+       first_cell = line; sub(/ \|.*/, "", first_cell)
+       n = split(first_cell, parts, "`")
+       for (i = 2; i <= n; i += 2)
+         if (parts[i] ~ /^[A-Za-z]/) print parts[i]
+     }
+   ' ai-docs/claude-tools-hierarchy.md | sort -u > embedded-names.txt
+   ```
+3. **Intersection** — `comm -12 <(sort -u project-names.txt) <(sort -u embedded-names.txt)` MUST return empty.
+
+| Trigger | Action |
+|---|---|
+| `comm -12` output is empty | no flag — clash-scan baseline holds |
+| `comm -12` output is non-empty | `major` finding per name: *"Project-defined `<name>` clashes with embedded `<name>` enumerated at `claude-tools-hierarchy.md` §§<sections>. Rename the project side."* |
+
+Severity `major` — the clash makes ambiguous which name resolves at dispatch time. False positives are exceedingly unlikely (the embedded inventory is a closed set in §§1a/1b/2a/3a/3b); when one is suspected, re-grep the canonical doc to confirm the token still appears.
+
 ## Step 2.6 sub-step 4 — Cross-reference re-verification (anchor-aware)
 
 For every relative link the audit touched in any `.claude/agents/*.md` or `.claude/skills/**/SKILL.md`, confirm the target file exists AND the anchor (if present) matches a heading slug. Use this anchor-aware check rather than naive `realpath -m` (which mistakes `#anchor` for part of the path):

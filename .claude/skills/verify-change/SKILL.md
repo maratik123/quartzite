@@ -1,5 +1,5 @@
 ---
-name: verify
+name: verify-change
 description: "Run cargo test. Pass an optional filter to run a subset of tests."
 argument-hint: "[test-filter]"
 disable-model-invocation: true
