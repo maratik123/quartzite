@@ -186,13 +186,11 @@ impl Style for DefaultStyle {
         }
     }
 
-    // _Simple._
     #[inline]
     fn caret_visible_now(&self) -> bool {
         self.clock.caret_visible_now()
     }
 
-    // _Simple._
     #[inline]
     fn prefers_reduced_motion(&self) -> bool {
         self.clock.prefers_reduced_motion()
