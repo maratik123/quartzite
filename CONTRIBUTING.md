@@ -331,3 +331,26 @@ the binary is on `PATH`, the `SessionStart` hook in
 automatically on each session open. Human contributors do **not** need
 `ast-index` installed for `cargo build` / `cargo test` — it is an
 agent-only tool.
+
+### Rust LSP (`rust-analyzer`)
+
+`ast-index` is syntactic (tree-sitter-based); `rust-analyzer` is the
+semantic complement. Use it for queries that need type inference, trait
+resolution, or precise reference chasing — `goToDefinition`,
+`findReferences`, `goToImplementation`, `hover`, call hierarchy.
+
+Claude Code exposes an embedded `LSP` Tool (deferred — load its schema
+once per session via `ToolSearch query="select:LSP"`). It routes through
+the locally-configured LSP server for the file type, so a
+`rust-analyzer` binary on `PATH` is required for any operation against
+`.rs` files — see
+[`rust-analyzer`'s upstream documentation](https://rust-analyzer.github.io/)
+for install instructions. Operations available: `goToDefinition`, `findReferences`,
+`hover`, `documentSymbol`, `workspaceSymbol`, `goToImplementation`,
+`prepareCallHierarchy`, `incomingCalls`, `outgoingCalls`. All operations
+take `filePath` + 1-based `line` + 1-based `character`. Prefer `LSP`
+over `ast-index` whenever the question is semantic (e.g. "every `impl`
+of trait `Style`" → `LSP goToImplementation` beats `ast-index
+implementations` for a trait defined in a macro-generated context);
+fall back to `ast-index` when the LSP server returns no result or the
+symbol is macro-expanded beyond `rust-analyzer`'s reach.
