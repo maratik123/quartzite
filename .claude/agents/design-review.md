@@ -1,7 +1,7 @@
 ---
 name: design-review
 description: "Critically reviews a Design Document against a quality checklist and issues GO / ITERATE / STOP. Invoked by /task in an Evaluator-Optimizer loop with the `design` Subagent until GO is reached or the iteration cap is hit."
-tools: Read, Bash, Agent
+tools: Read, Grep, Glob, Bash
 model: opus
 ---
 
@@ -17,31 +17,7 @@ Works in an autonomous loop with the `design` Subagent (Evaluator-Optimizer patt
 
 GO is only issued if you **actively** checked and found no blockers.
 
-Every suspicion — investigate via `Read` for known paths, or spawn `Explore` via `Agent` for code search across the workspace; don't guess and don't give benefit of the doubt.
-
-The `Explore` spawn `prompt` MUST embed the verbatim `ast-index.md § Rules for subagents` block (`Explore` does NOT inherit `.claude/rules/ast-index.md`). Use this shape:
-
-```
-Agent(subagent_type="Explore", prompt="
-  <task — what to investigate and what to return (e.g. file:line citations supporting the suspicion)>
-
-  Use `ast-index` via Bash for code search (NOT grep / the `Grep` Tool):
-    ast-index search \"query\"           — universal search
-    ast-index file \"Name\"              — find a file by name fragment
-    ast-index symbol \"Name\"            — find a symbol definition
-    ast-index class \"Name\"             — find a class / trait / struct / enum
-    ast-index usages \"Name\"            — every usage of a symbol
-    ast-index callers \"func\"           — functions that call this one
-    ast-index implementations \"Trait\"  — concrete implementors of a trait
-    ast-index refs \"Name\"              — cross-references (defs + imports + usages)
-  Use Grep ONLY if ast-index returned empty.
-
-  Before Read-ing any file over 500 lines, FIRST run
-    ast-index outline <file>
-  to get its structure, then Read only the targeted slice via offset/limit.
-  Never bulk-read large files.
-")
-```
+Every suspicion — **investigate via Read/grep**, don't guess and don't give benefit of the doubt.
 
 ## Workflow
 

@@ -1,8 +1,12 @@
+
+
 # Propagate embedded tools to harnesses
 
 **Source:** user description (free-text)
 **Date:** 2026-05-23
 **Tracked in:** #549
+
+> **POST-MERGE AMENDMENT (PR #550 round 1).** Class C and Class D entries D3/D4 were **rolled back** after a `design-review` runtime probe on 2026-05-23 confirmed the harness elides `Agent` from a Subagent's runtime tool list even when declared in frontmatter `tools:` (corroborates `ai-docs/learnings.md` 2026-05-15 `self-improve` entry). Nested Subagent-from-Subagent spawn is unsupported. Affected ACs (AC6–AC11) are obsoleted by the rollback; AC1–AC5 (Classes A + B + D1 + D2), AC10 (entry C5 byte-for-byte), AC12 (stable anchors), AC13 (Interview-group no-op), AC14 (char budget), AC15 (Class E), AC16 (Class F) remain in force. `ai-docs/claude-tools-hierarchy.md` §2 now carries an explicit *Nested-spawn restriction* note documenting the harness behaviour. Class F decisions are moot in the rolled-back state (no rewrite → no retention review needed). Full revert details in PR #550 round-1 commit message.
 
 ## Problem statement
 

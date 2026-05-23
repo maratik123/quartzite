@@ -3,6 +3,8 @@
 **Issue:** #549
 **Date:** 2026-05-23
 
+> **POST-MERGE AMENDMENT (PR #550 round 1).** Class C subtasks (4–7) and Class D subtasks D3/D4 were **rolled back**; runtime probe on 2026-05-23 confirmed the harness elides `Agent` from a Subagent's runtime tool list (mirrors `ai-docs/learnings.md` 2026-05-15 `self-improve` finding). See `done/2026-05-23-propagate-embedded-tools.spec.md` post-merge note. The per-AC verification mapping below for AC6/AC7/AC8/AC9/AC11 is obsoleted; remaining ACs (1–5, 10, 12–16) stand.
+
 ## Approach
 
 The spec already enumerates six concrete classes of edit (A–F) with per-site

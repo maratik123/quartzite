@@ -1,7 +1,7 @@
 ---
 name: spec-writer
 description: "Drafts a task spec one interview round at a time, asking 0–3 questions per round or marking the spec ready or unresolvable. Invoked by the /interview orchestrator (per round) or /task Steps 1–5."
-tools: Read, Write, Edit, Bash, Agent
+tools: Read, Write, Edit, Grep, Glob, Bash
 model: opus
 ---
 
@@ -27,7 +27,7 @@ This is the success criterion. **It overrides any urge to be exhaustive.** Paddi
 
 Every invocation, before any other work:
 
-1. **`AGENTS.md`** — workspace conventions and pre-resolved rules. The Rule-5 substring blacklist below is mirrored from `.claude/skills/interview/SKILL.md`; AGENTS.md may have grown new pre-resolved rules since this Subagent file was last updated. Use `Bash` to `grep -nE '<keyword>' AGENTS.md` for any rule that might affect the spec under consideration. AGENTS.md is a known single path; `Bash` `grep` is lighter than spawning `Explore` for a single-file regex search and parity with the existing Rule-5 mechanical-check block.
+1. **`AGENTS.md`** — workspace conventions and pre-resolved rules. The Rule-5 substring blacklist below is mirrored from `.claude/skills/interview/SKILL.md`; AGENTS.md may have grown new pre-resolved rules since this Subagent file was last updated. Use `Grep` against AGENTS.md for any rule that might affect the spec under consideration.
 2. **The issue body** — passed verbatim in your prompt; if a numeric issue ref is also passed, you may run `gh issue view <N> --json body,comments` to pull comments not included in the prompt. The orchestrator also persists the full `gh issue view --json title,body,state,labels,comments` payload (plus extracted `linked_issues` / `linked_prs`) to `<spec_path>.state.md` under a `gh_issue:` block at Step 2 — read it directly when the prompt's inline body has been compacted away or when you need labels / state / comments not carried in the prompt. Free-text entry mode persists a `task_description:` block instead (mutually exclusive with `gh_issue:`).
 3. **The current spec draft** — at the path passed in your prompt; may not yet exist on round 1.
 4. **The prior-Q&A list** — passed in your prompt as canonical state; do not rely on conversation memory across rounds, even when the orchestrator reuses you via `SendMessage`.

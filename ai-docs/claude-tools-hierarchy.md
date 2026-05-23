@@ -52,6 +52,8 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 <a id="2-subagents"></a>
 ## 2. Subagents (via `Agent` Tool)
 
+> **Nested-spawn restriction.** The harness elides `Agent` from a Subagent's runtime tool list — **a Subagent cannot spawn another Subagent**, regardless of what its frontmatter `tools:` field declares. This applies to embedded Subagents (visible in §2a — `Explore` / `Plan` rows explicitly say "All except `Agent`") AND to project-defined Subagents (declaring `Agent` in `.claude/agents/<name>.md` frontmatter does NOT grant the primitive at runtime). All Subagent spawns originate from the orchestrator (main thread) or from a Skill. Empirically confirmed by [`ai-docs/learnings.md`](learnings.md) 2026-05-15 (`self-improve` runtime lacks `Agent`) and a 2026-05-23 `design-review` probe on PR #550.
+
 ### 2a. 🟦 Embedded
 
 | Subagent | Purpose | Tools |
@@ -68,12 +70,12 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | Subagent | Purpose | Tools |
 |----------|---------|-------|
 | `design` | Produce Design Document | All |
-| `design-review` | GO / ITERATE / STOP verdict on design doc | `Read`, `Bash`, `Agent` |
+| `design-review` | GO / ITERATE / STOP verdict on design doc | `Read`, `Grep`, `Glob`, `Bash` |
 | `learnings-escalation-audit` | Audit `Escalated?` / `Superseded by:` fields | All |
 | `review-findings` | Whole-branch findings table | All |
 | `self-improve` | Propose escalation diffs from `learnings.md` | All |
 | `self-review` | APPROVE / REJECT diff vs spec/design | All |
-| `spec-writer` | Draft task spec one round at a time | `Read`, `Write`, `Edit`, `Bash`, `Agent` |
+| `spec-writer` | Draft task spec one round at a time | `Read`, `Write`, `Edit`, `Grep`, `Glob`, `Bash` |
 | `triage-runner` | Promote deferred rows → gh issues | All |
 
 ---
