@@ -87,12 +87,15 @@ impl TextCaretCursor for ParleyCaretCursor {
             self.line_height = (bb.y1 - bb.y0) as i32;
         }
     }
+    #[inline]
     fn caret_x(&self) -> i32 {
         self.x
     }
+    #[inline]
     fn line_top(&self) -> i32 {
         self.line_top
     }
+    #[inline]
     fn line_height(&self) -> i32 {
         self.line_height
     }
