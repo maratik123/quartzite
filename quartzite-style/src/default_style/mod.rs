@@ -114,18 +114,16 @@ impl DefaultStyle {
     /// Constructs a 530 ms-interval [`quartzite_runtime::Timer`] that invokes
     /// `on_tick` on each blink tick and starts it immediately with `driver`.
     ///
+    /// Only available when the `runtime-blink` cargo feature is enabled
+    /// (the default). Consumers who opt out of the runtime layer
+    /// (`default-features = false`) can still poll the read-side seam via
+    /// [`Style::caret_visible_now`] with a [`StyleClock`] they manage manually.
+    ///
     /// The caller must hold the returned [`quartzite_runtime::Timer`] for as
     /// long as blink invalidation is desired; dropping the timer stops the blink.
     ///
     /// Use this to wire the caret-blink invalidation seam: when `on_tick`
     /// fires, schedule a repaint of the focused `TextEdit` widget.
-    ///
-    /// # Features
-    ///
-    /// Only available when the `runtime-blink` cargo feature is enabled
-    /// (the default). Consumers who opt out of the runtime layer
-    /// (`default-features = false`) can still poll the read-side seam via
-    /// [`Style::caret_visible_now`] with a [`StyleClock`] they manage manually.
     ///
     /// # Parameters
     ///
