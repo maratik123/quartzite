@@ -28,6 +28,8 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | `ScheduleWakeup` | 🟦 | Schedule next `/loop` wake | `delaySeconds`, `reason`, `prompt` |
 | `ShareOnboardingGuide` | 🟦 | Upload ONBOARDING.md | `mode`, `short_code` |
 | `ToolSearch` | 🟦 | Load deferred tool schemas | `query`, `max_results` |
+| `Grep` | 🟦 | Regex search across files | `pattern`, `path`, `glob`, `-i`, `-n`, `-l`, `-A`/`-B`/`-C`, `output_mode`, `type`, `head_limit`, `multiline` |
+| `Glob` | 🟦 | Fast filename pattern matching | `pattern`, `path` |
 
 ### 1b. Deferred tools (load schema via `ToolSearch` first)
 
@@ -66,12 +68,12 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | Subagent | Purpose | Tools |
 |----------|---------|-------|
 | `design` | Produce Design Document | All |
-| `design-review` | GO / ITERATE / STOP verdict on design doc | `Read`, `Grep`, `Glob`, `Bash` |
+| `design-review` | GO / ITERATE / STOP verdict on design doc | `Read`, `Bash`, `Agent` |
 | `learnings-escalation-audit` | Audit `Escalated?` / `Superseded by:` fields | All |
 | `review-findings` | Whole-branch findings table | All |
 | `self-improve` | Propose escalation diffs from `learnings.md` | All |
 | `self-review` | APPROVE / REJECT diff vs spec/design | All |
-| `spec-writer` | Draft task spec one round at a time | `Read`, `Write`, `Edit`, `Grep`, `Glob`, `Bash` |
+| `spec-writer` | Draft task spec one round at a time | `Read`, `Write`, `Edit`, `Bash`, `Agent` |
 | `triage-runner` | Promote deferred rows → gh issues | All |
 
 ---
