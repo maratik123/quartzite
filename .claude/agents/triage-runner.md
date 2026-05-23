@@ -246,16 +246,24 @@ classify_input = lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec
    - `y` → classification = `DESIGN-WORK`; continue to umbrella selection (Phase 6.5 / Phase 7 umbrella-prompt below — operationally specified in the design-decomp Task 5+ steps and finalised in later groups).
    - `n` → classification = `PLAIN`; skip the gate; the row enters Phase 7.5 without `blocked` / `ui-design` labels and without a `**Blocked by:**` body line.
 
-2. **No-hit branch.** When the scan returns zero hits, run the orchestrator-internal LLM auto-detect. The `/triage` orchestrator (Claude Code itself) reads the row's `Item` cell text + the relevant section of the row's `Source spec` file (bounded to that one spec file's content, not the whole repo — exact path-resolution rule + read-budget land in design-decomp Task 4) and INFERS a classification `DESIGN-WORK | PLAIN` together with a one-line reason (≤ 100 chars). Emit exactly one y/n confirm prompt with the inference as the default:
+2. **No-hit branch.** When the scan returns zero hits, run the orchestrator-internal LLM auto-detect. The `/triage` orchestrator (Claude Code itself) reads the row's `Item` cell text + the row's `Source spec` file (bounded to that ONE spec file's content — see *Source-spec path resolution* + *Read-scope limit* below) and INFERS a classification `DESIGN-WORK | PLAIN` + a one-line reason (≤ 100 chars). Emit one y/n confirm prompt with the inference as default:
 
    ```
    Auto-classification: <DESIGN-WORK | PLAIN> (reason: <one-line summary>). Accept? (y/n)
    ```
 
-   - `y` honours the inference. If the inference is `DESIGN-WORK`, continue to umbrella selection; if `PLAIN`, skip the gate.
-   - `n` flips to the other classification. If the flipped value is `DESIGN-WORK`, continue to umbrella selection; if `PLAIN`, skip the gate.
+   - `y` → honour the inference (continue to umbrella selection if `DESIGN-WORK`; skip the gate if `PLAIN`).
+   - `n` → flip to the other classification (continue to umbrella selection if flipped to `DESIGN-WORK`; skip if flipped to `PLAIN`).
 
-   The inference itself uses the orchestrator's own LLM context — there is no external API call, no model-selection plumbing.
+   The inference uses the orchestrator's own LLM context — no external API, no model-selection plumbing.
+
+   **Source-spec path resolution.** Accept BOTH forms of the row's `Source spec` link: (a) bare-path `ai-docs/plans/done/<name>.spec.md`; (b) markdown-link `[<text>](../plans/done/<name>.spec.md)` — strip the wrapper and resolve the inner path relative to the deferred-row file's directory (typically `ai-docs/deferred/`) into workspace-relative form before reading. If the resolved path is absent (moved / renamed / stale), fall back to inferring from `row.Item` text alone with reason `source spec not found — inferred from Item text`.
+
+   **Read-scope LIMIT.** Read **exactly ONE file** — the resolved Source-spec path. NOT the whole repo, NOT every spec in `ai-docs/plans/done/`, NOT any glob, NOT any `quartzite-*/src/` file. One row → one file read (per design § Risks R1).
+
+   **Inference output schema.** Exactly two values: (i) one token from `{DESIGN-WORK, PLAIN}` (uppercase, hyphenated for `DESIGN-WORK`; no other variants); (ii) one reason — single line, ≤ 100 chars. No multi-line, no JSON. The two values fill the prompt's `<DESIGN-WORK | PLAIN>` and `<one-line summary>` placeholders directly.
+
+   **Audit trail.** Inference + y/n decision captured in the progress file under the row's `design_link:` sub-field (full schema in design-decomp Task 8). Example: `design_link: umbrella=#N (auto: DESIGN-WORK — caret rendering in ime)`.
 
 **Where the prompt fires within the run.** Per-row, at the moment the row is approved into the Phase 7.5 queue:
 
@@ -265,6 +273,85 @@ classify_input = lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec
 In both cases the gate fully resolves (classification + umbrella decision + body-edit prerequisites) before the queue accepts the entry. Phase 7.5's bulk create pass sees a fully-resolved queue where every design-work entry already carries its `link_to_umbrella: #N` (or the new-umbrella draft) and every plain entry has no umbrella link.
 
 **Resume semantics.** A row whose progress-file partition record already carries a `design_link:` line is NOT re-prompted at the gate on a resumed `/triage` run — the gate consults the existing `design_link:` value and proceeds. (The full `design_link:` sub-field schema + per-value semantics land in design-decomp Task 8; the resume contract is established here.)
+
+**Umbrella discovery (design-work rows only).** When the gate classifies as `DESIGN-WORK`, discover candidates from the Phase 4 dedupe map — no new `gh issue list` round-trip — filtered at gate-prompt time:
+
+```
+candidates = { #N → entry : entry ∈ Phase4DedupeMap
+                            ∧ entry.state == "OPEN"
+                            ∧ "ui-design" ∈ entry.labels }
+```
+
+**Keyword-overlap ranking computation** (uses the verbatim 23-entry list under *Design-work classification keyword list* below):
+
+```
+score(umbrella) =
+    |{ kw ∈ KEYWORD_LIST
+       : lowercase(kw) is substring of lowercase(row.Item_cell_text)
+       ∧ lowercase(kw) is substring of lowercase(umbrella.title + " " + umbrella.body) }|
+```
+
+A shared keyword (substring hit on BOTH sides) counts +1; a shared NON-keyword token does NOT count (filters generic noise like `the`, `and`).
+
+**Ordering rule.** Primary key `score` **descending**; tie-break `#N` **ascending** (oldest first; deterministic across reruns per design § Risks R4). The menu shows **ALL** open `ui-design` umbrellas — ranking only affects ORDER, never inclusion (AC11).
+
+**Numbered menu render.** Numbered lines `1..N` in ranked order, then three text options:
+
+```
+1. #<num> <title> — <truncated body summary>
+…
+N. #<num> <title> — <truncated body summary>
+new    Create a new ui-design umbrella inline
+none   Create the issue without an umbrella link
+defer  Skip creating this row's issue; return to _inbox.md
+```
+
+`<truncated body summary>` = first 80 chars of the umbrella body's first non-empty paragraph (intra-paragraph line breaks collapsed to spaces); `…` suffix if truncated; `<no body>` if empty.
+
+**User input.** Pick one of: **number `1..N`** (numbered-pick — operational sub-steps below); **`new`** (inline-create new umbrella — design-decomp Task 7); **`none`** (create the row's issue without labels/`**Blocked by:**`; recorded as "design-work issue without umbrella link" in Phase 8; no umbrella body edit); **`defer`** (do NOT create the row's issue this run; return to `_inbox.md`; recorded as deferred in Phase 8; no umbrella body edit).
+
+**Numbered-pick branch — end-to-end flow.** Pick number `i` resolves to umbrella `#N`. Four sub-steps:
+
+1. **Capture `#N`.** Record `link_to_umbrella: #N` on the Phase 7.5 create-queue entry; persist `design_link: umbrella=#N` in the progress-file partition record immediately (mirrors Phase 4.5's per-conflict write timing for crash-safe resume; full schema in design-decomp Task 8).
+
+2. **Queue entry shape.**
+
+   ```
+   { kind: "child",
+     title: <drafted title>,
+     body:  <drafted body with `**Blocked by:** #N\n\n` prepended at draft-construction time>,
+     destination_cell: <thematic cell 4 / widget-backlog Notes / _inbox.md cell 4>,
+     link_to_umbrella: #N,
+     labels_to_apply_post_create: ["blocked", "ui-design"] }
+   ```
+
+   The `**Blocked by:** #N\n\n` prefix is prepended to the body **string** at draft-construction time — NOT via `gh issue edit` after create. The create call materialises the back-reference in one round-trip.
+
+3. **Post-create label-apply** (after `gh issue create` returns child `#C`): `gh issue edit #C --add-label blocked --add-label ui-design`. Idempotent; failure logged but does NOT abort (back-reference already lives in the child body).
+
+4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor:
+
+   ```
+   gh issue view <N> --json body --jq .body  >  /tmp/triage-umbrella-<N>.body.md
+   ```
+
+   a. **Locate the anchor** — verbatim substring `## Child issues (blocked on this epic)` (case-sensitive; #539–#542 share verbatim).
+
+   b. **Idempotency check (BEFORE writing).** Scan from the anchor line forward to the END-of-section boundary (rule c) for substring `#<C> ` (**trailing-ASCII-space sentinel** prevents `#54` matching `#549`). If present, **no-op** the edit; log under Phase 8's per-umbrella summary as "already linked".
+
+   c. **END-of-section detection rule.** From the line immediately after the anchor, scan forward: a line beginning with `## ` (any next h2) is the **boundary** — insert the bullet on its own line immediately BEFORE that boundary, preserving section blank-line spacing. Reaching end-of-body without another `## ` makes the boundary **EOF** — append the bullet at EOF with a trailing newline.
+
+   d. **Compose the bullet** — exactly `- #<C> — <child-title>` (full child title, NOT the menu's 80-char truncation).
+
+   e. **Push back** — `gh issue edit <N> --body-file /tmp/triage-umbrella-<N>.body.md`. Capture exit code. Clean up the tmp file after the call returns.
+
+**Two distinct fallback sub-lists (per Tech #8 + design § Risks R3) — never folded into one.**
+
+- **`Body-edit skipped — anchor absent`** — per-umbrella **structural** state. Fires when sub-step 4a finds no anchor substring; same shape on every run until the umbrella body is hand-edited. Emit inline `Umbrella #<N> has no \`## Child issues (blocked on this epic)\` anchor — skipping auto-update`; skip 4b–4e; record `#N` + title under this Phase 8 sub-list.
+
+- **`Body-edit failed — gh API error`** — per-run **transient** state. Fires when sub-step 4e returns non-zero (network, rate limit, auth expiry, etc.); parse + idempotency + compose succeeded, only push-back failed. Emit inline `Umbrella #<N> body edit failed: <gh stderr first-line>`; record `#N` + child `#C` + the stderr line under this **separate** Phase 8 sub-list. The child already carries `**Blocked by:** #N` — a future `/triage` run sees the idempotency check unsatisfied and re-applies the body edit (recoverable).
+
+**Ordering invariant.** Sub-steps 3 + 4 both run AFTER `gh issue create` returns `#C`. Sub-step 3 failure does NOT block sub-step 4 (independent); sub-step 4a anchor-missing leaves the child labelled but the umbrella in hand-edit territory.
 
 ### Phase 7: Drain `_inbox.md`
 
