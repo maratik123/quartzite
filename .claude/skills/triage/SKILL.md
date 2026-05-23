@@ -12,9 +12,9 @@ Launch the `triage-runner` subagent. The subagent reads `.claude/agents/triage-r
 
 A multi-turn `/triage` run persists state to `ai-docs/triage/triage-YYYY-MM-DD.progress.md` (local-only / gitignored under `/ai-docs/triage/**/*.progress.md`). The file mirrors the canonical schema at `ai-docs/templates/progress-format.md` and stores:
 
-- Phase 4 dedupe map summary (`{number → {state, title}}` counts).
+- Phase 4 dedupe map summary (`{number → {state, title, labels, body}}` counts; the `labels` + `body` fields support the Phase 6.5 / Phase 7 UI-design gate's umbrella discovery + ranking — see `## Design-work classification gate` below).
 - Phase 4.5 bridge classifications (type-1 / type-2 / type-3 lists + per-conflict user resolutions as they land).
-- Phase 6 / Phase 7 candidate partitions (approve / decline / sort / promote / drop / keep — including any user-edited tweaks to the proposed split).
+- Phase 6 / Phase 7 candidate partitions (approve / decline / sort / promote / drop / keep — including any user-edited tweaks to the proposed split). Each per-row record carries a `design_link:` sub-field — `none` / `umbrella=#N` / `umbrella=#N (new)` / `skip-link` / `defer` — written immediately after the gate decision; on resume, rows already carrying the field are NOT re-prompted.
 - `## Next action` — the phase the next subagent invocation should resume from.
 
 Lifecycle (mirrors `/task` and `/pr-commented` progress files):
@@ -39,7 +39,7 @@ The subagent walks the 8 thematic files (`signals-slots.md`, `properties.md`, `m
 
 - Candidates: `Tracked` cell = `—` (thematic files) or `Status` = `🟡 v2` (widget-backlog). The `Tracked` column header anchors classification — bare `Tracked:` substrings in prose are ignored (`widget-backlog.md:89` is the canonical example).
 - For each candidate, the subagent drafts a title + body from the row's `Item` cell text and the linked `Source` spec.
-- **Single** bulk `gh issue list --state all --json number,title --limit 500` query upfront; proposed titles are deduped against existing open + closed issues by exact title match. Pagination watchdog at ≥ 0.9 × the limit warns the user.
+- **Single** bulk `gh issue list --state all --json number,state,title,labels,body --limit 500` query upfront; proposed titles are deduped against existing open + closed issues by exact title match. The map shape is `{number → {state, title, labels, body}}`. The `labels` + `body` fields are added so the Phase 6.5 / Phase 7 UI-design gate (see `## Design-work classification gate` below) can filter umbrellas by `state == "OPEN" ∧ "ui-design" ∈ labels` and rank them by keyword overlap against the umbrella `title + body` — all without a second `gh issue list` round-trip. The pagination watchdog at ≥ 0.9 × the limit and the "one bulk call per run" contract are preserved unchanged.
 - The subagent presents the full batch as a table; the user approves a subset (per-row decisions, but in one table).
 - All approved creates from the sweep AND from the drain step's *promote* action are collected and run together in a single contiguous `gh issue create` pass at the end of the run (the spec's "one bulk call" contract).
 - On approval: `#N` is written into the appropriate cell — cell 4 (`Tracked`) for thematic files, or `Notes` cell prepended with `tracked: #N — ` for widget-backlog.
@@ -58,7 +58,7 @@ One prompt per row, four actions:
 
 ## Bridge
 
-After the bulk `gh issue list` call and before the cell-iteration sweep, the subagent walks every `Tracked`-column ref across the 10 row sources (cell 4 in the 8 thematic files + `_inbox.md` **only** when the cell holds `#N`; the `Notes` cell in `widget-backlog.md` when the cell holds a `tracked: #N —` prefix) and looks up each `#N` in the local `{number → {state, title}}` map built in Phase 4. `_inbox.md` rows whose `Tracked` cell = `—` are explicitly excluded — those route to the per-entry drain step.
+After the bulk `gh issue list` call and before the cell-iteration sweep, the subagent walks every `Tracked`-column ref across the 10 row sources (cell 4 in the 8 thematic files + `_inbox.md` **only** when the cell holds `#N`; the `Notes` cell in `widget-backlog.md` when the cell holds a `tracked: #N —` prefix) and looks up each `#N` in the local `{number → {state, title, labels, body}}` map built in Phase 4. The bridge consults only `state` + `title`; `labels` + `body` are inert here and serve the UI-design gate. `_inbox.md` rows whose `Tracked` cell = `—` are explicitly excluded — those route to the per-entry drain step.
 
 Three conflict types reported (no silent overwrite — every type-1 and type-2 conflict surfaces a diff and asks the user):
 
@@ -76,11 +76,74 @@ Issues that exist in `gh` but have no md row anywhere are explicitly **not** fla
 
 The bridge appends a sub-section to the run-output summary listing every conflict, its type, the user's resolution, and any `gh issue close` / `gh issue reopen` calls made. See `.claude/agents/triage-runner.md` Phase 4.5 for the operational specification.
 
+## Design-work classification gate
+
+Every row that reaches the Phase 7.5 `gh issue create` queue is first classified as **design-work** or **plain**, and design-work rows are linked to a `ui-design` umbrella before the create call runs. The classification fires per-row at the approval moment — **Phase 6** for sweep approvals and **Phase 7** for `_inbox.md` drain promotes — and is fully resolved BEFORE the row enters Phase 7.5. This ordering ensures a newly-created umbrella's `#N` is available to be cited in the row issue's `**Blocked by:** #N` body line within the same Phase 7.5 bulk pass.
+
+**Classification trigger (Hybrid keyword + LLM auto-detect fallback).** Two branches:
+
+- **Hit branch — keyword match.** A case-insensitive substring scan of the row's `Item` cell text concatenated with the row's `Source spec` filename against a hard-coded keyword list (the verbatim 23-entry list lives in `.claude/agents/triage-runner.md` adjacent to the gate code — see *Design-work classification keyword list* in that file). On a hit, the gate emits exactly one y/n confirm prompt of shape:
+
+  ```
+  Row matches design-work keyword `<hit>` — classify as design-work and require ui-design umbrella link? (y/n)
+  ```
+
+  `y` continues into the umbrella-selection prompt below; `n` marks the row plain and skips the gate.
+
+- **No-hit branch — LLM auto-detect.** When the keyword scan returns no hits, the `/triage` orchestrator (Claude Code itself; `/triage` already runs inside Claude Code) reads (i) the row's `Item` cell text + (ii) the row's `Source spec` file (bounded to that ONE spec file, not the whole repo, not every spec in `ai-docs/plans/done/`, not any glob — see read-scope LIMIT below), infers a `DESIGN-WORK | PLAIN` classification with a one-line reason, and emits exactly one y/n confirm prompt with the inference as the default:
+
+  ```
+  Auto-classification: <DESIGN-WORK | PLAIN> (reason: <one-line summary>). Accept? (y/n)
+  ```
+
+  `y` honours the inference (continues to umbrella-selection if `DESIGN-WORK`; skips the gate if `PLAIN`); `n` flips to the other classification. No external API plumbing — uses the orchestrator's own LLM context.
+
+  The `Source spec` link in the deferred row may appear in either of two forms — bare-path (`ai-docs/plans/done/<name>.spec.md`) or markdown-link (`[<text>](../plans/done/<name>.spec.md)`); both resolve to the same single file. The orchestrator reads exactly that one file (read-scope LIMIT: one row → one file). The inference output schema is exactly one token (`DESIGN-WORK` or `PLAIN`) plus a one-line reason (≤ 100 chars). See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification.
+
+**Keyword list — dual role.** The same hard-coded 23-entry list in `.claude/agents/triage-runner.md` serves two roles: (i) **classification trigger** for the substring scan above, and (ii) **ranking signal** for the umbrella numbered menu — a shared keyword (case-insensitive substring hit on both the row's `Item` text AND a candidate umbrella's `title + body`) counts +1 toward that umbrella's overlap score, used to order the menu by descending score (ties broken by `#N` ascending). The full list lives only in `triage-runner.md` to keep the gate's classification logic and its menu-ranking logic in lock-step under a single source-of-truth.
+
+**Umbrella discovery + ranking + numbered menu (design-work rows only).** Discovery uses the **Phase 4 dedupe map filtered to `state == "OPEN" ∧ "ui-design" ∈ labels`** — no new `gh issue list` round-trip. The menu shows ALL open `ui-design` umbrellas; ranking only affects ORDER, never inclusion (per AC11).
+
+**Ranking computation.** For each candidate umbrella, the keyword-overlap score is `|{ kw ∈ KEYWORD_LIST : kw is substring of lowercase(row.Item_cell_text) ∧ kw is substring of lowercase(umbrella.title + " " + umbrella.body) }|` — a shared keyword (case-insensitive substring hit on BOTH the row's `Item` text AND the umbrella's `title + body`) counts +1; a shared NON-keyword token does not count.
+
+**Ordering rule.** Sort by `score` **descending** (highest overlap first); tie-break by `#N` **ascending** (oldest umbrella first when scores tie). Deterministic across reruns.
+
+**Menu render.** Numbered lines `1..N` in ranked order, each formatted `#<num> <title> — <truncated body summary>` (first 80 chars of the umbrella body's first non-empty paragraph; `…` if truncated; `<no body>` if empty), followed by three text options:
+
+- **`new`** — create a new `ui-design` umbrella inline in the same Phase 7.5 pass.
+- **`none`** — create the row's issue without any umbrella link.
+- **`defer`** — skip creating this row's issue; return it to `_inbox.md` for a future `/triage` run.
+
+**Numbered-pick branch — what happens.** When the user picks a number `i` (resolving to umbrella `#N`):
+
+1. The chosen umbrella `#N` is captured as `link_to_umbrella` on the row's Phase 7.5 create-queue entry (persisted into the progress file's `design_link: umbrella=#N` field).
+2. The row's drafted body has `**Blocked by:** #N\n\n` prepended at draft-construction time — so the child issue's body carries the back-reference from the moment `gh issue create` runs (the prefix is in the body string passed to `gh issue create`, NOT applied via a post-create edit).
+3. After `gh issue create` returns the child `#C`, the labels `blocked` + `ui-design` are applied via `gh issue edit #C --add-label blocked --add-label ui-design`.
+4. The umbrella `#N`'s body is fetched via `gh issue view #N --json body --jq .body`; under the `## Child issues (blocked on this epic)` anchor, a new bullet `- #<C> — <child-title>` is appended at the END of that section's bullet list (immediately before the next `## ` heading OR end-of-body if the section is final); the edited body is pushed back via `gh issue edit #N --body-file <tmpfile>`.
+
+**Idempotency.** The umbrella body is scanned for the substring `#<C> ` (with a trailing-space sentinel to prevent `#54` matching `#549`) before the write — if `#<C> ` already appears under the anchor's section, the edit is a no-op (defensive against resume / re-promotion).
+
+**Two distinct fallback sub-lists** (recorded separately in the Phase 8 run summary):
+
+- **`Body-edit skipped — anchor absent`** — fires when the umbrella body has no `## Child issues (blocked on this epic)` substring (user-created umbrellas that diverge from the #539–#542 convention). Per-umbrella **structural state**: same on every `/triage` run until the umbrella body is hand-edited. A warning is emitted inline; the body edit is skipped; the umbrella is listed in Phase 8 under this sub-list with a one-line reminder.
+- **`Body-edit failed — gh API error`** — fires when `gh issue edit #N --body-file <tmpfile>` returns non-zero (network error, rate limit, auth expiry, etc.). Per-run **transient state**: a re-run may succeed because the idempotency check (the `#<C> ` sentinel) is not yet satisfied. The child issue itself is already created with the back-reference; the umbrella is listed in Phase 8 under this sub-list with the captured `gh` stderr line so the maintainer can heal manually or via a re-run.
+
+**Text-option branches.**
+
+- **`new`** — two follow-ups (`Umbrella title:` / `Umbrella body:`) collect the new umbrella; an `umbrella`-kind entry enters the same Phase 7.5 queue with the `ui-design` label. The queue partitions `[umbrellas..., children...]` so each new umbrella's `#N` is known before its dependent child is created; the child then runs the numbered-pick branch's body-prefix + labels + umbrella body edit against that `#N`.
+- **`none`** — the row's issue is created normally (no labels, no `**Blocked by:**`, no umbrella body edit). Recorded in Phase 8 *Design-link outcomes* as "design-work issue without umbrella link".
+- **`defer`** — no `gh issue create` runs this run; the row is returned to `_inbox.md` (or left there). Recorded in Phase 8 as a deferred row.
+
+See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt, the body-edit machinery, and the progress-file `design_link:` audit trail. Phase 8 `Design-link outcomes` shape: [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md); mandatory per-mutated-umbrella grep against `next/SKILL.md` (AC10).
+
+**Scope.** Gate is FORWARD-only — no retroactive sweep of the 277 existing `_inbox.md` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
+
 ## Run-output summary
 
 At the end of every `/triage` run the subagent emits:
 
 - Status table covering all 10 row sources with candidate counts (before / after).
+- Design-link outcomes — see [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md).
 - List of issues created (`#N` + one-line title each).
 - List of rows declined (file path + `Item` cell content).
 - List of inbox actions taken (sort / promote / drop, with destination thematic file when applicable).
