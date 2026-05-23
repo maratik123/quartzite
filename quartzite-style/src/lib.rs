@@ -35,6 +35,17 @@
 //! StyleRegistry::set_style(Box::new(NoopStyle));
 //! assert!(StyleRegistry::try_style().is_some());
 //! ```
+//!
+//! # Features
+//!
+//! - **`runtime-blink`** *(default)*: enables [`DefaultStyle::start_blink_timer`],
+//!   which adds a `quartzite-runtime` production dependency and wires caret
+//!   blink to a [`quartzite_runtime::Timer`]. Consumers who opt out of the
+//!   runtime layer (e.g. no-std, embedded, snapshot harnesses) can set
+//!   `default-features = false`; the read-side [`StyleClock`] and
+//!   [`Style::caret_visible_now`] work without this feature.
+//! - **`test-support`**: exposes `StyleRegistry::clear_for_test` and
+//!   `MockTimerDriver` for use in integration tests outside this crate.
 
 mod clock;
 mod default_style;

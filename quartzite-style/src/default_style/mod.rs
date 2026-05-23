@@ -36,7 +36,7 @@ pub(super) const FOCUS_RING_WIDTH: f32 = 2.0;
 ///
 /// - [`Button`] — flat fill, 1 px outline, centered label; checked/disabled variants.
 /// - [`Label`] — background fill + left-aligned (or widget-specified) text.
-/// - [`TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
+/// - [`quartzite_widgets::TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
 /// - [`ScrollArea`] — chrome only (background fill + 1 px outline); no child traversal.
 /// - [`Container`] — Window background fill + 1 px `WindowText` outline; no child traversal.
 /// - [`LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
@@ -109,6 +109,56 @@ impl DefaultStyle {
     #[inline]
     pub const fn with_clock(clock: StyleClock) -> Self {
         Self { clock }
+    }
+
+    /// Constructs a 530 ms-interval [`quartzite_runtime::Timer`] that invokes
+    /// `on_tick` on each blink tick and starts it immediately with `driver`.
+    ///
+    /// The caller must hold the returned [`quartzite_runtime::Timer`] for as
+    /// long as blink invalidation is desired; dropping the timer stops the blink.
+    ///
+    /// Use this to wire the caret-blink invalidation seam: when `on_tick`
+    /// fires, schedule a repaint of the focused `TextEdit` widget.
+    ///
+    /// # Features
+    ///
+    /// Only available when the `runtime-blink` cargo feature is enabled
+    /// (the default). Consumers who opt out of the runtime layer
+    /// (`default-features = false`) can still poll the read-side seam via
+    /// [`Style::caret_visible_now`] with a [`StyleClock`] they manage manually.
+    ///
+    /// # Parameters
+    ///
+    /// - `driver`: timer backend used to schedule the blink interval.
+    /// - `on_tick`: callback invoked on every tick (typically schedules a repaint).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::ThreadDriver;
+    /// use quartzite_style::DefaultStyle;
+    ///
+    /// let _timer = DefaultStyle::new()
+    ///     .start_blink_timer(Arc::new(ThreadDriver::new()), Arc::new(|| {}));
+    /// // Drop `_timer` to stop blinking.
+    /// ```
+    #[cfg(feature = "runtime-blink")]
+    pub fn start_blink_timer(
+        &self,
+        driver: std::sync::Arc<dyn quartzite_runtime::TimerDriver>,
+        on_tick: std::sync::Arc<dyn Fn() + Send + Sync>,
+    ) -> quartzite_runtime::Timer {
+        use std::time::Duration;
+
+        const BLINK_INTERVAL_MS: u64 = 530;
+
+        let mut timer = quartzite_runtime::Timer::new(Duration::from_millis(BLINK_INTERVAL_MS));
+        timer.connect_tick(move |_event| {
+            on_tick();
+        });
+        timer.start(driver);
+        timer
     }
 }
 
