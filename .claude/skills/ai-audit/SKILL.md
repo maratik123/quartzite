@@ -189,6 +189,6 @@ Per AGENTS.md, **never** `git add -A` / `git add .`.
 
 - Do **not** rewrite `learnings.md` history — it is append-only. Phase 1 may only correct the `Escalated?` field of an existing entry or add a *new* corrective entry; never delete or rephrase past entries.
 - Do **not** invent rules. The audit finds compliance gaps in *existing* rules; new rules go through `/improve`.
-- Do **not** skip the `WebFetch` Tool call in Phase 2. The official docs are the source of truth for Hook/Skill/Subagent shapes — relying on memory is the failure mode this Skill exists to prevent.
+- Do **not** skip the `claude-code-guide` spawn in Phase 2. The official docs are the source of truth for Hook/Skill/Subagent shapes — relying on memory is the failure mode this Skill exists to prevent.
 - Do **not** auto-resolve a blocker without surfacing it. Severity is a signal that human judgment is needed.
 - Do **not** edit `.claude/settings.local.json` from this skill — it is user-local.
