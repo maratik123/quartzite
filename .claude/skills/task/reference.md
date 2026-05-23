@@ -104,7 +104,7 @@ If a Step 7 design-review GO verdict surfaces a `note` / `minor` / recommendatio
 2. **Stop before Step 8.** Do not begin implementation against the pre-amendment spec, and do not fold spec-amending notes into the design alone — FORBIDDEN. The design doc is the implementation contract built **against the spec**; if the spec changes, the contract must be re-established and re-verified.
 3. **Surface to user via `AskUserQuestion`** — describe the candidate spec amendment (which AC / which line / proposed new wording) and wait for explicit approval. Two paths are common: **Path A** — amend the spec to match the design's discovered shape; **Path B** — annotate the design with a "Spec amendment / supersession" subsection (still requires the re-loop below if the design's shape effectively changes the spec). Path A is the default.
 4. **On user approval — amend the spec.** Edit `ai-docs/plans/YYYY-MM-DD-name.spec.md` with the agreed changes (AC table, Technical constraints, Out-of-scope, whichever sections are touched).
-5. **Re-enter Step 6 (design agent)** with explicit context: "spec was amended at Step 7 GO-with-notes resolution — re-verify decomposition and ACs against the new spec":
+5. **Re-enter Step 6 (`design` Subagent)** with explicit context: "spec was amended at Step 7 GO-with-notes resolution — re-verify decomposition and ACs against the new spec":
    ```
    Agent(subagent_type="general-purpose", prompt="
      Read .claude/agents/design.md and follow it.
@@ -135,7 +135,7 @@ If a Step 7 design-review GO verdict surfaces a `note` / `minor` / recommendatio
 
 **Already have a spec?** If a saved spec for this task already exists under `ai-docs/plans/` (e.g. the user previously ran `/interview` to draft the spec without implementing), confirm with the user that this is the spec to implement, then **skip to Step 6** — do not re-run the interview.
 
-**Otherwise, run the interview** by invoking the `interview` skill via the Skill tool, passing the original `$ARGUMENTS` through:
+**Otherwise, run the interview** by invoking the `interview` Skill via the `Skill` Tool, passing the original `$ARGUMENTS` through:
 
 ```
 Skill(skill="interview", args="$ARGUMENTS")
@@ -211,7 +211,7 @@ During Step 8 the orchestrator NEVER executes subtask code in its own context. E
 
 The every-group fan-out removes the failure mode structurally: the orchestrator's own context never grows long enough to trip compaction (Step 8 subtask work runs in short-lived subagent invocations), and the `## Handoff plan` is the per-group spec the orchestrator reads at each return.
 
-**Trigger source: design's `## Handoff plan` section.** As of the every-group redesign (PR for #375), the design agent produces a `## Handoff plan` section in the design document for **every** decomposition with M ≥ 1 (per `.claude/agents/design.md` § Rules → handoff-grouping). That section names the exact group boundaries and the per-group spawn order — pre-computed at design time. Single-subtask designs (M = 1) carry a `## Handoff plan` with one group, fanned out via one `/context-reset` invocation; M = 9 → 3 groups, fanned out via 3 `/context-reset` invocations. Every M ≥ 1 design now carries explicit per-group fan-out.
+**Trigger source: design's `## Handoff plan` section.** As of the every-group redesign (PR for #375), the `design` Subagent produces a `## Handoff plan` section in the design document for **every** decomposition with M ≥ 1 (per `.claude/agents/design.md` § Rules → handoff-grouping). That section names the exact group boundaries and the per-group spawn order — pre-computed at design time. Single-subtask designs (M = 1) carry a `## Handoff plan` with one group, fanned out via one `/context-reset` invocation; M = 9 → 3 groups, fanned out via 3 `/context-reset` invocations. Every M ≥ 1 design now carries explicit per-group fan-out.
 
 ## Step 8 — local FAIL investigation before push (AGENTS.md workflow corollary)
 
@@ -242,7 +242,7 @@ For each `⬜ Open` finding in the latest `## Self-Review (Round N)` section of 
 - **Fix it** → mark `✅ Fixed` in the progress file, implement the change.
 - **Requires a design change** → trigger the **Design Amendment** recipe above (user approval required); on return mark `✅ Fixed (design amended)`.
 - **Object to it** (finding is wrong or intentionally out of scope):
-  - `nit` / `minor`: agent may object autonomously — write reason, mark `⚠️ Objected: <reason>`.
+  - `nit` / `minor`: Subagent may object autonomously — write reason, mark `⚠️ Objected: <reason>`.
   - `major` / `blocker`: **surface to user first** before objecting. User must approve the objection.
 
 After all findings are resolved (`✅ Fixed` or `⚠️ Objected`), run gates (`cargo build`, `cargo test`, `cargo clippy --workspace --all-targets -- -D warnings`), update `.progress.md`, re-read the PR body (`gh pr view <N> --json title,body`) and edit only if it contradicts new commits, and resolve every fixed review thread per the GraphQL recipe in [`ai-docs/workflow.md` → PR review comment resolution](../../../ai-docs/workflow.md#pr-review-comment-resolution) — reply via REST, query unresolved thread IDs via `reviewThreads`, then `resolveReviewThread` each fixed thread and verify `isResolved: true`. Threads behind `⚠️ Objected` findings stay open. Skipping this resolution has caused the same correction twice (`ai-docs/learnings.md` entries #33 and #44).

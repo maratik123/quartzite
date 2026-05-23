@@ -19,8 +19,8 @@ Fires BEFORE Step 5 when the fix diff touches `ai-docs/plans/*.spec.md` (or `don
 
 **When spec-amending, run this sub-flow instead of going straight to Step 5:**
 
-1. Re-run **`/task` Step 6 (design agent)** against the amended spec — spawn the `design` agent with `(amended spec, current design)` and prompt: *"the spec was amended during `/master-ci-failed` for run `<run-id>`; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The CI-fix implementation has already landed in commit `<fix-SHA>` on branch `fix/master-ci-<run-id>`."*
-2. Re-run **`/task` Step 7 (design-review agent)** with `(amended spec, refreshed design, fix diff)`. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total). On REQUEST-USER → surface and stop.
+1. Re-run **`/task` Step 6 (`design` Subagent)** against the amended spec — spawn the `design` Subagent with `(amended spec, current design)` and prompt: *"the spec was amended during `/master-ci-failed` for run `<run-id>`; verify the decomposition + ACs still hold against the new spec, and update the design accordingly. The CI-fix implementation has already landed in commit `<fix-SHA>` on branch `fix/master-ci-<run-id>`."*
+2. Re-run **`/task` Step 7 (`design-review` Subagent)** with `(amended spec, refreshed design, fix diff)`. On NEEDS-CHANGES → loop back to sub-flow Step 1 (cap 3 design rounds total). On REQUEST-USER → surface and stop.
 3. Only on a GO verdict: resume `/master-ci-failed` Step 5 (self-review).
 
 **Why:** A master-CI-fix that also amends `.spec.md` has reclassified the spec contract — the failure is no longer purely a post-merge regression but a partial spec rewrite. `self-review` checks code-against-spec, not spec-against-design; the design-review re-entry is the only gate that catches contradictions or new ACs introduced by the amendment. **Master-specific consideration:** the amended spec will land on the new feature branch's eventual PR (per Step 7), not directly on master — so the design-review re-entry runs against the feature branch's tree, exactly like the `/pr-commented` and `/pr-ci-failed` flows.

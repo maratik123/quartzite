@@ -150,7 +150,7 @@ style-guide-side restatement so the rule is discoverable from the writing
 conventions reference and audit-able via `/ai-audit` Phase 2 Checklist M.
 
 > **AXIOM — Every covered instruction file MUST stay below 40,000 chars at every commit boundary.**
-> The harness applies a soft cap on per-invocation instruction-file load; crossing 40,000 chars imposes measurable per-invocation cost on every agent spawn and skill invocation. The 35,000-char early-warning band gives one full `/task` cycle of headroom before the harness warning starts firing.
+> The harness applies a soft cap on per-invocation instruction-file load; crossing 40,000 chars imposes measurable per-invocation cost on every Subagent spawn and Skill invocation. The 35,000-char early-warning band gives one full `/task` cycle of headroom before the harness warning starts firing.
 >
 > | If `wc -c <file>` reports... | Action |
 > |---|---|

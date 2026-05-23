@@ -59,9 +59,9 @@ Record `base_commit`:
 git rev-parse HEAD
 ```
 
-### Step 2: Spawn review agent
+### Step 2: Spawn review Subagent
 
-Create the progress file path: `ai-docs/plans/YYYY-MM-DD-project-review.progress.md` (use today's date). The progress file MUST include the canonical schema header fields per [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md): `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, and a `## Decisions log` h2 section. Initialise `**current_step:** Phase 1 — review-findings` before spawning the agent.
+Create the progress file path: `ai-docs/plans/YYYY-MM-DD-project-review.progress.md` (use today's date). The progress file MUST include the canonical schema header fields per [`ai-docs/templates/progress-format.md`](../../../ai-docs/templates/progress-format.md): `**Branch:**`, `**base_commit:**`, `**Last build:**`, `**current_step:**`, `**last_passed_gate:**`, and a `## Decisions log` h2 section. Initialise `**current_step:** Phase 1 — review-findings` before spawning the Subagent.
 
 ```
 Agent(subagent_type="general-purpose", prompt="
@@ -72,7 +72,7 @@ Agent(subagent_type="general-purpose", prompt="
 ")
 ```
 
-After the agent completes: read the progress file and report finding count and severity breakdown to the user.
+After the Subagent completes: read the progress file and report finding count and severity breakdown to the user.
 
 **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 1 — review-findings complete`; append a `## Decisions log` bullet recording the finding count + severity breakdown (one line, prefixed `Phase 1:`).
 
@@ -94,7 +94,7 @@ After every 3 fixes (or when all findings in a subtask are resolved):
 6. Update `## Files touched` and mark subtask `[x]` in progress file
 7. **Write progress at this phase boundary** before further tool calls: rewrite `**current_step:**` to `Phase 2 — fix loop (after N fixes)`; rewrite `**last_passed_gate:**` to `cargo clippy --workspace --all-targets -- -D warnings | <ISO-8601 UTC timestamp> | <commit SHA from git rev-parse HEAD>`; append a `## Decisions log` bullet for any `⚠️ Objected` finding rationale beyond the inline reason (one line, prefixed `Phase 2:`; omit if no decisions).
 
-**Context handoff rule:** if the finding count is ≥ 10 and more than half remain open, spawn a sub-agent per subtask rather than working inline — pass the progress file path so it can resume.
+**Context handoff rule:** if the finding count is ≥ 10 and more than half remain open, spawn a Subagent per subtask rather than working inline — pass the progress file path so it can resume.
 
 ### Step 4: Final verify
 

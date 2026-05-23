@@ -95,3 +95,13 @@ Stage files explicitly by name. **Never** use `git add -A` or `git add .` — th
 ## "Too simple" step-skip rule (parent rule)
 
 **No "too simple" step-skip in `/task`.** Steps 6 (design), 7 (design-review), 10 (self-review) are mandatory regardless of diff size. `/task` Step 12 sub-step 1 enforces mechanically via `**current_step:**` in the progress file; explicit user authorisation is the only bypass. Recurrence-date log lives in [§ "Too simple" step-skip recurrences](#too-simple-step-skip-recurrences).
+
+## Spec-Amendment group
+
+Extracted from the AGENTS.md § Propagation Rule *Spec-Amendment group* row so the parent table cell can stay short. The Spec-Amendment / Design-Amendment recipe lives in `.claude/skills/task/SKILL.md` Steps 7 / 11; every downstream "fix" skill (`/pr-commented`, `/pr-ci-failed`, `/master-ci-failed`) and the `self-review` subagent carry the same recipe.
+
+**Mechanical detection trigger:** *"the fix commit's diff includes a `.spec.md` OR `.design.md` file under `ai-docs/plans/` (active or `done/`)"*. When that trigger fires, the change is an Amendment, not an ordinary finding — the spec/design must round-trip back through `design` + `design-review` before commit.
+
+**Recurrence record:** the trigger recurred in 2026-05-21 inside the `/task` Step 11 self-review fix flow — a fix commit touched `ai-docs/plans/*.spec.md` while in a non-Amendment branch of the workflow. The 2026-05-21 recurrence is the canonical reference for why each downstream skill's fix step explicitly re-checks the trigger before commit.
+
+**Sync-group sister files** (must co-evolve when the recipe changes): `.claude/skills/task/SKILL.md`, `.claude/skills/pr-commented/SKILL.md`, `.claude/skills/pr-ci-failed/SKILL.md`, `.claude/skills/master-ci-failed/SKILL.md`, `.claude/agents/self-review.md`.

@@ -8,7 +8,7 @@ The `SKILL.md` body keeps a collapsed table of every checklist letter + one-line
 
 - Every relative link (`../`, `./`, file references in prose) resolves to an existing file. Verify with `realpath` from the link's source directory or with `find`.
 - Every `[text](file.md)` and bare `file.md` mentioned in instructions points to a file that exists.
-- Every skill or agent named in another skill/agent (e.g., `project-review` references `review-findings`, `self-review`) actually has a matching file.
+- Every Skill or Subagent named in another Skill/Subagent (e.g., `project-review` references `review-findings`, `self-review`) actually has a matching file.
 
 ## Checklist B — Conflicting / duplicated rules
 
@@ -20,7 +20,7 @@ The `SKILL.md` body keeps a collapsed table of every checklist letter + one-line
 
 - Skills/agents named in `AGENTS.md` "Sync groups" must exist. (E.g., the AGENTS.md note about `task` ↔ `task-issue` collapse — verify no stale references remain.)
 - Agent names referenced in skills must match a file under `.claude/agents/`.
-- `ai-docs/plans/done/` references in agent checklists must still resolve.
+- `ai-docs/plans/done/` references in Subagent checklists must still resolve.
 
 ## Checklist D — Frontmatter conformance (skills)
 
@@ -34,9 +34,9 @@ Per the official docs:
 
 ## Checklist E — Frontmatter conformance (agents)
 
-- Every `.claude/agents/*.md` starts with YAML frontmatter (`---`-delimited block at top of file). An agent without frontmatter is not a subagent — it's a stray document. Enumerate the directory at audit time rather than baking in a count.
+- Every `.claude/agents/*.md` starts with YAML frontmatter (`---`-delimited block at top of file). A file in `.claude/agents/` without frontmatter is not a Subagent — it's a stray document. Enumerate the directory at audit time rather than baking in a count.
 - `name` field equals the file basename.
-- `description` is one line and tells the orchestrator when to spawn this agent.
+- `description` is one line and tells the orchestrator when to spawn this Subagent.
 
 ## Checklist F — Hooks (`.claude/settings.json`)
 
@@ -49,7 +49,7 @@ Per the official docs:
 ## Checklist G — AGENTS.md "Propagation Rule" coherence
 
 - Every "sync group" listed in AGENTS.md still has all listed members present and cross-referenced.
-- Behaviors described in AGENTS.md and replicated in agent checklists agree (e.g., file-size hard/soft limits in `review-findings.md` match AGENTS.md).
+- Behaviors described in AGENTS.md and replicated in Subagent checklists agree (e.g., file-size hard/soft limits in `review-findings.md` match AGENTS.md).
 - Exemptions in AGENTS.md (e.g., `examples/` and `benches/` no-test exemptions, trait-impl doc-convention exemption) appear in every enforcement file.
 
 ## Checklist H — Documentation conformance pointers
@@ -59,7 +59,7 @@ Per the official docs:
 
 ## Checklist I — File-size & structure (instruction files)
 
-- No `SKILL.md` or agent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `project-review` / `task` skills use this pattern).
+- No `SKILL.md` or Subagent file exceeds ~500 lines without clear sectioning. Long files should split into a thin `SKILL.md` + reference file (the `improve` / `project-review` / `task` Skills use this pattern).
 - Each skill directory contains exactly one `SKILL.md` (no extra markdown unless intentional reference material).
 
 ## Checklist J — Allow-list / permission consistency
@@ -79,11 +79,11 @@ Per the [Claude Code skill-directory pattern](https://code.claude.com/docs/en/sk
 
    Mechanical pre-commit gate planned in #383; this audit-side back-stop fires in the meantime.
 
-2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 skill or agent**, propose moving it from the owning skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another skill's body. Severity `minor`.
+2. **Multi-consumer supporting files belong in `ai-docs/templates/`.** When a supporting file is referenced from **>1 Skill or Subagent**, propose moving it from the owning Skill's directory to `ai-docs/templates/<file>.md` (per AGENTS.md *Agent Docs*). Single-consumer supporting files stay inside the owning Skill directory. Cross-references then point at `ai-docs/templates/` directly instead of routing through another Skill's body. Severity `minor`.
 
 3. **Inline-script extraction candidates.** Identify `SKILL.md` sections containing **self-contained `bash` blocks** — a complete, executable recipe with at most one or two `<placeholder>` substitutions, NOT orchestration guidance that Claude reconstructs dynamically per call. For each, propose extraction to `.claude/skills/<skill>/scripts/<descriptive-name>.sh`, invoked via the canonical `${CLAUDE_SKILL_DIR}/scripts/<name>.sh <args>` pattern. After extraction, narrow the skill's `allowed-tools` from per-command patterns to a single `Bash(.claude/skills/<skill>/scripts/<name>.sh *)` entry. Severity `minor`.
 
-   **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the agent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the agent to call a helper for guidance it can express inline. Skip those.
+   **Counter-rule.** Bash snippets that are *orchestration guidance* — every call has different placeholder values that the Subagent constructs — are NOT script-extraction candidates. Forcing them into scripts requires the Subagent to call a helper for guidance it can express inline. Skip those.
 
 ## Checklist L — Learning-Log field coherence
 
@@ -205,7 +205,7 @@ The carrot-side analog of Checklist C (dead references). Every promoted-from-val
 
 **Forward-sweep carrier-vs-template exemption.** Entries WITHOUT carrot verbs (template scaffolding, non-promoted prose, structural placeholders) are out of scope for the forward sweep — the audit greps for carrot-verb presence within each `### N. <Name>` block **before** requiring a back-link. The named exempt source is `ai-docs/agent-writing-style.md § Patterns` (template source, not a promoted-from-validation carrier). Other `## Patterns` sections that grow in future PRs are subject to the same carrot-verb-presence filter — no further per-file exemptions.
 
-**Reverse direction.** Every `Kind: validation` entry in `ai-docs/learnings.md` whose `Escalated?` ≠ `no` MUST have a corresponding `## Patterns` block in each named target file (skill / agent / AGENTS.md). Detection recipe: parse each `Kind: validation` entry's `Escalated?` line; for each comma-separated target value, confirm the named file contains a `## Patterns` block AND that block contains an entry back-linking to this validation entry. Predicate gate: entries with `Escalated? no` are NOT subject to reverse-direction enforcement — only entries the operator has promoted (`Escalated? ≠ no`) require a paired `## Patterns` block.
+**Reverse direction.** Every `Kind: validation` entry in `ai-docs/learnings.md` whose `Escalated?` ≠ `no` MUST have a corresponding `## Patterns` block in each named target file (Skill / Subagent / AGENTS.md). Detection recipe: parse each `Kind: validation` entry's `Escalated?` line; for each comma-separated target value, confirm the named file contains a `## Patterns` block AND that block contains an entry back-linking to this validation entry. Predicate gate: entries with `Escalated? no` are NOT subject to reverse-direction enforcement — only entries the operator has promoted (`Escalated? ≠ no`) require a paired `## Patterns` block.
 
 Multi-target reverse direction. The `Escalated?` field may name multiple comma-separated targets (e.g., `skill:context-reset, AGENTS.md`). The reverse sweep iterates each value independently — a validation entry escalated to two targets must have a `## Patterns` block in BOTH files; missing in either flags.
 
@@ -218,6 +218,41 @@ Multi-target reverse direction. The `Escalated?` field may name multiple comma-s
 | Reverse (predicate gate) | `Kind: validation` entry with `Escalated? no` | no flag (not promoted; pattern block not required) |
 
 Severity `major` — dead-reference class. The bidirectional shape mirrors Checklist C: every reference resolves AND every target has a back-reference.
+
+## Checklist O — Embedded-name clash scan
+
+Enforces the [AGENTS.md `## Propagation Rule` clash-rename AXIOM](../../../AGENTS.md#propagation-rule). Project-defined Tool / Subagent / Skill / Hook names MUST NOT clash with embedded (Anthropic-shipped or marketplace-plugin) names enumerated in [`ai-docs/claude-tools-hierarchy.md`](../../../ai-docs/claude-tools-hierarchy.md) §§1a + 1b + 2a + 3a + 3b. Any match → `major` finding with rename recommendation (project side renames; the embedded name is never renamed).
+
+**Recipe.** Enumerate two sorted lists and intersect them; empty intersection passes.
+
+1. **Project names** — collect every name the project DEFINES across the four axes. Hook **matcher** values are NOT project-defined (they reference embedded Tool names) and are excluded:
+   - Subagent names: `awk 'FNR==1{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/agents/*.md` — the `FNR==1{f=0}` reset is load-bearing: it scopes the in-frontmatter flag to each file. Without it, a file with an odd number of `---` delimiters leaks state into the next file in the glob, silently dropping `name:` matches.
+   - Skill names: `awk 'FNR==1{f=0} /^---$/{f=!f; next} f && /^name:/{print $2}' .claude/skills/*/SKILL.md` — same `FNR==1` per-file reset rationale.
+   - Hook event names (top-level `hooks.<Event>` keys): `jq -r '.hooks | keys[]' .claude/settings.json`. Event names like `SessionStart` / `PreToolUse` / `PostToolUse` are themselves harness-defined; they appear in §4 of `claude-tools-hierarchy.md` (which is NOT in the embedded-name corpus below). Including them in `project-names.txt` is intentional — if a future PR introduces a project-defined hook event, the scan catches a collision with §4's enumerated event set.
+   - Sort + dedupe → `project-names.txt`.
+2. **Embedded names** — extract names from the FIRST column (the Tool / Subagent / Skill column) of `ai-docs/claude-tools-hierarchy.md` §§1a + 1b + 2a + 3a + 3b table rows. Restricting to the first column avoids false-positives from parameter columns (which also backtick token names like `file_path`). Namespaced names like `ast-index:initialize-rust` count as ONE token; do NOT split on `:`:
+   ```bash
+   awk '
+     /^### 1a\.|^### 1b\.|^### 2a\.|^### 3a\.|^### 3b\./ { in_embed=1; next }
+     /^### / { in_embed=0 }
+     /^## /  { in_embed=0 }
+     in_embed && /^\| `/ {
+       line=$0; sub(/^\| /, "", line)
+       first_cell = line; sub(/ \|.*/, "", first_cell)
+       n = split(first_cell, parts, "`")
+       for (i = 2; i <= n; i += 2)
+         if (parts[i] ~ /^[A-Za-z]/) print parts[i]
+     }
+   ' ai-docs/claude-tools-hierarchy.md | sort -u > embedded-names.txt
+   ```
+3. **Intersection** — `comm -12 <(sort -u project-names.txt) <(sort -u embedded-names.txt)` MUST return empty.
+
+| Trigger | Action |
+|---|---|
+| `comm -12` output is empty | no flag — clash-scan baseline holds |
+| `comm -12` output is non-empty | `major` finding per name: *"Project-defined `<name>` clashes with embedded `<name>` enumerated at `claude-tools-hierarchy.md` §§<sections>. Rename the project side."* |
+
+Severity `major` — the clash makes ambiguous which name resolves at dispatch time. False positives are exceedingly unlikely (the embedded inventory is a closed set in §§1a/1b/2a/3a/3b); when one is suspected, re-grep the canonical doc to confirm the token still appears.
 
 ## Step 2.6 sub-step 4 — Cross-reference re-verification (anchor-aware)
 

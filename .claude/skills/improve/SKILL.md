@@ -12,7 +12,7 @@ The subagent reads `.claude/agents/self-improve.md` for full instructions.
 The subagent will:
 1. Read `ai-docs/learnings.md` for all correction records
 2. Find repeating patterns (same mistake ≥2 times)
-3. Propose concrete diffs to `AGENTS.md` or skill/agent files
+3. Propose concrete diffs to `AGENTS.md` or Skill/Subagent files
 4. For mistakes that repeat ≥3 times despite existing rules — propose escalation to hooks in `.claude/settings.json`
 5. Apply changes after user confirmation
 6. Run a targeted eval to verify the fix works. Reports PASS/FAIL.
@@ -23,12 +23,12 @@ Run when **≥3 unescalated correction entries**, **≥2 unescalated validation 
 
 When the `self-improve` subagent returns a `## Auto-memory candidates` report section (per its Step 1c sweep + Step 2c routing), this `/improve` skill — the **parent thread** — MUST dispatch one `AskUserQuestion` per candidate row **before** any project-side write derived from that candidate. The subagent surfaces candidates as structured rows only; it does NOT execute routing. Consent dispatch lives here, in the parent thread, exactly as `interview/SKILL.md` surfaces spec-writer questions via parent-side `AskUserQuestion`.
 
-**Privacy boundary.** Project-side `/improve` writes NEVER originate from auto-memory alone; the consent prompt is the ONLY surfacing path. The agent reads `~/.claude/projects/<project-path-encoded>/memory/feedback_*.md` + `MEMORY.md` read-only and writes nothing back — see `self-improve.md § Anti-patterns` (`NEVER write to ~/.claude/projects/<project-path-encoded>/memory/*`).
+**Privacy boundary.** Project-side `/improve` writes NEVER originate from auto-memory alone; the consent prompt is the ONLY surfacing path. The Subagent reads `~/.claude/projects/<project-path-encoded>/memory/feedback_*.md` + `MEMORY.md` read-only and writes nothing back — see `self-improve.md § Anti-patterns` (`NEVER write to ~/.claude/projects/<project-path-encoded>/memory/*`).
 
 **Per-candidate prompt shape** (literal `AskUserQuestion` payload — one question per candidate):
 
 ```yaml
-question: "Auto-memory entry `feedback_<name>.md` names workflow primitive `<primitive>` with no matching `Kind: validation` entry in `ai-docs/learnings.md`. Surface as a /improve candidate (would seed a `## Patterns` entry in `<target-skill-or-agent>` after the next user-approved Carrot-pass step)?"
+question: "Auto-memory entry `feedback_<name>.md` names workflow primitive `<primitive>` with no matching `Kind: validation` entry in `ai-docs/learnings.md`. Surface as a /improve candidate (would seed a `## Patterns` entry in `<target-skill-or-subagent>` after the next user-approved Carrot-pass step)?"
 header: "auto-memory"
 options:
   - label: "Surface"

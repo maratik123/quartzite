@@ -1,6 +1,6 @@
 # `.progress.md` format (canonical)
 
-Single source of truth for the progress-file format. `/task`, `/project-review`, `/pr-commented`, `/bugfix`, and the `review-findings` / `self-review` agents all read and write it; the **required** fields below must be present in every progress file regardless of which workflow created it. `/interview`, `/verify`, and `/pr-merged` are exempt (see *Exemptions* below).
+Single source of truth for the progress-file format. `/task`, `/project-review`, `/pr-commented`, `/bugfix`, and the `review-findings` / `self-review` Subagents all read and write it; the **required** fields below must be present in every progress file regardless of which workflow created it. `/interview`, `/verify-change`, and `/pr-merged` are exempt (see *Exemptions* below).
 
 ```markdown
 # Progress: [task name] — ACTIVE
@@ -94,4 +94,4 @@ These skills do NOT participate in `.progress.md` discipline:
 
 - **`/interview`** — its durable state is the in-flight spec at `<spec_path>` plus the `.state.md` sibling; no separate `.progress.md`. The compaction-recovery callout in `/interview` SKILL.md routes through the `.state.md` `round:` counter.
 - **`/bugfix`** — extends its existing trace file (`ai-docs/bugfix/trace-YYYY-MM-DD-<name>.md`) with the same `**current_step:**` / `**last_passed_gate:**` header lines plus a `## Decisions log` section, instead of creating a parallel `.progress.md`. The trace file IS the `/bugfix` durable-state surface.
-- **`/verify`** and **`/pr-merged`** — near-stateless. No `.progress.md` discipline applies; re-entry consists of re-invoking the skill.
+- **`/verify-change`** and **`/pr-merged`** — near-stateless. No `.progress.md` discipline applies; re-entry consists of re-invoking the skill.

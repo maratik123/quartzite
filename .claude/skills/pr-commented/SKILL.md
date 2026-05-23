@@ -206,7 +206,7 @@ Trivial fixes (typo, rename, single-call rewrite, comment fix, test addition, do
 
 ### Step 5 — Self-review (loops with Step 4, cap 3)
 
-Spawn the existing `self-review` agent. Prompt scope:
+Spawn the existing `self-review` Subagent. Prompt scope:
 
 - **Diff:** `git diff <round-M-base-sha>..HEAD` (the cycle base SHA recorded in Step 1's header).
 - **Classification table** from Step 2 (so self-review can verify every `fix` thread got a matching code change in the diff).
@@ -287,7 +287,7 @@ Re-invoke /pr-commented after the reviewer responds to the open threads.
 - **Never stack fix-up commits inside one round** — if self-review REJECTs, amend the single commit; loop cap 3.
 - **Never resolve an `objection` or `clarify` thread** — they stay open for the reviewer.
 - **Never run this skill on `master`** — preconditions block it.
-- **Never stage progress file changes.** Both `ai-docs/plans/*.progress.md` and `ai-docs/pr-comments/pr-<N>.progress.md` are gitignored. They are local-only agent artefacts. If `git status` ever lists one as modified/untracked-but-staged, unstage immediately.
+- **Never stage progress file changes.** Both `ai-docs/plans/*.progress.md` and `ai-docs/pr-comments/pr-<N>.progress.md` are gitignored. They are local-only Subagent artefacts. If `git status` ever lists one as modified/untracked-but-staged, unstage immediately.
 
 ## Gate checklist
 

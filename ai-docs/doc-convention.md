@@ -370,7 +370,7 @@ no gated module ever silently slips out of the doc build:
 The local `AGENTS.md` *Build & Test* doc-gate command (and the matching
 copies in `.claude/skills/task/SKILL.md`, `.claude/skills/project-review/SKILL.md`,
 and `.claude/agents/self-review.md`) are **the local mirror** of site 1 —
-they exist so an agent reproduces the CI doc gate before pushing. They use
+they exist so a Subagent reproduces the CI doc gate before pushing. They use
 the same `--all-features` flag.
 
 The `--all-features` convention assumes features are additive (no two

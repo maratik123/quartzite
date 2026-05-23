@@ -37,7 +37,7 @@ When triggered (every design-defined group OR compaction detected):
 
 1. `cargo build` — ensure code compiles
 2. Update `ai-docs/plans/YYYY-MM-DD-name.progress.md` (format below)
-3. Launch ONE Agent per **group** (per the design's `## Handoff plan`). The agent owns all subtasks in its group and runs them sequentially in-context, committing after each: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and complete Group <X>'s subtasks <N>–<M>, then return")`
+3. Launch ONE `Agent` Tool call per **group** (per the design's `## Handoff plan`). The Subagent owns all subtasks in its group and runs them sequentially in-context, committing after each: `Agent(subagent_type="general-purpose", prompt="Read ai-docs/plans/YYYY-MM-DD-name.progress.md and complete Group <X>'s subtasks <N>–<M>, then return")`
 4. Do NOT spawn one Agent per subtask. The group is the unit of fan-out; the subtask is the unit of commit.
 5. Do NOT continue in current context
 
@@ -82,7 +82,7 @@ Concentrating the rationale in one place keeps the per-skill callouts short (eac
 ## Checkpoint handoff: 1 Agent = 1 group
 
 - Do NOT ask "continue?" between subtasks within a group — just proceed
-- Each Agent = 1 design-defined group; the agent commits after each subtask inside the group
+- Each `Agent` Tool call = 1 design-defined group; the Subagent commits after each subtask inside the group
 - Update progress.md after each subtask (current_step, last_passed_gate, Decisions log)
 - The next group's Agent is spawned by the orchestrator only after the current group's Agent returns
 

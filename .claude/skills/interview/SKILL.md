@@ -7,7 +7,7 @@ allowed-tools: Bash(gh issue view *) Bash(gh issue list *) Bash(gh issue create 
 
 Orchestrator for the spec-drafting interview. Drives the round loop, surfaces the subagent's questions to the user, and applies the user's answers — but does **not** draft the spec itself. Spec drafting and question generation live in `.claude/agents/spec-writer.md` (subagent on `model: opus`).
 
-> **MUST run before:** code investigation, design agent, or writing code.
+> **MUST run before:** code investigation, `design` Subagent, or writing code.
 > Run standalone when you want a spec without committing to implementation (defer it to `ai-docs/plans/deferred/` afterward).
 > For the full task workflow use `/task` — it delegates Steps 1–5 to this skill, then continues with design → implementation → PR.
 
@@ -141,7 +141,7 @@ Capture the returned `agentId` into the state file's `agent_id`. If the harness 
 **Rounds 2..cap — warm reuse if possible, cold fallback otherwise:**
 
 - If `agent_id` is set in state: `SendMessage(to=agent_id, prompt="""<same fields with updated round + prior_qa>""")`. Capture the response.
-- If `agent_id` is null OR the `SendMessage` call fails: cold spawn a fresh `Agent(model="opus", prompt=...)` with the full state in the prompt (the agent definition mandates re-derivation from prompt anyway). Update state file's `agent_id` from the new spawn (may again be null).
+- If `agent_id` is null OR the `SendMessage` call fails: cold spawn a fresh `Agent(model="opus", prompt=...)` with the full state in the prompt (the Subagent definition mandates re-derivation from prompt anyway). Update state file's `agent_id` from the new spawn (may again be null).
 
 > The cold-spawn path is the **default contract**; warm reuse is an opportunistic optimization conditional on the harness returning a usable `agentId` and `SendMessage` succeeding.
 
@@ -172,9 +172,9 @@ The subagent's response ends with a fenced YAML block. Extract it; parse `status
 
 Validate before forwarding:
 
-- `len(questions) <= questions_per_round_cap` — if exceeded, send the agent a one-shot trim instruction (`"Trim to <cap> highest-leverage questions; emit only the YAML status block."`).
+- `len(questions) <= questions_per_round_cap` — if exceeded, send the Subagent a one-shot trim instruction (`"Trim to <cap> highest-leverage questions; emit only the YAML status block."`).
 - Each `header` ≤ 12 chars; each `options` list has 2..=4 entries (`AskUserQuestion` constraints).
-- No question contains a Rule-5 blacklisted substring (final defence — the subagent should have caught it). On violation: one-shot agent re-spawn with explicit instruction to re-read AGENTS.md and the Rule-5 blacklist.
+- No question contains a Rule-5 blacklisted substring (final defence — the Subagent should have caught it). On violation: one-shot Subagent re-spawn with explicit instruction to re-read AGENTS.md and the Rule-5 blacklist.
 
 Then call `AskUserQuestion(questions=[...])` with the entire list — the tool supports up to 4 questions per call, so 1..=3 fit cleanly. The user answers all in a single UI exchange.
 
@@ -184,8 +184,8 @@ Append each `(question, answer)` pair to state's `prior_qa` with `round: <curren
 
 Build an `AskUserQuestion` with:
 
-- The agent's `reason.detail` as the question prose.
-- Options: the agent's `suggested_action` first (recommended), plus the other applicable actions per the table below.
+- The Subagent's `reason.detail` as the question prose.
+- Options: the Subagent's `suggested_action` first (recommended), plus the other applicable actions per the table below.
 
 | Category | Actions to offer (recommended first) |
 |---|---|
@@ -197,7 +197,7 @@ Build an `AskUserQuestion` with:
 
 Execute the chosen action:
 
-- **`extend_cap`** — bump `round_cap += 1` in state; loop to 3a with `round: <current> + 1`. The agent receives the new `round_cap` and may now `ask` if it has questions.
+- **`extend_cap`** — bump `round_cap += 1` in state; loop to 3a with `round: <current> + 1`. The Subagent receives the new `round_cap` and may now `ask` if it has questions.
 - **`defer_to_deferred`** — `mv <spec_path> ai-docs/plans/deferred/`; update `INDEX.md` (move row to **Deferred plans**, status `🟡 spec-only`); delete state file; exit. Skip Step 4.
 - **`abort`** — delete `<spec_path>` (if exists); delete state file; exit. Skip Step 4.
 - **`request_external_info`** — prompt the user via `AskUserQuestion` (single free-form question option) for the additional context; loop to 3a with `extra_context: <user paste>` injected into the next round's prompt.
@@ -217,7 +217,7 @@ Execute the chosen action:
      gh issue comment <N> --body "Spec: \`<spec_path>\`"
      ```
    - Delete the state file.
-4. Skill exits. `/task` (the caller) resumes at Step 6 (design agent).
+4. Skill exits. `/task` (the caller) resumes at Step 6 (`design` Subagent).
 
 > **Skip the tracking-issue resolution only if the user explicitly states "no tracking issue".** Note the reason in the spec header (`**Tracked in:** none — <reason>`) and skip the cross-link comment.
 
@@ -235,8 +235,8 @@ If the user wants to stop after the interview ("just draft the spec, defer the i
 - Drafting questions yourself in the orchestrator. The subagent owns question authorship; you forward the questions verbatim.
 - Mutating the spec yourself. The subagent owns spec writes; the orchestrator only reads it.
 - Skipping the YAML status parse and inferring intent from prose. The status block is the contract; treat parse failure as a defect.
-- Embedding the Rule-5 substring blacklist in this file. It lives in the agent definition; this orchestrator's only Rule-5 role is the validation gate at 3d (defence in depth).
+- Embedding the Rule-5 substring blacklist in this file. It lives in the Subagent definition; this orchestrator's only Rule-5 role is the validation gate at 3d (defence in depth).
 - Forgetting to delete the state file on terminal exit. It's transient handoff; orphaned state files confuse subsequent runs.
 - Saving the spec without `**Tracked in:**` (unless user explicitly opted out).
 - Skipping the cross-link comment on the tracking issue.
-- **Silently switching to implementation mid-interview.** If the subagent's first round suggests the task is trivially small (< ~20 lines, no design decisions), the agent should still emit `ready` with a complete spec; the orchestrator surfaces it normally and the user can choose to spec-only-defer if they want a one-shot edit instead.
+- **Silently switching to implementation mid-interview.** If the Subagent's first round suggests the task is trivially small (< ~20 lines, no design decisions), the Subagent should still emit `ready` with a complete spec; the orchestrator surfaces it normally and the user can choose to spec-only-defer if they want a one-shot edit instead.

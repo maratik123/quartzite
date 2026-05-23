@@ -66,7 +66,7 @@ Skip if `$ARGUMENTS` is `phase1`.
 Fetch the three primary references via WebFetch (cache them mentally for the rest of the run):
 
 - `https://code.claude.com/docs/en/skills` — skill structure, frontmatter, allowed-tools
-- `https://code.claude.com/docs/en/sub-agents` — agent file shape, when subagents fire
+- `https://code.claude.com/docs/en/sub-agents` — Subagent file shape, when Subagents fire
 - `https://code.claude.com/docs/en/hooks-guide` — hook events, matchers, JSON I/O
 
 For each fetch use a focused prompt like: *"Extract the canonical schema for skill frontmatter fields and which fields are required vs optional."*
@@ -92,7 +92,7 @@ For each item below, when a violation is found record: file path, line number (w
 
 | Letter | One-line purpose | Detail body |
 |---|---|---|
-| A | Cross-reference integrity — every relative link + named skill/agent resolves | [`reference.md` § Checklist A — Cross-reference integrity](reference.md#checklist-a--cross-reference-integrity) |
+| A | Cross-reference integrity — every relative link + named Skill/Subagent resolves | [`reference.md` § Checklist A — Cross-reference integrity](reference.md#checklist-a--cross-reference-integrity) |
 | B | Conflicting / duplicated rules — no contradictions across files; verbatim duplicates consolidated | [`reference.md` § Checklist B — Conflicting / duplicated rules](reference.md#checklist-b--conflicting--duplicated-rules) |
 | C | Dead references — every sync-group member exists; `ai-docs/plans/done/` references still resolve | [`reference.md` § Checklist C — Dead references](reference.md#checklist-c--dead-references) |
 | D | Frontmatter conformance (skills) — `name` / `description` / `allowed-tools` shape per official docs | [`reference.md` § Checklist D — Frontmatter conformance (skills)](reference.md#checklist-d--frontmatter-conformance-skills) |
@@ -100,12 +100,13 @@ For each item below, when a violation is found record: file path, line number (w
 | F | Hooks (`.claude/settings.json`) — event names, matchers, exit codes, env-var quoting | [`reference.md` § Checklist F — Hooks (`.claude/settings.json`)](reference.md#checklist-f--hooks-claudesettingsjson) |
 | G | AGENTS.md "Propagation Rule" coherence — sync groups intact; exemptions replicated everywhere | [`reference.md` § Checklist G — AGENTS.md "Propagation Rule" coherence](reference.md#checklist-g--agentsmd-propagation-rule-coherence) |
 | H | Documentation conformance pointers — `doc-convention.md` references resolve; section order matches | [`reference.md` § Checklist H — Documentation conformance pointers](reference.md#checklist-h--documentation-conformance-pointers) |
-| I | File-size & structure (instruction files) — no `SKILL.md` / agent file > ~500 lines without sectioning | [`reference.md` § Checklist I — File-size & structure (instruction files)](reference.md#checklist-i--file-size--structure-instruction-files) |
+| I | File-size & structure (instruction files) — no `SKILL.md` / Subagent file > ~500 lines without sectioning | [`reference.md` § Checklist I — File-size & structure (instruction files)](reference.md#checklist-i--file-size--structure-instruction-files) |
 | J | Allow-list / permission consistency — `allowed-tools` covered by `permissions.allow`; no dead entries | [`reference.md` § Checklist J — Allow-list / permission consistency](reference.md#checklist-j--allow-list--permission-consistency) |
 | K | Skill-directory layout — oversized SKILL.md, multi-consumer supporting files, inline-script extraction candidates | [`reference.md` § Checklist K — Skill-directory layout (SKILL.md + supporting files + scripts/)](reference.md#checklist-k--skill-directory-layout-skillmd--supporting-files--scripts) |
 | L | Learning-Log field coherence — every Entry-format field covered in all four mandatory locations | [`reference.md` § Checklist L — Learning-Log field coherence](reference.md#checklist-l--learning-log-field-coherence) |
 | M | `agent-writing-style.md` conformance — 11 sub-checks (Patterns 1–7 + Anti-patterns + Sub-checks 9/10 + Cross-shape verbs) over the audited corpus | [`reference.md` § Checklist M — `agent-writing-style.md` conformance](reference.md#checklist-m--agent-writing-stylemd-conformance) |
 | N | Bidirectional `## Patterns` ↔ `Kind: validation` coherence — every promoted carrot round-trips both ways | [`reference.md` § Checklist N — Bidirectional `## Patterns` ↔ `Kind: validation` coherence](reference.md#checklist-n--bidirectional--patterns---kind-validation-coherence) |
+| O | Embedded-name clash scan — project-defined Tool / Subagent / Skill / Hook names MUST NOT clash with embedded names in `claude-tools-hierarchy.md` §§1a/1b/2a/3a/3b | [`reference.md` § Checklist O — Embedded-name clash scan](reference.md#checklist-o--embedded-name-clash-scan) |
 
 The audited corpus for Checklist M is enumerated in `reference.md § Checklist M — audited corpus`.
 
@@ -135,7 +136,7 @@ After edits:
 
 1. Re-run any `find`/`grep` checks from Step 2.3 that detected violations — confirm zero remaining.
 2. If hooks were edited, eyeball the `.claude/settings.json` JSON validity: `jq . .claude/settings.json`.
-3. If agent or skill files were edited, confirm their frontmatter still parses by reading the file back.
+3. If Subagent or Skill files were edited, confirm their frontmatter still parses by reading the file back.
 4. **Cross-reference re-verification (anchor-aware)** — see [`reference.md` § Step 2.6 sub-step 4 — Cross-reference re-verification (anchor-aware)](reference.md#step-26-sub-step-4--cross-reference-re-verification-anchor-aware) for the verbatim bash recipe. Use it rather than naive `realpath -m` (which mistakes `#anchor` for part of the path) over every relative link the audit touched in any `.claude/agents/*.md` or `.claude/skills/**/SKILL.md`.
 
 5. **Script verification (when checklist K extracted any `scripts/*.sh`).** For every script the audit added or modified:
@@ -182,6 +183,6 @@ Per AGENTS.md, **never** `git add -A` / `git add .`.
 
 - Do **not** rewrite `learnings.md` history — it is append-only. Phase 1 may only correct the `Escalated?` field of an existing entry or add a *new* corrective entry; never delete or rephrase past entries.
 - Do **not** invent rules. The audit finds compliance gaps in *existing* rules; new rules go through `/improve`.
-- Do **not** skip the WebFetch step in Phase 2. The official docs are the source of truth for hook/skill/agent shapes — relying on memory is the failure mode this skill exists to prevent.
+- Do **not** skip the `WebFetch` Tool call in Phase 2. The official docs are the source of truth for Hook/Skill/Subagent shapes — relying on memory is the failure mode this Skill exists to prevent.
 - Do **not** auto-resolve a blocker without surfacing it. Severity is a signal that human judgment is needed.
 - Do **not** edit `.claude/settings.local.json` from this skill — it is user-local.

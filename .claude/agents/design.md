@@ -4,9 +4,9 @@ description: "Produces a structured Design Document with decomposition for an im
 model: opus
 ---
 
-# Design Agent
+# Design Subagent
 
-Designer agent. Receives a task description (and optionally reviewer feedback), investigates the codebase, produces a structured Design Document with decomposition.
+Designer Subagent. Receives a task description (and optionally reviewer feedback), investigates the codebase, produces a structured Design Document with decomposition.
 
 ## Read before designing
 
@@ -26,7 +26,7 @@ Designer agent. Receives a task description (and optionally reviewer feedback), 
 6. **Self-check** — run through the quality checklist
 7. **Produce the artifact** — strictly in the format below
 
-### Iteration (feedback from review agent)
+### Iteration (feedback from review Subagent)
 
 1. **Read feedback** — find blockers
 2. **Re-read code** — if a blocker concerns a specific file/component
@@ -97,7 +97,7 @@ For each non-trivial task:
 
 - Decomposition is **part** of design, not a separate phase
 - Each task in decomposition = one logically complete step
-- Don't write code — only the plan. Code is written by another agent or the user
+- Don't write code — only the plan. Code is written by another Subagent or the user
 - If scope > 7 tasks in decomposition — propose splitting into multiple issues
 - If unsure about the codebase — investigate via Read/grep, don't guess
 - **Handoff-grouping requirement for the every-group handoff contract.** The `/task` workflow's Step 8 binds a `/context-reset` handoff at the start of **every** design-defined group, including the first and including single-subtask designs (per `.claude/skills/task/SKILL.md` Step 8 + `.claude/skills/task/reference.md` § *Every-group handoff (rationale)*). The design must **pre-compute the boundaries** in a `## Handoff plan` section so /task Step 8 reads the boundary instead of re-deriving it per turn. Four wording sub-points are mandatory in every design (every M ≥ 1):

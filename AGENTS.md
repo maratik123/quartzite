@@ -59,7 +59,7 @@ actionlint .github/workflows/<file>.yml   # required gate for any new/modified w
 > What `actionlint` catches that `cargo` cannot: runner-version mismatches, deprecated action versions, expression-syntax errors, shell-quoting issues.
 
 > **AXIOM — Every project instruction file Claude loads per invocation MUST stay below 40,000 chars.**
-> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every agent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/*.md`, every `.claude/agents/**.md`, every `.claude/rules/*.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
+> Harness-enforced soft cap; crossing it imposes measurable per-invocation cost on every subagent spawn, `/task`, `/triage`, and review pass. Project-side **35,000-char early warning** gives one full `/task` cycle of headroom before the harness warning starts firing. Applies to `AGENTS.md`, `CLAUDE.md`, every `.claude/skills/**/*.md`, every `.claude/agents/**.md`, every `.claude/rules/*.md`, and `ai-docs/{code-style,doc-convention,context,agent-writing-style,corrections-log}.md`.
 >
 > | If `wc -c <file>` reports... | Action |
 > |---|---|
@@ -207,24 +207,31 @@ When adding or editing dependencies in `Cargo.toml`:
 > | `.claude/skills/triage/SKILL.md` | `.claude/agents/triage-runner.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
 > | `.claude/agents/triage-runner.md` | `.claude/skills/triage/SKILL.md` AND `.claude/skills/next/SKILL.md` (Triage group) |
 > | `.claude/skills/next/SKILL.md` | `.claude/skills/triage/SKILL.md` AND `.claude/agents/triage-runner.md` (Triage group) |
-> | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ .claude/rules/ AGENTS.md ai-docs/agent-writing-style.md` and apply the same change to every match. **For new pre-resolved rules** (the kind that should never reach a question): also add a corresponding entry to the Rule-5 substring blacklist in `.claude/agents/spec-writer.md` so the spec-writer subagent enforces it mechanically. |
-> | `AGENTS.md` "Learning Log" section (Boundary rules 1 / 2, entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Learning-Log group — the two agents that read/write `learnings.md` must match the rules they enforce) |
-> | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group — design's artefact format, design-review's verdict format incl. GO-with-notes round-trip, task SKILL Step 8's every-group `/context-reset` handoff contract, and context-reset's own trigger / `allowed-tools` / write-contract wording all co-evolve) |
-> | `.claude/agents/design.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
-> | `.claude/agents/design-review.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
-> | `.claude/skills/context-reset/SKILL.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
-> | `.claude/skills/task/SKILL.md` Step 7 / Step 11 *Spec Amendment recipe* + *Design Amendment recipe* (or any rule about spec-amendment / design-amendment → design → design-review re-entry) | `.claude/skills/pr-commented/SKILL.md` AND `.claude/skills/pr-ci-failed/SKILL.md` AND `.claude/skills/master-ci-failed/SKILL.md` AND `.claude/agents/self-review.md` (Spec-Amendment group — every downstream "fix" skill whose round can touch `ai-docs/plans/*.spec.md` OR `*.design.md` carries the same recipe; `self-review.md` classifies findings whose fix touches those artefacts as Amendment triggers, not ordinary findings; the rule's mechanical detection trigger — *"the fix commit's diff includes a `.spec.md` OR `.design.md` file under `ai-docs/plans/` (active or `done/`)"* — applies identically in each surface, including the `/task` Step 11 self-review fix flow that recurred in 2026-05-21) |
+> | `AGENTS.md` (rule add / exemption) | Run `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ .claude/rules/ AGENTS.md ai-docs/agent-writing-style.md` and apply the same change to every match (new pre-resolved rules also add a Rule-5 substring-blacklist entry in `.claude/agents/spec-writer.md`). |
+> | `AGENTS.md` "Learning Log" section (Boundary rules 1 / 2, entry format incl. `Kind:`, `Escalated?` semantics, 🌱 verdict from `/ai-audit`) | `.claude/agents/self-improve.md` AND `.claude/agents/learnings-escalation-audit.md` (Learning-Log group) |
+> | `.claude/skills/task/SKILL.md` (Steps 6–8 design phase contract) | `.claude/agents/design.md` AND `.claude/agents/design-review.md` AND `.claude/skills/context-reset/SKILL.md` (Task/Design group — artefact format, verdict format incl. GO-with-notes, Step 8's `/context-reset` handoff contract, and context-reset's trigger / `allowed-tools` / write-contract all co-evolve) |
+> | `.claude/agents/design.md` OR `.claude/agents/design-review.md` OR `.claude/skills/context-reset/SKILL.md` | See *Task/Design group* anchor row above (`.claude/skills/task/SKILL.md`). |
+> | `.claude/skills/task/SKILL.md` Step 7 / Step 11 *Spec Amendment recipe* + *Design Amendment recipe* | `.claude/skills/pr-commented/SKILL.md` AND `.claude/skills/pr-ci-failed/SKILL.md` AND `.claude/skills/master-ci-failed/SKILL.md` AND `.claude/agents/self-review.md` (Spec-Amendment group — detection trigger + recurrence record in [`ai-docs/workflow.md` § Spec-Amendment group](ai-docs/workflow.md#spec-amendment-group)) |
 > | `quartzite-widgets/tests/support/mod.rs` | `quartzite-style/tests/support/mod.rs` (Snapshot-helper group) |
 > | `quartzite-style/tests/support/mod.rs` | `quartzite-widgets/tests/support/mod.rs` (Snapshot-helper group) |
 > | `ai-docs/agent-writing-style.md` (new fail-loud pattern entry under `## Patterns`) | See [`ai-docs/agent-writing-style.md` § *Propagation rule for new patterns*](ai-docs/agent-writing-style.md#propagation-rule-for-new-patterns). |
 > | `ai-docs/skill-size-exemptions.md` | `.claude/skills/ai-audit/reference.md` (Checklist K item 1 anchor + cited `wc -l` numbers MUST stay synchronised) (Size-exemption-index group) |
 > | `.claude/rules/<file>.md` (e.g. `.claude/rules/ast-index.md`) | Run the same grep — the Procedure below catches lingering references. Rule files are read on-demand by agents, so a cross-rule-file edit MUST sweep every instruction directory for sister references. |
+> | Any edit that changes a Tool / Subagent / Skill / Hook contract OR renames a stable anchor in `claude-tools-hierarchy.md` | Update `ai-docs/claude-tools-hierarchy.md` in the same PR (contract changes) AND every inbound deep-link to renamed anchors (anchor renames). |
 > | Any other instruction file | Run the same grep — the Procedure (below) catches lingering references |
 
 **Procedure:**
 1. Before closing the edit, `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ .claude/rules/ AGENTS.md ai-docs/agent-writing-style.md` for any file that references the same rule, exemption, or terminology.
 2. Apply the same change (or the corresponding enforcement adjustment) in every match.
-3. AGENTS.md rule exemptions especially must propagate to agent checklists that enforce the rule (`self-review.md`, `review-findings.md`).
+3. AGENTS.md rule exemptions especially must propagate to subagent checklists that enforce the rule (`self-review.md`, `review-findings.md`).
+
+> **AXIOM — Project-defined Tool / Subagent / Skill / Hook names MUST NOT clash with embedded names in `ai-docs/claude-tools-hierarchy.md` §§1a/1b/2a/3a/3b. On clash, the project name is renamed; the embedded name is never renamed.**
+>
+> | If you... | Action |
+> |---|---|
+> | Add a new project-defined name | Grep the embedded inventory FIRST; pick non-clashing. |
+> | Detect a clash AFTER adding | Rename project side same PR; update every inbound ref. |
+> | New embedded name now clashes with existing project name | Queue project rename as separate task; `/ai-audit` Checklist O flags it. |
 
 Do not refer to a skill as an "agent" or vice versa — the distinction matters for spawning. (`project-review` is a skill; `review-findings` and `self-review` are agents spawned by it.)
 
@@ -290,7 +297,7 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 >
 > The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits. Editing past entries destroys that history.
 >
-> **Exception — `Escalated?` and `Superseded by:` fields, agent-driven only.** Both fields MAY be updated in-place by the `self-improve` agent (`/improve`) and the `learnings-escalation-audit` agent (`/ai-audit` Phase 1). See [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-agent contract. All other lines of an entry remain immutable.
+> **Exception — `Escalated?` and `Superseded by:` fields, subagent-driven only.** Both fields MAY be updated in-place by the `self-improve` Subagent (`/improve`) and the `learnings-escalation-audit` Subagent (`/ai-audit` Phase 1). See [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception) for the per-Subagent contract. All other lines of an entry remain immutable.
 >
 > **One-off carve-out — 2026-05-19 compaction-recovery-protocol entry.** Retro-tagged `**Kind:** validation` via PR #492 Phase 1 with `Superseded by:` line as audit trail. **Named, narrow, NOT a precedent.** Schema migrations require their own named carve-out. See [`ai-docs/corrections-log.md` → Boundary rule 1 Exception](ai-docs/corrections-log.md#boundary-rule-1-exception).
 
@@ -308,7 +315,7 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 >
 > Writing a learning entry is **NOT** authorisation to escalate the rule into instruction files. Set `Escalated? no` and stop. Project-level escalation happens only when:
 >
-> 1. The user runs `/improve` (which spawns the escalation agent), OR
+> 1. The user runs `/improve` (which spawns the `self-improve` Subagent), OR
 > 2. The user explicitly asks ("escalate this", "update AGENTS.md", "add to skill X").
 >
 > The Propagation Rule fires only when you are *already* editing an instruction file for an independent reason — it does not authorise pre-emptive escalation triggered by a fresh `learnings.md` entry. The same applies in reverse: if the user corrects a behaviour and asks you to record it, write to `learnings.md` only — do not also "fix" `AGENTS.md` or `code-style.md` in the same turn.
@@ -328,7 +335,7 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 **Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
 ```
 
-`Kind:` defaults to `correction` when omitted — existing entries need NO rewrite. Write `Kind: validation` for entries that document a working protocol / pattern the agent should keep doing (carrot signal); write `Kind: correction` (or omit) for entries that document a violation to stop doing (stick signal).
+`Kind:` defaults to `correction` when omitted — existing entries need NO rewrite. Write `Kind: validation` for entries that document a working protocol / pattern the subagent should keep doing (carrot signal); write `Kind: correction` (or omit) for entries that document a violation to stop doing (stick signal).
 
 See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/corrections-log.md#entry-format--field-glossary) for the semantics of each field (`Kind:` values, `Escalated?` values, `doc-convention` vs `code-style`, `Superseded by:` reference format).
 
