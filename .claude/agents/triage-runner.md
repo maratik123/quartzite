@@ -54,7 +54,7 @@ Required body sections (populated as phases run, **not** upfront):
 - `## Phase 6 / Phase 7 partitions` — approve / decline / skip (Phase 6) and sort / promote / drop / keep (Phase 7), including any user-edited tweaks (canonical example: "move row L179 from decline to promote"). Each per-row record carries a `design_link:` sub-field — one of `none` (plain row), `umbrella=#N` (existing pick), `umbrella=#N (new)` (newly-created), `skip-link` (`none` chosen), `defer` (`defer` chosen). Written IMMEDIATELY after the gate decision (mirrors Phase 4.5 per-conflict timing); on resume, rows already carrying the field are NOT re-prompted.
 - `## Next action` — the phase the next subagent invocation should resume from. Always updated after every phase completes.
 
-The file is gitignored via `.gitignore` (`/ai-docs/triage/**/*.progress.md`); never staged in any commit emitted by this agent.
+The file is gitignored via `.gitignore` (`/ai-docs/triage/**/*.progress.md`); never staged in any commit emitted by this Subagent.
 
 ### Phase 2: Threshold gate
 
@@ -109,7 +109,7 @@ For each cell-iteration candidate, exact-title-match dedupe against the `{title 
 
 Edge cases recorded in the run summary but not auto-resolved:
 
-- **Matched issue's title was rephrased after creation** → out of reach of exact-match dedupe; the agent will propose a duplicate; user can decline during approval (the alternative — fuzzy matching — has too many false positives).
+- **Matched issue's title was rephrased after creation** → out of reach of exact-match dedupe; the Subagent will propose a duplicate; user can decline during approval (the alternative — fuzzy matching — has too many false positives).
 - **Title not matched but row's `Source` link already cites an issue** → not a dedupe path; the row's `Tracked` cell already holds `#N`, so the row is not a candidate.
 
 ### Phase 4.5: Bridge sweep
@@ -403,7 +403,7 @@ Emit the run-output summary per the skill body's *Run-output summary* section. S
     keep both:    <count>   <list: file + cell + #N + user reason>
 
   gh issue calls made by bridge this run:
-    <list of close/reopen commands actually executed>
+    <list of close/reopen commands executed>
   ```
 - **Design-link outcomes** — sub-section shape: [triage-runner-design-links.md](../../ai-docs/triage-runner-design-links.md). Mandatory per-mutated-umbrella `grep -n "#<N>" .claude/skills/next/SKILL.md` recorded per AC10.
 - Issues created (`#N` + one-line title each).
@@ -492,4 +492,4 @@ Content-snapshot comparison, NOT mtime. Take the snapshot at the start of the se
 
 ## Output
 
-The run summary (Phase 8) is the agent's final output. Format it as a markdown report so the user can copy-paste into a PR comment if useful.
+The run summary (Phase 8) is the Subagent's final output. Format it as a markdown report so the user can copy-paste into a PR comment if useful.

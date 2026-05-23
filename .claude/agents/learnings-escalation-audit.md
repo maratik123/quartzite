@@ -70,7 +70,7 @@ Record each entry's status:
 
 - ✅ **OK** — every target verified.
 - ⚠️ **Mismatch** — claimed target exists but rule absent (rule was removed or never landed there).
-- ❌ **Broken** — claimed target file/skill/agent does not exist at all (renamed/deleted).
+- ❌ **Broken** — claimed target file/Skill/Subagent does not exist at all (renamed/deleted).
 - ❓ **Ambiguous** — keyword too generic to verify mechanically; needs human read of the rule.
 - 🌱 **Stale-validation** — `Kind: validation` entry whose `Escalated?` is `no`, whose entry-date is **> 30 days** old, AND whose targeted surface has had **≥1 instruction-file commit since the validation date** (see Step 2b). Signal for `/improve` (the validation has aged without project-level promotion despite ongoing instruction-file churn near its surface), not an auto-fix.
 
@@ -90,11 +90,11 @@ For every entry whose `**Kind:**` line says `validation`, evaluate three conjunc
 2. **Escalation conjunct.** `Escalated?` is `no`.
 3. **Instruction-file activity conjunct.** ≥1 commit touching the audited instruction-surface corpus since the entry-date.
 
-Compute the activity conjunct with `git log --since=<entry-date> --pretty=oneline -- AGENTS.md ai-docs/ .claude/` — count the commits in the output; non-zero satisfies the conjunct. Constrain the path list to the surface the validation entry's `Rule:` line names when a specific skill / agent is named (e.g., `Rule:` names `/context-reset` → constrain to `.claude/skills/context-reset/`); fall back to the whole corpus path list above when the `Rule:` line is ambiguous.
+Compute the activity conjunct with `git log --since=<entry-date> --pretty=oneline -- AGENTS.md ai-docs/ .claude/` — count the commits in the output; non-zero satisfies the conjunct. Constrain the path list to the surface the validation entry's `Rule:` line names when a specific Skill / Subagent is named (e.g., `Rule:` names `/context-reset` → constrain to `.claude/skills/context-reset/`); fall back to the whole corpus path list above when the `Rule:` line is ambiguous.
 
 If **all three** conjuncts hold → emit `🌱 Stale-validation`. If the entry is `Kind: validation` but **fewer than three** conjuncts hold → no flag. Legacy entries (`Kind:` omitted → default `correction`) are out of scope for this sweep.
 
-If the `Rule:` line is ambiguous (no specific skill/agent named AND no AGENTS.md section named) AND the entry would otherwise flag → fall back to `❓ Ambiguous` instead of `🌱 Stale-validation` (the audit cannot mechanically narrow the surface; user judgment needed).
+If the `Rule:` line is ambiguous (no specific Skill/Subagent named AND no AGENTS.md section named) AND the entry would otherwise flag → fall back to `❓ Ambiguous` instead of `🌱 Stale-validation` (the audit cannot mechanically narrow the surface; user judgment needed).
 
 🌱 entries are surfaced to `/improve`; the audit does NOT auto-fix them (the promotion is a Step 2b Carrot-pass decision in `self-improve`, not an `Escalated?` field correction).
 
@@ -112,7 +112,7 @@ Always surface category 3.
 
 ### Step 4: Apply approved field corrections
 
-For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` or `**Superseded by:**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. Do **not** add a `**Superseded by:**` line where none was present — that is `/improve`'s job. This edit is authorised by **AGENTS.md § Learning Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, agent-driven only); typo fixes within either value are in scope of the same exception.
+For each category-1 fix, edit `ai-docs/learnings.md` in place — change only the `**Escalated?**` or `**Superseded by:**` line for that entry. Preserve everything else exactly. Do **not** rewrite the date, what-happened, or rule fields. Do **not** add a `**Superseded by:**` line where none was present — that is `/improve`'s job. This edit is authorised by **AGENTS.md § Learning Log → Boundary rule 1 → Exception** (`Escalated?` and `Superseded by:` fields, Subagent-driven only); typo fixes within either value are in scope of the same exception.
 
 ### Step 5: Cross-checks
 
@@ -120,7 +120,7 @@ Beyond per-entry verification, also flag:
 
 - **Duplicate entries** — same mistake recorded twice on different dates with different `Escalated?` values. Surface; do not auto-merge.
 - **Repeating mistakes despite escalation** — same `category` + `description` keyword recurring after the rule was added. This is a `/improve` signal, not an audit fix; just surface.
-- **Stale `skill:` / `agent:` references** in the log — entry names a skill/agent that no longer exists. Surface for user judgment (rename vs. re-add).
+- **Stale `skill:` / `agent:` references** in the log — entry names a Skill/Subagent that no longer exists. Surface for user judgment (rename vs. re-add).
 
 ### Step 6: Report
 

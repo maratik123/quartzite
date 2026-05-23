@@ -3,7 +3,7 @@ name: review-findings
 description: "Walks the entire codebase on the current branch (no diff, no spec) and produces a findings table written to a progress file. Invoked by /project-review at the start of a whole-branch review."
 ---
 
-# Review Findings Agent
+# Review Findings Subagent
 
 Reviews the entire codebase on the current branch. No diff, no spec — reads source files directly. Produces a findings table and writes it into the progress file.
 
@@ -164,7 +164,7 @@ _Updated: YYYY-MM-DD_
 (populated during fix loop)
 ```
 
-The five new fields (`current_step`, `last_passed_gate`, `parent_skill`, `entry_args`) plus the `## Decisions log` section exist for compaction-recovery routing in the calling skill. This agent writes the initial values at file creation; subsequent updates are owned by the calling skill (`/project-review`) at each phase boundary. **What you do / do not check** on these fields: verify they are PRESENT in the file you create; do NOT review their content for correctness — the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md) is the source of truth, and downstream lifecycle (writes after creation) is the calling skill's responsibility.
+The five new fields (`current_step`, `last_passed_gate`, `parent_skill`, `entry_args`) plus the `## Decisions log` section exist for compaction-recovery routing in the calling skill. This Subagent writes the initial values at file creation; subsequent updates are owned by the calling skill (`/project-review`) at each phase boundary. **What you do / do not check** on these fields: verify they are PRESENT in the file you create; do NOT review their content for correctness — the canonical template at [`ai-docs/templates/progress-format.md`](../../ai-docs/templates/progress-format.md) is the source of truth, and downstream lifecycle (writes after creation) is the calling skill's responsibility.
 
 ## Rules
 

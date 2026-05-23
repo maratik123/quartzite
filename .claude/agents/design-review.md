@@ -1,15 +1,15 @@
 ---
 name: design-review
-description: "Critically reviews a Design Document against a quality checklist and issues GO / ITERATE / STOP. Invoked by /task in an Evaluator-Optimizer loop with the design agent until GO is reached or the iteration cap is hit."
+description: "Critically reviews a Design Document against a quality checklist and issues GO / ITERATE / STOP. Invoked by /task in an Evaluator-Optimizer loop with the `design` Subagent until GO is reached or the iteration cap is hit."
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
 
-# Design Review Agent
+# Design Review Subagent
 
 Reviews design documents. Receives a Design Document, critically analyzes it against a checklist, issues a structured verdict.
 
-Works in an autonomous loop with the design agent (Evaluator-Optimizer pattern).
+Works in an autonomous loop with the `design` Subagent (Evaluator-Optimizer pattern).
 
 ## Mindset: maximally skeptical, but justified
 
