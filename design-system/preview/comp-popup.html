@@ -1,0 +1,199 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Popup — chrome</title>
+<style>
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.card.dark { background:#2B2B2B; color:#E8E8E8; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; color:rgba(0,0,0,0.75); margin-top:8px; }
+.cap.dark { color:rgba(232,232,232,0.75); }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55);
+  text-transform:uppercase; margin-bottom:10px; }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
+
+/* Trigger button */
+.qz-button {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:#FFFFFF; color:#000000; border:1px solid #000;
+  padding:6px 16px; font-family:inherit; font-size:12pt;
+  min-width:140px; min-height:32px; box-sizing:content-box;
+  user-select:none;
+}
+.qz-button.dark { background:#3C3C3C; color:#E8E8E8; border-color:#E8E8E8; }
+
+/* Popup — 2 px WindowText border */
+.qz-popup {
+  display:inline-block; position:relative;
+  background:#FFFFFF; color:#000000; border:2px solid #000;
+  min-width:200px;
+}
+.qz-popup.dark { background:#2B2B2B; color:#E8E8E8; border-color:#E8E8E8; }
+
+.qz-popup .row {
+  display:flex; align-items:center; padding:6px 14px;
+  font-family:inherit; font-size:12pt; cursor:default;
+}
+.qz-popup .row.hover    { background:#0080FF; color:#FFFFFF; }
+.qz-popup.dark .row.hover    { background:#1E90FF; color:#FFFFFF; }
+.qz-popup .row.pressed  { background:#006CD6; color:#FFFFFF; }
+.qz-popup.dark .row.pressed  { background:#3E9EFB; color:#FFFFFF; }
+.qz-popup .row.disabled { opacity:0.5; }
+.qz-popup .sep {
+  height:1px; background:#000; margin:0;
+}
+.qz-popup.dark .sep { background:#E8E8E8; }
+
+/* Trigger + popup stacked, with the 4 px inset gap labelled */
+.stack {
+  display:flex; flex-direction:column; align-items:flex-start;
+  position:relative;
+}
+.stack .gap-label {
+  position:absolute; left:160px; top:38px;
+  font-family:'DejaVu Sans Mono', monospace; font-size:8.5pt;
+  color:rgba(0,0,0,0.55);
+}
+.stack.dark .gap-label { color:rgba(232,232,232,0.55); }
+
+/* The 4 px visual gap between trigger and popup */
+.gap-4 { height:4px; }
+
+/* Layer-stack callout: shows the three ZLayer planes */
+.layers {
+  position:relative; height:140px;
+  border:1px solid #000; background:#FFFFFF;
+  font-family:'DejaVu Sans Mono', monospace; font-size:9.5pt;
+  padding:0;
+}
+.layers.dark { background:#1E1E1E; border-color:#E8E8E8; }
+.layers .plane {
+  position:absolute; left:30px; right:30px; height:30px;
+  border:1px solid #000; box-sizing:border-box;
+  padding:6px 10px; font-size:9.5pt;
+}
+.layers.dark .plane { border-color:#E8E8E8; }
+.layers .plane.l0 { top:96px; background:#FFFFFF; }
+.layers .plane.l1 { top:54px; background:#FFFFFF; border-width:2px; }
+.layers .plane.l2 { top:12px; background:#000; color:#FFFFFF; border-color:#000; }
+.layers.dark .plane.l0 { background:#1E1E1E; color:#E8E8E8; }
+.layers.dark .plane.l1 { background:#2B2B2B; color:#E8E8E8; border-width:2px; }
+.layers.dark .plane.l2 { background:#E8E8E8; color:#2B2B2B; border-color:#E8E8E8; }
+
+.divider { height:1px; background:rgba(0,0,0,0.12); margin:16px 0; }
+.divider.dark { background:rgba(232,232,232,0.12); }
+</style></head>
+<body>
+<div class="card" style="min-height:760px;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- LIGHT ----------------------------------------------------- -->
+    <div>
+      <div class="col-label">light · trigger + popup</div>
+
+      <div class="stack">
+        <button class="qz-button">Select…</button>
+        <div class="gap-4"></div>
+        <div class="qz-popup">
+          <div class="row">New file</div>
+          <div class="row hover">Open file…</div>
+          <div class="row">Save</div>
+          <div class="sep"></div>
+          <div class="row disabled">Save as… (disabled)</div>
+          <div class="row pressed">Close</div>
+        </div>
+        <div class="gap-label">↑ 4 px inset</div>
+      </div>
+
+      <div class="cap mono">Window fill · 2 px WindowText border · row × Highlight</div>
+    </div>
+
+    <!-- DARK ------------------------------------------------------ -->
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">dark · trigger + popup</div>
+
+      <div class="stack dark">
+        <button class="qz-button dark">Select…</button>
+        <div class="gap-4"></div>
+        <div class="qz-popup dark">
+          <div class="row">New file</div>
+          <div class="row hover">Open file…</div>
+          <div class="row">Save</div>
+          <div class="sep"></div>
+          <div class="row disabled">Save as… (disabled)</div>
+          <div class="row pressed">Close</div>
+        </div>
+        <div class="gap-label">↑ 4 px inset</div>
+      </div>
+
+      <div class="cap dark mono">Window fill · 2 px WindowText border · row × Highlight</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Border-weight comparison -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div>
+      <div class="col-label">border-weight contrast</div>
+      <div style="display:flex; gap:20px; align-items:flex-start;">
+        <div>
+          <div style="width:120px; height:64px; background:#FFFFFF;
+                      border:1px solid #000;"></div>
+          <div class="cap mono">1 px · widget frame</div>
+        </div>
+        <div>
+          <div style="width:120px; height:64px; background:#FFFFFF;
+                      border:2px solid #000;"></div>
+          <div class="cap mono">2 px · Popup</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px;">
+        Doubling the stroke is the only flat primitive that reads
+        as "different surface" without inventing a shadow.
+      </div>
+    </div>
+
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">layer-stack · ZLayer</div>
+      <div class="layers">
+        <div class="plane l0">Content · root tree</div>
+        <div class="plane l1">Overlay · Popup (2 px border)</div>
+        <div class="plane l2">Tooltip · WindowText fill</div>
+      </div>
+      <div class="cap mono">paint pass walks ZLayer ascending</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="kv" style="grid-template-columns:max-content 1fr max-content 1fr;gap:3px 12px;">
+    <div class="k">fill</div>            <div class="v">ColorRole::Window</div>
+    <div class="k">border</div>          <div class="v">2 px WindowText</div>
+    <div class="k">radius</div>          <div class="v">0 px</div>
+    <div class="k">row hover</div>       <div class="v">Highlight × Normal</div>
+    <div class="k">row hover text</div>  <div class="v">HighlightedText</div>
+    <div class="k">row pressed</div>     <div class="v">Highlight × Pressed</div>
+    <div class="k">row disabled</div>    <div class="v">text × α 0.5</div>
+    <div class="k">separator</div>       <div class="v">1 px WindowText, full width</div>
+    <div class="k">trigger inset</div>   <div class="v">4 px below trigger</div>
+    <div class="k">min width</div>       <div class="v">max(trigger.w, text_max)</div>
+    <div class="k">max size</div>        <div class="v">window bounds</div>
+    <div class="k">z_order</div>         <div class="v">ZLayer::Overlay (default for Popup)</div>
+  </div>
+
+  <div class="note" style="margin-top:10px;">
+    Mirrors <span class="mono">DefaultStyle::paint&lt;Popup&gt;</span> after #408.
+    The popup is _not_ a child of the trigger widget in the paint
+    tree — it sits at <span class="mono">ZLayer::Overlay</span>, painted in a second pass
+    after all <span class="mono">Content</span> widgets. The 4 px inset and the 2 px
+    border together create the substrate signal that toolkits with
+    drop shadows produce via blur.
+  </div>
+</div>
+</body></html>

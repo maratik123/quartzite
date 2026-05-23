@@ -1,0 +1,222 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>LineEdit — caret</title>
+<style>
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; color:rgba(0,0,0,0.75); }
+.cap.dark { color:rgba(232,232,232,0.75); }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55); text-transform:uppercase; margin-bottom:8px; }
+.col-label.dark { color:rgba(232,232,232,0.55); }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
+
+/* LineEdit shells */
+.qz-le {
+  display:inline-block; position:relative;
+  background:#FFFFFF; color:#000000; border:1px solid #000000;
+  padding:4px 6px; font-size:12pt; font-family:inherit;
+  min-height:22px; width:200px; box-sizing:content-box;
+  vertical-align:middle; line-height:22px; white-space:nowrap;
+}
+.qz-le.dark { background:#1E1E1E; color:#E8E8E8; border-color:#E8E8E8; }
+.qz-le.read-only::after {
+  content:""; position:absolute; inset:0;
+  background:rgba(0,0,0,0.10); pointer-events:none;
+}
+.qz-le.dark.read-only::after { background:rgba(232,232,232,0.10); }
+.qz-le.disabled { opacity:0.5; }
+.qz-le.focused { outline:2px solid #0080FF; outline-offset:-2px; }
+.qz-le.dark.focused { outline-color:#1E90FF; }
+
+/* The caret itself: 1 px column, 22 px tall (= line-box for 12 pt). */
+.caret {
+  display:inline-block; width:1px; height:22px;
+  background:#000000; vertical-align:middle;
+  position:relative; top:-1px; margin:0 -0.5px;
+}
+.qz-le.dark .caret { background:#E8E8E8; }
+
+/* Blink: 530 ms on / 530 ms off, 1.06 s cycle. Square wave via
+   steps(1) — no fade, matches "no animations" rule (the caret is
+   a state-toggled paint, not an animated transition). */
+@keyframes qz-caret-blink { 0%{opacity:1} 50%{opacity:1} 50.01%{opacity:0} 100%{opacity:0} }
+.caret.blink { animation: qz-caret-blink 1.06s steps(1,end) infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .caret.blink { animation: none; opacity:1; }
+}
+
+/* Empty-input caret sits flush at the padding inset. */
+.qz-le .caret.empty { vertical-align:middle; }
+
+/* Phase diagram cells */
+.phase {
+  display:flex; align-items:center; gap:10px;
+  padding:6px 0;
+  font-size:10pt;
+}
+.phase .tick { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.55); width:64px; }
+.phase.dark .tick { color:rgba(232,232,232,0.55); }
+
+/* Geometry callout — uses a magnified caret next to a glyph row */
+.zoom {
+  display:flex; align-items:flex-end; gap:14px; padding:14px 16px;
+  background:#FFFFFF; border:1px solid #000;
+  font-family:'DejaVu Sans Mono', monospace; font-size:11pt;
+}
+.zoom.dark { background:#1E1E1E; border-color:#E8E8E8; color:#E8E8E8; }
+.zoom .glyph { font-size:48px; line-height:1; letter-spacing:0; }
+.zoom .big-caret {
+  width:3px; height:54px; background:#000; align-self:center;
+  box-shadow:0 0 0 1px rgba(0,0,0,0.15);
+}
+.zoom.dark .big-caret { background:#E8E8E8; box-shadow:0 0 0 1px rgba(232,232,232,0.15); }
+.zoom .annot { font-size:9.5pt; color:rgba(0,0,0,0.7); align-self:center; }
+.zoom.dark .annot { color:rgba(232,232,232,0.7); }
+
+/* card */
+.card.dark { background:#2B2B2B; color:#E8E8E8; }
+.divider { height:1px; background:rgba(0,0,0,0.12); margin:14px 0; }
+.divider.dark { background:rgba(232,232,232,0.12); }
+</style></head>
+<body>
+<div class="card" style="min-height:480px;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- LIGHT ---------------------------------------------------- -->
+    <div>
+      <div class="col-label">light · Palette::default</div>
+
+      <!-- Geometry magnifier -->
+      <div class="zoom">
+        <span class="glyph">a<span class="big-caret"></span>bc</span>
+        <div class="annot">
+          width&nbsp;1 px<br>
+          height&nbsp;= line-box<br>
+          color&nbsp;= <span class="mono">Text</span><br>
+          snap&nbsp;to integer column
+        </div>
+      </div>
+
+      <div style="height:18px;"></div>
+
+      <!-- Blink phases -->
+      <div class="phase">
+        <span class="tick">t = 0&nbsp;ms</span>
+        <span class="qz-le focused"><span class="mono">ab</span><span class="caret"></span><span class="mono">c</span></span>
+        <span class="cap">caret visible</span>
+      </div>
+      <div class="phase">
+        <span class="tick">t = 530&nbsp;ms</span>
+        <span class="qz-le focused"><span class="mono">ab</span><span class="caret" style="opacity:0;"></span><span class="mono">c</span></span>
+        <span class="cap">caret hidden</span>
+      </div>
+      <div class="phase">
+        <span class="tick">live</span>
+        <span class="qz-le focused"><span class="mono">ab</span><span class="caret blink"></span><span class="mono">c</span></span>
+        <span class="cap">1.06&nbsp;s cycle, square wave</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Empty + state matrix -->
+      <div class="phase">
+        <span class="tick">empty</span>
+        <span class="qz-le focused"><span class="caret blink empty"></span></span>
+        <span class="cap">left-aligned at padding inset</span>
+      </div>
+      <div class="phase">
+        <span class="tick">read-only</span>
+        <span class="qz-le read-only focused"><span class="mono">abc</span></span>
+        <span class="cap">no caret · selection still allowed</span>
+      </div>
+      <div class="phase">
+        <span class="tick">disabled</span>
+        <span class="qz-le disabled"><span class="mono">abc</span></span>
+        <span class="cap">no caret · no focus · no selection</span>
+      </div>
+    </div>
+
+    <!-- DARK ----------------------------------------------------- -->
+    <div>
+      <div class="col-label dark" style="color:rgba(0,0,0,0.55);">dark · Window #2B2B2B</div>
+
+      <div class="zoom dark">
+        <span class="glyph">a<span class="big-caret"></span>bc</span>
+        <div class="annot">
+          width&nbsp;1 px<br>
+          height&nbsp;= line-box<br>
+          color&nbsp;= <span class="mono">Text</span><br>
+          snap&nbsp;to integer column
+        </div>
+      </div>
+
+      <div style="height:18px;"></div>
+
+      <div class="phase dark">
+        <span class="tick">t = 0&nbsp;ms</span>
+        <span class="qz-le dark focused"><span class="mono">ab</span><span class="caret"></span><span class="mono">c</span></span>
+        <span class="cap dark">caret visible</span>
+      </div>
+      <div class="phase dark">
+        <span class="tick">t = 530&nbsp;ms</span>
+        <span class="qz-le dark focused"><span class="mono">ab</span><span class="caret" style="opacity:0;"></span><span class="mono">c</span></span>
+        <span class="cap dark">caret hidden</span>
+      </div>
+      <div class="phase dark">
+        <span class="tick">live</span>
+        <span class="qz-le dark focused"><span class="mono">ab</span><span class="caret blink"></span><span class="mono">c</span></span>
+        <span class="cap dark">1.06&nbsp;s cycle, square wave</span>
+      </div>
+
+      <div class="divider dark"></div>
+
+      <div class="phase dark">
+        <span class="tick">empty</span>
+        <span class="qz-le dark focused"><span class="caret blink empty"></span></span>
+        <span class="cap dark">left-aligned at padding inset</span>
+      </div>
+      <div class="phase dark">
+        <span class="tick">read-only</span>
+        <span class="qz-le dark read-only focused"><span class="mono">abc</span></span>
+        <span class="cap dark">no caret · selection still allowed</span>
+      </div>
+      <div class="phase dark">
+        <span class="tick">disabled</span>
+        <span class="qz-le dark disabled"><span class="mono">abc</span></span>
+        <span class="cap dark">no caret · no focus · no selection</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prop / paint contract row -->
+  <div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div class="kv">
+      <div class="k">width</div><div class="v">1 px</div>
+      <div class="k">height</div><div class="v">line-box (ascent + descent + gap)</div>
+      <div class="k">color</div><div class="v">ColorRole::Text</div>
+      <div class="k">snap</div><div class="v">integer pixel column</div>
+      <div class="k">empty x</div><div class="v">content_rect.left (padding inset)</div>
+    </div>
+    <div class="kv">
+      <div class="k">blink on</div><div class="v">530 ms</div>
+      <div class="k">blink off</div><div class="v">530 ms</div>
+      <div class="k">cycle</div><div class="v">1.06 s, square wave</div>
+      <div class="k">phase</div><div class="v">global on Application</div>
+      <div class="k">reduced-motion</div><div class="v">steady-on</div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top:12px;">
+    Mirrors <span class="mono">DefaultStyle::paint&lt;LineEdit&gt;</span> after #405.
+    Caret is painted as a 1×<span class="mono">line_h</span> fill of
+    <span class="mono">ColorRole::Text</span> on top of the text pass,
+    gated by <span class="mono">is_focused() &amp;&amp; !read_only &amp;&amp; is_enabled() &amp;&amp; caret_visible_now()</span>.
+  </div>
+</div>
+</body></html>

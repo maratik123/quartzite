@@ -1,0 +1,196 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Tooltip — chrome</title>
+<style>
+html, body { margin:0; padding:0; background:#FFFFFF; color:#000000;
+  font-family:'DejaVu Sans','Liberation Sans','Helvetica Neue',Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; text-rendering:geometricPrecision; }
+.card { width:700px; box-sizing:border-box; padding:20px 24px; font-size:12pt; }
+.card.dark { background:#2B2B2B; color:#E8E8E8; }
+.mono { font-family:'DejaVu Sans Mono','Liberation Mono',Menlo,Consolas,monospace; }
+.cap  { font-size:9pt; letter-spacing:0.02em; color:rgba(0,0,0,0.75); margin-top:8px; }
+.cap.dark { color:rgba(232,232,232,0.75); }
+.note { font-size:9.5pt; color:rgba(0,0,0,0.65); }
+.col-label { font-size:9pt; letter-spacing:0.04em; color:rgba(0,0,0,0.55);
+  text-transform:uppercase; margin-bottom:10px; }
+.kv   { display:grid; grid-template-columns:max-content 1fr; gap:3px 12px; font-size:10pt; }
+.kv .k { font-family:'DejaVu Sans Mono',monospace; }
+.kv .v { font-family:'DejaVu Sans Mono',monospace; color:rgba(0,0,0,0.7); }
+
+/* Anchor — small icon button */
+.qz-icon-btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; box-sizing:content-box;
+  background:#FFFFFF; color:#000; border:1px solid #000;
+  font:inherit; user-select:none;
+}
+.qz-icon-btn.dark { background:#3C3C3C; color:#E8E8E8; border-color:#E8E8E8; }
+.qz-icon-btn svg { display:block; }
+
+/* Tooltip — inverted fill */
+.qz-tooltip {
+  display:inline-block;
+  background:#000; color:#FFFFFF;
+  padding:4px 8px;
+  font-family:'DejaVu Sans','Liberation Sans',sans-serif;
+  font-size:12pt; line-height:1.35;
+  max-width:280px;
+}
+.qz-tooltip.dark { background:#E8E8E8; color:#2B2B2B; }
+
+.stack {
+  display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+}
+
+.divider { height:1px; background:rgba(0,0,0,0.12); margin:16px 0; }
+.divider.dark { background:rgba(232,232,232,0.12); }
+
+/* Width ladder showing wrap at 280 px max */
+.ladder { display:flex; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+
+/* Role-swap diagram: two swatch pairs side-by-side, light/dark */
+.roleswap {
+  display:grid; grid-template-columns: 1fr 1fr;
+  gap:12px;
+  padding:14px 16px; border:1px solid #000; background:#FFFFFF;
+  font-family:'DejaVu Sans Mono', monospace; font-size:10pt;
+}
+.roleswap.dark { background:#1E1E1E; border-color:#E8E8E8; color:#E8E8E8; }
+.roleswap .pair { display:flex; align-items:center; gap:8px; }
+.roleswap .sw { width:36px; height:36px; border:1px solid #000; }
+.roleswap.dark .sw { border-color:#E8E8E8; }
+.roleswap .arrow { font-family:inherit; font-size:14pt; opacity:0.6; }
+</style></head>
+<body>
+<div class="card" style="min-height:680px;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- LIGHT ---------------------------------------------------- -->
+    <div>
+      <div class="col-label">light · tooltip on anchor</div>
+
+      <div class="stack">
+        <button class="qz-icon-btn" title="">
+          <!-- info-stroke glyph (Lucide-substitute) -->
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v.01"/>
+            <path d="M12 12v4"/>
+          </svg>
+        </button>
+        <div class="qz-tooltip">Save the current document</div>
+      </div>
+
+      <div class="cap mono">single-line · 4 / 8 px padding</div>
+
+      <div style="height:18px;"></div>
+
+      <div class="qz-tooltip">
+        A longer hover-string demonstrating wrap at the 280 px max-width;
+        line-height 1.35, no border, inversion-as-separation.
+      </div>
+      <div class="cap mono">wrapped · max-width 280 px</div>
+    </div>
+
+    <!-- DARK ----------------------------------------------------- -->
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">dark · tooltip on anchor</div>
+
+      <div class="stack dark">
+        <button class="qz-icon-btn dark" title="">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 8v.01"/>
+            <path d="M12 12v4"/>
+          </svg>
+        </button>
+        <div class="qz-tooltip dark">Save the current document</div>
+      </div>
+
+      <div class="cap dark mono">single-line · 4 / 8 px padding</div>
+
+      <div style="height:18px;"></div>
+
+      <div class="qz-tooltip dark">
+        A longer hover-string demonstrating wrap at the 280 px max-width;
+        line-height 1.35, no border, inversion-as-separation.
+      </div>
+      <div class="cap dark mono">wrapped · max-width 280 px</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Role-swap diagram -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div>
+      <div class="col-label">inversion · light</div>
+      <div class="roleswap">
+        <div class="pair">
+          <span class="sw" style="background:#FFFFFF;"></span>
+          <span class="arrow">→</span>
+          <span class="sw" style="background:#000000;"></span>
+          <span style="margin-left:6px;">fill</span>
+        </div>
+        <div class="pair">
+          <span class="sw" style="background:#000000;"></span>
+          <span class="arrow">→</span>
+          <span class="sw" style="background:#FFFFFF;"></span>
+          <span style="margin-left:6px;">text</span>
+        </div>
+        <div style="grid-column:1 / -1; font-size:9.5pt; color:rgba(0,0,0,0.7);">
+          <span class="mono">Window</span> ⇄ <span class="mono">WindowText</span> — same two slots, swapped roles.
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="col-label" style="color:rgba(0,0,0,0.55);">inversion · dark</div>
+      <div class="roleswap dark">
+        <div class="pair">
+          <span class="sw" style="background:#2B2B2B;"></span>
+          <span class="arrow">→</span>
+          <span class="sw" style="background:#E8E8E8;"></span>
+          <span style="margin-left:6px;">fill</span>
+        </div>
+        <div class="pair">
+          <span class="sw" style="background:#E8E8E8;"></span>
+          <span class="arrow">→</span>
+          <span class="sw" style="background:#2B2B2B;"></span>
+          <span style="margin-left:6px;">text</span>
+        </div>
+        <div style="grid-column:1 / -1; font-size:9.5pt; color:rgba(232,232,232,0.7);">
+          <span class="mono">Window</span> ⇄ <span class="mono">WindowText</span> — same two slots, swapped roles.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="kv" style="grid-template-columns:max-content 1fr max-content 1fr;gap:3px 12px;">
+    <div class="k">fill</div>          <div class="v">ColorRole::WindowText</div>
+    <div class="k">text</div>          <div class="v">ColorRole::Window</div>
+    <div class="k">border</div>        <div class="v">none</div>
+    <div class="k">radius</div>        <div class="v">0 px</div>
+    <div class="k">padding</div>       <div class="v">4 / 8 px (v / h)</div>
+    <div class="k">font</div>          <div class="v">Font::default()</div>
+    <div class="k">max width</div>     <div class="v">280 px (theme-overridable)</div>
+    <div class="k">line height</div>   <div class="v">1.35 (visual)</div>
+    <div class="k">anchor inset</div>  <div class="v">4 px below anchor</div>
+    <div class="k">delay</div>         <div class="v">500 ms hover</div>
+    <div class="k">disabled</div>      <div class="v">N/A — tooltips don't accept events</div>
+    <div class="k">z_order</div>       <div class="v">ZLayer::Tooltip</div>
+  </div>
+
+  <div class="note" style="margin-top:10px;">
+    Mirrors <span class="mono">DefaultStyle::paint&lt;Tooltip&gt;</span> after #408.
+    Inversion makes the border redundant — the colour boundary
+    against the substrate is itself the separation signal, and
+    adding a 1 px stroke would competing strokes on every glyph.
+    Tooltips never accept focus, never gain selection state, and
+    never paint a focus ring.
+  </div>
+</div>
+</body></html>
