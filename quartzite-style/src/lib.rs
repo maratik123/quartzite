@@ -44,8 +44,8 @@
 //!   runtime layer (e.g. no-std, embedded, snapshot harnesses) can set
 //!   `default-features = false`; the read-side [`StyleClock`] and
 //!   [`Style::caret_visible_now`] work without this feature.
-//! - **`test-support`**: exposes `StyleRegistry::clear_for_test` and
-//!   `MockTimerDriver` for use in integration tests outside this crate.
+//! - **`test-support`**: exposes `StyleRegistry::clear_for_test` for use
+//!   in integration tests and test-helper crates outside this crate.
 
 mod clock;
 mod default_style;
