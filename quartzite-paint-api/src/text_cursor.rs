@@ -21,7 +21,7 @@
 
 /// Geometry of a single visual line as produced by a text-wrap pass.
 ///
-/// All fields are pixel-snapped `i32` values; each [`Painter`] implementation
+/// All fields are pixel-snapped `i32` values; each [`Painter`](crate::Painter) implementation
 /// rounds its internal sub-pixel metrics to integer pixel boundaries before
 /// storing them here.
 ///
