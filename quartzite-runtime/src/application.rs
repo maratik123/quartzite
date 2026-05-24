@@ -56,6 +56,9 @@ static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
 ///
 /// Construct via [`Application::builder()`]; see [`ApplicationBuilder`] for details.
 ///
+/// The class name `"Application"` is reserved for this framework-managed singleton.
+/// User-created objects should not use `"Application"` as their `meta_object().class_name`.
+///
 /// # Examples
 ///
 /// ```no_run
