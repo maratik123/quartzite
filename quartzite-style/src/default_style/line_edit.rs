@@ -1,5 +1,6 @@
 //! [`Paint<LineEdit>`](crate::Paint) impl for [`DefaultStyle`](super::DefaultStyle),
-//! plus the `paint_caret_line_edit` and `state_resolved_text_color` helper free functions.
+//! plus the `paint_selection_line_edit`, `paint_caret_line_edit`, and
+//! `state_resolved_text_color` helper free functions.
 
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
@@ -73,7 +74,10 @@ impl Paint<LineEdit> for DefaultStyle {
         };
         painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
 
-        // Caret — last, so it is always on top of the outline.
+        // Selection fill + overdraw — after main text, before caret.
+        paint_selection_line_edit(w, painter, palette, focused);
+
+        // Caret — last, so it is always on top of the selection and outline.
         paint_caret_line_edit(w, painter, palette, self);
     }
 }
@@ -105,6 +109,94 @@ fn state_resolved_text_color(w: &LineEdit, palette: &Palette) -> Color {
     } else {
         text_color
     }
+}
+
+/// Paints the selection highlight and glyph overdraw for `w` when a selection is active.
+///
+/// Emits zero painter calls when the widget is disabled or has no active selection.
+///
+/// The selection background fills a single horizontally-aligned rectangle spanning the
+/// selected byte range.  A clipped `draw_text_in` overdraw is emitted in a `save`/`restore`
+/// guard to render the selected glyphs in a contrasting colour.
+///
+/// # Parameters
+///
+/// - `w`: the [`LineEdit`] widget being painted.
+/// - `painter`: the active painter.
+/// - `palette`: the active colour palette.
+/// - `is_focused`: whether the widget currently has keyboard focus.
+fn paint_selection_line_edit(
+    w: &LineEdit,
+    painter: &mut dyn Painter,
+    palette: &Palette,
+    is_focused: bool,
+) {
+    if !w.is_enabled() {
+        return;
+    }
+    let Some((sel_start, sel_end)) = w.selection_range() else {
+        return;
+    };
+    // Defence-in-depth clamp (fields are pub; caller may have set them beyond text len).
+    let text_len = w.text.len();
+    let sel_start = sel_start.min(text_len);
+    let sel_end = sel_end.min(text_len);
+    if sel_start >= sel_end {
+        return;
+    }
+
+    let font = w.widget_base().font.clone();
+    let geom = w.geometry();
+
+    // Scope 1: get line_height from a text_carets borrow (released before scope 2).
+    let line_height = {
+        let cursor = painter.text_carets(&w.text, &font);
+        cursor.line_height()
+    };
+
+    // Vertically centre the selection band in the field geometry (single-line field).
+    let caret_y = geom.top() + (geom.size().height() - line_height) / 2;
+
+    // Scope 2: get pixel-snapped x-positions for the two selection boundaries.
+    let (sel_start_x, sel_end_x) = {
+        let cursor = painter.text_carets(&w.text, &font);
+        cursor.advance_to(sel_start);
+        let sx = cursor.caret_x();
+        cursor.advance_to(sel_end);
+        let ex = cursor.caret_x();
+        (sx, ex)
+    };
+
+    let sel_rect = Rect::new(
+        Point::new(sel_start_x, caret_y),
+        Size::new(sel_end_x - sel_start_x, line_height),
+    );
+
+    // Selection fill: Highlight for focused; half-alpha Highlight for unfocused-with-selection.
+    let highlight_color = palette.color(ColorRole::Highlight, ColorGroup::Normal);
+    let fill_color = if is_focused {
+        highlight_color
+    } else {
+        disabled(highlight_color)
+    };
+    painter.fill_rect(sel_rect, &Brush::solid(fill_color));
+
+    // Selected-glyph overdraw: HighlightedText when focused; Text when unfocused.
+    let glyph_color = if is_focused {
+        palette.color(ColorRole::HighlightedText, ColorGroup::Normal)
+    } else {
+        palette.color(ColorRole::Text, ColorGroup::Normal)
+    };
+    painter.save();
+    painter.clip_rect(sel_rect);
+    painter.draw_text_in(
+        geom,
+        &w.text,
+        &font,
+        &Brush::solid(glyph_color),
+        Alignment::Left,
+    );
+    painter.restore();
 }
 
 /// Paints the 1 px caret line for `w` if all conditions are met.
