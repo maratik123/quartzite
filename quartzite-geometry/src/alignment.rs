@@ -27,6 +27,10 @@ pub enum Alignment {
     /// Align to the right (horizontal) or bottom (vertical).
     Right = 2,
     /// Justify content to fill the available space.
+    ///
+    /// Invalid on the vertical axis when passed to `Painter::draw_text_in`'s
+    /// `v_align`; debug-asserts in debug builds, falls back to [`Left`](Self::Left)
+    /// (top) in release.
     Justify = 3,
 }
 

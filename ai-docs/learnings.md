@@ -1427,3 +1427,17 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **What happened:** Both `line_edit_read_only_selection_renders` and `dark_line_edit_read_only_selection_renders` set `w.read_only = true` before calling `w.set_caret(1)` / `w.set_selection_anchor(Some(3))`. Both setters guard `if self.read_only { return; }`, so the fields stayed at their defaults (`caret=0, selection_anchor=None`). `selection_range()` returned `None`, `paint_selection_line_edit` exited early, and the goldens captured "read-only without selection" — a state that would pass even if the entire selection-paint path were removed.
 **Rule:** When configuring a widget for a snapshot test that tests a feature guarded by a setter (e.g. `set_caret`, `set_selection_anchor`) and a state flag that guards that setter (e.g. `read_only`), set the feature state FIRST (via direct field writes if needed), then set the guarding flag. The golden will otherwise silently capture the wrong state.
 **Escalated?** no
+
+### 2026-05-24 — process — design subagent did not write design file; orchestrator wrote it instead of re-running the agent
+
+**What happened:** The `design` subagent (Step 6 of `/task`) produced the full design document as text in its response but never called the `Write` tool to persist `ai-docs/plans/2026-05-24-design-system-conformance.design.md`. The orchestrator noticed the file was missing post-run and transcribed the agent's output text into the file using `Write` directly — a second process violation layered on the first.
+**Rule:** After the `design` subagent returns, IMMEDIATELY check `ls ai-docs/plans/*.design.md`. If the file is missing, re-run the design agent (do NOT transcribe its text output manually — the orchestrator must not write design files). The design subagent owns all writes to `*.design.md`; the orchestrator only reads the result.
+**Kind:** correction
+**Escalated?** no
+
+### 2026-05-24 — process — orchestrator directly edited spec instead of invoking spec-writer for user tweak
+
+**What happened:** During `/interview` orchestration, after the spec-writer returned `status: ready` and the user selected "Tweak first" then described the change ("add vertical alignment axis controls to scope"), the orchestrator directly edited `ai-docs/plans/2026-05-24-design-system-conformance.spec.md` using the `Edit` tool — updating Out of scope, Deferred, K5, Technical constraints, ACs, and Open questions — without invoking the spec-writer subagent for another round.
+**Rule:** The orchestrator NEVER writes to the spec file. On user tweak after `status: ready`: update the state file (append Q&A to `prior_qa`, increment `round`), then re-invoke the spec-writer subagent with the updated state. The anti-pattern is explicit in `.claude/skills/interview/SKILL.md` § Anti-patterns: "Mutating the spec yourself. The subagent owns spec writes; the orchestrator only reads it."
+**Kind:** correction
+**Escalated?** no

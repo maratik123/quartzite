@@ -179,7 +179,8 @@ mod tests {
             _text: &str,
             _font: &Font,
             _brush: &Brush,
-            _alignment: Alignment,
+            _h_align: Alignment,
+            _v_align: Alignment,
         ) {
         }
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {}

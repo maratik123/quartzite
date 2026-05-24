@@ -632,8 +632,13 @@ impl Painter for VelloPainter<'_> {
         text: &str,
         font: &Font,
         brush: &Brush,
-        alignment: Alignment,
+        h_align: Alignment,
+        v_align: Alignment,
     ) {
+        debug_assert!(
+            !matches!(v_align, Alignment::Justify),
+            "draw_text_in: Alignment::Justify is invalid on the vertical axis"
+        );
         if text.is_empty() {
             return;
         }
@@ -642,7 +647,6 @@ impl Painter for VelloPainter<'_> {
         };
         let s = f64::from(self.scale);
         let px = f64::from(rect.left()) * s;
-        let py = f64::from(rect.top()) * s;
         #[allow(
             clippy::cast_precision_loss,
             reason = "sub-pixel coordinate widening is intentional"
@@ -663,7 +667,7 @@ impl Painter for VelloPainter<'_> {
                 None
             };
             layout.break_all_lines(wrap);
-            let parley_align = match alignment {
+            let parley_align = match h_align {
                 Alignment::Left => ParleyAlignment::Left,
                 Alignment::Center => ParleyAlignment::Center,
                 Alignment::Right => ParleyAlignment::Right,
@@ -671,6 +675,17 @@ impl Painter for VelloPainter<'_> {
             };
             layout.align(parley_align, AlignmentOptions::default());
             layout
+        };
+
+        let rect_top = f64::from(rect.top()) * s;
+        let rect_height = f64::from(rect.size().height()) * s;
+        let py = match v_align {
+            Alignment::Center => {
+                (rect_top + (rect_height - f64::from(layout.height())) / 2.0).round()
+            }
+            Alignment::Right => (rect_top + (rect_height - f64::from(layout.height()))).round(),
+            // Left = top; Justify = invalid (debug_assert above), falls back to top.
+            Alignment::Left | Alignment::Justify => rect_top,
         };
 
         self.emit_layout_glyphs(&layout, px, py, fill_color, font);
@@ -851,7 +866,7 @@ mod tests {
         p.save();
         p.restore();
         p.draw_text(origin, "hi", &font, &brush);
-        p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
+        p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left, Alignment::Left);
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
         {

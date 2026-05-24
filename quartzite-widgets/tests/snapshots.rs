@@ -365,7 +365,14 @@ fn draw_text_in_center() {
     let font = Font::new("sans-serif", 16.0);
     let brush = Brush::solid(Color::WHITE);
     let image = harness.render_widget(|p| {
-        p.draw_text_in(rect, "wrap me", &font, &brush, Alignment::Center);
+        p.draw_text_in(
+            rect,
+            "wrap me",
+            &font,
+            &brush,
+            Alignment::Center,
+            Alignment::Center,
+        );
     });
     // Scan for leftmost / rightmost non-background pixel across all rows.
     let mut left_x = u32::MAX;

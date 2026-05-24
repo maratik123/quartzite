@@ -259,7 +259,8 @@ mod tests {
             _text: &str,
             _font: &Font,
             _brush: &Brush,
-            _alignment: quartzite_geometry::Alignment,
+            _h_align: quartzite_geometry::Alignment,
+            _v_align: quartzite_geometry::Alignment,
         ) {
         }
         fn draw_image(&mut self, _rect: quartzite_geometry::Rect, _image: &Image) {}
@@ -361,6 +362,7 @@ mod tests {
             "x",
             &font,
             &brush,
+            quartzite_geometry::Alignment::Left,
             quartzite_geometry::Alignment::Left,
         );
         p.draw_image(rect, &image);

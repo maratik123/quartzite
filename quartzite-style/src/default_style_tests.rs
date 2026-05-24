@@ -53,7 +53,8 @@ enum PaintEvent {
         text: String,
         font: Font,
         brush: Brush,
-        alignment: Alignment,
+        h_align: Alignment,
+        v_align: Alignment,
     },
 }
 
@@ -253,14 +254,16 @@ impl Painter for RecordingPainter {
         text: &str,
         font: &Font,
         brush: &Brush,
-        alignment: Alignment,
+        h_align: Alignment,
+        v_align: Alignment,
     ) {
         self.events.push(PaintEvent::DrawTextIn {
             rect,
             text: text.to_owned(),
             font: font.clone(),
             brush: brush.clone(),
-            alignment,
+            h_align,
+            v_align,
         });
     }
     fn draw_image(&mut self, _rect: Rect, _image: &Image) {
@@ -390,9 +393,9 @@ fn button_records_fill_outline_and_centred_text() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "OK" && *alignment == Alignment::Center),
-        "button DrawTextIn must carry text 'OK' with Center alignment"
+            PaintEvent::DrawTextIn { text, h_align, .. }
+                if text == "OK" && *h_align == Alignment::Center),
+        "button DrawTextIn must carry text 'OK' with Center h_align"
     );
 }
 
@@ -410,9 +413,9 @@ fn label_records_fill_and_text_with_label_alignment() {
     assert!(matches!(&painter.events[0], PaintEvent::FillRect { .. }));
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "hi" && *alignment == Alignment::Left),
-        "label DrawTextIn must carry text 'hi' with Left alignment"
+            PaintEvent::DrawTextIn { text, h_align, .. }
+                if text == "hi" && *h_align == Alignment::Left),
+        "label DrawTextIn must carry text 'hi' with Left h_align"
     );
 }
 
@@ -1206,11 +1209,11 @@ fn line_edit_records_fill_outline_and_empty_text() {
         "events[1] must be DrawRect with Text 1px outline"
     );
     assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { text, alignment, brush, .. }
+        matches!(&painter.events[2], PaintEvent::DrawTextIn { text, h_align, brush, .. }
             if text.is_empty()
-                && *alignment == Alignment::Left
+                && *h_align == Alignment::Left
                 && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
-        "events[2] must be DrawTextIn with empty text, Left align, full-alpha Text brush"
+        "events[2] must be DrawTextIn with empty text, Left h_align, full-alpha Text brush"
     );
 }
 
@@ -1224,9 +1227,9 @@ fn line_edit_records_text_when_non_empty() {
 
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, brush, .. }
+            PaintEvent::DrawTextIn { text, h_align, brush, .. }
                 if text == "abc"
-                    && *alignment == Alignment::Left
+                    && *h_align == Alignment::Left
                     && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
         "DrawTextIn must carry 'abc', Left, full-alpha Text brush"
     );
@@ -1251,9 +1254,9 @@ fn line_edit_placeholder_drawn_when_text_empty() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, brush, .. }
+            PaintEvent::DrawTextIn { text, h_align, brush, .. }
                 if text == "hint"
-                    && *alignment == Alignment::Left
+                    && *h_align == Alignment::Left
                     && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
         "placeholder DrawTextIn must carry 'hint', Left, half-alpha Text brush"
     );
@@ -1331,9 +1334,9 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
         "events[1] must be the read-only overlay"
     );
     assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, alignment, brush, .. }
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, h_align, brush, .. }
             if text == "hint"
-                && *alignment == Alignment::Left
+                && *h_align == Alignment::Left
                 && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
         "events[3] must be DrawTextIn('hint', Left, half-alpha Text) — placeholder path"
     );
@@ -2342,8 +2345,8 @@ fn registry_round_trip_dispatches_default_style() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "OK" && *alignment == Alignment::Center),
+            PaintEvent::DrawTextIn { text, h_align, .. }
+                if text == "OK" && *h_align == Alignment::Center),
         "registry-dispatched DefaultStyle must produce the same events as AC2"
     );
 }

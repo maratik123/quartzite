@@ -66,7 +66,7 @@
 //!     fn save(&mut self) {}
 //!     fn restore(&mut self) {}
 //!     fn draw_text(&mut self, _p: quartzite_geometry::Point, _t: &str, _f: &quartzite_paint_api::Font, _b: &quartzite_paint_api::Brush) {}
-//!     fn draw_text_in(&mut self, _r: quartzite_geometry::Rect, _t: &str, _f: &quartzite_paint_api::Font, _b: &quartzite_paint_api::Brush, _a: quartzite_geometry::Alignment) {}
+//!     fn draw_text_in(&mut self, _r: quartzite_geometry::Rect, _t: &str, _f: &quartzite_paint_api::Font, _b: &quartzite_paint_api::Brush, _h: quartzite_geometry::Alignment, _v: quartzite_geometry::Alignment) {}
 //!     fn draw_image(&mut self, _r: quartzite_geometry::Rect, _i: &quartzite_paint_api::Image) {}
 //!     fn draw_path(&mut self, _p: &quartzite_paint_api::Path, _pe: &quartzite_paint_api::Pen, _b: &quartzite_paint_api::Brush) {}
 //!     fn text_carets(&mut self, _t: &str, _f: &quartzite_paint_api::Font) -> &mut dyn quartzite_paint_api::TextCaretCursor { &mut self.caret }

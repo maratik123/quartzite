@@ -96,7 +96,8 @@ impl Painter for RecordingPainter {
         _text: &str,
         _font: &Font,
         _brush: &Brush,
-        _alignment: Alignment,
+        _h_align: Alignment,
+        _v_align: Alignment,
     ) {
         self.events.push(PaintEvent::Other);
     }
