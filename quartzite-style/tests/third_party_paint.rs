@@ -112,8 +112,8 @@ impl Painter for RecordingPainter {
         _text: &str,
         _font: &quartzite_paint_api::Font,
         _brush: &quartzite_paint_api::Brush,
-        _h_align: quartzite_geometry::Alignment,
-        _v_align: quartzite_geometry::Alignment,
+        _h_align: quartzite_geometry::HAlignment,
+        _v_align: quartzite_geometry::VAlignment,
     ) {
     }
     fn draw_image(&mut self, _rect: quartzite_geometry::Rect, _image: &quartzite_paint_api::Image) {

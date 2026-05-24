@@ -5,7 +5,7 @@ use parley::{
     FontFamilyName, FontStyle as ParleyFontStyle, FontWeight as ParleyFontWeight, Layout,
     PositionedLayoutItem, RangedBuilder, StyleProperty,
 };
-use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_geometry::{HAlignment, Point, Rect, VAlignment};
 use quartzite_paint_api::{
     Brush, BrushKind, Font, Image, Painter, Path, Pen, Segment, TextCaretCursor, TextVisualLine,
     TextVisualLineCursor,
@@ -632,13 +632,9 @@ impl Painter for VelloPainter<'_> {
         text: &str,
         font: &Font,
         brush: &Brush,
-        h_align: Alignment,
-        v_align: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     ) {
-        debug_assert!(
-            !matches!(v_align, Alignment::Justify),
-            "draw_text_in: Alignment::Justify is invalid on the vertical axis"
-        );
         if text.is_empty() {
             return;
         }
@@ -668,10 +664,10 @@ impl Painter for VelloPainter<'_> {
             };
             layout.break_all_lines(wrap);
             let parley_align = match h_align {
-                Alignment::Left => ParleyAlignment::Left,
-                Alignment::Center => ParleyAlignment::Center,
-                Alignment::Right => ParleyAlignment::Right,
-                Alignment::Justify => ParleyAlignment::Justify,
+                HAlignment::Left => ParleyAlignment::Left,
+                HAlignment::Center => ParleyAlignment::Center,
+                HAlignment::Right => ParleyAlignment::Right,
+                HAlignment::Justify => ParleyAlignment::Justify,
             };
             layout.align(parley_align, AlignmentOptions::default());
             layout
@@ -680,12 +676,11 @@ impl Painter for VelloPainter<'_> {
         let rect_top = f64::from(rect.top()) * s;
         let rect_height = f64::from(rect.size().height()) * s;
         let py = match v_align {
-            Alignment::Center => {
+            VAlignment::Top => rect_top,
+            VAlignment::Center => {
                 (rect_top + (rect_height - f64::from(layout.height())) / 2.0).round()
             }
-            Alignment::Right => (rect_top + (rect_height - f64::from(layout.height()))).round(),
-            // Left = top; Justify = invalid (debug_assert above), falls back to top.
-            Alignment::Left | Alignment::Justify => rect_top,
+            VAlignment::Bottom => (rect_top + (rect_height - f64::from(layout.height()))).round(),
         };
 
         self.emit_layout_glyphs(&layout, px, py, fill_color, font);
@@ -866,7 +861,7 @@ mod tests {
         p.save();
         p.restore();
         p.draw_text(origin, "hi", &font, &brush);
-        p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left, Alignment::Left);
+        p.draw_text_in(rect, "hi", &font, &brush, HAlignment::Left, VAlignment::Top);
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
         {

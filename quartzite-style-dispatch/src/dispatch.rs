@@ -250,8 +250,8 @@ mod tests {
             _text: &str,
             _font: &Font,
             _brush: &Brush,
-            _h_align: quartzite_geometry::Alignment,
-            _v_align: quartzite_geometry::Alignment,
+            _h_align: quartzite_geometry::HAlignment,
+            _v_align: quartzite_geometry::VAlignment,
         ) {
             self.events.push(PaintEvent::Other);
         }

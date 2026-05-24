@@ -1,4 +1,4 @@
-use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_geometry::{HAlignment, Point, Rect, VAlignment};
 
 use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor};
 
@@ -14,7 +14,7 @@ use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor
 ///     Brush, Color, Font, Image, Painter, Path, Pen,
 ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor,
 /// };
-/// use quartzite_geometry::{Alignment, Point, Rect, Size};
+/// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
 ///
 /// struct NullCaretCursor;
 /// impl TextCaretCursor for NullCaretCursor {
@@ -53,8 +53,8 @@ use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor
 ///         _text: &str,
 ///         _font: &Font,
 ///         _brush: &Brush,
-///         _h_align: Alignment,
-///         _v_align: Alignment,
+///         _h_align: HAlignment,
+///         _v_align: VAlignment,
 ///     ) {}
 ///     fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
 ///     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
@@ -145,21 +145,20 @@ pub trait Painter {
     /// - `font`: typeface, size, and style flags.
     /// - `brush`: fill style for the glyphs.
     /// - `h_align`: horizontal alignment within `rect`.
-    /// - `v_align`: vertical alignment within `rect`. [`Alignment::Left`] means
-    ///   top; [`Alignment::Center`] means centred; [`Alignment::Right`] means
-    ///   bottom. [`Alignment::Justify`] is invalid on the vertical axis:
-    ///   implementations debug-assert in debug builds and fall back to
-    ///   [`Alignment::Left`] (top) in release builds.
+    /// - `v_align`: vertical alignment within `rect`. [`VAlignment::Top`] anchors
+    ///   text to the top; [`VAlignment::Center`] centres it; [`VAlignment::Bottom`]
+    ///   anchors it to the bottom.
     ///
-    /// **Parameter order:** `h_align` always precedes `v_align`. Both are
-    /// [`Alignment`] — call sites must rely on positional order; treat any
-    /// `draw_text_in(..., v, h)` ordering as a defect.
+    /// **Parameter order:** `h_align` always precedes `v_align`; call sites must
+    /// rely on positional order. [`HAlignment`] governs the horizontal axis;
+    /// [`VAlignment`] governs the vertical axis — they are distinct types so the
+    /// compiler catches transposed arguments.
     ///
     /// # Examples
     ///
     /// ```
     /// # use quartzite_paint_api::{Brush, Color, Font, Painter};
-    /// # use quartzite_geometry::{Alignment, Point, Rect, Size};
+    /// # use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
     /// # struct NullCaret;
     /// # impl quartzite_paint_api::TextCaretCursor for NullCaret {
     /// #     fn advance_to(&mut self, _: usize) {}
@@ -181,7 +180,7 @@ pub trait Painter {
     /// #     fn save(&mut self) {}
     /// #     fn restore(&mut self) {}
     /// #     fn draw_text(&mut self, _: Point, _: &str, _: &Font, _: &Brush) {}
-    /// #     fn draw_text_in(&mut self, _: Rect, _: &str, _: &Font, _: &Brush, _: Alignment, _: Alignment) {}
+    /// #     fn draw_text_in(&mut self, _: Rect, _: &str, _: &Font, _: &Brush, _: HAlignment, _: VAlignment) {}
     /// #     fn draw_image(&mut self, _: Rect, _: &quartzite_paint_api::Image) {}
     /// #     fn draw_path(&mut self, _: &quartzite_paint_api::Path, _: &quartzite_paint_api::Pen, _: &Brush) {}
     /// #     fn text_carets(&mut self, _: &str, _: &Font) -> &mut dyn quartzite_paint_api::TextCaretCursor { &mut self.c }
@@ -192,9 +191,9 @@ pub trait Painter {
     /// let font = Font::new("sans-serif", 16.0);
     /// let brush = Brush::solid(Color::BLACK);
     /// // Horizontally centred, vertically centred:
-    /// p.draw_text_in(rect, "Hello", &font, &brush, Alignment::Center, Alignment::Center);
+    /// p.draw_text_in(rect, "Hello", &font, &brush, HAlignment::Center, VAlignment::Center);
     /// // Left-aligned, top-anchored (e.g. TextEdit):
-    /// p.draw_text_in(rect, "Hello", &font, &brush, Alignment::Left, Alignment::Left);
+    /// p.draw_text_in(rect, "Hello", &font, &brush, HAlignment::Left, VAlignment::Top);
     /// ```
     fn draw_text_in(
         &mut self,
@@ -202,8 +201,8 @@ pub trait Painter {
         text: &str,
         font: &Font,
         brush: &Brush,
-        h_align: Alignment,
-        v_align: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     );
 
     /// Draws `image` scaled into `rect`.
@@ -512,13 +511,9 @@ mod tests {
             _text: &str,
             _font: &Font,
             _brush: &Brush,
-            _h_align: Alignment,
-            v_align: Alignment,
+            _h_align: HAlignment,
+            _v_align: VAlignment,
         ) {
-            debug_assert!(
-                !matches!(v_align, Alignment::Justify),
-                "draw_text_in: Alignment::Justify is invalid on the vertical axis"
-            );
             self.calls[8] += 1;
         }
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {
@@ -572,7 +567,7 @@ mod tests {
             p.save();
             p.restore();
             p.draw_text(origin, "hi", &font, &brush);
-            p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left, Alignment::Left);
+            p.draw_text_in(rect, "hi", &font, &brush, HAlignment::Left, VAlignment::Top);
             p.draw_image(rect, &image);
             p.draw_path(&path, &pen, &brush);
         }
@@ -595,8 +590,8 @@ mod tests {
             "x",
             &font,
             &brush,
-            Alignment::Center,
-            Alignment::Center,
+            HAlignment::Center,
+            VAlignment::Center,
         );
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
@@ -643,24 +638,6 @@ mod tests {
         assert_eq!(
             inner.calls[12], 1,
             "text_visual_lines dispatch call counted"
-        );
-    }
-
-    #[test]
-    #[cfg(debug_assertions)]
-    #[should_panic(expected = "draw_text_in: Alignment::Justify is invalid on the vertical axis")]
-    fn draw_text_in_justify_on_vertical_axis_panics_in_debug() {
-        let mut p = RecordingPainter::new();
-        let rect = Rect::new(Point::new(0, 0), Size::new(64, 64));
-        let font = Font::new("sans", 12.0);
-        let brush = Brush::solid(Color::BLACK);
-        p.draw_text_in(
-            rect,
-            "x",
-            &font,
-            &brush,
-            Alignment::Left,
-            Alignment::Justify,
         );
     }
 }

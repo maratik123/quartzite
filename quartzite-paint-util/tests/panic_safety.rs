@@ -4,7 +4,7 @@
 //! painter even when the guarded scope terminates via unwinding.
 #![cfg(feature = "std")]
 
-use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_geometry::{HAlignment, Point, Rect, VAlignment};
 use quartzite_paint_api::{
     Brush, Font, Image, Painter, Path, Pen, TextCaretCursor, TextVisualLine, TextVisualLineCursor,
 };
@@ -96,8 +96,8 @@ impl Painter for RecordingPainter {
         _text: &str,
         _font: &Font,
         _brush: &Brush,
-        _h_align: Alignment,
-        _v_align: Alignment,
+        _h_align: HAlignment,
+        _v_align: VAlignment,
     ) {
         self.events.push(PaintEvent::Other);
     }

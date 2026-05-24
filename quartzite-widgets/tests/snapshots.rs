@@ -23,7 +23,7 @@
 mod support;
 
 use quartzite_core::ObjectId;
-use quartzite_geometry::{Alignment, Point, Rect, Size};
+use quartzite_geometry::{HAlignment, Point, Rect, Size, VAlignment};
 use quartzite_paint_api::{Brush, Color, Font, Image, Path, Pen};
 use quartzite_renderer::RenderHarnessBuilder;
 use quartzite_widgets::{BoxLayout, Button, Direction, GridLayout, Label, LineEdit};
@@ -366,7 +366,7 @@ fn draw_text_basic() {
     );
 }
 
-/// AC9 — `draw_text_in` with `Alignment::Center` horizontally centres the
+/// AC9 — `draw_text_in` with `HAlignment::Center` horizontally centres the
 /// rendered glyphs within the rect (midpoint of leftmost .. rightmost
 /// non-background pixel within ±2px of the rect centre).
 #[test]
@@ -388,8 +388,8 @@ fn draw_text_in_center() {
             "wrap me",
             &font,
             &brush,
-            Alignment::Center,
-            Alignment::Center,
+            HAlignment::Center,
+            VAlignment::Center,
         );
     });
     // Scan for leftmost / rightmost non-background pixel across all rows.
@@ -422,10 +422,10 @@ fn draw_text_in_center() {
 
 /// Rendering-level vertical-centring test (AC8 rendering companion).
 ///
-/// Renders a single-line text with `v_align = Alignment::Center` on a 200×64
+/// Renders a single-line text with `v_align = VAlignment::Center` on a 200×64
 /// canvas and asserts the glyph y-midpoint lies within ±2 px of the canvas
-/// vertical midpoint.  Two sub-cases exercise `Left` (top) and `Right`
-/// (bottom) as well, covering every concrete `v_align` branch in `VelloPainter`.
+/// vertical midpoint.  Two sub-cases exercise `Top` and `Bottom` as well,
+/// covering every concrete `v_align` branch in `VelloPainter`.
 #[test]
 #[allow(
     clippy::cast_possible_wrap,
@@ -448,7 +448,7 @@ fn draw_text_in_vertical_align() {
     let font = Font::new("sans-serif", 14.0);
     let brush = Brush::solid(Color::WHITE);
 
-    // Sub-case 1: v_align = Center — glyph midpoint within ±2 px of canvas mid.
+    // Sub-case 1: v_align = VAlignment::Center — glyph midpoint within ±2 px of canvas mid.
     {
         let image = harness.render_widget(|p| {
             p.draw_text_in(
@@ -456,8 +456,8 @@ fn draw_text_in_vertical_align() {
                 "Sample",
                 &font,
                 &brush,
-                Alignment::Left,
-                Alignment::Center,
+                HAlignment::Left,
+                VAlignment::Center,
             );
         });
         if let Some((min_y, max_y)) = glyph_y_extent(&image) {
@@ -476,7 +476,7 @@ fn draw_text_in_vertical_align() {
         }
     }
 
-    // Sub-case 2: v_align = Left (top) — glyph min_y near rect.top().
+    // Sub-case 2: v_align = VAlignment::Top — glyph min_y near rect.top().
     {
         let image = harness.render_widget(|p| {
             p.draw_text_in(
@@ -484,25 +484,25 @@ fn draw_text_in_vertical_align() {
                 "Sample",
                 &font,
                 &brush,
-                Alignment::Left,
-                Alignment::Left,
+                HAlignment::Left,
+                VAlignment::Top,
             );
         });
         if let Some((min_y, _max_y)) = glyph_y_extent(&image) {
             assert!(
                 min_y <= 2,
-                "v_align=Left (top): glyph min_y should be within ±2px of rect.top() (0), \
+                "v_align=Top: glyph min_y should be within ±2px of rect.top() (0), \
                  got {min_y}"
             );
         } else {
             eprintln!(
-                "draw_text_in_vertical_align: Left — no non-background pixels; \
+                "draw_text_in_vertical_align: Top — no non-background pixels; \
                  font may be unavailable — skipping sub-case"
             );
         }
     }
 
-    // Sub-case 3: v_align = Right (bottom) — glyph max_y near rect.bottom().
+    // Sub-case 3: v_align = VAlignment::Bottom — glyph max_y near rect.bottom().
     {
         let image = harness.render_widget(|p| {
             p.draw_text_in(
@@ -510,20 +510,20 @@ fn draw_text_in_vertical_align() {
                 "Sample",
                 &font,
                 &brush,
-                Alignment::Left,
-                Alignment::Right,
+                HAlignment::Left,
+                VAlignment::Bottom,
             );
         });
         if let Some((_min_y, max_y)) = glyph_y_extent(&image) {
             let expected = H - 1;
             assert!(
                 max_y.abs_diff(expected) <= 2,
-                "v_align=Right (bottom): glyph max_y should be within ±2px of {expected}, \
+                "v_align=Bottom: glyph max_y should be within ±2px of {expected}, \
                  got {max_y}"
             );
         } else {
             eprintln!(
-                "draw_text_in_vertical_align: Right — no non-background pixels; \
+                "draw_text_in_vertical_align: Bottom — no non-background pixels; \
                  font may be unavailable — skipping sub-case"
             );
         }
