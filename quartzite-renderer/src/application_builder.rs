@@ -1,5 +1,7 @@
 //! [`WindowedApplicationBuilder`] — builder for [`WindowedApplication`].
 
+use std::time::Duration;
+
 use quartzite_runtime::Application;
 use winit::event_loop::EventLoop;
 
@@ -33,6 +35,10 @@ pub enum AppEvent {
 ///
 /// Obtain via [`WindowedApplication::builder`].
 ///
+/// By default the inner quartzite-runtime [`EventLoop`](quartzite_runtime::EventLoop) is
+/// **tickless** — it blocks on `recv()` until a closure arrives. Use
+/// [`tick_duration`](Self::tick_duration) to request a tick-based loop instead.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -46,6 +52,10 @@ pub enum AppEvent {
 #[must_use = "call `.build()` to construct the WindowedApplication"]
 pub struct WindowedApplicationBuilder {
     quit_on_last_window_closed: bool,
+    /// Tick duration forwarded to the inner quartzite-runtime [`EventLoop`](quartzite_runtime::EventLoop).
+    ///
+    /// `None` (the default) produces a tickless loop; `Some(d)` produces a tick-based loop.
+    tick: Option<Duration>,
     /// When `true`, passes `with_any_thread(true)` to both the X11 and Wayland
     /// `EventLoop` builders on Linux. Used only in tests (xvfb + worker threads).
     #[cfg(target_os = "linux")]
@@ -55,11 +65,12 @@ pub struct WindowedApplicationBuilder {
 impl WindowedApplicationBuilder {
     /// Creates a builder with default settings.
     ///
-    /// Default: `quit_on_last_window_closed = true`.
+    /// Default: `quit_on_last_window_closed = true`, `tick = None` (tickless).
     #[inline]
     pub(crate) const fn new() -> Self {
         Self {
             quit_on_last_window_closed: true,
+            tick: None,
             #[cfg(target_os = "linux")]
             any_thread: false,
         }
@@ -115,6 +126,40 @@ impl WindowedApplicationBuilder {
         self
     }
 
+    /// Sets the tick duration for the inner quartzite-runtime
+    /// [`EventLoop`](quartzite_runtime::EventLoop).
+    ///
+    /// - `None` → tickless (default): the event loop blocks on `recv()` until a closure
+    ///   arrives — no spurious wake-ups when idle.
+    /// - `Some(d)` → tick-based: the event loop wakes at most every `d` via
+    ///   `recv_timeout(d)`.
+    ///
+    /// Passing `Some(Duration::ZERO)` is silently normalised to `None` (tickless) because
+    /// a zero-duration timeout would busy-loop without doing useful work.
+    ///
+    /// This setting is independent of [`quit_on_last_window_closed`](Self::quit_on_last_window_closed)
+    /// and the winit event-loop tick policy — it only governs the quartzite-runtime
+    /// `EventLoop` that handles posted closures and signals.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::time::Duration;
+    /// use quartzite_renderer::WindowedApplication;
+    ///
+    /// let app = WindowedApplication::builder()
+    ///     .tick_duration(Some(Duration::from_millis(50)))
+    ///     .build()
+    ///     .expect("failed to create application");
+    /// ```
+    pub const fn tick_duration(mut self, tick: Option<Duration>) -> Self {
+        self.tick = match tick {
+            Some(d) if d.is_zero() => None,
+            other => other,
+        };
+        self
+    }
+
     /// Builds a [`WindowedApplication`].
     ///
     /// Initialises the quartzite [`Application`] singleton and the winit
@@ -126,7 +171,7 @@ impl WindowedApplicationBuilder {
     /// - [`RendererError::Application`] — singleton already live.
     /// - [`RendererError::EventLoop`] — winit `EventLoop::new()` failed.
     pub fn build(self) -> Result<WindowedApplication, RendererError> {
-        let app = Application::new()?;
+        let app = Application::builder().tick_duration(self.tick).build()?;
         let mut builder = EventLoop::<AppEvent>::with_user_event();
         #[cfg(target_os = "linux")]
         if self.any_thread {
@@ -167,6 +212,40 @@ mod tests {
     #[test]
     fn builder_opt_out() {
         let builder = WindowedApplicationBuilder::new().quit_on_last_window_closed(false);
+        assert!(!builder.quit_on_last_window_closed);
+    }
+
+    #[test]
+    fn default_tick_is_none() {
+        let builder = WindowedApplicationBuilder::new();
+        assert!(builder.tick.is_none());
+    }
+
+    #[test]
+    fn tick_duration_set() {
+        let builder =
+            WindowedApplicationBuilder::new().tick_duration(Some(Duration::from_millis(50)));
+        assert_eq!(builder.tick, Some(Duration::from_millis(50)));
+    }
+
+    #[test]
+    fn tick_duration_zero_normalises_to_none() {
+        let builder = WindowedApplicationBuilder::new().tick_duration(Some(Duration::ZERO));
+        assert!(builder.tick.is_none());
+    }
+
+    #[test]
+    fn tick_duration_none_leaves_tickless() {
+        let builder = WindowedApplicationBuilder::new().tick_duration(None);
+        assert!(builder.tick.is_none());
+    }
+
+    #[test]
+    fn tick_and_quit_compose_independently() {
+        let builder = WindowedApplicationBuilder::new()
+            .tick_duration(Some(Duration::from_millis(100)))
+            .quit_on_last_window_closed(false);
+        assert_eq!(builder.tick, Some(Duration::from_millis(100)));
         assert!(!builder.quit_on_last_window_closed);
     }
 

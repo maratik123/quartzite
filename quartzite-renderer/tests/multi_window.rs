@@ -4,7 +4,7 @@
 //! and use the `xvfb`/`with_any_thread` pattern from `xvfb_smoke.rs` so they
 //! run cleanly under `xvfb-run -a` in CI and are skipped on non-Linux.
 //!
-//! ## Why this file does not use `WindowedApplication::new()`
+//! ## Why this file uses `WindowedApplication::builder().with_any_thread(true)`
 //!
 //! Same reason as `xvfb_smoke.rs`: `cargo test` runs tests on worker threads;
 //! winit's default `EventLoop::new()` enforces a main-thread check on Linux.

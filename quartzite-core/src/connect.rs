@@ -214,6 +214,74 @@ pub fn connect_signal_to_signal(
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))
 }
 
+/// Connects a named signal on `source` to a named zero-argument slot on `target`.
+///
+/// When `signal_name` is emitted on `source`, the registered callback upgrades a
+/// `Weak<Mutex<dyn Object>>` to a strong [`Arc`], locks `target`, and calls
+/// `target.invoke_method(slot_name, &[])`.
+///
+/// Unlike [`connect_signal_to_signal`], slot-name validation is **deferred** to
+/// emit time. If `slot_name` is unknown on `target` at emission, `invoke_method`
+/// returns `None` and the emission is silently ignored — no error is produced.
+/// This trade-off avoids adding new error variants and mirrors the common pattern
+/// where a slot is a concrete method that does not appear in the meta-system
+/// (e.g. a hand-rolled `invoke_method` implementation). The slot is invoked with
+/// an empty argument list (`&[]`); only zero-argument slots are meaningfully
+/// supported — non-zero-arity slots silently no-op, identical to an unknown slot name.
+///
+/// The callback holds only a `Weak<Mutex<dyn Object>>` downgraded from `target`.
+/// If all strong [`Arc`] handles to `target` are released before an emission, the
+/// upgrade silently fails and the slot call is skipped — no panic, no log.
+///
+/// # Parameters
+///
+/// - `source`: source object whose signal is subscribed to.
+/// - `signal_name`: meta-system name of the signal on `source`.
+/// - `target`: shared target object; held weakly inside the callback.
+/// - `slot_name`: meta-system method name to invoke on `target` on each emission.
+///
+/// # Errors
+///
+/// Returns [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not
+/// declared on `source`. This is the only validation performed at connection time.
+///
+/// # Examples
+///
+/// ```no_run
+/// use std::sync::Arc;
+/// use parking_lot::Mutex;
+/// use quartzite_core::{Object, connect::{connect_signal_to_slot, SignalConnectionError}};
+/// # fn example(source: &mut impl Object, target: Arc<Mutex<dyn Object>>) -> Result<(), SignalConnectionError> {
+/// connect_signal_to_slot(source, "click", &target, "quit")?;
+/// # Ok(())
+/// # }
+/// ```
+pub fn connect_signal_to_slot(
+    source: &mut dyn Object,
+    signal_name: &str,
+    target: &Arc<Mutex<dyn Object>>,
+    slot_name: &str,
+) -> Result<ConnectionId, SignalConnectionError> {
+    // Validate signal_name eagerly — lazy slot validation is documented.
+    source
+        .meta_object()
+        .signal(signal_name)
+        .ok_or_else(|| SignalConnectionError::UnknownFromSignal(signal_name.into()))?;
+
+    let slot_name_owned = slot_name.to_owned();
+    let target_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(target);
+
+    let callback: SignalCallback = Box::new(move |_args: &[Value]| {
+        if let Some(arc) = target_weak.upgrade() {
+            let _ = arc.lock().invoke_method(&slot_name_owned, &[]);
+        }
+    });
+
+    source
+        .connect_signal(signal_name, callback, crate::signal::ConnectionType::Direct)
+        .ok_or_else(|| SignalConnectionError::InternalError(signal_name.into()))
+}
+
 /// Connects a typed signal field on `from` to a named signal on `to`.
 ///
 /// Unlike [`connect_signal_to_signal`], this function uses the actual typed [`Signal<Args>`]

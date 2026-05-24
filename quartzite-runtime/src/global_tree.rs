@@ -1,6 +1,6 @@
 //! Process-global liveness flag for the [`ObjectTree`](crate::ObjectTree) accessor.
 //!
-//! Set to `true` by [`Application::new`](crate::Application::new) and cleared by
+//! Set to `true` by [`ApplicationBuilder::build`](crate::ApplicationBuilder::build) and cleared by
 //! `Drop for Application`. The flag gates [`try_with_tree`](crate::try_with_tree).
 use std::sync::atomic::{AtomicBool, Ordering};
 

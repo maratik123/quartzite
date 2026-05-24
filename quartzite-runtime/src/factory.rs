@@ -59,7 +59,7 @@ impl ObjectFactory {
 
     /// Installs `factory` as the process-wide singleton.
     ///
-    /// Called by [`Application::new`](crate::Application::new) automatically — explicit
+    /// Called by [`ApplicationBuilder::build`](crate::ApplicationBuilder::build) automatically — explicit
     /// calls are needed only when using the factory without an [`Application`](crate::Application).
     ///
     /// # Parameters

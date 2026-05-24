@@ -72,10 +72,11 @@ pub enum ConnectionType {
 }
 
 /// Internal slot record stored inside a `Signal`.
-/// Callbacks require `Send` so that `Signal<Args>` can be wrapped in
-/// `Arc<Mutex<Signal<Args>>>` for cross-thread posting (e.g. `Timer`).
+/// Callbacks require `Send + Sync` so that `Signal<Args>` is `Sync` and can be
+/// embedded inside types that need to live in `Arc<T>` (e.g. `EventLoop` via `Arc<EventLoop>`),
+/// as well as wrapped in `Arc<Mutex<Signal<Args>>>` for cross-thread posting (e.g. `Timer`).
 struct SlotEntry<Args: 'static> {
-    callback: Box<dyn Fn(&Args) + Send>,
+    callback: Box<dyn Fn(&Args) + Send + Sync>,
     conn_type: ConnectionType,
 }
 
@@ -354,7 +355,7 @@ impl<Args: 'static> Signal<Args> {
     /// # Parameters
     ///
     /// - `f`: slot callback invoked with a shared reference to the args tuple
-    ///   each time the signal is emitted; must be `Send` and `'static`.
+    ///   each time the signal is emitted; must be `Send + Sync` and `'static`.
     ///
     /// # Examples
     ///
@@ -365,7 +366,7 @@ impl<Args: 'static> Signal<Args> {
     /// let id = sig.connect(|args| println!("value = {}", args.0));
     /// sig.disconnect(id);
     /// ```
-    pub fn connect<F: Fn(&Args) + Send + 'static>(&mut self, f: F) -> ConnectionId {
+    pub fn connect<F: Fn(&Args) + Send + Sync + 'static>(&mut self, f: F) -> ConnectionId {
         self.connect_typed(f, ConnectionType::Direct)
     }
 
@@ -397,7 +398,7 @@ impl<Args: 'static> Signal<Args> {
     /// sig.emit_unconditionally(&(1,)); // fires once, then disconnects
     /// sig.disconnect(id); // safe to call even after auto-disconnect
     /// ```
-    pub fn connect_typed<F: Fn(&Args) + Send + 'static>(
+    pub fn connect_typed<F: Fn(&Args) + Send + Sync + 'static>(
         &mut self,
         f: F,
         ct: ConnectionType,

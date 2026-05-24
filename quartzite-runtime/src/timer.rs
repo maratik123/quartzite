@@ -274,7 +274,10 @@ impl Timer {
     /// let id = timer.connect_tick(|args| println!("fire #{}", args.0.fire_count()));
     /// timer.disconnect_tick(id);
     /// ```
-    pub fn connect_tick<F: Fn(&(TimerEvent,)) + Send + 'static>(&self, f: F) -> ConnectionId {
+    pub fn connect_tick<F: Fn(&(TimerEvent,)) + Send + Sync + 'static>(
+        &self,
+        f: F,
+    ) -> ConnectionId {
         self.tick.lock().connect(f)
     }
 

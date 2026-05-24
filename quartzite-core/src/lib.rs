@@ -54,7 +54,9 @@ pub mod __macro {
 
 #[cfg(feature = "std")]
 #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-pub use connect::{SignalConnectionError, connect_signal_to_signal, connect_signals};
+pub use connect::{
+    SignalConnectionError, connect_signal_to_signal, connect_signal_to_slot, connect_signals,
+};
 /// Re-exported solely for use by quartzite proc-macro generated code; not part of the public API.
 #[doc(hidden)]
 pub use enumflags2;

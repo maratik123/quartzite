@@ -13,7 +13,7 @@ dependencies, no foreign ABI, and no codegen outside proc-macros.
 
 - **Object model:** `ObjectBase`, parent/child trees, named lookup, reflection metadata.
 - **Signals/slots:** typed `Signal<Args>`, dynamic dispatch via `Object::invoke_method`, cross-thread queued connections.
-- **Event loop:** `Application` singleton, per-thread `EventLoop`, queued dispatcher.
+- **Event loop:** `Application` singleton (builder via `ApplicationBuilder`; Object-ified with `quit` slot), per-thread `EventLoop` (Object-ified; tickless by default, configurable `Option<Duration>` tick), queued dispatcher.
 - **Timers:** `Timer` object with `AppDriver` / `PoolDriver` / `ThreadDriver` execution contexts.
 - **Painting API** (`quartzite-paint-api`) — 11-method `Painter` trait (rect/line/text/image/path/transform/state), `Color`, `Pen`, `Brush`/`BrushKind` (solid + 2-stop linear/radial gradient + `Custom(peniko::Gradient)` escape hatch), `Font`, `Image`, `Path` — `no_std`-compatible.
 - **Renderer** (`quartzite-renderer`) — `WindowedApplication` (multi-window, configurable last-window-quit policy, proxy-based `AppEvent::Exit`) + `WindowRegistry` (per-window event fan-out via `WindowedAppHandler`) + `VelloPainter` (full 11-method `Painter` impl — rect/line/path/image/text via parley+skrifa; transform/clip stack; vello + wgpu + winit) + `RenderHarness` / `RenderHarnessBuilder` offscreen test harness for snapshot testing.
@@ -38,7 +38,7 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite` (facade) | ✅ implemented |
 | `quartzite-core` | ✅ implemented |
 | `quartzite-macros` | ✅ implemented |
-| `quartzite-runtime` | ✅ implemented |
+| `quartzite-runtime` | ✅ implemented (tickless `EventLoop` + `ApplicationBuilder` + Object-ification of `EventLoop`/`Application` with `stop`/`quit` slots #561) |
 | `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
 | `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush/BrushKind incl. LinearGradient/RadialGradient/Custom gradient, Font, Image, Path, 13-method Painter trait; TextCaretCursor/TextVisualLineCursor/TextVisualLine cursor types #317; `draw_text_in` `h_align + v_align: Alignment` two-axis extension #555) |
