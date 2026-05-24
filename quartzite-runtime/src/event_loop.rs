@@ -95,7 +95,7 @@ impl EventLoop {
     ///
     /// - `None` or `Some(Duration::ZERO)` → tickless: blocks on [`Receiver::recv`] until
     ///   a closure arrives or the channel disconnects.
-    /// - `Some(d)` where `d > 0` → tick-based: uses [`Receiver::recv_timeout(d)`] so
+    /// - `Some(d)` where `d > 0` → tick-based: uses [`Receiver::recv_timeout`] so
     ///   the loop wakes at most every `d` even when the channel is idle.
     ///
     /// Passing `Some(Duration::ZERO)` is silently normalised to `None` (tickless) because
