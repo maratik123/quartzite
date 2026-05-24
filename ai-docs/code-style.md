@@ -161,6 +161,22 @@ error definitions concise. Hand-rolled `Display` / `Error` impls are
 reserved for cases where `thiserror`'s derive cannot express the
 required behaviour.
 
+## Enum repr
+
+`#[repr(...)]` on enums is required in exactly two cases:
+
+1. **`enumflags2::bitflags` contract** — the macro requires `#[repr(uN)]`
+   on its target enum to guarantee the bitfield arithmetic is sound.
+2. **External numeric spec carried in discriminants** — when an enum's
+   discriminants are specified by an external standard and the raw integer
+   type matters (e.g. OpenType `usWeightClass` encoded as `u16` for
+   `FontWeight`).
+
+In all other cases, `#[repr]` MUST NOT be added. Decorative annotations
+(e.g. `#[repr(i64)]` to "match" a wire format that the macro or runtime
+handles automatically) add noise without correctness value and are
+forbidden.
+
 ## Tracing
 
 Functions that make a meaningful, traceable change to application state
