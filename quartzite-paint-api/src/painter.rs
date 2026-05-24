@@ -654,6 +654,13 @@ mod tests {
         let rect = Rect::new(Point::new(0, 0), Size::new(64, 64));
         let font = Font::new("sans", 12.0);
         let brush = Brush::solid(Color::BLACK);
-        p.draw_text_in(rect, "x", &font, &brush, Alignment::Left, Alignment::Justify);
+        p.draw_text_in(
+            rect,
+            "x",
+            &font,
+            &brush,
+            Alignment::Left,
+            Alignment::Justify,
+        );
     }
 }
