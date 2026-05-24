@@ -4,7 +4,7 @@
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
-use quartzite_widgets::{Alignment, AsWidget, TextEdit, WidgetExt};
+use quartzite_widgets::{AsWidget, HAlignment, TextEdit, VAlignment, WidgetExt};
 
 use crate::{Paint, Style as _};
 
@@ -58,8 +58,8 @@ impl Paint<TextEdit> for DefaultStyle {
             &w.plain_text,
             &font,
             &Brush::solid(final_text_color),
-            Alignment::Left,
-            Alignment::Left,
+            HAlignment::Left,
+            VAlignment::Top,
         );
 
         // 4–5. Selection fill (covers normal text in selected region) + selected-glyph overdraw
@@ -301,8 +301,8 @@ pub(super) fn paint_selection(
         &w.plain_text,
         &font,
         &Brush::solid(glyph_color),
-        Alignment::Left,
-        Alignment::Left,
+        HAlignment::Left,
+        VAlignment::Top,
     );
     painter.restore();
 }
