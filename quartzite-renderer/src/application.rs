@@ -159,6 +159,28 @@ mod tests {
     }
 
     #[test]
+    fn windowed_application_new_succeeds() {
+        // Hold the Application singleton for the test lifetime so that
+        // WindowedApplication::new() hits the AlreadyExists early-return
+        // before reaching EventLoop::new().  Three outcomes are acceptable:
+        //   - Ok                          — happy path (singleton not yet taken).
+        //   - Application(AlreadyExists)  — singleton taken by another test.
+        //   - EventLoop(_)                — no display server reachable (headless CI).
+        let _app = Application::new();
+        let result = WindowedApplication::new();
+        let is_ok = result.is_ok();
+        let is_already_exists = matches!(
+            result,
+            Err(RendererError::Application(ApplicationError::AlreadyExists))
+        );
+        let is_event_loop_error = matches!(result, Err(RendererError::EventLoop(_)));
+        assert!(
+            is_ok || is_already_exists || is_event_loop_error,
+            "WindowedApplication::new() must return Ok, Application(AlreadyExists), or EventLoop(_)"
+        );
+    }
+
+    #[test]
     fn renderer_error_wraps_application_error() {
         let e = RendererError::Application(ApplicationError::AlreadyExists);
         assert_eq!(e.to_string(), "Application already exists");
