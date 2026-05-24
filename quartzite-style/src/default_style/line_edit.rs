@@ -1,11 +1,12 @@
 //! [`Paint<LineEdit>`](crate::Paint) impl for [`DefaultStyle`](super::DefaultStyle),
 //! plus the `paint_caret_line_edit` and `state_resolved_text_color` helper free functions.
 
+use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{Alignment, AsWidget, LineEdit, WidgetExt};
 
-use crate::Paint;
+use crate::{Paint, Style as _};
 
 use super::{
     DefaultStyle, FOCUS_RING_WIDTH, READ_ONLY_TEXT_ALPHA, disabled, maybe_disabled,
@@ -71,5 +72,87 @@ impl Paint<LineEdit> for DefaultStyle {
             (w.text.as_str(), Brush::solid(text_color))
         };
         painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
+
+        // Caret — last, so it is always on top of the outline.
+        paint_caret_line_edit(w, painter, palette, self);
     }
+}
+
+/// Returns the state-resolved text colour for `w`, honouring the read-only dim rule.
+///
+/// Mirrors the colour computation in [`Paint<LineEdit>::paint`] so that
+/// `paint_caret_line_edit` uses the identical colour as the main text draw pass.
+///
+/// # Parameters
+///
+/// - `w`: the [`LineEdit`] widget being painted.
+/// - `palette`: the active colour palette.
+fn state_resolved_text_color(w: &LineEdit, palette: &Palette) -> Color {
+    let enabled = w.is_enabled();
+    let hovered = w.is_hovered();
+    let pressed = w.is_pressed();
+
+    let group = state_group(pressed, hovered);
+    let text_role = if pressed {
+        ColorRole::HighlightedText
+    } else {
+        ColorRole::Text
+    };
+    let text_color = maybe_disabled(palette.color(text_role, group), enabled);
+
+    if w.read_only {
+        text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
+    } else {
+        text_color
+    }
+}
+
+/// Paints the 1 px caret line for `w` if all conditions are met.
+///
+/// The caret is painted only when the widget is focused, writable, enabled, and
+/// `style.caret_visible_now()` returns `true`. Under any other condition this
+/// function emits zero painter calls.
+///
+/// The caret is vertically centred within the widget's geometry — unlike
+/// [`quartzite_widgets::TextEdit`] which uses the cursor's `line_top`,
+/// `LineEdit` aligns the caret to `geom.top() + (geom.height() - line_height) / 2`
+/// because single-line text is always centred in the field.
+///
+/// The caret position is clamped to `0..=text.len()` as defence in depth
+/// (the `caret` field is `pub` and may be written directly).
+///
+/// # Parameters
+///
+/// - `w`: the [`LineEdit`] widget being painted.
+/// - `painter`: the active painter.
+/// - `palette`: the active colour palette.
+/// - `style`: the owning [`DefaultStyle`]; used to query `caret_visible_now`.
+fn paint_caret_line_edit(
+    w: &LineEdit,
+    painter: &mut dyn Painter,
+    palette: &Palette,
+    style: &DefaultStyle,
+) {
+    if !w.is_focused() || w.read_only || !w.is_enabled() || !style.caret_visible_now() {
+        return;
+    }
+
+    let geom = w.geometry();
+    let font = w.widget_base().font.clone();
+    let caret_pos = w.caret.min(w.text.len());
+
+    // Scope the cursor borrow so it is released before the fill_rect call below.
+    let (caret_x, line_height) = {
+        let cursor = painter.text_carets(&w.text, &font);
+        cursor.advance_to(caret_pos);
+        (cursor.caret_x(), cursor.line_height())
+    };
+
+    // Vertically centre the caret in the field geometry (single-line field).
+    let caret_y = geom.top() + (geom.size().height() - line_height) / 2;
+    let color = state_resolved_text_color(w, palette);
+    painter.fill_rect(
+        Rect::new(Point::new(caret_x, caret_y), Size::new(1, line_height)),
+        &Brush::solid(color),
+    );
 }
