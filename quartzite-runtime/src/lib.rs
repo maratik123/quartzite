@@ -1,8 +1,9 @@
 //! Runtime layer for quartzite: event loop, object tree, connection table, timers, and threads.
 //!
-//! Entry point is [`Application::new`](application::Application::new), which initialises the
-//! singleton and installs the queued dispatcher. Call [`Application::exec`](application::Application::exec)
-//! on the main thread to run the event loop.
+//! Entry point is [`Application::builder`](application::Application::builder), which returns an
+//! [`ApplicationBuilder`] that installs the singleton via
+//! [`build`](application_builder::ApplicationBuilder::build). Call
+//! [`Application::exec`](application::Application::exec) on the main thread to run the event loop.
 //!
 //! ## Logging
 //!
@@ -13,10 +14,11 @@
 //!
 //! ```rust,no_run
 //! env_logger::init(); // or any other log-compatible subscriber
-//! // … create Application, run event loop
+//! // … create Application via Application::builder().build(), run event loop
 //! ```
 
 pub mod application;
+pub mod application_builder;
 pub mod connection_table;
 pub mod event_loop;
 pub mod factory;
@@ -35,6 +37,7 @@ pub mod timer_drivers;
 
 pub use application::try_with_tree;
 pub use application::{Application, ApplicationError, TreeAccessError};
+pub use application_builder::ApplicationBuilder;
 pub use connection_table::ConnectionTable;
 pub use event_loop::EventLoop;
 pub use factory::{FactoryAlreadySet, ObjectFactory};

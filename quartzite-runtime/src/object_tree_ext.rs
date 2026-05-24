@@ -12,7 +12,7 @@ use crate::{
 /// Automatically implemented for every type that implements [`AsObject`].
 ///
 /// Methods without a `_in` suffix use the process-global tree registered by
-/// [`Application::new`](crate::Application::new) and return
+/// [`Application::builder().build()`](crate::ApplicationBuilder::build) and return
 /// [`Err`]`(`[`TreeAccessError`]`)` when called outside an active
 /// [`Application`](crate::Application).
 ///
@@ -22,7 +22,7 @@ use crate::{
 /// use quartzite_core::AsObject;
 /// use quartzite_runtime::{Application, ObjectTreeExt};
 ///
-/// let _app = Application::new().unwrap();
+/// let _app = Application::builder().build().unwrap();
 /// # fn example(obj: &impl AsObject) -> Result<(), quartzite_runtime::TreeAccessError> {
 /// let _parent = obj.parent()?;
 /// let _children = obj.children()?;

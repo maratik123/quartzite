@@ -2,18 +2,29 @@
 use std::sync::{Arc, OnceLock};
 
 use parking_lot::Mutex;
+use quartzite_core::{
+    ObjectBase,
+    id::ConnectionId,
+    meta::{MetaObject, MethodMeta},
+    signal::ConnectionType,
+    traits::SignalCallback,
+    value::Value,
+};
 
-use crate::{connection_table::ConnectionTable, event_loop::EventLoop, object_tree::ObjectTree};
+use crate::{
+    application_builder::ApplicationBuilder, connection_table::ConnectionTable,
+    event_loop::EventLoop, object_tree::ObjectTree,
+};
 
-/// Error returned by [`Application::new`] when it fails.
+/// Error returned by [`ApplicationBuilder::build`] when it fails.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// use quartzite_runtime::{Application, ApplicationError};
 ///
-/// let _first = Application::new().expect("first call succeeds");
-/// match Application::new() {
+/// let _first = Application::builder().build().expect("first call succeeds");
+/// match Application::builder().build() {
 ///     Err(ApplicationError::AlreadyExists) => {}
 ///     _ => panic!("second call must fail with AlreadyExists"),
 /// }
@@ -26,6 +37,8 @@ pub enum ApplicationError {
 }
 
 struct ApplicationInner {
+    /// Core object data (id, name, thread affinity, signal-block flag).
+    base: ObjectBase,
     /// `Mutex` (not `RwLock`) because `ObjectTree: Send` but not `Sync`.
     /// `RwLock<T>` requires `T: Send + Sync`; `Mutex<T>` only requires `T: Send`.
     object_tree: Mutex<ObjectTree>,
@@ -41,36 +54,142 @@ static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
 /// Owns the [`ObjectTree`] and [`EventLoop`]. Creates the [`ConnectionTable`] and
 /// installs it as the process-wide queued dispatcher.
 ///
+/// Construct via [`Application::builder()`]; see [`ApplicationBuilder`] for details.
+///
 /// # Examples
 ///
 /// ```no_run
 /// use quartzite_runtime::Application;
 ///
-/// let app = Application::new().expect("only one Application per process");
-/// app.quit();
+/// let app = Application::builder().build().expect("only one Application per process");
+/// app.request_quit();
 /// ```
 pub struct Application(Arc<ApplicationInner>);
 
+// ── Static MetaObject for Application ──────────────────────────────────────
+
+static APP_METHODS: [MethodMeta; 1] = [MethodMeta::new("quit", &[], "()")];
+static APP_META: MetaObject = MetaObject::new(
+    "Application",
+    &[],
+    &[],
+    &APP_METHODS,
+    &[],
+    quartzite_core::meta::noop_lookup_property,
+    quartzite_core::meta::noop_lookup_signal,
+    |name| {
+        if name == "quit" {
+            Some(APP_METHODS[0])
+        } else {
+            None
+        }
+    },
+    quartzite_core::meta::noop_lookup_enum,
+);
+
+// ── AsObject + Object impls (b1 hand-rolled) ────────────────────────────────
+
+impl quartzite_core::AsObject for Application {
+    // _Simple._
+    fn object_base(&self) -> &ObjectBase {
+        &self.0.base
+    }
+
+    /// Returns a mutable reference to the underlying [`ObjectBase`].
+    ///
+    /// # Panics
+    ///
+    /// Always panics. `Application` holds an `Arc<ApplicationInner>` (shared, not mutable).
+    /// Mutating the base through a shared handle is not supported. Use
+    /// `ObjectTree::rename` / `ObjectTree::clear_name` for name changes.
+    fn object_base_mut(&mut self) -> &mut ObjectBase {
+        panic!(
+            "Application singleton's ObjectBase cannot be mutated through the shared handle; \
+             use ObjectTree::rename for name changes"
+        )
+    }
+
+    // _Simple._
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
+
+    // _Simple._
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+        self
+    }
+}
+
+impl quartzite_core::Object for Application {
+    // _Simple._
+    fn meta_object(&self) -> &'static MetaObject {
+        &APP_META
+    }
+
+    fn read_property(&self, _name: &str) -> Option<Value> {
+        None
+    }
+
+    fn write_property(&mut self, _name: &str, _val: Value) -> bool {
+        false
+    }
+
+    fn invoke_method(&mut self, name: &str, args: &[Value]) -> Option<Value> {
+        match name {
+            "quit" => {
+                if !args.is_empty() {
+                    return None;
+                }
+                self.quit();
+                Some(Value::Null)
+            }
+            _ => None,
+        }
+    }
+
+    fn connect_signal(
+        &mut self,
+        _signal: &str,
+        _callback: SignalCallback,
+        _conn_type: ConnectionType,
+    ) -> Option<ConnectionId> {
+        None
+    }
+
+    fn emit_signal(&mut self, _signal: &str, _args: &[Value]) -> Option<()> {
+        None
+    }
+}
+
+// ── Application inherent methods ─────────────────────────────────────────────
+
 impl Application {
-    /// Creates the application singleton and installs the queued dispatcher and object factory.
+    /// Returns a builder for constructing the [`Application`] singleton.
     ///
-    /// # Errors
-    ///
-    /// Returns [`ApplicationError::AlreadyExists`] if an [`Application`] has already been
-    /// installed in this process. Only one [`Application`] may exist per process.
+    /// Use [`ApplicationBuilder::build`] to install the singleton. The default builder
+    /// produces a **tickless** application.
     ///
     /// # Examples
     ///
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().expect("only one Application per process");
+    /// let app = Application::builder().build().expect("only one Application per process");
     /// ```
-    pub fn new() -> Result<Self, ApplicationError> {
+    #[inline]
+    pub const fn builder() -> ApplicationBuilder {
+        ApplicationBuilder::new()
+    }
+
+    /// Internal: constructs the singleton from an already-configured `EventLoop`.
+    ///
+    /// Called by [`ApplicationBuilder::build`]. Not part of the public API.
+    pub(crate) fn build_from(event_loop: EventLoop) -> Result<Self, ApplicationError> {
         let main_thread_id = std::thread::current().id();
-        let event_loop = Arc::new(EventLoop::new());
+        let event_loop = Arc::new(event_loop);
         let connection_table = ConnectionTable::new();
         let inner = Arc::new(ApplicationInner {
+            base: ObjectBase::new(),
             object_tree: Mutex::new(ObjectTree::new()),
             event_loop,
             connection_table,
@@ -84,20 +203,19 @@ impl Application {
         // targeting objects on this thread are routed correctly.
         // APP.set above guarantees no Application existed before, so the only way
         // this can fail is if the caller pre-installed a loop on this thread —
-        // that is a caller bug; ignore it rather than failing Application::new().
+        // that is a caller bug; ignore it rather than failing build().
         let _ = Arc::clone(&inner.event_loop).install_for_current_thread();
 
         // Register ConnectionTable as the queued dispatcher. Ignore if already
         // set — only one Application can exist per process, so the only way
-        // this can fail is if the dispatcher was set before Application::new()
+        // this can fail is if the dispatcher was set before build()
         // (e.g. in tests that call set_queued_dispatcher directly).
         let _ = quartzite_core::set_queued_dispatcher(
             Arc::clone(&inner.connection_table) as Arc<dyn quartzite_core::QueuedDispatcher>
         );
 
         // Install the process-wide factory. Ignore FactoryAlreadySet — same rationale
-        // as the dispatcher above. Subsequent Application::new() calls (if somehow
-        // possible) share the first factory via OnceLock semantics.
+        // as the dispatcher above.
         let _ = crate::factory::ObjectFactory::install(crate::factory::ObjectFactory::new());
 
         // Mark the global tree as live so ObjectTreeExt::parent/children work.
@@ -108,7 +226,8 @@ impl Application {
 
     /// Returns a handle to the global application, or `None` if it has not been installed yet.
     ///
-    /// Calling [`Application::new`] is required before this returns `Some`.
+    /// Calling [`Application::builder().build()`](ApplicationBuilder::build) is required
+    /// before this returns `Some`.
     ///
     /// # Examples
     ///
@@ -116,7 +235,7 @@ impl Application {
     /// use quartzite_runtime::Application;
     ///
     /// if let Some(app) = Application::global() {
-    ///     app.quit();
+    ///     app.request_quit();
     /// }
     /// ```
     #[inline]
@@ -136,7 +255,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// app.post_event(Box::new(|| println!("on event-loop thread")));
     /// ```
     #[inline]
@@ -144,7 +263,8 @@ impl Application {
         self.0.event_loop.post(f);
     }
 
-    /// Runs the event loop, blocking the calling thread until [`quit`](Self::quit) is called.
+    /// Runs the event loop, blocking the calling thread until [`request_quit`](Self::request_quit)
+    /// or [`quit`](Self::quit) is called.
     ///
     /// # Panics
     ///
@@ -156,10 +276,10 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// // Post a quit before exec() so the loop exits immediately.
     /// let app2 = Application::global().unwrap();
-    /// app.post_event(Box::new(move || app2.quit()));
+    /// app.post_event(Box::new(move || app2.request_quit()));
     /// app.exec();
     /// ```
     #[inline]
@@ -167,18 +287,41 @@ impl Application {
         self.0.event_loop.run();
     }
 
-    /// Stops the event loop.
+    /// Stops the event loop. Takes `&mut self` for slot-dispatch compatibility.
+    ///
+    /// For ergonomic use without a mutable borrow (e.g. from a closure or cross-thread
+    /// callback), prefer [`request_quit`](Self::request_quit).
     ///
     /// # Examples
     ///
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let mut app = Application::builder().build().unwrap();
     /// app.quit();
     /// ```
+    pub fn quit(&mut self) {
+        self.0.event_loop.request_stop();
+    }
+
+    /// Stops the event loop. Callable via a shared reference from any context.
+    ///
+    /// This is the ergonomic API for closure captures and cross-thread callbacks
+    /// (e.g. `Application::global().unwrap().request_quit()`). For reflection-based
+    /// invocation via `invoke_method`, use [`quit`](Self::quit) (which requires `&mut self`).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::builder().build().unwrap();
+    /// let app2 = Application::global().unwrap();
+    /// app.post_event(Box::new(move || app2.request_quit()));
+    /// app.exec();
+    /// ```
     #[inline]
-    pub fn quit(&self) {
+    pub fn request_quit(&self) {
         self.0.event_loop.request_stop();
     }
 
@@ -191,7 +334,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// let _tree = app.object_tree().lock();
     /// ```
     #[inline]
@@ -206,7 +349,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// let _table = app.connection_table();
     /// ```
     #[inline]
@@ -221,7 +364,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// let _el = app.event_loop();
     /// ```
     #[inline]
@@ -230,7 +373,7 @@ impl Application {
     }
 
     /// Returns the [`ThreadId`](std::thread::ThreadId) of the thread that called
-    /// [`Application::new`].
+    /// [`ApplicationBuilder::build`].
     ///
     /// The main-thread [`EventLoop`] is registered for this thread automatically.
     ///
@@ -239,7 +382,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::new().unwrap();
+    /// let app = Application::builder().build().unwrap();
     /// assert_eq!(app.main_thread_id(), std::thread::current().id());
     /// ```
     #[inline]

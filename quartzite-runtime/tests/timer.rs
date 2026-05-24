@@ -185,7 +185,9 @@ fn thread_driver_fires_at_interval() {
 #[test]
 fn app_driver_executes_on_event_loop_thread() {
     // This test creates the Application singleton for this binary.
-    let app = Application::new().expect("only one Application per process");
+    let app = Application::builder()
+        .build()
+        .expect("only one Application per process");
 
     // Spin up the event loop on a dedicated thread; record its thread id.
     let el_thread_id = Arc::new(Mutex::new(None::<thread::ThreadId>));
@@ -244,7 +246,7 @@ fn app_driver_executes_on_event_loop_thread() {
     timer.stop();
 
     // Quit and join the event loop.
-    Application::global().unwrap().quit();
+    Application::global().unwrap().request_quit();
     let _ = el_thread.join();
 
     #[allow(

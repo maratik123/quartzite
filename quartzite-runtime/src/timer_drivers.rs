@@ -129,7 +129,7 @@ impl TimerDriver for ThreadDriver {
 /// use std::{sync::Arc, time::Duration};
 /// use quartzite_runtime::{Application, timer::{Timer, AppDriver}};
 ///
-/// let app = Application::new().unwrap();
+/// let app = Application::builder().build().unwrap();
 /// let mut timer = Timer::new(Duration::from_millis(50));
 /// timer.connect_tick(|args| println!("app-thread tick #{}", args.0.fire_count()));
 /// timer.start(Arc::new(AppDriver::new()));
