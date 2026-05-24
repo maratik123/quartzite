@@ -64,7 +64,7 @@ static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
 /// ```no_run
 /// use quartzite_runtime::Application;
 ///
-/// let app = Application::builder().build().expect("only one Application per process");
+/// let app = Application::new().expect("only one Application per process");
 /// app.quit();
 /// ```
 pub struct Application(Arc<ApplicationInner>);
@@ -279,7 +279,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// app.post_event(Box::new(|| println!("on event-loop thread")));
     /// ```
     #[inline]
@@ -299,7 +299,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// // Post a quit before exec() so the loop exits immediately.
     /// let app2 = Application::global().unwrap();
     /// app.post_event(Box::new(move || app2.quit()));
@@ -321,7 +321,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// let app2 = Application::global().unwrap();
     /// app.post_event(Box::new(move || app2.quit()));
     /// app.exec();
@@ -340,7 +340,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// let _tree = app.object_tree().lock();
     /// ```
     #[inline]
@@ -355,7 +355,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// let _table = app.connection_table();
     /// ```
     #[inline]
@@ -370,7 +370,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// let _el = app.event_loop();
     /// ```
     #[inline]
@@ -388,7 +388,7 @@ impl Application {
     /// ```no_run
     /// use quartzite_runtime::Application;
     ///
-    /// let app = Application::builder().build().unwrap();
+    /// let app = Application::new().unwrap();
     /// assert_eq!(app.main_thread_id(), std::thread::current().id());
     /// ```
     #[inline]

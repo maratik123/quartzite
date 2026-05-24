@@ -22,7 +22,7 @@ use crate::{
 /// use quartzite_core::AsObject;
 /// use quartzite_runtime::{Application, ObjectTreeExt};
 ///
-/// let _app = Application::builder().build().unwrap();
+/// let _app = Application::new().unwrap();
 /// # fn example(obj: &impl AsObject) -> Result<(), quartzite_runtime::TreeAccessError> {
 /// let _parent = obj.parent()?;
 /// let _children = obj.children()?;
