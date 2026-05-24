@@ -93,7 +93,11 @@ fn application_singleton_enforced() {
     }
 
     // ── Stub Object trait methods always return None / false ──────────────
-    assert_eq!(app.read_property("x"), None, "read_property always returns None");
+    assert_eq!(
+        app.read_property("x"),
+        None,
+        "read_property always returns None"
+    );
     assert!(
         !app.write_property("x", Value::Null),
         "write_property always returns false"
@@ -113,11 +117,21 @@ fn application_singleton_enforced() {
         None,
         "connect_signal always returns None"
     );
-    assert_eq!(app.emit_signal("sig", &[]), None, "emit_signal always returns None");
+    assert_eq!(
+        app.emit_signal("sig", &[]),
+        None,
+        "emit_signal always returns None"
+    );
 
     // ── as_any / as_any_mut downcasts ─────────────────────────────────────
-    assert!(app.as_any().is::<Application>(), "as_any() must be downcast-able");
-    assert!(app.as_any_mut().is::<Application>(), "as_any_mut() must be downcast-able");
+    assert!(
+        app.as_any().is::<Application>(),
+        "as_any() must be downcast-able"
+    );
+    assert!(
+        app.as_any_mut().is::<Application>(),
+        "as_any_mut() must be downcast-able"
+    );
 
     // ── object_base returns a valid base ──────────────────────────────────
     let _ = app.object_base();
