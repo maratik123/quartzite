@@ -72,7 +72,16 @@ impl Paint<LineEdit> for DefaultStyle {
         } else {
             (w.text.as_str(), Brush::solid(text_color))
         };
-        painter.draw_text_in(geom, text_arg, &font, &text_brush, Alignment::Left);
+        let line_height = {
+            let cursor = painter.text_carets(text_arg, &font);
+            cursor.line_height()
+        };
+        let text_top = geom.top() + (geom.size().height() - line_height) / 2;
+        let text_rect = Rect::new(
+            Point::new(geom.left(), text_top),
+            Size::new(geom.size().width(), line_height),
+        );
+        painter.draw_text_in(text_rect, text_arg, &font, &text_brush, Alignment::Left);
 
         // Selection fill + overdraw — after main text, before caret.
         paint_selection_line_edit(w, painter, palette, focused);
@@ -156,6 +165,10 @@ fn paint_selection_line_edit(
 
     // Vertically centre the selection band in the field geometry (single-line field).
     let caret_y = geom.top() + (geom.size().height() - line_height) / 2;
+    let text_rect = Rect::new(
+        Point::new(geom.left(), caret_y),
+        Size::new(geom.size().width(), line_height),
+    );
 
     // Scope 2: get pixel-snapped x-positions for the two selection boundaries.
     let (sel_start_x, sel_end_x) = {
@@ -190,7 +203,7 @@ fn paint_selection_line_edit(
     painter.save();
     painter.clip_rect(sel_rect);
     painter.draw_text_in(
-        geom,
+        text_rect,
         &w.text,
         &font,
         &Brush::solid(glyph_color),
