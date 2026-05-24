@@ -38,7 +38,7 @@ use quartzite_paint_api::Painter;
 /// # Examples
 ///
 /// ```
-/// use quartzite_geometry::{Alignment, Point, Rect, Size};
+/// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
 /// use quartzite_paint_api::{
 ///     Brush, Color, Font, Image, Painter, Path, Pen,
 ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor,
@@ -75,7 +75,8 @@ use quartzite_paint_api::Painter;
 ///         _text: &str,
 ///         _font: &Font,
 ///         _brush: &Brush,
-///         _alignment: Alignment,
+///         _h_align: HAlignment,
+///         _v_align: VAlignment,
 ///     ) {}
 ///     fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
 ///     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
@@ -111,7 +112,7 @@ impl<'a> TranslateGuard<'a> {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_geometry::{Alignment, Point, Rect, Size};
+    /// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
     /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen,
     ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor};
     /// use quartzite_paint_util::TranslateGuard;
@@ -139,7 +140,7 @@ impl<'a> TranslateGuard<'a> {
     ///     fn save(&mut self) {}
     ///     fn restore(&mut self) {}
     ///     fn draw_text(&mut self, _pos: Point, _t: &str, _f: &Font, _b: &Brush) {}
-    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
+    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _h: HAlignment, _v: VAlignment) {}
     ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
     ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
     ///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
@@ -163,7 +164,7 @@ impl<'a> TranslateGuard<'a> {
     /// # Examples
     ///
     /// ```
-    /// use quartzite_geometry::{Alignment, Point, Rect, Size};
+    /// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
     /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen,
     ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor};
     /// use quartzite_paint_util::TranslateGuard;
@@ -191,7 +192,7 @@ impl<'a> TranslateGuard<'a> {
     ///     fn save(&mut self) {}
     ///     fn restore(&mut self) {}
     ///     fn draw_text(&mut self, _pos: Point, _t: &str, _f: &Font, _b: &Brush) {}
-    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _a: Alignment) {}
+    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _h: HAlignment, _v: VAlignment) {}
     ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
     ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
     ///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
@@ -331,7 +332,8 @@ mod tests {
             _text: &str,
             _font: &quartzite_paint_api::Font,
             _brush: &quartzite_paint_api::Brush,
-            _alignment: quartzite_geometry::Alignment,
+            _h_align: quartzite_geometry::HAlignment,
+            _v_align: quartzite_geometry::VAlignment,
         ) {
             self.events.push(PaintEvent::Other);
         }

@@ -14,8 +14,8 @@ use quartzite_paint_api::{
 };
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
-    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetBase,
-    WidgetExt,
+    AsWidget, Button, Container, HAlignment, Label, LineEdit, ScrollArea, TextEdit, VAlignment,
+    WidgetBase, WidgetExt,
 };
 
 use crate::{DefaultStyle, Style, StyleClock, StyleRegistry};
@@ -53,7 +53,8 @@ enum PaintEvent {
         text: String,
         font: Font,
         brush: Brush,
-        alignment: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     },
 }
 
@@ -253,14 +254,16 @@ impl Painter for RecordingPainter {
         text: &str,
         font: &Font,
         brush: &Brush,
-        alignment: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     ) {
         self.events.push(PaintEvent::DrawTextIn {
             rect,
             text: text.to_owned(),
             font: font.clone(),
             brush: brush.clone(),
-            alignment,
+            h_align,
+            v_align,
         });
     }
     fn draw_image(&mut self, _rect: Rect, _image: &Image) {
@@ -390,9 +393,11 @@ fn button_records_fill_outline_and_centred_text() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "OK" && *alignment == Alignment::Center),
-        "button DrawTextIn must carry text 'OK' with Center alignment"
+            PaintEvent::DrawTextIn { text, h_align, v_align, .. }
+                if text == "OK"
+                    && *h_align == HAlignment::Center
+                    && *v_align == VAlignment::Center),
+        "button DrawTextIn must carry text 'OK' with Center h_align and Center v_align"
     );
 }
 
@@ -410,9 +415,11 @@ fn label_records_fill_and_text_with_label_alignment() {
     assert!(matches!(&painter.events[0], PaintEvent::FillRect { .. }));
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "hi" && *alignment == Alignment::Left),
-        "label DrawTextIn must carry text 'hi' with Left alignment"
+            PaintEvent::DrawTextIn { text, h_align, v_align, .. }
+                if text == "hi"
+                    && *h_align == HAlignment::Left
+                    && *v_align == VAlignment::Center),
+        "label DrawTextIn must carry text 'hi' with Left h_align and Center v_align"
     );
 }
 
@@ -440,9 +447,9 @@ fn text_edit_records_fill_outline_and_text() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, .. }
-                if text == "abc"),
-        "TextEdit DrawTextIn must carry text 'abc'"
+            PaintEvent::DrawTextIn { text, v_align, .. }
+                if text == "abc" && *v_align == VAlignment::Top),
+        "TextEdit DrawTextIn must carry text 'abc' and Top v_align (top-anchored)"
     );
 }
 
@@ -1206,11 +1213,13 @@ fn line_edit_records_fill_outline_and_empty_text() {
         "events[1] must be DrawRect with Text 1px outline"
     );
     assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { text, alignment, brush, .. }
+        matches!(&painter.events[2], PaintEvent::DrawTextIn { rect, text, h_align, v_align, brush, .. }
             if text.is_empty()
-                && *alignment == Alignment::Left
+                && *rect == e.widget_base().geometry
+                && *h_align == HAlignment::Left
+                && *v_align == VAlignment::Center
                 && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
-        "events[2] must be DrawTextIn with empty text, Left align, full-alpha Text brush"
+        "events[2] must be DrawTextIn with empty text, full geom rect, Left h_align, Center v_align, full-alpha Text brush"
     );
 }
 
@@ -1224,11 +1233,13 @@ fn line_edit_records_text_when_non_empty() {
 
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, brush, .. }
+            PaintEvent::DrawTextIn { rect, text, h_align, v_align, brush, .. }
                 if text == "abc"
-                    && *alignment == Alignment::Left
+                    && *rect == e.widget_base().geometry
+                    && *h_align == HAlignment::Left
+                    && *v_align == VAlignment::Center
                     && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
-        "DrawTextIn must carry 'abc', Left, full-alpha Text brush"
+        "DrawTextIn must carry 'abc', full geom rect, Left h_align, Center v_align, full-alpha Text brush"
     );
 }
 
@@ -1251,11 +1262,12 @@ fn line_edit_placeholder_drawn_when_text_empty() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, brush, .. }
+            PaintEvent::DrawTextIn { text, h_align, v_align, brush, .. }
                 if text == "hint"
-                    && *alignment == Alignment::Left
+                    && *h_align == HAlignment::Left
+                    && *v_align == VAlignment::Center
                     && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
-        "placeholder DrawTextIn must carry 'hint', Left, half-alpha Text brush"
+        "placeholder DrawTextIn must carry 'hint', Left h_align, Center v_align, half-alpha Text brush"
     );
 }
 
@@ -1331,11 +1343,12 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
         "events[1] must be the read-only overlay"
     );
     assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, alignment, brush, .. }
+        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, h_align, v_align, brush, .. }
             if text == "hint"
-                && *alignment == Alignment::Left
+                && *h_align == HAlignment::Left
+                && *v_align == VAlignment::Center
                 && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
-        "events[3] must be DrawTextIn('hint', Left, half-alpha Text) — placeholder path"
+        "events[3] must be DrawTextIn('hint', Left h_align, Center v_align, half-alpha Text) — placeholder path"
     );
 }
 
@@ -2342,9 +2355,51 @@ fn registry_round_trip_dispatches_default_style() {
     );
     assert!(
         matches!(first_draw_text_in(&painter.events),
-            PaintEvent::DrawTextIn { text, alignment, .. }
-                if text == "OK" && *alignment == Alignment::Center),
+            PaintEvent::DrawTextIn { text, h_align, v_align, .. }
+                if text == "OK"
+                    && *h_align == HAlignment::Center
+                    && *v_align == VAlignment::Center),
         "registry-dispatched DefaultStyle must produce the same events as AC2"
+    );
+}
+
+// ── AC8: Button + Label both use vertical-centre ─────────────────────────
+
+/// AC8 — asserts on the recorded painter-call argument shape so that a future
+/// renderer change cannot silently regress vertical centring without also
+/// failing this test (independent of golden PNGs).
+#[test]
+fn button_and_label_use_vertical_centre() {
+    let palette = Palette::default();
+
+    // Button: v_align must be Center.
+    let btn = Button::new("OK".into());
+    let mut btn_painter = RecordingPainter::default();
+    DefaultStyle::new().draw_widget(&btn, &mut btn_painter, &palette);
+    assert!(
+        matches!(
+            first_draw_text_in(&btn_painter.events),
+            PaintEvent::DrawTextIn {
+                v_align: VAlignment::Center,
+                ..
+            }
+        ),
+        "Button DrawTextIn must use v_align = Center"
+    );
+
+    // Label: v_align must be Center regardless of h_align.
+    let lbl = Label::new("hi".into());
+    let mut lbl_painter = RecordingPainter::default();
+    DefaultStyle::new().draw_widget(&lbl, &mut lbl_painter, &palette);
+    assert!(
+        matches!(
+            first_draw_text_in(&lbl_painter.events),
+            PaintEvent::DrawTextIn {
+                v_align: VAlignment::Center,
+                ..
+            }
+        ),
+        "Label DrawTextIn must use v_align = Center"
     );
 }
 

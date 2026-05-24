@@ -323,7 +323,8 @@ mod tests {
             _text: &str,
             _font: &quartzite_paint_api::Font,
             _brush: &quartzite_paint_api::Brush,
-            _alignment: quartzite_geometry::Alignment,
+            _h_align: quartzite_geometry::HAlignment,
+            _v_align: quartzite_geometry::VAlignment,
         ) {
         }
         fn draw_image(
@@ -428,7 +429,8 @@ mod tests {
             "x",
             &font,
             &brush,
-            quartzite_geometry::Alignment::Left,
+            quartzite_geometry::HAlignment::Left,
+            quartzite_geometry::VAlignment::Top,
         );
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);

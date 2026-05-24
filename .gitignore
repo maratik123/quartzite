@@ -7,8 +7,11 @@ librust_out.rlib
 # Snapshot test failure artifacts (regenerated on demand; never committed).
 **/tests/snapshots/**/*.actual.png
 **/tests/snapshots/**/*.diff.png
-# Per-backend regen output directory — working files; shared/ is the source of truth.
+# Per-backend regen output directories — working files; shared/ is the source of truth.
 **/tests/snapshots/auto/
+**/tests/snapshots/vulkan/
+**/tests/snapshots/dx12/
+**/tests/snapshots/metal/
 
 # Agent-internal progress state: local-only handoff artefacts spanning the
 # task -> PR -> merge journey. Created by /task, extended by /pr-commented,

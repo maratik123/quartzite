@@ -6,7 +6,7 @@ mod text_edit;
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
-    Alignment, AsWidget, Button, Container, Label, ScrollArea, WidgetExt, WidgetView,
+    AsWidget, Button, Container, HAlignment, Label, ScrollArea, VAlignment, WidgetExt, WidgetView,
 };
 
 use crate::clock::StyleClock;
@@ -239,7 +239,8 @@ impl Paint<Button> for DefaultStyle {
             &w.text,
             &font,
             &Brush::solid(text_color),
-            Alignment::Center,
+            HAlignment::Center,
+            VAlignment::Center,
         );
     }
 }
@@ -274,7 +275,14 @@ impl Paint<Label> for DefaultStyle {
                 &Brush::solid(Color::TRANSPARENT),
             );
         }
-        painter.draw_text_in(geom, &w.text, &font, &Brush::solid(text_color), w.alignment);
+        painter.draw_text_in(
+            geom,
+            &w.text,
+            &font,
+            &Brush::solid(text_color),
+            w.alignment,
+            VAlignment::Center,
+        );
     }
 }
 

@@ -41,13 +41,13 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-runtime` | ✅ implemented |
 | `examples/` | ✅ runnable examples: `hello_object`, `signals_slots`, `object_tree`, `timer` |
 | `quartzite-geometry` / `quartzite-events` / `quartzite-event-types` | ✅ implemented |
-| `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush/BrushKind incl. LinearGradient/RadialGradient/Custom gradient, Font, Image, Path, 13-method Painter trait; TextCaretCursor/TextVisualLineCursor/TextVisualLine cursor types #317) |
+| `quartzite-paint-api` | ✅ implemented (Color, Pen, Brush/BrushKind incl. LinearGradient/RadialGradient/Custom gradient, Font, Image, Path, 13-method Painter trait; TextCaretCursor/TextVisualLineCursor/TextVisualLine cursor types #317; `draw_text_in` `h_align + v_align: Alignment` two-axis extension #555) |
 | `quartzite-paint` | ✅ implemented (re-export shell over paint-api + Alignment from geometry + peniko gradient re-exports) |
 | `quartzite-paint-util` | ✅ implemented (#410, `TranslateGuard` RAII wrapper for `save`/`translate`/`restore` triplet; `no_std` + panic-safe) |
 | `quartzite-renderer` | ✅ implemented (WindowedApplication + multi-window WindowRegistry + WindowedAppHandler + VelloPainter full 11-method impl with parley/skrifa text; RenderHarness/RenderHarnessBuilder snapshot harness) |
 | `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole; #488 DARK_PALETTE; #402 ColorGroup axis + FocusRing) |
-| `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests; #318 Container+LineEdit arms; #458 read-only overlay fix; #402 ColorGroup palette migration; #317 StyleClock + caret/selection rendering for TextEdit) |
+| `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests; #318 Container+LineEdit arms; #458 read-only overlay fix; #402 ColorGroup palette migration; #317 StyleClock + caret/selection rendering for TextEdit; #555 design-system conformance audit + Button/Label vertical centring) |
 | `quartzite-style-dispatch` | ✅ implemented (#312, widget-tree paint dispatcher: `dispatch_paint` + `WidgetResolver`; #393 facade `style-dispatch` feature) |
 
 ## Usage

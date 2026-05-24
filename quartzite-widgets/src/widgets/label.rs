@@ -2,7 +2,7 @@
 
 use quartzite_macros::{Extend, Object, object_impl};
 
-use crate::{Alignment, WidgetBase, widget_base::AsWidget};
+use crate::{HAlignment, WidgetBase, widget_base::AsWidget};
 
 /// A widget that displays a single line of static text.
 ///
@@ -10,7 +10,7 @@ use crate::{Alignment, WidgetBase, widget_base::AsWidget};
 ///
 /// ```
 /// use quartzite_core::{Object, Value};
-/// use quartzite_widgets::{Alignment, Label};
+/// use quartzite_widgets::{HAlignment, Label};
 ///
 /// let label = Label::new("hello".into());
 /// assert_eq!(label.read_property("text"), Some(Value::String("hello".into())));
@@ -24,9 +24,9 @@ pub struct Label {
     /// Text displayed by this label.
     #[prop]
     pub text: String,
-    /// Horizontal and vertical alignment of the text.
+    /// Horizontal alignment of the text.
     #[prop]
-    pub alignment: Alignment,
+    pub alignment: HAlignment,
 }
 
 impl Label {
@@ -49,7 +49,7 @@ impl Label {
         Self {
             widget_base: WidgetBase::new(),
             text,
-            alignment: Alignment::default(),
+            alignment: HAlignment::default(),
         }
     }
 }
@@ -92,7 +92,7 @@ mod tests {
         let v = label
             .read_property("alignment")
             .expect("alignment property missing");
-        assert_eq!(Alignment::from_value(v), Ok(Alignment::Left));
+        assert_eq!(HAlignment::from_value(v), Ok(HAlignment::Left));
     }
 
     #[test]

@@ -5,7 +5,7 @@ use parley::{
     FontFamilyName, FontStyle as ParleyFontStyle, FontWeight as ParleyFontWeight, Layout,
     PositionedLayoutItem, RangedBuilder, StyleProperty,
 };
-use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_geometry::{HAlignment, Point, Rect, VAlignment};
 use quartzite_paint_api::{
     Brush, BrushKind, Font, Image, Painter, Path, Pen, Segment, TextCaretCursor, TextVisualLine,
     TextVisualLineCursor,
@@ -632,7 +632,8 @@ impl Painter for VelloPainter<'_> {
         text: &str,
         font: &Font,
         brush: &Brush,
-        alignment: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     ) {
         if text.is_empty() {
             return;
@@ -642,7 +643,6 @@ impl Painter for VelloPainter<'_> {
         };
         let s = f64::from(self.scale);
         let px = f64::from(rect.left()) * s;
-        let py = f64::from(rect.top()) * s;
         #[allow(
             clippy::cast_precision_loss,
             reason = "sub-pixel coordinate widening is intentional"
@@ -663,14 +663,24 @@ impl Painter for VelloPainter<'_> {
                 None
             };
             layout.break_all_lines(wrap);
-            let parley_align = match alignment {
-                Alignment::Left => ParleyAlignment::Left,
-                Alignment::Center => ParleyAlignment::Center,
-                Alignment::Right => ParleyAlignment::Right,
-                Alignment::Justify => ParleyAlignment::Justify,
+            let parley_align = match h_align {
+                HAlignment::Left => ParleyAlignment::Left,
+                HAlignment::Center => ParleyAlignment::Center,
+                HAlignment::Right => ParleyAlignment::Right,
+                HAlignment::Justify => ParleyAlignment::Justify,
             };
             layout.align(parley_align, AlignmentOptions::default());
             layout
+        };
+
+        let rect_top = f64::from(rect.top()) * s;
+        let rect_height = f64::from(rect.size().height()) * s;
+        let py = match v_align {
+            VAlignment::Top => rect_top,
+            VAlignment::Center => {
+                (rect_top + (rect_height - f64::from(layout.height())) / 2.0).round()
+            }
+            VAlignment::Bottom => (rect_top + (rect_height - f64::from(layout.height()))).round(),
         };
 
         self.emit_layout_glyphs(&layout, px, py, fill_color, font);
@@ -851,7 +861,7 @@ mod tests {
         p.save();
         p.restore();
         p.draw_text(origin, "hi", &font, &brush);
-        p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
+        p.draw_text_in(rect, "hi", &font, &brush, HAlignment::Left, VAlignment::Top);
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
         {

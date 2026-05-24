@@ -1,4 +1,4 @@
-use quartzite_geometry::{Alignment, Point, Rect};
+use quartzite_geometry::{HAlignment, Point, Rect, VAlignment};
 
 use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor};
 
@@ -14,7 +14,7 @@ use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor
 ///     Brush, Color, Font, Image, Painter, Path, Pen,
 ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor,
 /// };
-/// use quartzite_geometry::{Alignment, Point, Rect, Size};
+/// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
 ///
 /// struct NullCaretCursor;
 /// impl TextCaretCursor for NullCaretCursor {
@@ -53,7 +53,8 @@ use crate::{Brush, Font, Image, Path, Pen, TextCaretCursor, TextVisualLineCursor
 ///         _text: &str,
 ///         _font: &Font,
 ///         _brush: &Brush,
-///         _alignment: Alignment,
+///         _h_align: HAlignment,
+///         _v_align: VAlignment,
 ///     ) {}
 ///     fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
 ///     fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
@@ -143,14 +144,65 @@ pub trait Painter {
     /// - `text`: the string to render.
     /// - `font`: typeface, size, and style flags.
     /// - `brush`: fill style for the glyphs.
-    /// - `alignment`: horizontal alignment within `rect`.
+    /// - `h_align`: horizontal alignment within `rect`.
+    /// - `v_align`: vertical alignment within `rect`. [`VAlignment::Top`] anchors
+    ///   text to the top; [`VAlignment::Center`] centres it; [`VAlignment::Bottom`]
+    ///   anchors it to the bottom.
+    ///
+    /// **Parameter order:** `h_align` always precedes `v_align`; call sites must
+    /// rely on positional order. [`HAlignment`] governs the horizontal axis;
+    /// [`VAlignment`] governs the vertical axis — they are distinct types so the
+    /// compiler catches transposed arguments.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use quartzite_paint_api::{Brush, Color, Font, Painter};
+    /// # use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
+    /// # struct NullCaret;
+    /// # impl quartzite_paint_api::TextCaretCursor for NullCaret {
+    /// #     fn advance_to(&mut self, _: usize) {}
+    /// #     fn caret_x(&self) -> i32 { 0 }
+    /// #     fn line_top(&self) -> i32 { 0 }
+    /// #     fn line_height(&self) -> i32 { 12 }
+    /// # }
+    /// # struct NullLines;
+    /// # impl quartzite_paint_api::TextVisualLineCursor for NullLines {
+    /// #     fn next_line(&mut self) -> Option<quartzite_paint_api::TextVisualLine> { None }
+    /// # }
+    /// # struct NullP { c: NullCaret, l: NullLines }
+    /// # impl Painter for NullP {
+    /// #     fn draw_rect(&mut self, _: Rect, _: &quartzite_paint_api::Pen, _: &Brush) {}
+    /// #     fn fill_rect(&mut self, _: Rect, _: &Brush) {}
+    /// #     fn draw_line(&mut self, _: Point, _: Point, _: &quartzite_paint_api::Pen) {}
+    /// #     fn clip_rect(&mut self, _: Rect) {}
+    /// #     fn translate(&mut self, _: Point) {}
+    /// #     fn save(&mut self) {}
+    /// #     fn restore(&mut self) {}
+    /// #     fn draw_text(&mut self, _: Point, _: &str, _: &Font, _: &Brush) {}
+    /// #     fn draw_text_in(&mut self, _: Rect, _: &str, _: &Font, _: &Brush, _: HAlignment, _: VAlignment) {}
+    /// #     fn draw_image(&mut self, _: Rect, _: &quartzite_paint_api::Image) {}
+    /// #     fn draw_path(&mut self, _: &quartzite_paint_api::Path, _: &quartzite_paint_api::Pen, _: &Brush) {}
+    /// #     fn text_carets(&mut self, _: &str, _: &Font) -> &mut dyn quartzite_paint_api::TextCaretCursor { &mut self.c }
+    /// #     fn text_visual_lines(&mut self, _: &str, _: &Font, _: i32) -> &mut dyn quartzite_paint_api::TextVisualLineCursor { &mut self.l }
+    /// # }
+    /// let mut p = NullP { c: NullCaret, l: NullLines };
+    /// let rect = Rect::new(Point::new(0, 0), Size::new(200, 64));
+    /// let font = Font::new("sans-serif", 16.0);
+    /// let brush = Brush::solid(Color::BLACK);
+    /// // Horizontally centred, vertically centred:
+    /// p.draw_text_in(rect, "Hello", &font, &brush, HAlignment::Center, VAlignment::Center);
+    /// // Left-aligned, top-anchored (e.g. TextEdit):
+    /// p.draw_text_in(rect, "Hello", &font, &brush, HAlignment::Left, VAlignment::Top);
+    /// ```
     fn draw_text_in(
         &mut self,
         rect: Rect,
         text: &str,
         font: &Font,
         brush: &Brush,
-        alignment: Alignment,
+        h_align: HAlignment,
+        v_align: VAlignment,
     );
 
     /// Draws `image` scaled into `rect`.
@@ -459,7 +511,8 @@ mod tests {
             _text: &str,
             _font: &Font,
             _brush: &Brush,
-            _alignment: Alignment,
+            _h_align: HAlignment,
+            _v_align: VAlignment,
         ) {
             self.calls[8] += 1;
         }
@@ -514,7 +567,7 @@ mod tests {
             p.save();
             p.restore();
             p.draw_text(origin, "hi", &font, &brush);
-            p.draw_text_in(rect, "hi", &font, &brush, Alignment::Left);
+            p.draw_text_in(rect, "hi", &font, &brush, HAlignment::Left, VAlignment::Top);
             p.draw_image(rect, &image);
             p.draw_path(&path, &pen, &brush);
         }
@@ -532,7 +585,14 @@ mod tests {
         let image = Image::try_new(0, 0, alloc::vec![]).unwrap();
         let path = Path::new();
         p.draw_text(Point::new(0, 0), "x", &font, &brush);
-        p.draw_text_in(rect, "x", &font, &brush, Alignment::Center);
+        p.draw_text_in(
+            rect,
+            "x",
+            &font,
+            &brush,
+            HAlignment::Center,
+            VAlignment::Center,
+        );
         p.draw_image(rect, &image);
         p.draw_path(&path, &pen, &brush);
     }

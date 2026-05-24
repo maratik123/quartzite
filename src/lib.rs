@@ -296,7 +296,8 @@ pub mod snapshot {
 /// [`Path`](quartzite_paint_api::Path) / [`Segment`](quartzite_paint_api::Segment),
 /// [`PaintError`](quartzite_paint_api::PaintError),
 /// [`Painter`](quartzite_paint_api::Painter), and [`Pen`](quartzite_paint_api::Pen),
-/// plus [`Alignment`](quartzite_geometry::Alignment) (re-exported through
+/// plus [`HAlignment`](quartzite_geometry::HAlignment) and
+/// [`VAlignment`](quartzite_geometry::VAlignment) (re-exported through
 /// `quartzite-paint` for vocabulary completeness).
 ///
 /// The concrete backend implementation lives in `quartzite-renderer`
@@ -393,7 +394,7 @@ pub mod prelude {
     };
 
     // quartzite-geometry: alignment (lives next to the paint vocabulary)
-    pub use quartzite_geometry::Alignment;
+    pub use quartzite_geometry::{HAlignment, VAlignment};
 }
 
 #[cfg(test)]
