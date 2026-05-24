@@ -12,7 +12,6 @@ use quartzite_macros::MetaEnum;
 /// assert_eq!(FocusPolicy::NoFocus as i64, 0);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
 pub enum FocusPolicy {
     /// The widget never receives keyboard focus.
     #[default]
@@ -35,7 +34,6 @@ pub enum FocusPolicy {
 /// assert_eq!(SizePolicy::Fixed as i64, 0);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
 pub enum SizePolicy {
     /// The size hint is the only acceptable size.
     #[default]
@@ -60,7 +58,6 @@ pub enum SizePolicy {
 /// assert_eq!(CursorShape::Arrow as i64, 0);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
 pub enum CursorShape {
     /// Standard arrow pointer.
     #[default]
