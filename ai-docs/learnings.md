@@ -1455,3 +1455,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** Design Amendment MUST route through the `design` subagent (same as Step 6), not be applied directly by the orchestrator. The orchestrator only owns: (1) surfacing the amendment to the user, (2) spawning `design` subagent with the amendment description, (3) spawning `design-review` on the result. Fix the skill recipe to say "spawn the `design` subagent to apply the amendment" rather than "update the design doc." The existing learning about orchestrator writing the design file directly (2026-05-24, process) is a related instance of the same pattern.
 **Kind:** correction
 **Escalated?** no
+
+### 2026-05-24 — testing — new integration test file with wall-clock-bounded assertions missing #![cfg(not(miri))]
+
+**What happened:** `quartzite-runtime/tests/timer_single_shot_app.rs` was added as a separate binary for the AC11 single-shot test without the `#![cfg(not(miri))]` per-file gate. Its sibling `timer.rs` already had the gate for the same reason (interpreter budget — 500 ms wall-clock timeout). The missing tag caused Miri CI run 26357397751 to fail with "AppDriver single_shot must fire at least once".
+**Rule:** Every new integration test file whose assertions are wall-clock-bounded (timeouts, `thread::sleep`-dependent polls) MUST carry `#![cfg(not(miri))]` + the policy comment block (miri-policy.md per-file fallback template) at creation time. Don't add the file and fix the tag in a follow-up; add both in the same commit.
+**Kind:** correction
+**Escalated?** no
