@@ -19,7 +19,6 @@ use quartzite_macros::MetaEnum;
 /// assert_eq!(HAlignment::default(), HAlignment::Left);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
 pub enum HAlignment {
     /// Align content to the left.
     #[default]
