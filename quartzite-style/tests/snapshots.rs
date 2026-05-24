@@ -746,3 +746,194 @@ fn dark_text_edit_unfocused_selection_renders() {
         );
     });
 }
+
+// ---------------------------------------------------------------------------
+// LineEdit caret + selection snapshot goldens (issue #405)
+// ---------------------------------------------------------------------------
+//
+// All light tests use `DefaultStyle::with_clock(StyleClock::pinned(true))`
+// so the caret is always visible and the golden is deterministic.
+
+#[test]
+fn line_edit_focused_empty_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_focused_empty_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("line_edit_focused_empty", &image);
+}
+
+#[test]
+fn line_edit_focused_caret_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_focused_caret_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(2);
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("line_edit_focused_caret", &image);
+}
+
+#[test]
+fn line_edit_focused_selection_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_focused_selection_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(1);
+    w.set_selection_anchor(Some(3));
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("line_edit_focused_selection", &image);
+}
+
+#[test]
+fn line_edit_unfocused_selection_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_unfocused_selection_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(1);
+    w.set_selection_anchor(Some(3));
+    // Not focused — selection alpha is half.
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("line_edit_unfocused_selection", &image);
+}
+
+#[test]
+fn line_edit_read_only_selection_renders() {
+    let Some(mut harness) = harness_or_skip("line_edit_read_only_selection_renders") else {
+        return;
+    };
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.caret = 1;
+    w.selection_anchor = Some(3);
+    w.read_only = true;
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("line_edit_read_only_selection", &image);
+}
+
+#[test]
+fn dark_line_edit_focused_empty_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.set_focused(true);
+    render_dark("dark_line_edit_focused_empty", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_line_edit_focused_caret_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(2);
+    w.set_focused(true);
+    render_dark("dark_line_edit_focused_caret", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_line_edit_focused_selection_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(1);
+    w.set_selection_anchor(Some(3));
+    w.set_focused(true);
+    render_dark("dark_line_edit_focused_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_line_edit_unfocused_selection_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.set_caret(1);
+    w.set_selection_anchor(Some(3));
+    // Not focused — selection alpha is half.
+    render_dark("dark_line_edit_unfocused_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_line_edit_read_only_selection_renders() {
+    let mut w = LineEdit::new();
+    w.set_geometry(canvas_rect());
+    w.text = "abc".into();
+    w.caret = 1;
+    w.selection_anchor = Some(3);
+    w.read_only = true;
+    w.set_focused(true);
+    render_dark("dark_line_edit_read_only_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
