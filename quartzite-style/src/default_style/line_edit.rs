@@ -207,7 +207,7 @@ fn paint_selection_line_edit(
 ///
 /// The caret is vertically centred within the widget's geometry — unlike
 /// [`quartzite_widgets::TextEdit`] which uses the cursor's `line_top`,
-/// `LineEdit` aligns the caret to `geom.top() + (geom.height() - line_height) / 2`
+/// `LineEdit` aligns the caret to `geom.top() + (geom.size().height() - line_height) / 2`
 /// because single-line text is always centred in the field.
 ///
 /// The caret position is clamped to `0..=text.len()` as defence in depth

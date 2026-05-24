@@ -842,9 +842,9 @@ fn line_edit_read_only_selection_renders() {
     let mut w = LineEdit::new();
     w.set_geometry(canvas_rect());
     w.text = "abc".into();
+    w.caret = 1;
+    w.selection_anchor = Some(3);
     w.read_only = true;
-    w.set_caret(1);
-    w.set_selection_anchor(Some(3));
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
         DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
@@ -925,9 +925,9 @@ fn dark_line_edit_read_only_selection_renders() {
     let mut w = LineEdit::new();
     w.set_geometry(canvas_rect());
     w.text = "abc".into();
+    w.caret = 1;
+    w.selection_anchor = Some(3);
     w.read_only = true;
-    w.set_caret(1);
-    w.set_selection_anchor(Some(3));
     w.set_focused(true);
     render_dark("dark_line_edit_read_only_selection", |painter| {
         DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
