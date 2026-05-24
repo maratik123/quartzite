@@ -1442,6 +1442,13 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+### 2026-05-24 — process — design subagent did not write design file (recurrence #2 — /task 557)
+
+**What happened:** The `design` subagent (Step 6 of `/task 557`) produced the full design document as text in its response but never called the `Write` tool to persist `ai-docs/plans/2026-05-24-fix-ac10-public-docs.design.md`. The orchestrator again wrote the file manually using `Write` instead of re-running the design agent. Same violation pattern as the 2026-05-24 entry above for `/task` design-system-conformance.
+**Rule:** After the `design` subagent returns, IMMEDIATELY run `ls ai-docs/plans/*.design.md`. If the file is missing, RE-RUN the design agent — do NOT transcribe its text output into the file. The orchestrator MUST NOT write design files; the design subagent owns all `*.design.md` writes.
+**Kind:** correction
+**Escalated?** no
+
 ### 2026-05-24 — process — Design Amendment applied directly by orchestrator; skill does not route amendments through design subagent
 
 **What happened:** During `/pr-commented` round 1, a reviewer requested an API split (`Alignment` → `HAlignment` + `VAlignment`). The Design Amendment recipe in `.claude/skills/task/SKILL.md` says "update the design doc, re-run Step 7 design-review" — the orchestrator interpreted "update the design doc" as permission to edit `*.design.md` directly using `Edit` tools, bypassing the `design` subagent. The user expected the design subagent to be spawned for the amendment.

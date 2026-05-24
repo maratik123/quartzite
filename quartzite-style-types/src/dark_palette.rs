@@ -106,7 +106,7 @@ mod tests {
     /// `const` context.
     const _: Palette = DARK_PALETTE;
 
-    /// AC8 — assert the five meaningful dark-theme cells are set correctly.
+    /// Asserts the five meaningful dark-theme cells are set correctly.
     ///
     /// Button and Highlight Hover/Pressed are derived from their Normal
     /// cells blended toward MERCURY at 6 % / 16 % respectively.
@@ -139,9 +139,9 @@ mod tests {
         );
     }
 
-    /// AC8 — `FocusRing` Hover and Pressed must mirror Normal in the dark theme.
+    /// `FocusRing` Hover and Pressed must mirror Normal in the dark theme.
     ///
-    /// Enforces spec § *Out of scope*: `FocusRing` has no meaningful state variant in v1.
+    /// `FocusRing` has no meaningful state variant in v1.
     #[test]
     fn dark_palette_focus_ring_per_group_mirrors_normal() {
         let normal = DARK_PALETTE.color(ColorRole::FocusRing, ColorGroup::Normal);
@@ -157,7 +157,7 @@ mod tests {
         );
     }
 
-    /// AC8 — derivation applies to non-stateful roles in the dark theme.
+    /// Derivation applies to non-stateful roles in the dark theme.
     ///
     /// `Window × Pressed` is derived from `MINE_SHAFT` blended toward `MERCURY`
     /// at 16 %, confirming the derivation formula ran for a non-stateful role.
