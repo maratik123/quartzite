@@ -168,7 +168,9 @@ mod tests {
     use super::*;
     use quartzite_core::ObjectId;
     use quartzite_geometry::{Point, Rect, Size};
-    use quartzite_paint_api::{Brush, Color, Font, Image, Path, Pen};
+    use quartzite_paint_api::{
+        Brush, Color, Font, Image, Path, Pen, TextCaretCursor, TextVisualLine, TextVisualLineCursor,
+    };
     use quartzite_style::Palette;
     use quartzite_style::StyleRegistry;
     use quartzite_widgets::{
@@ -187,13 +189,40 @@ mod tests {
         Other,
     }
 
+    struct NullCaretCursor;
+    impl TextCaretCursor for NullCaretCursor {
+        fn advance_to(&mut self, _byte_offset: usize) {}
+        fn caret_x(&self) -> i32 {
+            0
+        }
+        fn line_top(&self) -> i32 {
+            0
+        }
+        fn line_height(&self) -> i32 {
+            0
+        }
+    }
+
+    struct NullLineCursor;
+    impl TextVisualLineCursor for NullLineCursor {
+        fn next_line(&mut self) -> Option<TextVisualLine> {
+            None
+        }
+    }
+
     struct RecordingPainter {
         events: Vec<PaintEvent>,
+        null_caret: NullCaretCursor,
+        null_lines: NullLineCursor,
     }
 
     impl RecordingPainter {
         fn new() -> Self {
-            Self { events: Vec::new() }
+            Self {
+                events: Vec::new(),
+                null_caret: NullCaretCursor,
+                null_lines: NullLineCursor,
+            }
         }
     }
 
@@ -228,6 +257,17 @@ mod tests {
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
         fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
         fn clip_rect(&mut self, _rect: Rect) {}
+        fn text_carets(&mut self, _text: &str, _font: &Font) -> &mut dyn TextCaretCursor {
+            &mut self.null_caret
+        }
+        fn text_visual_lines(
+            &mut self,
+            _text: &str,
+            _font: &Font,
+            _wrap_width: i32,
+        ) -> &mut dyn TextVisualLineCursor {
+            &mut self.null_lines
+        }
     }
 
     /// A test `Style` that emits exactly one `FillRect` per `draw_widget` call.
@@ -241,6 +281,10 @@ mod tests {
             _palette: &Palette,
         ) {
             painter.fill_rect(widget.widget_base().geometry, &Brush::solid(Color::BLACK));
+        }
+
+        fn caret_visible_now(&self) -> bool {
+            false
         }
     }
 

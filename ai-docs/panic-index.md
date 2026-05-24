@@ -39,6 +39,26 @@ was not used at the time, and the preferred fix when this is eventually hardened
 | **Why not `Result`** | `current_xform()` is a private helper called from every draw method; returning `Result` would infect all call sites with boilerplate for a condition that genuinely cannot occur with the current invariant. |
 | **Preferred fix** | Replace the `Vec`-based stacks with a `NonEmpty` or `SmallVec`-backed type that enforces the invariant at the type level, eliminating the `expect` entirely. |
 
+### `quartzite-renderer` — `VelloPainter::text_carets` cursor slot
+
+| Field | Value |
+|---|---|
+| **Location** | `quartzite-renderer/src/vello_painter.rs` — `text_carets()`, line 730 |
+| **Trigger** | `.unwrap()` on `self.caret_cursor_slot.as_mut()` — would fire if the slot were `None`. |
+| **Invariant** | The slot is assigned `Some(Box::new(c))` on line 729, two statements before the `.unwrap()` on line 730. Within a single method with no re-entrancy, the slot is always `Some` at the unwrap site. |
+| **Why not `Result`** | The `Painter::text_carets` signature returns `&mut dyn TextCaretCursor` (not `Result`); changing the return type would break object-safety and require touching every `Painter` implementor. |
+| **Preferred fix** | Store the cursor inline as `Option<Box<dyn TextCaretCursor>>` and use `as_deref_mut().expect(...)` with a descriptive message, or redesign the slot to use a concrete type that removes the `Option` wrapper entirely. |
+
+### `quartzite-renderer` — `VelloPainter::text_visual_lines` cursor slot
+
+| Field | Value |
+|---|---|
+| **Location** | `quartzite-renderer/src/vello_painter.rs` — `text_visual_lines()`, line 753 |
+| **Trigger** | `.unwrap()` on `self.line_cursor_slot.as_mut()` — would fire if the slot were `None`. |
+| **Invariant** | The slot is assigned `Some(Box::new(c))` on line 752, one statement before the `.unwrap()` on line 753. Within a single method with no re-entrancy, the slot is always `Some` at the unwrap site. |
+| **Why not `Result`** | Same constraint as `text_carets`: the `Painter::text_visual_lines` signature returns `&mut dyn TextVisualLineCursor` (not `Result`). |
+| **Preferred fix** | Same as `text_carets` — redesign the slot type to remove the `Option` wrapper, or use `.expect("line_cursor_slot: assigned Some above")` for a louder panic message. |
+
 ---
 
 ## Notes

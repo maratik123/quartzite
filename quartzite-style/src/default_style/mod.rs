@@ -1,37 +1,42 @@
 //! [`DefaultStyle`] — built-in flat default style for quartzite widgets.
 
+mod text_edit;
+
 use quartzite_paint_api::{Brush, Color, Painter, Pen};
 use quartzite_style_types::{ColorGroup, ColorRole, Palette};
 use quartzite_widgets::{
-    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, TextEdit, WidgetExt,
-    WidgetView,
+    Alignment, AsWidget, Button, Container, Label, LineEdit, ScrollArea, WidgetExt, WidgetView,
 };
 
+use crate::clock::StyleClock;
 use crate::{Paint, Style};
 
 /// Alpha applied to [`ColorRole::WindowText`] to form the read-only surface overlay.
 ///
 /// Low enough to remain translucent, high enough to be visually distinct on any palette.
-const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
+pub(super) const READ_ONLY_OVERLAY_ALPHA: f32 = 0.10;
 
 /// Alpha applied to [`ColorRole::Text`] when a widget is in read-only mode.
 ///
 /// Preserves legibility while visually conveying the non-editable state.
-const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
+pub(super) const READ_ONLY_TEXT_ALPHA: f32 = 0.65;
 
 /// Stroke width in pixels for the focus-ring outline drawn around a focused [`Button`].
-const FOCUS_RING_WIDTH: f32 = 2.0;
+pub(super) const FOCUS_RING_WIDTH: f32 = 2.0;
 
 /// Built-in concrete [`Style`] implementation using a flat visual design.
 ///
-/// `DefaultStyle` is a zero-sized, `Default`-implementing struct that ships
-/// inside `quartzite-style`. Its [`draw_widget`](Style::draw_widget) body
-/// routes on the runtime widget type via [`WidgetView`] pattern matching and
-/// dispatches to the appropriate [`Paint<W>`](crate::Paint) impl:
+/// `DefaultStyle` owns a [`StyleClock`] that drives caret-blink timing.
+/// Construct it with [`DefaultStyle::new`] (wall-clock blink) or
+/// [`DefaultStyle::with_clock`] (custom / pinned clock for tests).
+///
+/// Its [`draw_widget`](Style::draw_widget) body routes on the runtime widget
+/// type via [`WidgetView`] pattern matching and dispatches to the appropriate
+/// [`Paint<W>`](crate::Paint) impl:
 ///
 /// - [`Button`] — flat fill, 1 px outline, centered label; checked/disabled variants.
 /// - [`Label`] — background fill + left-aligned (or widget-specified) text.
-/// - [`TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
+/// - [`quartzite_widgets::TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
 /// - [`ScrollArea`] — chrome only (background fill + 1 px outline); no child traversal.
 /// - [`Container`] — Window background fill + 1 px `WindowText` outline; no child traversal.
 /// - [`LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
@@ -48,7 +53,7 @@ const FOCUS_RING_WIDTH: f32 = 2.0;
 /// ```
 /// use quartzite_style::{DefaultStyle, StyleRegistry};
 ///
-/// StyleRegistry::set_style(Box::new(DefaultStyle));
+/// StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 /// assert!(StyleRegistry::try_style().is_some());
 /// ```
 ///
@@ -56,10 +61,114 @@ const FOCUS_RING_WIDTH: f32 = 2.0;
 /// use quartzite_style::{DefaultStyle, Style};
 ///
 /// // DefaultStyle implements Style — it can be boxed as a trait object.
-/// let _: Box<dyn Style> = Box::new(DefaultStyle);
+/// let _: Box<dyn Style> = Box::new(DefaultStyle::new());
 /// ```
-#[derive(Clone, Copy, Debug, Default)]
-pub struct DefaultStyle;
+#[derive(Clone, Debug)]
+pub struct DefaultStyle {
+    clock: StyleClock,
+}
+
+impl DefaultStyle {
+    /// Constructs a new [`DefaultStyle`] with a wall-clock [`StyleClock`].
+    ///
+    /// The clock starts at [`std::time::Instant::now`] and alternates the caret
+    /// phase every 530 ms.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::DefaultStyle;
+    ///
+    /// let style = DefaultStyle::new();
+    /// ```
+    #[inline]
+    pub fn new() -> Self {
+        Self {
+            clock: StyleClock::new(),
+        }
+    }
+
+    /// Constructs a [`DefaultStyle`] with an explicit [`StyleClock`].
+    ///
+    /// Use this in tests or snapshot harnesses to pin the caret phase to a
+    /// deterministic value via [`StyleClock::pinned`].
+    ///
+    /// # Parameters
+    ///
+    /// - `clock`: the clock to use for caret-blink phase queries.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_style::{DefaultStyle, Style, StyleClock};
+    ///
+    /// // Caret always visible — useful for snapshot tests.
+    /// let style = DefaultStyle::with_clock(StyleClock::pinned(true));
+    /// assert!(style.caret_visible_now());
+    /// ```
+    #[inline]
+    pub const fn with_clock(clock: StyleClock) -> Self {
+        Self { clock }
+    }
+
+    /// Constructs a 530 ms-interval [`quartzite_runtime::Timer`] that invokes
+    /// `on_tick` on each blink tick and starts it immediately with `driver`.
+    ///
+    /// Only available when the `runtime-blink` cargo feature is enabled
+    /// (the default). Consumers who opt out of the runtime layer
+    /// (`default-features = false`) can still poll the read-side seam via
+    /// [`Style::caret_visible_now`] with a [`StyleClock`] they manage manually.
+    ///
+    /// The caller must hold the returned [`quartzite_runtime::Timer`] for as
+    /// long as blink invalidation is desired; dropping the timer stops the blink.
+    ///
+    /// Use this to wire the caret-blink invalidation seam: when `on_tick`
+    /// fires, schedule a repaint of the focused `TextEdit` widget.
+    ///
+    /// # Parameters
+    ///
+    /// - `driver`: timer backend used to schedule the blink interval.
+    /// - `on_tick`: callback invoked on every tick (typically schedules a repaint).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use std::sync::Arc;
+    /// use quartzite_runtime::ThreadDriver;
+    /// use quartzite_style::DefaultStyle;
+    ///
+    /// let _timer = DefaultStyle::new()
+    ///     .start_blink_timer(Arc::new(ThreadDriver::new()), Arc::new(|| {}));
+    /// // Drop `_timer` to stop blinking.
+    /// ```
+    #[cfg(feature = "runtime-blink")]
+    pub fn start_blink_timer(
+        &self,
+        driver: std::sync::Arc<dyn quartzite_runtime::TimerDriver>,
+        on_tick: std::sync::Arc<dyn Fn() + Send + Sync>,
+    ) -> quartzite_runtime::Timer {
+        use std::time::Duration;
+
+        const BLINK_INTERVAL_MS: u64 = 530;
+
+        let mut timer = quartzite_runtime::Timer::new(Duration::from_millis(BLINK_INTERVAL_MS));
+        timer.connect_tick(move |_event| {
+            on_tick();
+        });
+        timer.start(driver);
+        timer
+    }
+}
+
+impl Default for DefaultStyle {
+    /// Returns a [`DefaultStyle`] with a fresh wall-clock [`StyleClock`].
+    ///
+    /// Equivalent to [`DefaultStyle::new`].
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Style for DefaultStyle {
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette) {
@@ -73,6 +182,16 @@ impl Style for DefaultStyle {
             // Unknown widget type — deliberate no-op; does not panic.
             _ => {}
         }
+    }
+
+    #[inline]
+    fn caret_visible_now(&self) -> bool {
+        self.clock.caret_visible_now()
+    }
+
+    #[inline]
+    fn prefers_reduced_motion(&self) -> bool {
+        self.clock.prefers_reduced_motion()
     }
 }
 
@@ -155,66 +274,6 @@ impl Paint<Label> for DefaultStyle {
             );
         }
         painter.draw_text_in(geom, &w.text, &font, &Brush::solid(text_color), w.alignment);
-    }
-}
-
-impl Paint<TextEdit> for DefaultStyle {
-    fn paint(&self, w: &TextEdit, painter: &mut dyn Painter, palette: &Palette) {
-        let geom = w.geometry();
-        let font = w.widget_base().font.clone();
-        let enabled = w.is_enabled();
-        let hovered = w.is_hovered();
-        let pressed = w.is_pressed();
-        let focused = w.is_focused();
-
-        let group = state_group(pressed, hovered);
-        let (fill_role, text_role) = if pressed {
-            (ColorRole::Highlight, ColorRole::HighlightedText)
-        } else {
-            (ColorRole::Base, ColorRole::Text)
-        };
-        // Idle/hover keep outline = Text (tracks the text colour); pressed
-        // swaps to HighlightedText for legibility under the inverted fill.
-        let outline_role_idle = if pressed {
-            ColorRole::HighlightedText
-        } else {
-            ColorRole::Text
-        };
-        let fill_color = maybe_disabled(palette.color(fill_role, group), enabled);
-        let text_color = maybe_disabled(palette.color(text_role, group), enabled);
-        let outline_color_idle = maybe_disabled(palette.color(outline_role_idle, group), enabled);
-
-        painter.fill_rect(geom, &Brush::solid(fill_color));
-        if w.read_only {
-            painter.fill_rect(geom, &Brush::solid(read_only_overlay(palette)));
-        }
-        // `focused` widens the outline to 2 px FocusRing (full alpha — never alpha-halved).
-        let (outline_color, outline_width) = if focused {
-            (
-                palette.color(ColorRole::FocusRing, ColorGroup::Normal),
-                FOCUS_RING_WIDTH,
-            )
-        } else {
-            (outline_color_idle, 1.0)
-        };
-        painter.draw_rect(
-            geom,
-            &Pen::new(outline_color, outline_width),
-            &Brush::solid(Color::TRANSPARENT),
-        );
-        // Read-only dims the state-resolved text colour; does NOT collapse to idle.
-        let final_text_color = if w.read_only {
-            text_color.with_alpha(READ_ONLY_TEXT_ALPHA)
-        } else {
-            text_color
-        };
-        painter.draw_text_in(
-            geom,
-            &w.plain_text,
-            &font,
-            &Brush::solid(final_text_color),
-            Alignment::Left,
-        );
     }
 }
 
@@ -337,7 +396,7 @@ impl Paint<LineEdit> for DefaultStyle {
 /// `pressed` wins over `hovered`; falls back to [`ColorGroup::Normal`] otherwise.
 /// Shared selector for every state-aware `Paint<W>` impl in this module.
 #[inline]
-const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
+pub(super) const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
     if pressed {
         ColorGroup::Pressed
     } else if hovered {
@@ -349,7 +408,7 @@ const fn state_group(pressed: bool, hovered: bool) -> ColorGroup {
 
 /// Returns a solid [`Brush`] using the `Normal`-group colour at `role` in `palette`.
 #[inline]
-const fn brush(palette: &Palette, role: ColorRole) -> Brush {
+pub(super) const fn brush(palette: &Palette, role: ColorRole) -> Brush {
     Brush::solid(palette.color(role, ColorGroup::Normal))
 }
 
@@ -357,7 +416,7 @@ const fn brush(palette: &Palette, role: ColorRole) -> Brush {
 ///
 /// With the default palette (all roles fully opaque), maps `1.0 → 0.5`.
 #[inline]
-fn disabled(color: Color) -> Color {
+pub(super) fn disabled(color: Color) -> Color {
     color.with_alpha(color.a() * 0.5)
 }
 
@@ -368,7 +427,7 @@ fn disabled(color: Color) -> Color {
 /// and `Base` share a colour (as on `Palette::default`) — because
 /// `WindowText` always carries contrast against `Window` and `Base`.
 #[inline]
-const fn read_only_overlay(palette: &Palette) -> Color {
+pub(super) const fn read_only_overlay(palette: &Palette) -> Color {
     palette
         .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(READ_ONLY_OVERLAY_ALPHA)
@@ -379,10 +438,10 @@ const fn read_only_overlay(palette: &Palette) -> Color {
     clippy::doc_link_code,
     reason = "adjacency-to-(args) pattern: renders disabled(color) with disabled intra-doc-linked; flattening to [disabled](path) would drop the surrounding code styling on (color)"
 )]
-fn maybe_disabled(color: Color, enabled: bool) -> Color {
+pub(super) fn maybe_disabled(color: Color, enabled: bool) -> Color {
     if enabled { color } else { disabled(color) }
 }
 
 #[cfg(test)]
-#[path = "default_style_tests.rs"]
+#[path = "../default_style_tests.rs"]
 mod tests;

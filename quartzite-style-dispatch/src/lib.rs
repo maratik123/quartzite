@@ -17,7 +17,7 @@
 //! use quartzite_style_dispatch::{WidgetResolver, dispatch_paint};
 //!
 //! // 1. Install a style (once per process, before painting).
-//! StyleRegistry::set_style(Box::new(DefaultStyle));
+//! StyleRegistry::set_style(Box::new(DefaultStyle::new()));
 //!
 //! // 2. Build a widget tree.
 //! let root_id  = ObjectId::new();
@@ -45,7 +45,18 @@
 //! let resolver = MapResolver(map);
 //!
 //! // 4. Call dispatch_paint with the root id, resolver, painter, and palette.
-//! struct NullPainter;
+//! struct NullCaret;
+//! impl quartzite_paint_api::TextCaretCursor for NullCaret {
+//!     fn advance_to(&mut self, _: usize) {}
+//!     fn caret_x(&self) -> i32 { 0 }
+//!     fn line_top(&self) -> i32 { 0 }
+//!     fn line_height(&self) -> i32 { 0 }
+//! }
+//! struct NullLines;
+//! impl quartzite_paint_api::TextVisualLineCursor for NullLines {
+//!     fn next_line(&mut self) -> Option<quartzite_paint_api::TextVisualLine> { None }
+//! }
+//! struct NullPainter { caret: NullCaret, lines: NullLines }
 //! impl quartzite_paint_api::Painter for NullPainter {
 //!     fn draw_rect(&mut self, _r: quartzite_geometry::Rect, _p: &quartzite_paint_api::Pen, _b: &quartzite_paint_api::Brush) {}
 //!     fn fill_rect(&mut self, _r: quartzite_geometry::Rect, _b: &quartzite_paint_api::Brush) {}
@@ -58,9 +69,11 @@
 //!     fn draw_text_in(&mut self, _r: quartzite_geometry::Rect, _t: &str, _f: &quartzite_paint_api::Font, _b: &quartzite_paint_api::Brush, _a: quartzite_geometry::Alignment) {}
 //!     fn draw_image(&mut self, _r: quartzite_geometry::Rect, _i: &quartzite_paint_api::Image) {}
 //!     fn draw_path(&mut self, _p: &quartzite_paint_api::Path, _pe: &quartzite_paint_api::Pen, _b: &quartzite_paint_api::Brush) {}
+//!     fn text_carets(&mut self, _t: &str, _f: &quartzite_paint_api::Font) -> &mut dyn quartzite_paint_api::TextCaretCursor { &mut self.caret }
+//!     fn text_visual_lines(&mut self, _t: &str, _f: &quartzite_paint_api::Font, _w: i32) -> &mut dyn quartzite_paint_api::TextVisualLineCursor { &mut self.lines }
 //! }
 //!
-//! let mut painter = NullPainter;
+//! let mut painter = NullPainter { caret: NullCaret, lines: NullLines };
 //! dispatch_paint(root_id, &resolver, &mut painter, &Palette::default());
 //! ```
 

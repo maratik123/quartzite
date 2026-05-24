@@ -21,7 +21,7 @@ mod support;
 
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::Painter;
-use quartzite_style::{DefaultStyle, Style};
+use quartzite_style::{DefaultStyle, Style, StyleClock};
 use quartzite_style_types::{DARK_PALETTE, Palette};
 use quartzite_widgets::{AsWidget, Button, Label, LineEdit, ScrollArea, TextEdit, WidgetExt};
 
@@ -46,7 +46,7 @@ fn button_idle_renders() {
     let mut w = Button::new("OK".into());
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_idle", &image);
 }
@@ -60,7 +60,7 @@ fn button_checked_renders() {
     w.set_geometry(canvas_rect());
     w.checked = true;
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_checked", &image);
 }
@@ -74,7 +74,7 @@ fn button_disabled_renders() {
     w.set_geometry(canvas_rect());
     w.set_enabled(false);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_disabled", &image);
 }
@@ -87,7 +87,7 @@ fn label_renders() {
     let mut w = Label::new("hi".into());
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("label", &image);
 }
@@ -101,7 +101,7 @@ fn text_edit_plain_renders() {
     w.set_geometry(canvas_rect());
     w.plain_text = "abc".into();
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_plain", &image);
 }
@@ -116,7 +116,7 @@ fn text_edit_read_only_renders() {
     w.plain_text = "abc".into();
     w.read_only = true;
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_read_only", &image);
 }
@@ -130,7 +130,7 @@ fn button_hovered_renders() {
     w.set_geometry(canvas_rect());
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_hovered", &image);
 }
@@ -144,7 +144,7 @@ fn button_pressed_renders() {
     w.set_geometry(canvas_rect());
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_pressed", &image);
 }
@@ -158,7 +158,7 @@ fn button_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("button_focused", &image);
 }
@@ -171,7 +171,7 @@ fn scroll_area_chrome_renders() {
     let mut w = ScrollArea::new();
     w.set_geometry(canvas_rect());
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_chrome", &image);
 }
@@ -200,7 +200,7 @@ fn dark_button_idle_renders() {
     let mut w = Button::new("OK".into());
     w.set_geometry(canvas_rect());
     render_dark("dark_button_idle", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -210,7 +210,7 @@ fn dark_button_hovered_renders() {
     w.set_geometry(canvas_rect());
     w.set_hovered(true);
     render_dark("dark_button_hovered", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -220,7 +220,7 @@ fn dark_button_pressed_renders() {
     w.set_geometry(canvas_rect());
     w.set_pressed(true);
     render_dark("dark_button_pressed", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -230,7 +230,7 @@ fn dark_button_checked_renders() {
     w.set_geometry(canvas_rect());
     w.checked = true;
     render_dark("dark_button_checked", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -240,7 +240,7 @@ fn dark_button_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     render_dark("dark_button_focused", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -250,7 +250,7 @@ fn dark_button_disabled_renders() {
     w.set_geometry(canvas_rect());
     w.set_enabled(false);
     render_dark("dark_button_disabled", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -259,7 +259,7 @@ fn dark_label_renders() {
     let mut w = Label::new("hi".into());
     w.set_geometry(canvas_rect());
     render_dark("dark_label", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -268,7 +268,7 @@ fn dark_scroll_area_chrome_renders() {
     let mut w = ScrollArea::new();
     w.set_geometry(canvas_rect());
     render_dark("dark_scroll_area_chrome", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -278,7 +278,7 @@ fn dark_text_edit_plain_renders() {
     w.set_geometry(canvas_rect());
     w.plain_text = "abc".into();
     render_dark("dark_text_edit_plain", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -289,7 +289,7 @@ fn dark_text_edit_read_only_renders() {
     w.plain_text = "abc".into();
     w.read_only = true;
     render_dark("dark_text_edit_read_only", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -306,7 +306,7 @@ fn label_hovered_renders() {
     w.set_geometry(canvas_rect());
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("label_hovered", &image);
 }
@@ -320,7 +320,7 @@ fn label_pressed_renders() {
     w.set_geometry(canvas_rect());
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("label_pressed", &image);
 }
@@ -334,7 +334,7 @@ fn label_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("label_focused", &image);
 }
@@ -349,7 +349,7 @@ fn text_edit_hovered_renders() {
     w.plain_text = "abc".into();
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_hovered", &image);
 }
@@ -364,7 +364,7 @@ fn text_edit_pressed_renders() {
     w.plain_text = "abc".into();
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_pressed", &image);
 }
@@ -379,7 +379,7 @@ fn text_edit_focused_renders() {
     w.plain_text = "abc".into();
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("text_edit_focused", &image);
 }
@@ -393,7 +393,7 @@ fn scroll_area_hovered_renders() {
     w.set_geometry(canvas_rect());
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_hovered", &image);
 }
@@ -407,7 +407,7 @@ fn scroll_area_pressed_renders() {
     w.set_geometry(canvas_rect());
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_pressed", &image);
 }
@@ -421,7 +421,7 @@ fn scroll_area_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("scroll_area_focused", &image);
 }
@@ -432,7 +432,7 @@ fn dark_label_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     render_dark("dark_label_focused", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -443,7 +443,7 @@ fn dark_text_edit_focused_renders() {
     w.plain_text = "abc".into();
     w.set_focused(true);
     render_dark("dark_text_edit_focused", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -453,7 +453,7 @@ fn dark_scroll_area_focused_renders() {
     w.set_geometry(canvas_rect());
     w.set_focused(true);
     render_dark("dark_scroll_area_focused", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -474,7 +474,7 @@ fn line_edit_idle_renders() {
     w.set_geometry(canvas_rect());
     w.text = "abc".into();
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_idle", &image);
 }
@@ -489,7 +489,7 @@ fn line_edit_hovered_renders() {
     w.text = "abc".into();
     w.set_hovered(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_hovered", &image);
 }
@@ -504,7 +504,7 @@ fn line_edit_pressed_renders() {
     w.text = "abc".into();
     w.set_pressed(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_pressed", &image);
 }
@@ -519,7 +519,7 @@ fn line_edit_focused_renders() {
     w.text = "abc".into();
     w.set_focused(true);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_focused", &image);
 }
@@ -534,7 +534,7 @@ fn line_edit_disabled_renders() {
     w.text = "abc".into();
     w.set_enabled(false);
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_disabled", &image);
 }
@@ -549,7 +549,7 @@ fn line_edit_read_only_renders() {
     w.text = "abc".into();
     w.read_only = true;
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_read_only", &image);
 }
@@ -563,7 +563,7 @@ fn line_edit_placeholder_renders() {
     w.set_geometry(canvas_rect());
     w.placeholder = "hint".into();
     let image = harness.render_widget(|painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &Palette::default());
     });
     snapshot_assert("line_edit_placeholder", &image);
 }
@@ -574,7 +574,7 @@ fn dark_line_edit_idle_renders() {
     w.set_geometry(canvas_rect());
     w.text = "abc".into();
     render_dark("dark_line_edit_idle", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
     });
 }
 
@@ -585,6 +585,164 @@ fn dark_line_edit_focused_renders() {
     w.text = "abc".into();
     w.set_focused(true);
     render_dark("dark_line_edit_focused", |painter| {
-        DefaultStyle.draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+        DefaultStyle::new().draw_widget(&w as &dyn AsWidget, painter, &DARK_PALETTE);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// TextEdit caret + selection snapshot goldens (issue #317)
+// ---------------------------------------------------------------------------
+//
+// All four light tests use `DefaultStyle::with_clock(StyleClock::pinned(true))`
+// so the caret is always visible and the golden is deterministic.
+
+#[test]
+fn text_edit_focused_caret_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_focused_caret_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 5;
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_focused_caret", &image);
+}
+
+#[test]
+fn text_edit_selection_wrap_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_selection_wrap_renders") else {
+        return;
+    };
+    // Text long enough to wrap on a 64px canvas (≥ 9 chars).
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 9;
+    w.selection_anchor = Some(0);
+    w.set_focused(true);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_selection_wrap", &image);
+}
+
+#[test]
+fn text_edit_read_only_selection_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_read_only_selection_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Read only".into();
+    w.read_only = true;
+    w.caret = 4;
+    w.selection_anchor = Some(0);
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_read_only_selection", &image);
+}
+
+#[test]
+fn text_edit_unfocused_selection_renders() {
+    let Some(mut harness) = harness_or_skip("text_edit_unfocused_selection_renders") else {
+        return;
+    };
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello".into();
+    w.caret = 5;
+    w.selection_anchor = Some(0);
+    // Not focused — selection alpha is half.
+    let image = harness.render_widget(|painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &Palette::default(),
+        );
+    });
+    snapshot_assert("text_edit_unfocused_selection", &image);
+}
+
+#[test]
+fn dark_text_edit_focused_caret_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 5;
+    w.set_focused(true);
+    render_dark("dark_text_edit_focused_caret", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_selection_wrap_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello world".into();
+    w.caret = 9;
+    w.selection_anchor = Some(0);
+    w.set_focused(true);
+    render_dark("dark_text_edit_selection_wrap", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_read_only_selection_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Read only".into();
+    w.read_only = true;
+    w.caret = 4;
+    w.selection_anchor = Some(0);
+    render_dark("dark_text_edit_read_only_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
+    });
+}
+
+#[test]
+fn dark_text_edit_unfocused_selection_renders() {
+    let mut w = TextEdit::new();
+    w.set_geometry(canvas_rect());
+    w.plain_text = "Hello".into();
+    w.caret = 5;
+    w.selection_anchor = Some(0);
+    // Not focused — selection alpha is half.
+    render_dark("dark_text_edit_unfocused_selection", |painter| {
+        DefaultStyle::with_clock(StyleClock::pinned(true)).draw_widget(
+            &w as &dyn AsWidget,
+            painter,
+            &DARK_PALETTE,
+        );
     });
 }

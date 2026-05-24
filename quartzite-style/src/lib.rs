@@ -26,17 +26,34 @@
 //!         _palette: &Palette,
 //!     ) {
 //!     }
+//!
+//!     fn caret_visible_now(&self) -> bool {
+//!         false
+//!     }
 //! }
 //!
 //! StyleRegistry::set_style(Box::new(NoopStyle));
 //! assert!(StyleRegistry::try_style().is_some());
 //! ```
+//!
+//! # Features
+//!
+//! - **`runtime-blink`** *(default)*: enables [`DefaultStyle::start_blink_timer`],
+//!   which adds a `quartzite-runtime` production dependency and wires caret
+//!   blink to a [`quartzite_runtime::Timer`]. Consumers who opt out of the
+//!   runtime layer (e.g. no-std, embedded, snapshot harnesses) can set
+//!   `default-features = false`; the read-side [`StyleClock`] and
+//!   [`Style::caret_visible_now`] work without this feature.
+//! - **`test-support`**: exposes `StyleRegistry::clear_for_test` for use
+//!   in integration tests and test-helper crates outside this crate.
 
+mod clock;
 mod default_style;
 mod paint_widget;
 mod registry;
 mod style;
 
+pub use clock::StyleClock;
 pub use default_style::DefaultStyle;
 pub use paint_widget::Paint;
 pub use quartzite_style_types::{ColorRole, DARK_PALETTE, Palette};

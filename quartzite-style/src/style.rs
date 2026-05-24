@@ -99,6 +99,10 @@ use quartzite_widgets::AsWidget;
 ///         _palette: &Palette,
 ///     ) {
 ///     }
+///
+///     fn caret_visible_now(&self) -> bool {
+///         false
+///     }
 /// }
 ///
 /// // Trait is object-safe — boxing through `dyn Style` compiles.
@@ -139,12 +143,88 @@ pub trait Style: Send + Sync {
     /// - `palette`: colour-role lookup used by the implementor when resolving
     ///   widget colours.
     fn draw_widget(&self, widget: &dyn AsWidget, painter: &mut dyn Painter, palette: &Palette);
+
+    /// Returns `true` when the caret should be drawn in the current paint pass.
+    ///
+    /// The default implementation returns `false`, keeping the caret invisible.
+    /// Concrete styles that own a [`crate::StyleClock`] should delegate to
+    /// [`StyleClock::caret_visible_now`](crate::StyleClock::caret_visible_now).
+    ///
+    /// Paint paths call this method through `&self` — no `&mut` needed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Palette, Style, StyleClock};
+    /// use quartzite_widgets::AsWidget;
+    ///
+    /// struct PinnedStyle {
+    ///     clock: StyleClock,
+    /// }
+    ///
+    /// impl Style for PinnedStyle {
+    ///     fn draw_widget(
+    ///         &self,
+    ///         _widget: &dyn AsWidget,
+    ///         _painter: &mut dyn Painter,
+    ///         _palette: &Palette,
+    ///     ) {
+    ///     }
+    ///
+    ///     fn caret_visible_now(&self) -> bool {
+    ///         self.clock.caret_visible_now()
+    ///     }
+    /// }
+    ///
+    /// let style = PinnedStyle { clock: StyleClock::pinned(true) };
+    /// assert!(style.caret_visible_now());
+    /// ```
+    fn caret_visible_now(&self) -> bool;
+
+    /// Returns `true` when the platform reports a reduced-motion accessibility
+    /// preference, indicating that blinking animations should be suppressed.
+    ///
+    /// The default implementation returns `false`.  Concrete styles that query
+    /// the platform for this preference should override the default.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_paint_api::Painter;
+    /// use quartzite_style::{Palette, Style};
+    /// use quartzite_widgets::AsWidget;
+    ///
+    /// struct NoopStyle;
+    ///
+    /// impl Style for NoopStyle {
+    ///     fn draw_widget(
+    ///         &self,
+    ///         _widget: &dyn AsWidget,
+    ///         _painter: &mut dyn Painter,
+    ///         _palette: &Palette,
+    ///     ) {
+    ///     }
+    ///
+    ///     fn caret_visible_now(&self) -> bool {
+    ///         false
+    ///     }
+    /// }
+    ///
+    /// // Default impl returns false — no reduced-motion signal.
+    /// assert!(!NoopStyle.prefers_reduced_motion());
+    /// ```
+    #[inline]
+    fn prefers_reduced_motion(&self) -> bool {
+        false
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use core::sync::atomic::{AtomicUsize, Ordering};
+    use quartzite_paint_api::{TextCaretCursor, TextVisualLine, TextVisualLineCursor};
 
     /// Counts every `draw_widget` call so tests can prove the body executed.
     static DRAW_CALLS: AtomicUsize = AtomicUsize::new(0);
@@ -161,11 +241,48 @@ mod tests {
         ) {
             DRAW_CALLS.fetch_add(1, Ordering::SeqCst);
         }
+
+        fn caret_visible_now(&self) -> bool {
+            false
+        }
     }
 
     /// Recording painter — accepts every method as a no-op so we can dispatch
     /// `draw_widget` against a `&mut dyn Painter` without bringing in renderer.
-    struct NullPainter;
+    struct NullPainter {
+        null_caret: NullCaretCursor,
+        null_lines: NullLineCursor,
+    }
+
+    impl NullPainter {
+        fn new() -> Self {
+            Self {
+                null_caret: NullCaretCursor,
+                null_lines: NullLineCursor,
+            }
+        }
+    }
+
+    struct NullCaretCursor;
+    impl TextCaretCursor for NullCaretCursor {
+        fn advance_to(&mut self, _byte_offset: usize) {}
+        fn caret_x(&self) -> i32 {
+            0
+        }
+        fn line_top(&self) -> i32 {
+            0
+        }
+        fn line_height(&self) -> i32 {
+            0
+        }
+    }
+
+    struct NullLineCursor;
+    impl TextVisualLineCursor for NullLineCursor {
+        fn next_line(&mut self) -> Option<TextVisualLine> {
+            None
+        }
+    }
 
     impl Painter for NullPainter {
         fn draw_rect(
@@ -222,6 +339,21 @@ mod tests {
             _brush: &quartzite_paint_api::Brush,
         ) {
         }
+        fn text_carets(
+            &mut self,
+            _text: &str,
+            _font: &quartzite_paint_api::Font,
+        ) -> &mut dyn TextCaretCursor {
+            &mut self.null_caret
+        }
+        fn text_visual_lines(
+            &mut self,
+            _text: &str,
+            _font: &quartzite_paint_api::Font,
+            _wrap_width: i32,
+        ) -> &mut dyn TextVisualLineCursor {
+            &mut self.null_lines
+        }
     }
 
     fn assert_send_sync<T: Send + Sync>() {}
@@ -243,13 +375,27 @@ mod tests {
     }
 
     #[test]
+    fn caret_visible_now_dispatches_through_trait_object() {
+        // Both new methods must be callable through &dyn Style.
+        let style: Box<dyn Style> = Box::new(OnlyDraw);
+        let s: &dyn Style = style.as_ref();
+        // OnlyDraw::caret_visible_now returns false.
+        assert!(!s.caret_visible_now(), "caret_visible_now must dispatch");
+        // prefers_reduced_motion uses the default-impl returning false.
+        assert!(
+            !s.prefers_reduced_motion(),
+            "prefers_reduced_motion must dispatch"
+        );
+    }
+
+    #[test]
     #[allow(
         clippy::items_after_statements,
         reason = "nested helper placed after local setup is more readable here"
     )]
     fn draw_widget_dispatches_through_trait_object() {
         let style: Box<dyn Style> = Box::new(OnlyDraw);
-        let mut painter = NullPainter;
+        let mut painter = NullPainter::new();
         let palette = Palette::default();
         let widget = quartzite_widgets::WidgetBase::new();
         let before = DRAW_CALLS.load(Ordering::SeqCst);
