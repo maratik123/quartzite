@@ -129,10 +129,12 @@ impl quartzite_core::Object for Application {
         &APP_META
     }
 
+    #[inline]
     fn read_property(&self, _name: &str) -> Option<Value> {
         None
     }
 
+    #[inline]
     fn write_property(&mut self, _name: &str, _val: Value) -> bool {
         false
     }
@@ -150,6 +152,7 @@ impl quartzite_core::Object for Application {
         }
     }
 
+    #[inline]
     fn connect_signal(
         &mut self,
         _signal: &str,
@@ -159,6 +162,7 @@ impl quartzite_core::Object for Application {
         None
     }
 
+    #[inline]
     fn emit_signal(&mut self, _signal: &str, _args: &[Value]) -> Option<()> {
         None
     }
