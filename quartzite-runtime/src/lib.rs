@@ -14,7 +14,7 @@
 //!
 //! ```rust,no_run
 //! env_logger::init(); // or any other log-compatible subscriber
-//! // … create Application via Application::builder().build(), run event loop
+//! // … create Application via Application::new(), run event loop
 //! ```
 
 pub mod application;

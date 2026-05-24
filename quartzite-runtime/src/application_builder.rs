@@ -17,11 +17,11 @@ use crate::event_loop::EventLoop;
 /// ```no_run
 /// use quartzite_runtime::Application;
 ///
-/// // Tickless application (default):
-/// let app = Application::builder().build().expect("only one Application per process");
+/// // For the tickless default use Application::new() directly:
+/// let app = Application::new().expect("only one Application per process");
 /// app.quit();
 ///
-/// // Tick-based application:
+/// // Use the builder when you need options, e.g. a tick-based loop:
 /// # let _ = (|| -> Result<_, _> {
 /// use std::time::Duration;
 /// let app = Application::builder()

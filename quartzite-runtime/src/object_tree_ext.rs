@@ -12,7 +12,7 @@ use crate::{
 /// Automatically implemented for every type that implements [`AsObject`].
 ///
 /// Methods without a `_in` suffix use the process-global tree registered by
-/// [`Application::builder().build()`](crate::ApplicationBuilder::build) and return
+/// [`Application::new()`](crate::Application::new) and return
 /// [`Err`]`(`[`TreeAccessError`]`)` when called outside an active
 /// [`Application`](crate::Application).
 ///

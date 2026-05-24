@@ -37,10 +37,10 @@ fn application_singleton_enforced() {
     );
 
     // ── AC3: second creation must fail with AlreadyExists ──────────────────
-    let app2 = Application::builder().build();
+    let app2 = Application::new();
     assert!(
         matches!(app2, Err(ApplicationError::AlreadyExists)),
-        "second Application::builder().build() must return Err(AlreadyExists)"
+        "second Application::new() must return Err(AlreadyExists)"
     );
 
     // ── AC16: class_name == "Application" ─────────────────────────────────

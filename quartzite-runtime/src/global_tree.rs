@@ -27,7 +27,7 @@ mod tests {
 
     #[test]
     fn is_live_returns_false_when_not_registered() {
-        // Unit tests never call Application::builder().build(), so TREE_LIVE stays false
+        // Unit tests never call Application::new(), so TREE_LIVE stays false
         // (initialised to false in the static initialiser).
         assert!(!is_live());
     }

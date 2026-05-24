@@ -23,8 +23,8 @@ use crate::{
 /// ```no_run
 /// use quartzite_runtime::{Application, ApplicationError};
 ///
-/// let _first = Application::builder().build().expect("first call succeeds");
-/// match Application::builder().build() {
+/// let _first = Application::new().expect("first call succeeds");
+/// match Application::new() {
 ///     Err(ApplicationError::AlreadyExists) => {}
 ///     _ => panic!("second call must fail with AlreadyExists"),
 /// }
@@ -176,12 +176,19 @@ impl Application {
     /// Use [`ApplicationBuilder::build`] to install the singleton. The default builder
     /// produces a **tickless** application.
     ///
+    /// Most callers should use [`Application::new`] directly. Use the builder when
+    /// you need to configure options such as [`tick_duration`](ApplicationBuilder::tick_duration).
+    ///
     /// # Examples
     ///
     /// ```no_run
     /// use quartzite_runtime::Application;
+    /// use std::time::Duration;
     ///
-    /// let app = Application::builder().build().expect("only one Application per process");
+    /// let app = Application::builder()
+    ///     .tick_duration(Some(Duration::from_millis(16)))
+    ///     .build()
+    ///     .expect("only one Application per process");
     /// ```
     #[inline]
     pub const fn builder() -> ApplicationBuilder {
@@ -254,8 +261,7 @@ impl Application {
 
     /// Returns a handle to the global application, or `None` if it has not been installed yet.
     ///
-    /// Calling [`Application::builder().build()`](ApplicationBuilder::build) is required
-    /// before this returns `Some`.
+    /// Calling [`Application::new`] is required before this returns `Some`.
     ///
     /// # Examples
     ///
