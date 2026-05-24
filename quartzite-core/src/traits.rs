@@ -286,7 +286,7 @@ pub trait ObjectExt: AsObject {
     }
 
     /// Attempts a checked downcast to a concrete type. Returns `Some(&T)` when the
-    /// underlying type is exactly `T`, `None` otherwise (AC8).
+    /// underlying type is exactly `T`, `None` otherwise.
     ///
     /// _Simple._
     ///

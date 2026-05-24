@@ -65,7 +65,7 @@ pub enum ConnectionType {
     ///
     /// The receiver's thread identity is captured at connect time via
     /// [`Signal::connect_auto`]. Changing the receiver's thread affinity after
-    /// connecting does not update the stored `ThreadId` (see AC5).
+    /// connecting does not update the stored `ThreadId`.
     #[cfg(feature = "std")]
     #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
     Auto,
