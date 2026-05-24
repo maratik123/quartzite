@@ -128,11 +128,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn quartzite_application_new_succeeds() {
-        let result = Application::new();
+    fn quartzite_application_builder_build_succeeds() {
+        let result = Application::builder().build();
         assert!(
             result.is_ok() || matches!(result, Err(ApplicationError::AlreadyExists)),
-            "Application::new() must return Ok or AlreadyExists"
+            "Application::builder().build() must return Ok or AlreadyExists"
         );
     }
 

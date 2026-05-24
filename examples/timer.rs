@@ -12,7 +12,9 @@ use quartzite::prelude::*;
 
 fn main() {
     env_logger::init();
-    let app = Application::new().expect("only one Application per process");
+    let app = Application::builder()
+        .build()
+        .expect("only one Application per process");
 
     let counter = Arc::new(AtomicUsize::new(0));
     let counter2 = Arc::clone(&counter);
@@ -24,7 +26,7 @@ fn main() {
         if n >= 3 {
             Application::global()
                 .expect("Application must exist")
-                .quit();
+                .request_quit();
         }
     });
     timer.start(Arc::new(AppDriver::new()));

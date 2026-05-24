@@ -11,12 +11,12 @@
 //! enforce a timeout on its inner process — if the exit-on-resume logic
 //! ever regresses, the test would otherwise consume the whole job quota.
 //!
-//! ## Why this test does not go through `WindowedApplication::new()`
+//! ## Why this test does not go through `WindowedApplication::builder().build()`
 //!
 //! `cargo test` runs every `#[test]` fn on a worker thread, not the
 //! process main thread. winit 0.30's default `EventLoop::new()` enforces a
 //! main-thread check on Linux and panics otherwise — so calling
-//! `WindowedApplication::new()` (which calls `EventLoop::new()` internally)
+//! `WindowedApplication::builder().build()` (which calls `EventLoop::new()` internally)
 //! from a `#[test]` panics regardless of `xvfb-run` / `DISPLAY` state.
 //!
 //! Production code keeps the strict default (main thread only); this test
@@ -68,10 +68,10 @@ mod linux {
             eprintln!("xvfb_smoke: SKIP_RENDER_SNAPSHOT set; skipping");
             return;
         }
-        let _app = match Application::new() {
+        let _app = match Application::builder().build() {
             Ok(a) => a,
             Err(e) => {
-                eprintln!("xvfb_smoke: Application::new() failed ({e}); skipping");
+                eprintln!("xvfb_smoke: Application::builder().build() failed ({e}); skipping");
                 return;
             }
         };
