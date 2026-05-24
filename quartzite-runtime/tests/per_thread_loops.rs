@@ -18,7 +18,7 @@ use quartzite_runtime::{ConnectionTable, EventLoop};
 fn queued_dispatch_executes_on_worker_thread() {
     // Spawn a worker loop; capture its ThreadId via a channel inside `f`.
     let (tid_tx, tid_rx) = mpsc::sync_channel::<thread::ThreadId>(1);
-    let (el, handle) = EventLoop::spawn(move || {
+    let (el, handle) = EventLoop::spawn(None, move || {
         tid_tx.send(thread::current().id()).unwrap();
     })
     .unwrap();
@@ -43,7 +43,7 @@ fn queued_dispatch_executes_on_worker_thread() {
 
     // Give the worker loop time to process the closure, then stop it.
     thread::sleep(Duration::from_millis(50));
-    el.stop();
+    el.request_stop();
     handle.join().expect("worker thread must exit cleanly");
 
     let recorded = *executed_on.lock();
@@ -59,7 +59,7 @@ fn queued_dispatch_executes_on_worker_thread() {
 fn queued_dispatch_to_deregistered_thread_drops_closure() {
     // Spawn a worker loop and record its ThreadId.
     let (tid_tx, tid_rx) = mpsc::sync_channel::<thread::ThreadId>(1);
-    let (el, handle) = EventLoop::spawn(move || {
+    let (el, handle) = EventLoop::spawn(None, move || {
         tid_tx.send(thread::current().id()).unwrap();
     })
     .unwrap();
@@ -67,7 +67,7 @@ fn queued_dispatch_to_deregistered_thread_drops_closure() {
     let worker_tid = tid_rx.recv_timeout(Duration::from_secs(2)).unwrap();
 
     // Stop the loop and join so the thread is gone and the registry entry is removed.
-    el.stop();
+    el.request_stop();
     handle.join().expect("worker thread must exit cleanly");
 
     // Now post to the deregistered ThreadId — closure must NOT execute.

@@ -24,7 +24,7 @@ fn post_from_other_thread_executes_on_loop_thread() {
     }));
 
     thread::sleep(Duration::from_millis(20));
-    el.stop();
+    el.request_stop();
     handle.join().unwrap();
 
     let recorded = *loop_tid.lock();
@@ -51,13 +51,13 @@ fn post_multiple_preserves_order() {
     }
 
     thread::sleep(Duration::from_millis(20));
-    el.stop();
+    el.request_stop();
     handle.join().unwrap();
 
     assert_eq!(*log.lock(), vec![1, 2, 3]);
 }
 
-// stop() causes run() to return within a reasonable timeout.
+// request_stop() causes run() to return within a reasonable timeout.
 #[test]
 fn stop_terminates_run() {
     let el = Arc::new(EventLoop::new());
@@ -65,9 +65,9 @@ fn stop_terminates_run() {
     let handle = thread::spawn(move || el2.run());
 
     thread::sleep(Duration::from_millis(5));
-    el.stop();
+    el.request_stop();
 
     handle
         .join()
-        .expect("event loop thread must exit cleanly after stop()");
+        .expect("event loop thread must exit cleanly after request_stop()");
 }

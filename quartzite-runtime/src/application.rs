@@ -179,7 +179,7 @@ impl Application {
     /// ```
     #[inline]
     pub fn quit(&self) {
-        self.0.event_loop.stop();
+        self.0.event_loop.request_stop();
     }
 
     /// Returns a reference to the process-wide object tree.
