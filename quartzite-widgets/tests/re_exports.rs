@@ -1,5 +1,5 @@
-//! AC13 contract: `quartzite-widgets` re-exports `Alignment` / `Font` / `Palette` /
-//! `ColorRole` from upstream crates rather than defining them locally.
+//! AC13 contract: `quartzite-widgets` re-exports `HAlignment` / `VAlignment` / `Font` /
+//! `Palette` / `ColorRole` from upstream crates rather than defining them locally.
 //!
 //! These tests use [`core::any::TypeId`] to assert that the type the widgets crate
 //! exposes is identically the upstream type — not a wrapper, not a newtype.
@@ -7,10 +7,18 @@
 use core::any::TypeId;
 
 #[test]
-fn widgets_alignment_is_geometry_alignment() {
+fn widgets_h_alignment_is_geometry_h_alignment() {
     assert_eq!(
-        TypeId::of::<quartzite_widgets::Alignment>(),
-        TypeId::of::<quartzite_geometry::Alignment>(),
+        TypeId::of::<quartzite_widgets::HAlignment>(),
+        TypeId::of::<quartzite_geometry::HAlignment>(),
+    );
+}
+
+#[test]
+fn widgets_v_alignment_is_geometry_v_alignment() {
+    assert_eq!(
+        TypeId::of::<quartzite_widgets::VAlignment>(),
+        TypeId::of::<quartzite_geometry::VAlignment>(),
     );
 }
 

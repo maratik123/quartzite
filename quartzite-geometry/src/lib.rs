@@ -11,12 +11,14 @@ mod margins;
 mod point;
 mod rect;
 mod size;
+mod v_alignment;
 
-pub use alignment::Alignment;
+pub use alignment::HAlignment;
 pub use margins::Margins;
 pub use point::{Point, PointF};
 pub use rect::{Rect, RectF};
 pub use size::{Size, SizeF};
+pub use v_alignment::VAlignment;
 
 /// Rounds `x` to the nearest integer, half away from zero.
 #[inline]

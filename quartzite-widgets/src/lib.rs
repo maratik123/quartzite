@@ -23,7 +23,7 @@ pub mod widgets;
 
 pub use enums::{CursorShape, FocusPolicy, SizePolicy};
 pub use layout::{BoxLayout, Direction, GridCell, GridLayout, Layout, WidgetResolver};
-pub use quartzite_geometry::Alignment;
+pub use quartzite_geometry::{HAlignment, VAlignment};
 pub use quartzite_paint::{Font, FontWeight};
 pub use quartzite_style_types::{ColorRole, Palette};
 pub use widget_base::{

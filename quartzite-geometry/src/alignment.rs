@@ -1,36 +1,34 @@
-//! [`Alignment`] enum — content alignment within a bounding box.
+//! [`HAlignment`] enum — horizontal content alignment within a bounding box.
 
 use quartzite_macros::MetaEnum;
 
-/// Controls how text or content is aligned within a bounding box.
+/// Controls how text or content is aligned horizontally within a bounding box.
 ///
 /// Used both by widget layout (for content positioning inside a widget) and by
-/// `quartzite-paint`'s `Painter::draw_text_in` (for text alignment within a
-/// destination rectangle).
+/// `quartzite-paint`'s `Painter::draw_text_in` (for horizontal text alignment
+/// within a destination rectangle).
+///
+/// For vertical alignment, see [`VAlignment`](crate::VAlignment).
 ///
 /// # Examples
 ///
 /// ```
-/// use quartzite_geometry::Alignment;
+/// use quartzite_geometry::HAlignment;
 ///
-/// assert_eq!(Alignment::Left as i64, 0);
-/// assert_eq!(Alignment::default(), Alignment::Left);
+/// assert_eq!(HAlignment::Left as i64, 0);
+/// assert_eq!(HAlignment::default(), HAlignment::Left);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
 #[repr(i64)]
-pub enum Alignment {
-    /// Align to the left (horizontal) or top (vertical).
+pub enum HAlignment {
+    /// Align content to the left.
     #[default]
     Left = 0,
-    /// Center content within the available space.
+    /// Center content within the available horizontal space.
     Center = 1,
-    /// Align to the right (horizontal) or bottom (vertical).
+    /// Align content to the right.
     Right = 2,
-    /// Justify content to fill the available space.
-    ///
-    /// Invalid on the vertical axis when passed to `Painter::draw_text_in`'s
-    /// `v_align`; debug-asserts in debug builds, falls back to [`Left`](Self::Left)
-    /// (top) in release.
+    /// Justify content to fill the available horizontal space.
     Justify = 3,
 }
 
@@ -41,21 +39,21 @@ mod tests {
 
     #[test]
     fn default_is_left() {
-        assert_eq!(Alignment::default(), Alignment::Left);
+        assert_eq!(HAlignment::default(), HAlignment::Left);
     }
 
     #[test]
     fn discriminants_match_legacy_widget_alignment() {
-        assert_eq!(Alignment::Left as i64, 0);
-        assert_eq!(Alignment::Center as i64, 1);
-        assert_eq!(Alignment::Right as i64, 2);
-        assert_eq!(Alignment::Justify as i64, 3);
+        assert_eq!(HAlignment::Left as i64, 0);
+        assert_eq!(HAlignment::Center as i64, 1);
+        assert_eq!(HAlignment::Right as i64, 2);
+        assert_eq!(HAlignment::Justify as i64, 3);
     }
 
     #[test]
     fn into_value_round_trip() {
-        let v = Alignment::Center.into_value();
+        let v = HAlignment::Center.into_value();
         assert_eq!(v, Value::Int(1));
-        assert_eq!(Alignment::from_value(v), Ok(Alignment::Center));
+        assert_eq!(HAlignment::from_value(v), Ok(HAlignment::Center));
     }
 }

@@ -1441,3 +1441,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** The orchestrator NEVER writes to the spec file. On user tweak after `status: ready`: update the state file (append Q&A to `prior_qa`, increment `round`), then re-invoke the spec-writer subagent with the updated state. The anti-pattern is explicit in `.claude/skills/interview/SKILL.md` § Anti-patterns: "Mutating the spec yourself. The subagent owns spec writes; the orchestrator only reads it."
 **Kind:** correction
 **Escalated?** no
+
+### 2026-05-24 — process — Design Amendment applied directly by orchestrator; skill does not route amendments through design subagent
+
+**What happened:** During `/pr-commented` round 1, a reviewer requested an API split (`Alignment` → `HAlignment` + `VAlignment`). The Design Amendment recipe in `.claude/skills/task/SKILL.md` says "update the design doc, re-run Step 7 design-review" — the orchestrator interpreted "update the design doc" as permission to edit `*.design.md` directly using `Edit` tools, bypassing the `design` subagent. The user expected the design subagent to be spawned for the amendment.
+**Rule:** Design Amendment MUST route through the `design` subagent (same as Step 6), not be applied directly by the orchestrator. The orchestrator only owns: (1) surfacing the amendment to the user, (2) spawning `design` subagent with the amendment description, (3) spawning `design-review` on the result. Fix the skill recipe to say "spawn the `design` subagent to apply the amendment" rather than "update the design doc." The existing learning about orchestrator writing the design file directly (2026-05-24, process) is a related instance of the same pattern.
+**Kind:** correction
+**Escalated?** no
