@@ -246,7 +246,7 @@ fn app_driver_executes_on_event_loop_thread() {
     timer.stop();
 
     // Quit and join the event loop.
-    Application::global().unwrap().request_quit();
+    Application::global().unwrap().quit();
     let _ = el_thread.join();
 
     #[allow(

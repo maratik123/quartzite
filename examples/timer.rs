@@ -26,7 +26,7 @@ fn main() {
         if n >= 3 {
             Application::global()
                 .expect("Application must exist")
-                .request_quit();
+                .quit();
         }
     });
     timer.start(Arc::new(AppDriver::new()));

@@ -62,7 +62,7 @@ static APP: OnceLock<Arc<ApplicationInner>> = OnceLock::new();
 /// use quartzite_runtime::Application;
 ///
 /// let app = Application::builder().build().expect("only one Application per process");
-/// app.request_quit();
+/// app.quit();
 /// ```
 pub struct Application(Arc<ApplicationInner>);
 
@@ -235,7 +235,7 @@ impl Application {
     /// use quartzite_runtime::Application;
     ///
     /// if let Some(app) = Application::global() {
-    ///     app.request_quit();
+    ///     app.quit();
     /// }
     /// ```
     #[inline]
@@ -263,8 +263,7 @@ impl Application {
         self.0.event_loop.post(f);
     }
 
-    /// Runs the event loop, blocking the calling thread until [`request_quit`](Self::request_quit)
-    /// or [`quit`](Self::quit) is called.
+    /// Runs the event loop, blocking the calling thread until [`quit`](Self::quit) is called.
     ///
     /// # Panics
     ///
@@ -279,7 +278,7 @@ impl Application {
     /// let app = Application::builder().build().unwrap();
     /// // Post a quit before exec() so the loop exits immediately.
     /// let app2 = Application::global().unwrap();
-    /// app.post_event(Box::new(move || app2.request_quit()));
+    /// app.post_event(Box::new(move || app2.quit()));
     /// app.exec();
     /// ```
     #[inline]
@@ -287,28 +286,11 @@ impl Application {
         self.0.event_loop.run();
     }
 
-    /// Stops the event loop. Takes `&mut self` for slot-dispatch compatibility.
+    /// Stops the event loop.
     ///
-    /// For ergonomic use without a mutable borrow (e.g. from a closure or cross-thread
-    /// callback), prefer [`request_quit`](Self::request_quit).
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use quartzite_runtime::Application;
-    ///
-    /// let mut app = Application::builder().build().unwrap();
-    /// app.quit();
-    /// ```
-    pub fn quit(&mut self) {
-        self.0.event_loop.request_stop();
-    }
-
-    /// Stops the event loop. Callable via a shared reference from any context.
-    ///
-    /// This is the ergonomic API for closure captures and cross-thread callbacks
-    /// (e.g. `Application::global().unwrap().request_quit()`). For reflection-based
-    /// invocation via `invoke_method`, use [`quit`](Self::quit) (which requires `&mut self`).
+    /// Safe to call from any context — closures, signal callbacks, cross-thread handlers —
+    /// because it only requires a shared reference. Reflection-based invocation via
+    /// `invoke_method("quit", &[])` also dispatches here.
     ///
     /// # Examples
     ///
@@ -317,11 +299,11 @@ impl Application {
     ///
     /// let app = Application::builder().build().unwrap();
     /// let app2 = Application::global().unwrap();
-    /// app.post_event(Box::new(move || app2.request_quit()));
+    /// app.post_event(Box::new(move || app2.quit()));
     /// app.exec();
     /// ```
     #[inline]
-    pub fn request_quit(&self) {
+    pub fn quit(&self) {
         self.0.event_loop.request_stop();
     }
 

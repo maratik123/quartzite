@@ -73,7 +73,7 @@ fn single_shot_app_driver_fires_exactly_once() {
     );
 
     timer.stop();
-    Application::global().unwrap().request_quit();
+    Application::global().unwrap().quit();
     let _ = el_thread.join();
     drop(app);
 }

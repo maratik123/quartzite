@@ -9,7 +9,7 @@ use crate::event_loop::EventLoop;
 /// Obtain a builder via [`Application::builder()`] and call [`build`](Self::build) to
 /// install the singleton. By default the inner [`EventLoop`] is **tickless** — it blocks
 /// on [`Receiver::recv`](std::sync::mpsc::Receiver::recv) until a closure arrives or
-/// [`Application::request_quit`] is called. Use [`tick_duration`](Self::tick_duration) to
+/// [`Application::quit`] is called. Use [`tick_duration`](Self::tick_duration) to
 /// request a tick-based loop instead.
 ///
 /// # Examples
@@ -19,7 +19,7 @@ use crate::event_loop::EventLoop;
 ///
 /// // Tickless application (default):
 /// let app = Application::builder().build().expect("only one Application per process");
-/// app.request_quit();
+/// app.quit();
 ///
 /// // Tick-based application:
 /// # let _ = (|| -> Result<_, _> {
