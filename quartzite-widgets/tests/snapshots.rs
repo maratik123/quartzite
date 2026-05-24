@@ -68,6 +68,24 @@ fn count_non_background(image: &image::RgbaImage) -> u32 {
     image.pixels().filter(|px| px.0 != BG).count() as u32
 }
 
+/// Scan `image` for non-background pixel rows; return `(min_y, max_y)` or
+/// `None` when no glyph pixels are found.
+fn glyph_y_extent(image: &image::RgbaImage) -> Option<(u32, u32)> {
+    let mut min_y = u32::MAX;
+    let mut max_y = 0u32;
+    for (_, y, px) in image.enumerate_pixels() {
+        if px.0 != BG {
+            min_y = min_y.min(y);
+            max_y = max_y.max(y);
+        }
+    }
+    if min_y == u32::MAX {
+        None
+    } else {
+        Some((min_y, max_y))
+    }
+}
+
 // ── widget / layout tests ──────────────────────────────────────────────────
 
 #[test]
@@ -400,6 +418,116 @@ fn draw_text_in_center() {
         "centred text midpoint should be within ±2px of {expected}, \
          got mid={mid} (left={left_x}, right={right_x})"
     );
+}
+
+/// Rendering-level vertical-centring test (AC8 rendering companion).
+///
+/// Renders a single-line text with `v_align = Alignment::Center` on a 200×64
+/// canvas and asserts the glyph y-midpoint lies within ±2 px of the canvas
+/// vertical midpoint.  Two sub-cases exercise `Left` (top) and `Right`
+/// (bottom) as well, covering every concrete `v_align` branch in `VelloPainter`.
+#[test]
+#[allow(
+    clippy::cast_possible_wrap,
+    reason = "deliberate i32 cast from u32 canvas constants within known bounds"
+)]
+fn draw_text_in_vertical_align() {
+    const W: u32 = 200;
+    const H: u32 = 64;
+
+    let Some(mut harness) = harness_or_skip_with(
+        "draw_text_in_vertical_align",
+        RenderHarnessBuilder::new(W, H),
+    ) else {
+        return;
+    };
+
+    let w = W as i32;
+    let h = H as i32;
+    let rect = Rect::new(Point::new(0, 0), Size::new(w, h));
+    let font = Font::new("sans-serif", 14.0);
+    let brush = Brush::solid(Color::WHITE);
+
+    // Sub-case 1: v_align = Center — glyph midpoint within ±2 px of canvas mid.
+    {
+        let image = harness.render_widget(|p| {
+            p.draw_text_in(
+                rect,
+                "Sample",
+                &font,
+                &brush,
+                Alignment::Left,
+                Alignment::Center,
+            );
+        });
+        if let Some((min_y, max_y)) = glyph_y_extent(&image) {
+            let mid = min_y.midpoint(max_y);
+            let expected = H / 2;
+            assert!(
+                mid.abs_diff(expected) <= 2,
+                "v_align=Center: glyph y-midpoint should be within ±2px of {expected}, got {mid} \
+                 (min_y={min_y}, max_y={max_y})"
+            );
+        } else {
+            eprintln!(
+                "draw_text_in_vertical_align: Center — no non-background pixels; \
+                 font may be unavailable — skipping sub-case"
+            );
+        }
+    }
+
+    // Sub-case 2: v_align = Left (top) — glyph min_y near rect.top().
+    {
+        let image = harness.render_widget(|p| {
+            p.draw_text_in(
+                rect,
+                "Sample",
+                &font,
+                &brush,
+                Alignment::Left,
+                Alignment::Left,
+            );
+        });
+        if let Some((min_y, _max_y)) = glyph_y_extent(&image) {
+            assert!(
+                min_y <= 2,
+                "v_align=Left (top): glyph min_y should be within ±2px of rect.top() (0), \
+                 got {min_y}"
+            );
+        } else {
+            eprintln!(
+                "draw_text_in_vertical_align: Left — no non-background pixels; \
+                 font may be unavailable — skipping sub-case"
+            );
+        }
+    }
+
+    // Sub-case 3: v_align = Right (bottom) — glyph max_y near rect.bottom().
+    {
+        let image = harness.render_widget(|p| {
+            p.draw_text_in(
+                rect,
+                "Sample",
+                &font,
+                &brush,
+                Alignment::Left,
+                Alignment::Right,
+            );
+        });
+        if let Some((_min_y, max_y)) = glyph_y_extent(&image) {
+            let expected = H - 1;
+            assert!(
+                max_y.abs_diff(expected) <= 2,
+                "v_align=Right (bottom): glyph max_y should be within ±2px of {expected}, \
+                 got {max_y}"
+            );
+        } else {
+            eprintln!(
+                "draw_text_in_vertical_align: Right — no non-background pixels; \
+                 font may be unavailable — skipping sub-case"
+            );
+        }
+    }
 }
 
 /// AC11 — `scale_factor(2.0)` maps a 10×10 logical rect to ~20×20 physical
