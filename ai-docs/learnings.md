@@ -1456,9 +1456,30 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+### 2026-05-24 — code-style — `match` counts as branching; `#[inline]` must not be placed on functions containing `match`
+
+**What happened:** `ApplicationBuilder::tick_duration` and `WindowedApplicationBuilder::tick_duration` were marked `#[inline]` despite containing a `match` expression with two arms. The reviewer flagged: "why inline for fn with branching?". The AGENTS.md `#[inline]` rule says simple = no branches/loops; a `match` is a branch regardless of how short the arms are.
+**Rule:** A `match` expression (any number of arms) makes a function non-simple. Remove `#[inline]` from any function that contains `match`. `if`/`else`, `loop`, `for`, `while` are similarly disqualifying. A function body consisting of exactly one non-branching expression (field access, method forward, arithmetic) is simple; everything else is not.
+**Kind:** correction
+**Escalated?** no
+
 ### 2026-05-24 — testing — new integration test file with wall-clock-bounded assertions missing #![cfg(not(miri))]
 
 **What happened:** `quartzite-runtime/tests/timer_single_shot_app.rs` was added as a separate binary for the AC11 single-shot test without the `#![cfg(not(miri))]` per-file gate. Its sibling `timer.rs` already had the gate for the same reason (interpreter budget — 500 ms wall-clock timeout). The missing tag caused Miri CI run 26357397751 to fail with "AppDriver single_shot must fire at least once".
 **Rule:** Every new integration test file whose assertions are wall-clock-bounded (timeouts, `thread::sleep`-dependent polls) MUST carry `#![cfg(not(miri))]` + the policy comment block (miri-policy.md per-file fallback template) at creation time. Don't add the file and fix the tag in a follow-up; add both in the same commit.
+**Kind:** correction
+**Escalated?** no
+
+### 2026-05-24 — process — spec amendment sub-flow during /pr-commented correctly spawns design subagent before self-review
+
+**What happened:** During `/pr-commented` Round 1 on PR #565, the round's diff touched `ai-docs/plans/done/*.spec.md` (AC3 amended to restore `Application::new()`). The spec amendment recipe fired: the design subagent was spawned with the amended spec + current design to verify decomposition stability, then design-review was run before self-review. Both steps verified the two review-driven changes fit within the existing subtask groupings with no structural redesign needed.
+**Rule:** When `/pr-commented` round diff touches any `.spec.md` file, ALWAYS run the spec amendment sub-flow (design subagent → design-review → GO before self-review). Do NOT jump straight to self-review or skip the design-review step regardless of how small the spec edit appears — self-review checks code-against-spec, not spec-against-design.
+**Kind:** validation
+**Escalated?** no
+
+### 2026-05-24 — process — orchestrator edited design doc directly during spec amendment sub-flow instead of delegating to design subagent
+
+**What happened:** During the spec amendment sub-flow triggered by `/pr-commented` Round 1 on PR #565, the orchestrator applied fixes to `ai-docs/plans/done/*.design.md` itself (using `Edit` tool calls inline) rather than spawning the `design` subagent. The user stopped this and redirected: "do not do work for design subagent, you are orchestrator, not design writer / design reviewer."
+**Rule:** The orchestrator NEVER edits `*.design.md` files directly. All design doc writes — including amendment fixes, stale-text cleanup, and decomposition updates — MUST go through the `design` subagent (Agent with `subagent_type="design"`). The orchestrator's role is: (1) identify what needs updating, (2) spawn the design subagent with a clear description, (3) spawn design-review on the result. This applies during the spec amendment recipe in `/pr-commented`, `/task`, and any other skill.
 **Kind:** correction
 **Escalated?** no

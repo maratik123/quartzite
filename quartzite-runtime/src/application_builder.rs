@@ -73,7 +73,6 @@ impl ApplicationBuilder {
     ///     .build()
     ///     .expect("only one Application per process");
     /// ```
-    #[inline]
     pub const fn tick_duration(mut self, tick: Option<Duration>) -> Self {
         self.tick = match tick {
             Some(d) if d.is_zero() => None,

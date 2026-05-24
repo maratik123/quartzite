@@ -14,7 +14,7 @@ Two intertwined changes land in one PR: (1) replace the hard-coded 1 ms `recv_ti
 
 **Direct constructor naming on `EventLoop`.** `EventLoop::with_tick(Option<Duration>) -> Self` — matches the spec § Key decisions naming preference, parallels existing `with_any_thread` on `WindowedApplicationBuilder`. `EventLoop::new()` stays as a tickless convenience delegating to `with_tick(None)`. `EventLoop::spawn` gets the new shape `spawn(tick: Option<Duration>, f)` — single overload, explicit `None` at the call site.
 
-**Builder method naming.** `tick_duration(Option<Duration>) -> Self` on both `ApplicationBuilder` and `WindowedApplicationBuilder` — matches the `quit_on_last_window_closed` chain shape (`const fn` chainable setter).
+**Builder method naming.** `tick_duration(Option<Duration>) -> Self` on both `ApplicationBuilder` and `WindowedApplicationBuilder` — matches the `quit_on_last_window_closed` chain shape (`const fn` chainable setter). Note: `tick_duration` is **not** `#[inline]` (it contains a `match` branch for `Some(Duration::ZERO)` normalisation — see `## Amendment 2026-05-24 (Round 1 review)` § Decision 2); `quit_on_last_window_closed` is `#[inline]` because it is branch-free.
 
 **`ApplicationBuilder` placement.** New file `quartzite-runtime/src/application_builder.rs` (mirrors the renderer-side sibling). Adding a builder + tick field + new docstring to `application.rs` (currently 301 lines) would push it toward the 400-line soft target; a sibling file keeps both under 200 + 200.
 
@@ -48,7 +48,7 @@ The design adds:
 4. **`Result`-rejecting `Some(Duration::ZERO)`**: rejected; normalisation is simpler.
 5. **Inner-mutability via `RwLock<ObjectBase>` for `object_base_mut`**: rejected; can't return a real `&mut` through a guard.
 6. **Keeping `stop(&self)` without a shim**: rejected; `Arc<EventLoop>` cross-thread callers need `&self`, but the macro requires `&mut self` for `#[slot]`. Two-method shape is the cleanest resolution.
-7. **Splitting `Application::new()` deletion into a follow-up PR**: rejected; pre-publish clean break per AGENTS.md § API Stability.
+7. **Deleting `Application::new()`**: reversed during Round 1 review (see `## Amendment 2026-05-24 (Round 1 review)` § Decision 1). The function is retained as an `#[inline]` tickless-default shorthand. The original rationale (pre-publish clean break per AGENTS.md § API Stability) was outweighed by the zero-cost convenience across 46 in-tree call sites.
 8. **`pub(crate) fn tick()` accessor**: rejected; `pub(crate)` is invisible to integration test binaries. `pub #[doc(hidden)]` chosen instead.
 9. **Dropping `request_quit` initially**: deferred to a follow-up commit; `quit` receiver changed to `&self` post-merge, making `request_quit` redundant and eliminating it cleanly.
 
@@ -58,9 +58,9 @@ The design adds:
 |---|------|-------|------------|
 | 1 | Add `tick: Option<Duration>` field to `EventLoop`; introduce `with_tick(tick: Option<Duration>) -> Self` (normalises `Some(ZERO)` → `None`); refactor `new()` to delegate to `with_tick(None)`; update `Default` impl; remove `const TICK_MS`; refactor `run()` to dispatch between `recv()` (tickless) and `recv_timeout(d)` (tick-based) with per-branch disconnect handling; update `spawn` to `spawn(tick: Option<Duration>, f)`; update module-level `//!` doc, all doc-strings, and existing `#[cfg(test)] mod tests` call sites for the new signatures. Add `#[doc(hidden)] pub fn tick(&self) -> Option<Duration>` accessor. | `quartzite-runtime/src/event_loop.rs` | — |
 | 2 | Object-ify `EventLoop`: add `base: ObjectBase` field with `#[base]` marker; add `#[derive(Extend, Object)] #[root]` on the struct; wrap the inherent impl with `#[object_impl]`; annotate `stop` with `#[slot]` and change receiver to `&mut self`; add `pub fn request_stop(&self)` shim (identical body); add `///` doc for the new `base` field and `request_stop`. Update the inherent tests (`stop_terminates_run`, etc.) to use `request_stop` where cross-thread access is needed. | `quartzite-runtime/src/event_loop.rs` | 1 |
-| 3 | Create `ApplicationBuilder` in new file `quartzite-runtime/src/application_builder.rs`: `#[must_use]` struct holding `tick: Option<Duration>`; chainable `tick_duration(Option<Duration>) -> Self` (`const fn`); `build() -> Result<Application, ApplicationError>` constructing `EventLoop::with_tick(tick)` and threading the install path currently in `Application::new`; move `ObjectBase` field into `ApplicationInner`; hand-roll `AsObject` + `Object` for `Application` (forwarding `object_base` to `&self.0.base`; `object_base_mut` panics with documented message; `invoke_method` arm for `"quit"` returns `Some(Value::Null)`; `connect_signal`/`emit_signal` return `None`); add static `MetaObject` with `class_name = "Application"`. Delete `Application::new`. Add `pub fn quit(&self)` (receiver `&self` — works from any context including `invoke_method` dispatch). Expose `Application::builder() -> ApplicationBuilder` const fn. Wire `pub use` in `lib.rs`. Update all docstrings (module-level + per-item + `# Examples`). | `quartzite-runtime/src/application_builder.rs` (new), `quartzite-runtime/src/application.rs`, `quartzite-runtime/src/lib.rs` | 2 |
+| 3 | Create `ApplicationBuilder` in new file `quartzite-runtime/src/application_builder.rs`: `#[must_use]` struct holding `tick: Option<Duration>`; chainable `tick_duration(Option<Duration>) -> Self` (`const fn`, not `#[inline]` — has `match` branch); `build() -> Result<Application, ApplicationError>` constructing `EventLoop::with_tick(tick)` and threading the install path previously in `Application::new`; move `ObjectBase` field into `ApplicationInner`; hand-roll `AsObject` + `Object` for `Application` (forwarding `object_base` to `&self.0.base`; `object_base_mut` panics with documented message; `invoke_method` arm for `"quit"` returns `Some(Value::Null)`; `connect_signal`/`emit_signal` return `None`); add static `MetaObject` with `class_name = "Application"`. Retain `Application::new` as `#[inline]` shorthand for `Self::builder().build()` (see Amendment 2026-05-24 (Round 1 review) § Decision 1). Add `pub fn quit(&self)` (receiver `&self` — works from any context including `invoke_method` dispatch). Expose `Application::builder() -> ApplicationBuilder` const fn. Wire `pub use` in `lib.rs`. Update all docstrings (module-level + per-item + `# Examples`). | `quartzite-runtime/src/application_builder.rs` (new), `quartzite-runtime/src/application.rs`, `quartzite-runtime/src/lib.rs` | 2 |
 | 4 | Extend `WindowedApplicationBuilder` with `tick: Option<Duration>` field + `tick_duration(Option<Duration>) -> Self` const-fn setter (normalises `Some(ZERO)` → `None`); update `build()` to call `Application::builder().tick_duration(self.tick).build()?`. Doc updates per `missing_docs = "deny"`. | `quartzite-renderer/src/application_builder.rs` | 3 |
-| 5 | Sweep all in-tree call sites of `Application::new()` (46 hits) → `Application::builder().build()`; update `EventLoop::spawn(f)` call sites → `EventLoop::spawn(None, f)`. Update `.stop()` call sites to use `request_stop()` where `&self` is needed. Update doc-string examples. `quartzite-runtime/src/loop_registry.rs` — no edit expected (uses `EventLoop::new()` which keeps its no-arg signature and does not call `.stop()`/`.quit()`), but must be included in the verification sweep (`grep -L 'Application::new' …` must return it) to confirm zero `Application::new` hits. | All files from the `grep -rln` sweep: `quartzite-runtime/{src/lib.rs,src/factory.rs,src/timer_drivers.rs,src/global_tree.rs,src/object_tree_ext.rs,src/loop_registry.rs,tests/timer.rs,tests/timer_single_shot_app.rs,tests/object_tree_ext.rs,tests/application.rs,tests/event_loop.rs,tests/per_thread_loops.rs}`, `quartzite-renderer/{src/application.rs,tests/application.rs,tests/multi_window.rs,tests/xvfb_smoke.rs}`, `quartzite-core/src/signal.rs`, `examples/timer.rs` | 4 |
+| 5 | Sweep all in-tree call sites of `Application::new()` (46 hits) → `Application::builder().build()`; update `EventLoop::spawn(f)` call sites → `EventLoop::spawn(None, f)`. Update `.stop()` call sites to use `request_stop()` where `&self` is needed. Update doc-string examples. `quartzite-runtime/src/loop_registry.rs` — no edit expected (uses `EventLoop::new()` which keeps its no-arg signature and does not call `.stop()`/`.quit()`), but must be included in the verification sweep to confirm all in-tree callers compile against the current API (no removed call sites remain). Note: `Application::new()` is retained as an `#[inline]` shorthand (see `## Amendment 2026-05-24 (Round 1 review)` § Decision 1), so call sites that previously used `Application::new()` for the default tickless path remain valid; the sweep migrates them to `Application::builder().build()` at author discretion but is not invalidated by a residual `Application::new()` site. | All files from the `grep -rln` sweep: `quartzite-runtime/{src/lib.rs,src/factory.rs,src/timer_drivers.rs,src/global_tree.rs,src/object_tree_ext.rs,src/loop_registry.rs,tests/timer.rs,tests/timer_single_shot_app.rs,tests/object_tree_ext.rs,tests/application.rs,tests/event_loop.rs,tests/per_thread_loops.rs}`, `quartzite-renderer/{src/application.rs,tests/application.rs,tests/multi_window.rs,tests/xvfb_smoke.rs}`, `quartzite-core/src/signal.rs`, `examples/timer.rs` | 4 |
 | 6 | New tests: AC9 sub-items (a–e); AC15–AC20 Object-ification tests; AC19(a) reflection-based wiring; AC19(b) signal-connection-to-quit test. Unit tests in `event_loop.rs` `#[cfg(test)]`; integration tests in `tests/event_loop.rs` and `tests/application.rs` (isolated binaries for singleton tests). | `quartzite-runtime/src/event_loop.rs`, `quartzite-runtime/tests/event_loop.rs`, `quartzite-runtime/tests/application.rs`, `quartzite-runtime/src/application.rs` | 5 |
 | 7 | Workspace gates: `cargo build`, `cargo test --workspace`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo fmt -- --check`, `RUSTDOCFLAGS="-D warnings -D missing-docs" cargo doc --no-deps --workspace --all-features`, `cargo build -p quartzite --no-default-features --features libm`. Fix any failures. Update `ai-docs/learnings.md` if any in-flow learning emerges. | All touched files | 6 |
 
@@ -201,3 +201,53 @@ connect_signal_to_slot(&mut source_obj, "click", &target, "quit")?;
 **Content:** "The class name `\"Application\"` is reserved for this framework-managed singleton. User-created objects should not use `\"Application\"` as their `meta_object().class_name`."
 
 **Decomposition:** folded into subtask 8 (same commit).
+
+## Amendment 2026-05-24 (Round 1 review)
+
+Two clarifications applied during `/pr-commented` Round 1 of PR #565, both already landed in the implementation.
+
+### Decision 1 — keep `Application::new()` as a tickless-default shorthand
+
+Spec AC3 (Round 1 amendment): `Application::new() -> Result<Self, ApplicationError>` is retained, **not** removed. It is a boilerplate reducer that delegates to `Self::builder().build()`. The original spec position (delete the function as a pre-publish clean break per AGENTS.md § API Stability) was reversed during review because the convenience shorthand carries zero behavioural cost (tickless is already the builder default) and removes call-site noise across 46 in-tree sites that would otherwise spell `Application::builder().build()` for the default path.
+
+**Shape** (`quartzite-runtime/src/application.rs`):
+```rust
+#[inline]
+pub fn new() -> Result<Self, ApplicationError> {
+    Self::builder().build()
+}
+```
+
+`#[inline]` is correct here: the body is a single non-branching call (`Self::builder().build()`) — simple per AGENTS.md § Code Style → `#[inline]` and the `_Simple._` doc tag (concrete inherent fn, no branches/loops, ≤ 1 non-simple call).
+
+This restores `Application::new()` without re-introducing any of the pre-existing semantics: the constructor goes through the same builder path, with tickless as the default. No alias for any other removed API is reintroduced; the clean-break stance from AGENTS.md § API Stability still applies to every other surface in this PR.
+
+### Decision 2 — `#[inline]` removed from `tick_duration` setters
+
+Spec § Technical constraints (Round 1 amendment): `ApplicationBuilder::tick_duration` and `WindowedApplicationBuilder::tick_duration` contain a `match` expression (branching) for `Some(Duration::ZERO)` normalisation:
+
+```rust
+self.tick = match tick {
+    Some(d) if d.is_zero() => None,
+    other => other,
+};
+```
+
+Per AGENTS.md § Code Style → `#[inline]` and the `_Simple._` doc tag, the simplicity rule is "no branches/loops, ≤ 1 non-simple call". The `match` is a branch and disqualifies the function from `#[inline]`. The attribute has been removed from both setters.
+
+The neighbouring `const fn` modifier is retained — `const fn` is independent of `#[inline]` and remains valid for the `match` body.
+
+### Decomposition impact — none
+
+Subtasks 1–8 remain unchanged:
+- Subtask 3 (`ApplicationBuilder` construction) already produces `tick_duration` without `#[inline]` per the amended technical-constraints text. No structural rework needed; the marker simply isn't applied.
+- Subtask 4 (`WindowedApplicationBuilder::tick_duration`) — same.
+- Subtask 3 (deletion of `Application::new`) becomes addition-by-retention. The shorthand is one inlined line living next to `builder()`; it does not change the `ApplicationBuilder` structure, the `Object`-ification path, the file split, or the call-site sweep in Subtask 5 (which migrates *other* call sites — `Application::new()` callers can stay or migrate to `builder().build()` at the author's discretion).
+- Subtask 5 (in-tree call-site sweep) — the sweep's invariant ("no `Application::new()` callers remain") softens to "all callers compile against the current API"; since `Application::new()` is the same shape as before (`-> Result<Self, ApplicationError>`), existing callers that survived the merge still compile unchanged. No additional file touched.
+- Subtask 6 (new tests) — no test is added or removed; AC9(d) and AC22 still observe the same behaviour via the builder path.
+- Subtask 7 (workspace gates) — unchanged.
+- Subtask 8 (AC22/AC23) — unchanged.
+
+### Handoff plan — unchanged
+
+`M = 7` (subtasks 1–7, primary tickless + Object PR) + `M = 1` (subtask 8, AC22/AC23 amendment) — both already merged. The Round 1 review amendment introduces no new subtask; the two implementation changes (one-line `Application::new()` restoration + two `#[inline]` removals) landed inside the existing Group C / amendment scope and the subtask groupings above continue to describe the merged PR state.

@@ -152,7 +152,6 @@ impl WindowedApplicationBuilder {
     ///     .build()
     ///     .expect("failed to create application");
     /// ```
-    #[inline]
     pub const fn tick_duration(mut self, tick: Option<Duration>) -> Self {
         self.tick = match tick {
             Some(d) if d.is_zero() => None,

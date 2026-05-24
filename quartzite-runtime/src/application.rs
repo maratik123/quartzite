@@ -184,6 +184,27 @@ impl Application {
         ApplicationBuilder::new()
     }
 
+    /// Creates a new [`Application`] singleton with the tickless default.
+    ///
+    /// Shorthand for `Application::builder().build()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ApplicationError::AlreadyExists`] if an [`Application`] has already been
+    /// installed in this process. Only one [`Application`] may exist per process.
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_runtime::Application;
+    ///
+    /// let app = Application::new().expect("only one Application per process");
+    /// ```
+    #[inline]
+    pub fn new() -> Result<Self, ApplicationError> {
+        Self::builder().build()
+    }
+
     /// Internal: constructs the singleton from an already-configured `EventLoop`.
     ///
     /// Called by [`ApplicationBuilder::build`]. Not part of the public API.
