@@ -1421,3 +1421,9 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 
 **Escalated?** no
+
+### 2026-05-24 — testing — Read-only guard bypassed by snapshot test widget setup order
+
+**What happened:** Both `line_edit_read_only_selection_renders` and `dark_line_edit_read_only_selection_renders` set `w.read_only = true` before calling `w.set_caret(1)` / `w.set_selection_anchor(Some(3))`. Both setters guard `if self.read_only { return; }`, so the fields stayed at their defaults (`caret=0, selection_anchor=None`). `selection_range()` returned `None`, `paint_selection_line_edit` exited early, and the goldens captured "read-only without selection" — a state that would pass even if the entire selection-paint path were removed.
+**Rule:** When configuring a widget for a snapshot test that tests a feature guarded by a setter (e.g. `set_caret`, `set_selection_anchor`) and a state flag that guards that setter (e.g. `read_only`), set the feature state FIRST (via direct field writes if needed), then set the guarding flag. The golden will otherwise silently capture the wrong state.
+**Escalated?** no
