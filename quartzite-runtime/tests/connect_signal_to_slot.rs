@@ -8,7 +8,11 @@
 //! and there are no singleton races with `tests/application.rs` or
 //! `tests/application_signal_to_quit.rs`.
 
-use std::{sync::Arc, thread, time::Duration};
+use std::{
+    sync::{Arc, mpsc},
+    thread,
+    time::Duration,
+};
 
 use parking_lot::Mutex;
 use quartzite_core::{
@@ -141,8 +145,10 @@ fn ac22_connect_signal_to_slot_stops_application() {
         .expect("connect_signal_to_slot must succeed for valid signal name");
 
     // Run the event loop on a background thread.
+    let (tx, rx) = mpsc::channel::<()>();
     let handle = thread::spawn(move || {
         Application::global().unwrap().exec();
+        let _ = tx.send(());
     });
 
     // Give exec() time to start blocking.
@@ -151,13 +157,9 @@ fn ac22_connect_signal_to_slot_stops_application() {
     // Emit "click" — must trigger quit → exec() returns.
     source.fire();
 
-    handle
-        .join()
-        .expect("exec() thread must exit cleanly within 200 ms");
-    // The test itself implicitly enforces the 200 ms bound — if exec() hangs,
-    // the test runner's timeout will catch it. We rely on the same pattern as
-    // application_signal_to_quit.rs (which uses recv_timeout for an explicit
-    // assertion); here we verify the thread joins cleanly.
+    rx.recv_timeout(Duration::from_millis(200))
+        .expect("connect_signal_to_slot must stop the Application event loop within 200 ms");
+    handle.join().expect("exec() thread must exit cleanly");
 }
 
 /// AC22 (error path): `connect_signal_to_slot` returns `UnknownFromSignal` for

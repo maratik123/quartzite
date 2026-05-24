@@ -220,20 +220,18 @@ pub fn connect_signal_to_signal(
 /// `Weak<Mutex<dyn Object>>` to a strong [`Arc`], locks `target`, and calls
 /// `target.invoke_method(slot_name, &[])`.
 ///
-/// # Lazy slot validation
-///
 /// Unlike [`connect_signal_to_signal`], slot-name validation is **deferred** to
 /// emit time. If `slot_name` is unknown on `target` at emission, `invoke_method`
 /// returns `None` and the emission is silently ignored — no error is produced.
 /// This trade-off avoids adding new error variants and mirrors the common pattern
 /// where a slot is a concrete method that does not appear in the meta-system
-/// (e.g. a hand-rolled `invoke_method` implementation).
-///
-/// # Liveness
+/// (e.g. a hand-rolled `invoke_method` implementation). The slot is invoked with
+/// an empty argument list (`&[]`); only zero-argument slots are meaningfully
+/// supported — non-zero-arity slots silently no-op, identical to an unknown slot name.
 ///
 /// The callback holds only a `Weak<Mutex<dyn Object>>` downgraded from `target`.
 /// If all strong [`Arc`] handles to `target` are released before an emission, the
-/// upgrade silently fails and the slot call is skipped.
+/// upgrade silently fails and the slot call is skipped — no panic, no log.
 ///
 /// # Parameters
 ///
@@ -246,14 +244,6 @@ pub fn connect_signal_to_signal(
 ///
 /// Returns [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not
 /// declared on `source`. This is the only validation performed at connection time.
-///
-/// # Notes
-///
-/// - The slot is invoked with an empty argument list (`&[]`). Only zero-argument
-///   slots are meaningfully supported; non-zero-arity slots silently no-op
-///   (identical behaviour to unknown slot names).
-/// - If the weak upgrade fails at emit time (target was dropped), the emission is
-///   silently skipped — no panic, no log.
 ///
 /// # Examples
 ///
