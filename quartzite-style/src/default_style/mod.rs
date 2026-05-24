@@ -240,6 +240,7 @@ impl Paint<Button> for DefaultStyle {
             &font,
             &Brush::solid(text_color),
             Alignment::Center,
+            Alignment::Center,
         );
     }
 }
@@ -274,7 +275,14 @@ impl Paint<Label> for DefaultStyle {
                 &Brush::solid(Color::TRANSPARENT),
             );
         }
-        painter.draw_text_in(geom, &w.text, &font, &Brush::solid(text_color), w.alignment);
+        painter.draw_text_in(
+            geom,
+            &w.text,
+            &font,
+            &Brush::solid(text_color),
+            w.alignment,
+            Alignment::Center,
+        );
     }
 }
 

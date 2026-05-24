@@ -59,6 +59,7 @@ impl Paint<TextEdit> for DefaultStyle {
             &font,
             &Brush::solid(final_text_color),
             Alignment::Left,
+            Alignment::Left,
         );
 
         // 4–5. Selection fill (covers normal text in selected region) + selected-glyph overdraw
@@ -300,6 +301,7 @@ pub(super) fn paint_selection(
         &w.plain_text,
         &font,
         &Brush::solid(glyph_color),
+        Alignment::Left,
         Alignment::Left,
     );
     painter.restore();
