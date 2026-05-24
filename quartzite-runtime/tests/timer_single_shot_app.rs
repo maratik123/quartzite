@@ -2,6 +2,14 @@
 
 // Separate binary so the Application singleton is fresh (no conflict with timer.rs).
 // Tests AC11: single_shot fires exactly once when using AppDriver.
+//
+// Skipped under Miri at the file level: interpreter budget. The whole-file
+// shape is required (not per-test `cfg_attr`) because every assertion is
+// wall-clock-bounded (500 ms timeout after a 30 ms-interval timer); Miri's
+// 10–30× interpreter overhead cannot preserve those budgets, producing
+// timeout false-positives. Alternative coverage: native `cargo test` exercises
+// this file on the standard test job.
+#![cfg(not(miri))]
 
 use std::{
     sync::{
