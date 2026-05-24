@@ -22,8 +22,8 @@ Rules checked per widget:
 
 | Rule | Source | Code reference | Status | Note |
 |---|---|---|---|---|
-| Text vertical alignment: Center | `design-system/preview/comp-button-anatomy.html` (`align-items: center`) | `quartzite-style/src/default_style/mod.rs:237–244` | ✅ | Fixed in subtask 2, commit 8fd1303. Painter called with `v_align = Alignment::Center`. |
-| Text horizontal alignment: Center | `design-system/preview/comp-button-anatomy.html` (`justify-content: center`) | `quartzite-style/src/default_style/mod.rs:242` | ✅ | `h_align = Alignment::Center`. |
+| Text vertical alignment: Center | `design-system/preview/comp-button-anatomy.html` (`align-items: center`) | `quartzite-style/src/default_style/mod.rs:237–244` | ✅ | Fixed in subtask 2, commit 8fd1303; types renamed `HAlignment`/`VAlignment` in Design Amendment 2 (ddae97e). Painter called with `v_align = VAlignment::Center`. |
+| Text horizontal alignment: Center | `design-system/preview/comp-button-anatomy.html` (`justify-content: center`) | `quartzite-style/src/default_style/mod.rs:242` | ✅ | `h_align = HAlignment::Center`. |
 | Background colour: `Button × state_group` | `design-system/README.md § Color` | `quartzite-style/src/default_style/mod.rs:218` | ✅ | Idle → `Button × Normal`; hover → `Button × Hover`; pressed/checked → `Highlight × Pressed/Normal`. |
 | Outline/border: 1 px `ButtonText`/`HighlightedText` (idle/pressed) | `design-system/preview/comp-button-anatomy.html` (`border: 1px solid #000000`) | `quartzite-style/src/default_style/mod.rs:232–236` | ✅ | 1 px `ButtonText` at rest; pressed/checked swaps to `HighlightedText` (white). |
 | Focus ring: 2 px `FocusRing × Normal` | `design-system/README.md § Borders & strokes` | `quartzite-style/src/default_style/mod.rs:222–229` | ✅ | `FOCUS_RING_WIDTH = 2.0`; role = `FocusRing × Normal`. |
@@ -40,8 +40,8 @@ Rules checked per widget:
 
 | Rule | Source | Code reference | Status | Note |
 |---|---|---|---|---|
-| Text vertical alignment: Center | `design-system/README.md § WIDGET SPECS` (K3 decision — single-line inputs centre vertically) | `quartzite-style/src/default_style/mod.rs:278–285` | ✅ | Fixed in subtask 2, commit 8fd1303. `v_align = Alignment::Center`. Diverges from `comp-label.html` mock (which is top-anchored); spec K3 rules that impl is authoritative. |
-| Text horizontal alignment: `w.alignment` | `design-system/preview/comp-label.html` (left/center/right variants shown) | `quartzite-style/src/default_style/mod.rs:283` | ✅ | `h_align = w.alignment`; defaults to `Alignment::Left`. |
+| Text vertical alignment: Center | `design-system/README.md § WIDGET SPECS` (K3 decision — single-line inputs centre vertically) | `quartzite-style/src/default_style/mod.rs:278–285` | ✅ | Fixed in subtask 2, commit 8fd1303; types renamed in Design Amendment 2 (ddae97e). `v_align = VAlignment::Center`. Diverges from `comp-label.html` mock (which is top-anchored); spec K3 rules that impl is authoritative. |
+| Text horizontal alignment: `w.alignment` | `design-system/preview/comp-label.html` (left/center/right variants shown) | `quartzite-style/src/default_style/mod.rs:283` | ✅ | `h_align = w.alignment` (`HAlignment`); defaults to `HAlignment::Left`. |
 | Background colour: `Window × state_group` | `design-system/README.md § Color` | `quartzite-style/src/default_style/mod.rs:263` | ✅ | Idle/hover → `Window × Normal/Hover`; pressed → `Highlight × Pressed`. |
 | Outline/border: none at idle; 2 px FocusRing when focused | `design-system/README.md § Borders & strokes` | `quartzite-style/src/default_style/mod.rs:267–277` | ✅ | `draw_rect` only emitted when `focused`. |
 | Focus ring: 2 px `FocusRing × Normal` | `design-system/README.md § Borders & strokes` | `quartzite-style/src/default_style/mod.rs:268–276` | ✅ | `FOCUS_RING_WIDTH = 2.0`; role = `FocusRing × Normal`. |
@@ -59,7 +59,7 @@ Rules checked per widget:
 | Rule | Source | Code reference | Status | Note |
 |---|---|---|---|---|
 | Text vertical alignment: Center | `design-system/preview/comp-button-anatomy.html` (`min-height: 28px`, single-line field) + spec G4 | `quartzite-style/src/default_style/line_edit.rs:75–82` | ✅ | Fixed in subtask 3, commit 61276a1. Replaced PR #554 smaller-rect recipe with `draw_text_in(geom, …, Left, Center)`. |
-| Text horizontal alignment: Left | `design-system/preview/comp-line-edit.html` (text-align: left implied) | `quartzite-style/src/default_style/line_edit.rs:80` | ✅ | `h_align = Alignment::Left`. |
+| Text horizontal alignment: Left | `design-system/preview/comp-line-edit.html` (text-align: left implied) | `quartzite-style/src/default_style/line_edit.rs:80` | ✅ | `h_align = HAlignment::Left`. |
 | Background colour: `Base × state_group` | `design-system/README.md § Color` | `quartzite-style/src/default_style/line_edit.rs:39–40` | ✅ | Idle/hover → `Base × Normal/Hover`; pressed → `Highlight × Pressed`. |
 | Outline/border: 1 px `Text` / `FocusRing` | `design-system/preview/comp-line-edit.html` (`border: 1px solid #000000`) | `quartzite-style/src/default_style/line_edit.rs:48–60` | ✅ | 1 px `Text` at rest; 2 px `FocusRing` when focused. |
 | Focus ring: 2 px `FocusRing × Normal` | `design-system/README.md § Borders & strokes` | `quartzite-style/src/default_style/line_edit.rs:47–54` | ✅ | `FOCUS_RING_WIDTH = 2.0`. |
@@ -80,8 +80,8 @@ Rules checked per widget:
 
 | Rule | Source | Code reference | Status | Note |
 |---|---|---|---|---|
-| Text vertical alignment: Left (top) | `design-system/preview/comp-text-edit.html` (`vertical-align: top`) + spec G5 | `quartzite-style/src/default_style/text_edit.rs` (main draw call) | ✅ | Fixed in subtask 2, commit 8fd1303. Explicit `v_align = Alignment::Left` (top). Aligns with `comp-text-edit.html` mock. |
-| Text horizontal alignment: Left | `design-system/preview/comp-text-edit.html` (default text-align) | `quartzite-style/src/default_style/text_edit.rs` | ✅ | `h_align = Alignment::Left`. |
+| Text vertical alignment: Top | `design-system/preview/comp-text-edit.html` (`vertical-align: top`) + spec G5 | `quartzite-style/src/default_style/text_edit.rs` (main draw call) | ✅ | Fixed in subtask 2, commit 8fd1303; types renamed in Design Amendment 2 (ddae97e). Explicit `v_align = VAlignment::Top`. Aligns with `comp-text-edit.html` mock. |
+| Text horizontal alignment: Left | `design-system/preview/comp-text-edit.html` (default text-align) | `quartzite-style/src/default_style/text_edit.rs` | ✅ | `h_align = HAlignment::Left`. |
 | Background colour: `Base × state_group` | `design-system/README.md § Color` | `quartzite-style/src/default_style/text_edit.rs` | ✅ | Idle → `Base × Normal`; hover/pressed follow state group. |
 | Outline/border: 1 px `Text` / 2 px `FocusRing` | `design-system/preview/comp-text-edit.html` (`border: 1px solid #000000`) | `quartzite-style/src/default_style/text_edit.rs` | ✅ | 1 px `Text` at rest; 2 px `FocusRing` when focused. |
 | Focus ring: 2 px `FocusRing × Normal` | `design-system/README.md § Borders & strokes` | `quartzite-style/src/default_style/text_edit.rs` | ✅ | `FOCUS_RING_WIDTH = 2.0`. |
@@ -134,9 +134,9 @@ Rules checked per widget:
 ## Summary of ❌ rows
 
 No open `❌` rows remain at PR merge. All code conformance gaps were resolved in Group A commits:
-- G1 (missing vertical axis on `draw_text_in`) → fixed in commit 9816b38.
-- G2 (`Button` top-anchored text) → fixed in commit 8fd1303.
-- G3 (`Label` top-anchored text) → fixed in commit 8fd1303.
-- G4 (`LineEdit` smaller-rect recipe) → replaced with `draw_text_in(geom, …, Left, Center)` in commit 61276a1.
+- G1 (missing vertical axis on `draw_text_in`) → fixed in commits 9816b38 + ecd47e1 (Design Amendment 2: `HAlignment`/`VAlignment` split).
+- G2 (`Button` top-anchored text) → fixed in commit 8fd1303; call site updated in ddae97e.
+- G3 (`Label` top-anchored text) → fixed in commit 8fd1303; call site updated in ddae97e.
+- G4 (`LineEdit` smaller-rect recipe) → replaced with `draw_text_in(geom, …, HAlignment::Left, VAlignment::Center)` in ddae97e.
 
 G5 (`TextEdit` intentionally top-anchored) and G7 (already-conformant items) are ✅ as recorded in the spec.
