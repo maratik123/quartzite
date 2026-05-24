@@ -52,6 +52,28 @@ impl WindowedApplication {
         WindowedApplicationBuilder::new()
     }
 
+    /// Shorthand for `WindowedApplication::builder().build()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RendererError::Application`] if a [`quartzite_runtime::Application`]
+    /// singleton already exists in this process.
+    ///
+    /// Returns [`RendererError::EventLoop`] if the winit event loop cannot be
+    /// created (e.g. no display server is reachable).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::WindowedApplication;
+    ///
+    /// let app = WindowedApplication::new().expect("only one WindowedApplication per process");
+    /// ```
+    #[inline]
+    pub fn new() -> Result<Self, RendererError> {
+        Self::builder().build()
+    }
+
     /// Constructs from already-initialised parts. Used only by
     /// [`WindowedApplicationBuilder::build`].
     #[inline]
