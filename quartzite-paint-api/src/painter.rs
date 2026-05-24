@@ -151,13 +151,9 @@ pub trait Painter {
     ///   implementations debug-assert in debug builds and fall back to
     ///   [`Alignment::Left`] (top) in release builds.
     ///
-    /// # Parameter order
-    ///
-    /// `h_align` always precedes `v_align` in the parameter list. The two
-    /// parameters are both [`Alignment`] and therefore mutually convertible
-    /// by type — call sites must rely on positional order, not on the type
-    /// system, to distinguish horizontal from vertical. Reviewers and authors
-    /// should treat any `draw_text_in(..., v, h)` ordering as a defect.
+    /// **Parameter order:** `h_align` always precedes `v_align`. Both are
+    /// [`Alignment`] — call sites must rely on positional order; treat any
+    /// `draw_text_in(..., v, h)` ordering as a defect.
     ///
     /// # Examples
     ///
@@ -517,8 +513,12 @@ mod tests {
             _font: &Font,
             _brush: &Brush,
             _h_align: Alignment,
-            _v_align: Alignment,
+            v_align: Alignment,
         ) {
+            debug_assert!(
+                !matches!(v_align, Alignment::Justify),
+                "draw_text_in: Alignment::Justify is invalid on the vertical axis"
+            );
             self.calls[8] += 1;
         }
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {
@@ -644,5 +644,16 @@ mod tests {
             inner.calls[12], 1,
             "text_visual_lines dispatch call counted"
         );
+    }
+
+    #[test]
+    #[cfg(debug_assertions)]
+    #[should_panic(expected = "draw_text_in: Alignment::Justify is invalid on the vertical axis")]
+    fn draw_text_in_justify_on_vertical_axis_panics_in_debug() {
+        let mut p = RecordingPainter::new();
+        let rect = Rect::new(Point::new(0, 0), Size::new(64, 64));
+        let font = Font::new("sans", 12.0);
+        let brush = Brush::solid(Color::BLACK);
+        p.draw_text_in(rect, "x", &font, &brush, Alignment::Left, Alignment::Justify);
     }
 }

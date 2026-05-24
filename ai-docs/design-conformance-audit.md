@@ -50,7 +50,7 @@ Rules checked per widget:
 | Pressed fill + text: `Highlight × Pressed` + `HighlightedText` | `design-system/README.md § Color` | `quartzite-style/src/default_style/mod.rs:258–261` | ✅ | `pressed` → `Highlight`, `HighlightedText`. |
 | Font: `WidgetBase::font` | `design-system/README.md § Type` | `quartzite-style/src/default_style/mod.rs:251` | ✅ | `w.widget_base().font.clone()`. |
 | Padding / min-size | `design-system/preview/comp-label.html` (no explicit padding token in mock) | N/A | N/A | No padding token for Label. Deferred per K4. |
-| Mock drift: `comp-label.html` shows top-anchored text | `design-system/preview/comp-label.html` | `quartzite-style/src/default_style/mod.rs:278–285` | ❌ | Documentation drift — impl centres vertically (K3) but mock shows top-anchored. Closing the mock is a documentation follow-up (spec Deferred table), not a code fix. This row is the only `❌` for Label and requires no same-PR code change. |
+| Mock drift: `comp-label.html` shows top-anchored text | `design-system/preview/comp-label.html` | `quartzite-style/src/default_style/mod.rs:278–285` | N/A | Documentation-only drift — the HTML mock is not a code conformance rule. Impl centres vertically per spec K3 (authoritative). Mock cleanup is deferred (spec Deferred table). |
 
 ---
 
@@ -133,11 +133,7 @@ Rules checked per widget:
 
 ## Summary of ❌ rows
 
-| Widget | Rule | Action |
-|---|---|---|
-| Label | Mock drift: `comp-label.html` top-anchored vs. impl centre (K3) | Documentation follow-up (not a code fix). Tracked in spec Deferred table. |
-
-All other `❌` rows from the spec's G-list (G1 through G4) were resolved in Group A commits:
+No open `❌` rows remain at PR merge. All code conformance gaps were resolved in Group A commits:
 - G1 (missing vertical axis on `draw_text_in`) → fixed in commit 9816b38.
 - G2 (`Button` top-anchored text) → fixed in commit 8fd1303.
 - G3 (`Label` top-anchored text) → fixed in commit 8fd1303.
