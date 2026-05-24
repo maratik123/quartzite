@@ -942,7 +942,7 @@ fn precedence_pressed_checked_both_map_to_highlight() {
     );
 }
 
-/// AC10 — disabled AND focused button paints half-alpha fill plus 2 px focus outline.
+/// Disabled AND focused button paints half-alpha fill plus 2 px focus outline.
 ///
 /// `disabled` is an alpha modifier; `focused` is an additive outline modifier.
 /// Both coexist: the idle fill is halved and the focus ring is drawn at full alpha.
@@ -991,7 +991,7 @@ fn disabled_and_focused_button_paints_half_alpha_fill_plus_outline() {
     );
 }
 
-/// AC10 — pressed AND checked button picks Highlight × Pressed for fill.
+/// Pressed AND checked button picks Highlight × Pressed for fill.
 ///
 /// Exercises the `pressed || checked` role-selection branch with both bits set.
 #[test]
@@ -1601,7 +1601,7 @@ fn precedence_pressed_hovered_line_edit_picks_pressed_fill() {
     );
 }
 
-/// AC2 / #407 fold-in anchor — disabled-idle `LineEdit` halves alpha on
+/// #407 fold-in anchor — disabled-idle `LineEdit` halves alpha on
 /// Base fill + Text outline + Text glyph brush. The pre-spec impl wraps
 /// zero colours in `maybe_disabled`, so this test would fail against it.
 #[test]
@@ -1660,7 +1660,7 @@ fn line_edit_disabled_idle_dims_base_text_outline() {
     );
 }
 
-/// AC5 — `read_only` overlays the hover-state base fill.
+/// `read_only` overlays the hover-state base fill.
 ///
 /// Captures 4 events: fill(Base × Hover) / fill(`WindowText` overlay at `READ_ONLY_OVERLAY_ALPHA`) /
 /// outline(Text × Hover @ 1 px) / text(Text × Hover @ `READ_ONLY_TEXT_ALPHA`).
@@ -1715,7 +1715,7 @@ fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     );
 }
 
-/// AC4 — placeholder tracks the state-resolved text colour through hover.
+/// Placeholder tracks the state-resolved text colour through hover.
 #[test]
 fn line_edit_hovered_placeholder_tracks_hover_text() {
     let palette = Palette::default();
@@ -1734,7 +1734,7 @@ fn line_edit_hovered_placeholder_tracks_hover_text() {
     );
 }
 
-/// AC4 — placeholder tracks the state-resolved text colour through pressed.
+/// Placeholder tracks the state-resolved text colour through pressed.
 ///
 /// `HighlightedText` is intentional here (role-swap on press for legibility
 /// under the inverted Highlight fill — see spec § Key decisions row
@@ -1759,7 +1759,7 @@ fn line_edit_pressed_placeholder_tracks_pressed_text() {
     );
 }
 
-/// AC4 / #407 fold-in flows through placeholder — disabled-placeholder
+/// #407 fold-in flows through placeholder — disabled-placeholder
 /// composes `disabled()` × `maybe_disabled(_, false)` ≈ `× 0.25` alpha.
 #[test]
 fn line_edit_disabled_placeholder_composes_double_dim() {
@@ -2123,7 +2123,7 @@ fn precedence_pressed_hovered_text_edit_picks_pressed_fill() {
     );
 }
 
-/// AC2 — `read_only` overlays the hover-state base fill.
+/// `read_only` overlays the hover-state base fill.
 ///
 /// Captures 4 events: fill(Base × Hover) / fill(`WindowText` overlay at `READ_ONLY_OVERLAY_ALPHA`) /
 /// outline(Text × Hover @ 1 px) / text(Text × Hover @ `READ_ONLY_TEXT_ALPHA`).
@@ -2365,7 +2365,7 @@ fn registry_round_trip_dispatches_default_style() {
 
 // ── AC8: Button + Label both use vertical-centre ─────────────────────────
 
-/// AC8 — asserts on the recorded painter-call argument shape so that a future
+/// Asserts on the recorded painter-call argument shape so that a future
 /// renderer change cannot silently regress vertical centring without also
 /// failing this test (independent of golden PNGs).
 #[test]
