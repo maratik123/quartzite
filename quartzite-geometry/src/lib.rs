@@ -6,14 +6,14 @@
 #[cfg(feature = "std")]
 extern crate std;
 
-mod alignment;
+mod h_alignment;
 mod margins;
 mod point;
 mod rect;
 mod size;
 mod v_alignment;
 
-pub use alignment::HAlignment;
+pub use h_alignment::HAlignment;
 pub use margins::Margins;
 pub use point::{Point, PointF};
 pub use rect::{Rect, RectF};
