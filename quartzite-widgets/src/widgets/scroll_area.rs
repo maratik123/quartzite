@@ -15,7 +15,6 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(ScrollPolicy::default(), ScrollPolicy::AsNeeded);
 /// ```
 #[derive(MetaEnum, Copy, Clone, Debug, PartialEq, Eq, Default)]
-#[repr(i64)]
 pub enum ScrollPolicy {
     /// Show scrollbar only when content overflows.
     #[default]
