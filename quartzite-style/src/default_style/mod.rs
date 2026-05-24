@@ -40,7 +40,7 @@ pub(super) const FOCUS_RING_WIDTH: f32 = 2.0;
 /// - [`quartzite_widgets::TextEdit`] — base fill, 1 px outline, plain-text content; read-only overlay.
 /// - [`ScrollArea`] — chrome only (background fill + 1 px outline); no child traversal.
 /// - [`Container`] — Window background fill + 1 px `WindowText` outline; no child traversal.
-/// - [`LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
+/// - [`quartzite_widgets::LineEdit`] — Base fill, 1 px outline, single-line text; read-only overlay; placeholder.
 ///
 /// Unknown widget types (the [`WidgetView::Other`] arm) fall through silently — no
 /// painter methods are called and no panic is issued. This is intentional: new widget
