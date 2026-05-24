@@ -206,14 +206,20 @@ fn ac17_ac19_invoke_method_stop_exits_loop() {
         .expect("loop must exit after request_stop()");
     handle.join().expect("loop thread must exit cleanly");
 
-    // Verify invoke_method("stop") on a fresh (not-yet-running) EventLoop.
+    // Verify the reflection path: invoke_method("stop") must call the real stop() body.
+    // If it only returned Value::Null without setting stop_requested, run() below would hang.
     let mut el_local = EventLoop::new();
-    // Pre-stop so run() exits immediately, then invoke via reflection.
-    el_local.request_stop();
     let result = el_local.invoke_method("stop", &[]);
     assert_eq!(
         result,
         Some(Value::Null),
         "invoke_method(\"stop\") must return Some(Value::Null)"
     );
+    let (tx2, rx2) = mpsc::channel::<()>();
+    thread::spawn(move || {
+        el_local.run();
+        let _ = tx2.send(());
+    });
+    rx2.recv_timeout(Duration::from_millis(200))
+        .expect("invoke_method(\"stop\") must stop the loop: run() did not exit within 200 ms");
 }

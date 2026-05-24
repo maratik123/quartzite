@@ -90,7 +90,7 @@ static APP_META: MetaObject = MetaObject::new(
 // ── AsObject + Object impls (b1 hand-rolled) ────────────────────────────────
 
 impl quartzite_core::AsObject for Application {
-    // _Simple._
+    #[inline]
     fn object_base(&self) -> &ObjectBase {
         &self.0.base
     }
@@ -109,19 +109,19 @@ impl quartzite_core::AsObject for Application {
         )
     }
 
-    // _Simple._
+    #[inline]
     fn as_any(&self) -> &dyn core::any::Any {
         self
     }
 
-    // _Simple._
+    #[inline]
     fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
         self
     }
 }
 
 impl quartzite_core::Object for Application {
-    // _Simple._
+    #[inline]
     fn meta_object(&self) -> &'static MetaObject {
         &APP_META
     }

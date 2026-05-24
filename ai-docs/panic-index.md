@@ -59,6 +59,16 @@ was not used at the time, and the preferred fix when this is eventually hardened
 | **Why not `Result`** | Same constraint as `text_carets`: the `Painter::text_visual_lines` signature returns `&mut dyn TextVisualLineCursor` (not `Result`). |
 | **Preferred fix** | Same as `text_carets` — redesign the slot type to remove the `Option` wrapper, or use `.expect("line_cursor_slot: assigned Some above")` for a louder panic message. |
 
+### `quartzite-runtime` — `Application::object_base_mut`
+
+| Field | Value |
+|---|---|
+| **Location** | `quartzite-runtime/src/application.rs` — `<Application as AsObject>::object_base_mut` |
+| **Trigger** | Any call to `object_base_mut(&mut self)` on an `Application` handle. Fires unconditionally. |
+| **Invariant** | `Application` is a newtype around `Arc<ApplicationInner>`. `ApplicationInner` carries the `ObjectBase`, but is shared across `Application` clones; `Arc::deref_mut()` is unavailable while any other clone is alive. Returning a real `&mut ObjectBase` through a `Clone`-able handle cannot be done soundly without interior mutability. |
+| **Why not `Result`** | The `AsObject::object_base_mut` trait method signature is `fn(&mut self) -> &mut ObjectBase` — the trait contract does not allow returning `Result`. Changing the trait would affect every `Object` implementor in the workspace. |
+| **Preferred fix** | Either (a) extend `#[derive(Object)]` to support `Arc<Inner>` shapes (design b2, deferred) so the macro generates interior-mutability-aware forwarding automatically, or (b) wrap `ObjectBase` in a `Mutex` inside `ApplicationInner` and leak a `MutexGuard`-backed reference (requires changing the `AsObject` trait to return a guard type, which is a larger refactor). |
+
 ---
 
 ## Notes
