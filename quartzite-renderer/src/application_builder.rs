@@ -18,7 +18,7 @@ use crate::application::WindowedApplication;
 ///
 /// ```no_run
 /// # use quartzite_renderer::WindowedApplication;
-/// # let app = WindowedApplication::builder().build().unwrap();
+/// # let app = WindowedApplication::new().unwrap();
 /// let proxy = app.event_proxy();
 /// // In another thread or deferred callback:
 /// proxy.send_event(quartzite_renderer::AppEvent::Exit).ok();

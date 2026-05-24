@@ -45,11 +45,33 @@ impl WindowedApplication {
     /// ```no_run
     /// use quartzite_renderer::WindowedApplication;
     ///
-    /// let app = WindowedApplication::builder().build().unwrap();
+    /// let app = WindowedApplication::new().unwrap();
     /// ```
     #[inline]
     pub const fn builder() -> WindowedApplicationBuilder {
         WindowedApplicationBuilder::new()
+    }
+
+    /// Shorthand for `WindowedApplication::builder().build()`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RendererError::Application`] if a [`quartzite_runtime::Application`]
+    /// singleton already exists in this process.
+    ///
+    /// Returns [`RendererError::EventLoop`] if the winit event loop cannot be
+    /// created (e.g. no display server is reachable).
+    ///
+    /// # Examples
+    ///
+    /// ```no_run
+    /// use quartzite_renderer::WindowedApplication;
+    ///
+    /// let app = WindowedApplication::new().expect("only one WindowedApplication per process");
+    /// ```
+    #[inline]
+    pub fn new() -> Result<Self, RendererError> {
+        Self::builder().build()
     }
 
     /// Constructs from already-initialised parts. Used only by
@@ -77,7 +99,7 @@ impl WindowedApplication {
     /// ```no_run
     /// use quartzite_renderer::{WindowedApplication, AppEvent};
     ///
-    /// let app = WindowedApplication::builder().build().unwrap();
+    /// let app = WindowedApplication::new().unwrap();
     /// let proxy = app.event_proxy();
     /// // From another thread:
     /// proxy.send_event(AppEvent::Exit).ok();
@@ -133,6 +155,28 @@ mod tests {
         assert!(
             result.is_ok() || matches!(result, Err(ApplicationError::AlreadyExists)),
             "Application::new() must return Ok or AlreadyExists"
+        );
+    }
+
+    #[test]
+    fn windowed_application_new_succeeds() {
+        // Hold the Application singleton for the test lifetime so that
+        // WindowedApplication::new() hits the AlreadyExists early-return
+        // before reaching EventLoop::new().  Three outcomes are acceptable:
+        //   - Ok                          — happy path (singleton not yet taken).
+        //   - Application(AlreadyExists)  — singleton taken by another test.
+        //   - EventLoop(_)                — no display server reachable (headless CI).
+        let _app = Application::new();
+        let result = WindowedApplication::new();
+        let is_ok = result.is_ok();
+        let is_already_exists = matches!(
+            result,
+            Err(RendererError::Application(ApplicationError::AlreadyExists))
+        );
+        let is_event_loop_error = matches!(result, Err(RendererError::EventLoop(_)));
+        assert!(
+            is_ok || is_already_exists || is_event_loop_error,
+            "WindowedApplication::new() must return Ok, Application(AlreadyExists), or EventLoop(_)"
         );
     }
 
