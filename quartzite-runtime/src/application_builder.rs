@@ -107,3 +107,15 @@ impl Default for ApplicationBuilder {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_equals_new() {
+        let via_default = ApplicationBuilder::default();
+        let via_new = ApplicationBuilder::new();
+        assert_eq!(via_default.tick, via_new.tick);
+    }
+}

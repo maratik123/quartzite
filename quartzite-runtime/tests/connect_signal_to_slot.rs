@@ -133,7 +133,7 @@ impl Object for ClickSource {
 /// `connect_signal_to_slot`; assert `exec()` exits within 200 ms.
 #[test]
 fn ac22_connect_signal_to_slot_stops_application() {
-    let app = Application::builder().build().unwrap();
+    let app = Application::new().unwrap();
 
     let mut source = ClickSource::new();
 

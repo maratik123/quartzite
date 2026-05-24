@@ -10,7 +10,7 @@
 
 use std::time::Duration;
 
-use quartzite_core::{AsObject, Object, ObjectExt, Value};
+use quartzite_core::{AsObject, ConnectionType, Object, ObjectExt, Value};
 use quartzite_runtime::{Application, ApplicationError};
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -91,6 +91,36 @@ fn application_singleton_enforced() {
             "panic message must contain \"cannot be mutated through the shared handle\", got: {msg:?}"
         );
     }
+
+    // ── Stub Object trait methods always return None / false ──────────────
+    assert_eq!(app.read_property("x"), None, "read_property always returns None");
+    assert!(
+        !app.write_property("x", Value::Null),
+        "write_property always returns false"
+    );
+    assert_eq!(
+        app.invoke_method("unknown_slot", &[]),
+        None,
+        "invoke_method unknown name returns None"
+    );
+    assert_eq!(
+        app.invoke_method("quit", &[Value::Null]),
+        None,
+        "invoke_method(\"quit\") with non-empty args returns None"
+    );
+    assert_eq!(
+        app.connect_signal("sig", Box::new(|_| {}), ConnectionType::Direct),
+        None,
+        "connect_signal always returns None"
+    );
+    assert_eq!(app.emit_signal("sig", &[]), None, "emit_signal always returns None");
+
+    // ── as_any / as_any_mut downcasts ─────────────────────────────────────
+    assert!(app.as_any().is::<Application>(), "as_any() must be downcast-able");
+    assert!(app.as_any_mut().is::<Application>(), "as_any_mut() must be downcast-able");
+
+    // ── object_base returns a valid base ──────────────────────────────────
+    let _ = app.object_base();
 
     // ── AC18: invoke_method("quit") returns Some(Value::Null) ──────────────
     // Called last so the singleton can be consumed.
