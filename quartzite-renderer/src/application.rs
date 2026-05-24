@@ -45,7 +45,7 @@ impl WindowedApplication {
     /// ```no_run
     /// use quartzite_renderer::WindowedApplication;
     ///
-    /// let app = WindowedApplication::builder().build().unwrap();
+    /// let app = WindowedApplication::new().unwrap();
     /// ```
     #[inline]
     pub const fn builder() -> WindowedApplicationBuilder {
@@ -99,7 +99,7 @@ impl WindowedApplication {
     /// ```no_run
     /// use quartzite_renderer::{WindowedApplication, AppEvent};
     ///
-    /// let app = WindowedApplication::builder().build().unwrap();
+    /// let app = WindowedApplication::new().unwrap();
     /// let proxy = app.event_proxy();
     /// // From another thread:
     /// proxy.send_event(AppEvent::Exit).ok();
