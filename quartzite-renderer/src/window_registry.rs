@@ -206,8 +206,8 @@ impl WindowRegistry {
     /// Inserts a dispatch-only entry into the registry without a real window or
     /// surface.
     ///
-    /// Used by unit tests in `wrapped_handler` to exercise dispatch logic (AC3,
-    /// AC5) without requiring a live display server or `ActiveEventLoop`.
+    /// Used by unit tests in `wrapped_handler` to exercise dispatch logic
+    /// without requiring a live display server or `ActiveEventLoop`.
     /// The `window` and `surface` fields of the created entry are `None`; the
     /// entry **must not** trigger `RedrawRequested` (which would call
     /// `VelloPainter` against a null surface) — only resize, input, and close

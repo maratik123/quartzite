@@ -329,7 +329,7 @@ mod tests {
 
     // --- AC3: close non-last window -----------------------------------------------
 
-    /// AC3: closing window A when window B is still open removes only A from
+    /// Closing window A when window B is still open removes only A from
     /// the registry; B's entry survives and the registry is not empty.
     #[test]
     fn close_non_last_window_leaves_other_entry() {
@@ -363,7 +363,7 @@ mod tests {
         );
     }
 
-    /// AC3 + quit policy: closing the last window with quit=true signals exit.
+    /// Closing the last window with quit=true signals exit.
     #[test]
     fn close_last_window_with_quit_true_signals_exit() {
         let mut handler = make_handler(true);
@@ -395,7 +395,7 @@ mod tests {
 
     // --- AC5: per-window event routing -------------------------------------------
 
-    /// AC5: Resized event for window A routes to root A's `on_resize`, not root B.
+    /// Resized event for window A routes to root A's `on_resize`, not root B.
     #[test]
     fn resized_event_routes_to_correct_root() {
         let mut handler = make_handler(true);
@@ -429,7 +429,7 @@ mod tests {
         assert!(got_b.is_empty(), "root B must not receive root A's resize");
     }
 
-    /// AC5: event for an unknown (already-closed) `window_id` is silently dropped.
+    /// Event for an unknown (already-closed) `window_id` is silently dropped.
     #[test]
     fn event_for_unknown_window_id_is_silently_dropped() {
         let mut handler = make_handler(true);

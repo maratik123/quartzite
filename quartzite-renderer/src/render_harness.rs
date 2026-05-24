@@ -88,8 +88,7 @@ impl RenderHarnessBuilder {
 
     /// Sets the device-pixel ratio used to convert logical to physical pixels.
     ///
-    /// Defaults to `1.0`. Pass `2.0` for `HiDPI` / Retina testing (see AC11 /
-    /// AC12 in the renderer-painter-impls spec).
+    /// Defaults to `1.0`. Pass `2.0` for `HiDPI` / Retina testing.
     ///
     /// # Parameters
     ///

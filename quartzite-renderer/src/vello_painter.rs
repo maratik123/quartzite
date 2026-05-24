@@ -24,9 +24,10 @@ use crate::font::FontCache;
 /// widget's `paint` method.
 ///
 /// In v1, rendering errors are non-recoverable. Methods skip drawing silently
-/// for unsupported brush kinds (e.g. gradient brushes — AC10); text methods
-/// panic on font-resolution failure (documented in `# Panics` per those
-/// methods).
+/// only for future unknown `BrushKind` variants (gradient variants —
+/// `LinearGradient`, `RadialGradient`, and `Custom` — are fully supported via
+/// vello); text methods panic on font-resolution failure (documented in
+/// `# Panics` per those methods).
 ///
 /// # Examples
 ///
@@ -181,7 +182,7 @@ impl<'a> LocalBrushKind<'a> {
     /// Classifies a `&'a BrushKind` into the renderer-internal `LocalBrushKind`.
     ///
     /// The single `_ => Self::Unknown` arm is the only place in the renderer
-    /// that carries a wildcard over `BrushKind`, satisfying AC4.
+    /// that carries a wildcard over `BrushKind`.
     #[inline]
     const fn from_brush_kind(k: &'a BrushKind) -> Self {
         match k {
