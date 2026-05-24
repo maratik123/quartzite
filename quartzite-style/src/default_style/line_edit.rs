@@ -72,16 +72,14 @@ impl Paint<LineEdit> for DefaultStyle {
         } else {
             (w.text.as_str(), Brush::solid(text_color))
         };
-        let line_height = {
-            let cursor = painter.text_carets(text_arg, &font);
-            cursor.line_height()
-        };
-        let text_top = geom.top() + (geom.size().height() - line_height) / 2;
-        let text_rect = Rect::new(
-            Point::new(geom.left(), text_top),
-            Size::new(geom.size().width(), line_height),
+        painter.draw_text_in(
+            geom,
+            text_arg,
+            &font,
+            &text_brush,
+            Alignment::Left,
+            Alignment::Center,
         );
-        painter.draw_text_in(text_rect, text_arg, &font, &text_brush, Alignment::Left);
 
         // Selection fill + overdraw — after main text, before caret.
         paint_selection_line_edit(w, painter, palette, focused);
@@ -208,6 +206,7 @@ fn paint_selection_line_edit(
         &font,
         &Brush::solid(glyph_color),
         Alignment::Left,
+        Alignment::Center,
     );
     painter.restore();
 }
