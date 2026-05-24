@@ -68,10 +68,10 @@ mod linux {
             eprintln!("xvfb_smoke: SKIP_RENDER_SNAPSHOT set; skipping");
             return;
         }
-        let _app = match Application::builder().build() {
+        let _app = match Application::new() {
             Ok(a) => a,
             Err(e) => {
-                eprintln!("xvfb_smoke: Application::builder().build() failed ({e}); skipping");
+                eprintln!("xvfb_smoke: Application::new() failed ({e}); skipping");
                 return;
             }
         };

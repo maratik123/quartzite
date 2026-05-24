@@ -21,7 +21,7 @@ use quartzite_runtime::Application;
 /// ```
 #[test]
 fn ac19b_signal_connects_to_application_quit() {
-    let app = Application::builder().build().unwrap();
+    let app = Application::new().unwrap();
     let mut signal: Signal<()> = Signal::new();
 
     // Connect without capturing any Application handle — `global()` returns a

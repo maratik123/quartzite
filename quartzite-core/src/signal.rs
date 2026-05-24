@@ -157,7 +157,7 @@ pub struct DispatcherAlreadySet;
 
 /// Registers the process-wide queued dispatcher.
 ///
-/// Normally called once by `Application::builder().build()`. Returns `Ok(())` on the first
+/// Normally called once by `Application::new()`. Returns `Ok(())` on the first
 /// call; `Err(DispatcherAlreadySet)` on subsequent calls (the existing
 /// dispatcher remains installed).
 ///

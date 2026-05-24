@@ -38,9 +38,7 @@ fn wait_for_count(counter: &AtomicUsize, n: usize, timeout: Duration) -> bool {
 // AC11 — single_shot fires exactly once (AppDriver)
 #[test]
 fn single_shot_app_driver_fires_exactly_once() {
-    let app = Application::builder()
-        .build()
-        .expect("only one Application per process");
+    let app = Application::new().expect("only one Application per process");
 
     let el_thread = thread::spawn({
         let app = Application::global().unwrap();

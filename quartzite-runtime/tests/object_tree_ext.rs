@@ -104,24 +104,22 @@ impl Object for Stub {
 )]
 fn parent_children_accessors_all_acs() {
     // ──────────────────────────────────────────────────────────────────────────
-    // Phase 0 — before Application::builder().build() (AC9 pre-new)
+    // Phase 0 — before Application::new() (AC9 pre-new)
     // ──────────────────────────────────────────────────────────────────────────
     assert!(
         try_with_tree(|_| ()).is_err(),
-        "AC9: try_with_tree must return Err before Application::builder().build()"
+        "AC9: try_with_tree must return Err before Application::new()"
     );
 
     // ──────────────────────────────────────────────────────────────────────────
     // Phase 1 — live Application
     // ──────────────────────────────────────────────────────────────────────────
-    let app = Application::builder()
-        .build()
-        .expect("Application::builder().build() must succeed");
+    let app = Application::new().expect("Application::new() must succeed");
 
     // AC9 — tree is accessible after new()
     assert!(
         try_with_tree(|_| ()).is_ok(),
-        "AC9: try_with_tree must return Ok after Application::builder().build()"
+        "AC9: try_with_tree must return Ok after Application::new()"
     );
 
     // Build a small tree: root -> child_a, child_b; child_a -> grandchild
