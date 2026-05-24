@@ -144,3 +144,60 @@ The design adds:
 - `quartzite-core/src/connect.rs` (lines 400–494) — hand-rolled `AsObject`/`Object` precedent
 - `quartzite-core/src/traits.rs` — `AsObject` / `Object` trait definitions
 - `quartzite-core/src/object_base.rs` — `ObjectBase` struct
+
+## Amendment 2026-05-24 — AC22 `connect_signal_to_slot` + AC23 reserved class name
+
+### AC22 — `connect_signal_to_slot`
+
+**Scope:** new public function in `quartzite-core/src/connect.rs`, alongside the existing `connect_signal_to_signal`.
+
+**Signature** (mirrors `connect_signal_to_signal`'s target shape):
+```rust
+pub fn connect_signal_to_slot(
+    source: &mut dyn Object,
+    signal_name: &str,
+    target: &Arc<Mutex<dyn Object>>,
+    slot_name: &str,
+) -> Result<ConnectionId, SignalConnectionError>
+```
+
+`Mutex` is `parking_lot::Mutex` (workspace default). `Arc<Mutex<dyn Object>>` enables a `Weak` downgrade so the callback does not keep the target alive — same lifetime pattern as `connect_signal_to_signal`.
+
+**Behaviour:**
+- Validates `signal_name` via `source.meta_object().signal(signal_name)` — returns `SignalConnectionError::UnknownFromSignal` if absent.
+- Slot-name validation is lazy: the registered callback calls `target.invoke_method(slot_name, &[])` on each emission and silently ignores a `None` return (unknown slot = no-op). Trade-off documented in the function's `///` doc.
+- Target handle capture: the callback holds `Weak<Mutex<dyn Object>>` (downgraded from the passed `Arc`); on emission it upgrades, locks, and calls `invoke_method(slot_name, &[])` — identical lifecycle to `connect_signal_to_signal`'s forwarder.
+- Callback shape: `Box<dyn Fn(&[Value]) + Send + Sync>` — `Fn` (not `FnMut`); takes `&[Value]` (args forwarded from the signal emission but unused since slots are zero-arg). This matches `SignalCallback = Box<dyn Fn(&[Value]) + Send + Sync>` at `quartzite-core/src/traits.rs`.
+- Zero-arg slot constraint: the callback invokes `invoke_method(slot_name, &[])` with empty args — valid only for zero-arg slots. Non-zero-arg slots silently no-op (same as unknown slot). Documented in `# Notes`.
+
+**`Application` use case:**
+```rust
+use parking_lot::Mutex;
+use std::sync::Arc;
+
+let app = Application::global().unwrap();  // Application is Send + Sync
+let target: Arc<Mutex<dyn Object>> = Arc::new(Mutex::new(app));
+connect_signal_to_slot(&mut source_obj, "click", &target, "quit")?;
+// When "click" fires: target is locked, invoke_method("quit", &[]) called,
+// which dispatches to Application::quit(&self) → exec() returns.
+```
+`Application::global()` constructs a fresh handle via `Arc::clone` of the singleton inner; wrapping it in `Mutex` is a one-shot connect-time cost.
+
+**Error variants:** `UnknownFromSignal` already exists in `SignalConnectionError`. No new variants needed.
+
+**Handoff plan for the amendment (standalone):**
+`M = 1` (subtask 8 only — subtasks 1–7 are already merged).
+
+| # | Task | Files | Depends on |
+|---|------|-------|------------|
+| 8 | Add `connect_signal_to_slot` to `quartzite-core/src/connect.rs` following the `connect_signal_to_signal` precedent (`Weak<Mutex<dyn Object>>` lifetime, `Fn(&[Value]) + Send + Sync` callback, `UnknownFromSignal` validation, lazy slot validation); add AC23 doc note to `Application` type doc; add integration test in `quartzite-runtime/tests/connect_signal_to_slot.rs` (separate binary — Application singleton) that wraps `Application::global().unwrap()` in `Arc<Mutex<dyn Object>>`, wires a `Signal<()>`-backed source object's "click" to "quit", asserts `exec()` returns within 200 ms. Run workspace gates. | `quartzite-core/src/connect.rs`, `quartzite-runtime/src/application.rs` (doc only), `quartzite-runtime/tests/connect_signal_to_slot.rs` (new) | — |
+
+**Group A (subtask 8):** terminal group (1 subtask). Spawn under `/context-reset` at amendment entry.
+
+### AC23 — `Application` reserved class name
+
+**Scope:** one-line note in `Application`'s type-level `///` doc in `quartzite-runtime/src/application.rs`.
+
+**Content:** "The class name `\"Application\"` is reserved for this framework-managed singleton. User-created objects should not use `\"Application\"` as their `meta_object().class_name`."
+
+**Decomposition:** folded into subtask 8 (same commit).
