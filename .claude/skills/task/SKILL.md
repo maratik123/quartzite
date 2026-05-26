@@ -124,11 +124,22 @@ Verdict: GO / ITERATE / STOP.
 - **ITERATE** → back to Step 6 (max 3 rounds total).
 - **STOP** → fundamental flaw with the approach. Surface the verdict and `Issues` table to the user, do not start Step 8. Wait for direction (e.g., narrow scope, change approach, abandon).
 
+> **AXIOM — `*.spec.md` and `*.design.md` writes are subagent-owned.**
+> The `/task` orchestrator NEVER writes to `ai-docs/plans/*.spec.md` or `ai-docs/plans/*.design.md` (including `done/` siblings). All such writes go through the responsible Subagent: `spec-writer` for `*.spec.md`, `design` for `*.design.md`. Orchestrator-side direct edits with `Edit` / `Write` are FORBIDDEN. Recurrences: 2026-05-24 (4 process entries — orchestrator wrote design file when subagent's text response landed without a `Write` call; orchestrator transcribed design output instead of re-running the agent; orchestrator directly edited spec on user tweak after `status: ready`; orchestrator edited design doc during spec-amendment sub-flow).
+>
+> | If the orchestrator is tempted to... | Do this instead |
+> |---|---|
+> | `Edit` a `*.design.md` to apply a self-review finding | Spawn `design` Subagent with the finding text |
+> | `Write` a `*.design.md` because the Subagent's text output didn't land on disk | Re-spawn the `design` Subagent; do NOT transcribe its text |
+> | `Edit` a `*.spec.md` to apply a user tweak after `interview` returned `ready` | Spawn `spec-writer` with the tweak as a synthetic round |
+> | `Edit` a `done/*.spec.md` during `/pr-commented` Spec Amendment | Same — route through `spec-writer` |
+
 ### Design Amendment (re-entrant — triggered from Step 8 or Step 11)
 
-If implementation (Step 8) reveals a necessary deviation from the design, **or** a self-review finding (Step 11) requires a design change rather than a code fix: stop the step, surface to user for approval, update the design doc, re-run Step 7 design-review (max 3 rounds total). On GO → resume the triggering step. See `reference.md` § Design Amendment recipe for the full procedure.
+If implementation (Step 8) reveals a necessary deviation from the design, **or** a self-review finding (Step 11) requires a design change rather than a code fix: stop the step, surface to user for approval, **spawn the `design` Subagent to update the design doc** (orchestrator MUST NOT edit `*.design.md` directly — see the AXIOM above), re-run Step 7 design-review (max 3 rounds total). On GO → resume the triggering step. See `reference.md` § Design Amendment recipe for the full procedure.
 
 > Silently implementing a deviation without triggering Design Amendment — FORBIDDEN.
+> Orchestrator-side direct edits to `*.design.md` / `*.spec.md` — FORBIDDEN (per the AXIOM above).
 
 ---
 

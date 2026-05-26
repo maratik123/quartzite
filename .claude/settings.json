@@ -68,6 +68,12 @@
             "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f; case \"$f\" in */ai-docs/plans/INDEX.md|ai-docs/plans/INDEX.md) printf '\\n[roadmap-sync] ai-docs/plans/INDEX.md was edited — run `./scripts/gen-roadmap.sh` and stage the regenerated ROADMAP.md in the SAME commit. CI fails the \"ROADMAP sync\" check otherwise (see ai-docs/learnings.md 2026-05-14 ROADMAP entry).\\n' >&2 ;; esac; } || true",
             "timeout": 5,
             "statusMessage": "Checking ROADMAP regeneration..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath // empty' | { read -r f && bash \"$CLAUDE_PROJECT_DIR/scripts/check-inline-markers.sh\" \"$f\"; } || true",
+            "timeout": 10,
+            "statusMessage": "Checking #[inline] / _Simple._ markers..."
           }
         ]
       },

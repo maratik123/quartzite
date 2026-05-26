@@ -230,6 +230,12 @@ If the user wants to stop after the interview ("just draft the spec, defer the i
 3. Delete the state file
 4. Do NOT proceed to Step 6 of `/task`. The spec can be picked up later via `/task`'s deferred-plan-activation preamble.
 
+## Patterns
+
+> **Default to** delegating every question and every spec write to the `spec-writer` Subagent. The orchestrator's role is plumbing — surface the Subagent's questions via `AskUserQuestion` and forward the user's answers as `prior_qa`; never draft a clarifying question yourself, even when the next question feels "obvious" from the user's last answer. Same for the spec body: never edit `*.spec.md` directly — even when the change feels like "just a typo" or "just a tweak the user asked for after `status: ready`". The `spec-writer` Subagent owns ALL writes to `*.spec.md` (mirrors the AXIOM in `.claude/skills/task/SKILL.md` above the Design Amendment header).
+>
+> _Validated by repeated user correction across multiple rounds: "from now and for future — don't ask by yourself, delegate to subagent" (auto-memory `feedback_interview_delegate_to_subagent.md`). See `ai-docs/learnings.md` 2026-05-24 entries on orchestrator-side direct spec edits._
+
 ## Anti-patterns
 
 - Drafting questions yourself in the orchestrator. The subagent owns question authorship; you forward the questions verbatim.
