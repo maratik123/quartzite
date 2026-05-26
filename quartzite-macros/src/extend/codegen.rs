@@ -28,8 +28,7 @@ pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
     }
     for mixin in &ir.mixin_fields {
         if !mixin.doc_present {
-            let level =
-                resolve_undocumented_level(mixin.per_item_level, ir.per_invocation_level);
+            let level = resolve_undocumented_level(mixin.per_item_level, ir.per_invocation_level);
             out.extend(emit_undocumented_diagnostic(
                 level,
                 type_ident,
@@ -41,8 +40,7 @@ pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
     if let Some(wc_field) = &ir.widget_children_field
         && !wc_field.doc_present
     {
-        let level =
-            resolve_undocumented_level(wc_field.per_item_level, ir.per_invocation_level);
+        let level = resolve_undocumented_level(wc_field.per_item_level, ir.per_invocation_level);
         out.extend(emit_undocumented_diagnostic(
             level,
             type_ident,

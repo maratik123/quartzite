@@ -28,6 +28,7 @@ proc-macro-crate = "3"
 
 [dev-dependencies]
 quartzite = { path = ".." }
+trybuild = "1"
 
 [lints]
 workspace = true

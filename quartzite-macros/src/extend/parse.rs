@@ -256,9 +256,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
 }
 
 /// Extracts the per-invocation level from `#[extend(undocumented = "...")]` on the struct.
-fn extract_extend_invocation_level(
-    attrs: &mut Vec<syn::Attribute>,
-) -> syn::Result<Option<Level>> {
+fn extract_extend_invocation_level(attrs: &mut Vec<syn::Attribute>) -> syn::Result<Option<Level>> {
     let Some(pos) = attrs.iter().position(|a| a.path().is_ident("extend")) else {
         return Ok(None);
     };

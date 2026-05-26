@@ -1,0 +1,5 @@
+error: Annotated item `Bar::y` is missing `///` documentation. Opt out via `#[undocumented(allow)]` or set the lint level to warn/allow via `#[object_impl(undocumented = "warn")]` or feature `undocumented-allow`.
+  --> tests/undocumented_tri_state/compile_fail/per_item_deny_compile_fails.rs:14:9
+   |
+14 |     pub y: i32,
+   |         ^

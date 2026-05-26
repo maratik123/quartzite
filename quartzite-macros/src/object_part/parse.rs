@@ -47,10 +47,8 @@ pub(crate) fn parse(
 
                 if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
-                    let doc_present =
-                        fn_item.attrs.iter().any(|a| a.path().is_ident("doc"));
-                    let per_item_level =
-                        extract_undocumented_per_item(&mut fn_item.attrs)?;
+                    let doc_present = fn_item.attrs.iter().any(|a| a.path().is_ident("doc"));
+                    let per_item_level = extract_undocumented_per_item(&mut fn_item.attrs)?;
                     let params = extract_params(&fn_item.sig.inputs)?;
                     let ret_ty = fn_item.sig.output.clone();
                     methods.push(MethodItem {

@@ -123,9 +123,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
 }
 
 /// Extracts the per-invocation level from `#[object(undocumented = "...")]` on the struct.
-fn extract_object_invocation_level(
-    attrs: &mut Vec<syn::Attribute>,
-) -> syn::Result<Option<Level>> {
+fn extract_object_invocation_level(attrs: &mut Vec<syn::Attribute>) -> syn::Result<Option<Level>> {
     let Some(pos) = attrs.iter().position(|a| a.path().is_ident("object")) else {
         return Ok(None);
     };
