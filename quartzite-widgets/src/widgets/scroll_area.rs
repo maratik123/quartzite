@@ -39,8 +39,9 @@ pub enum ScrollPolicy {
 #[derive(Extend, Object)]
 #[widget_view(variant = "ScrollArea")]
 pub struct ScrollArea {
+    /// Base widget — delegates geometry, state, focus policy, and object core.
     #[base]
-    widget_base: WidgetBase,
+    pub widget_base: WidgetBase,
     /// The widget shown inside the scroll area (if any).
     #[widget_children(optional)]
     pub content_widget: Option<ObjectId>,

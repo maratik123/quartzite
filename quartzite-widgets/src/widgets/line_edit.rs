@@ -20,8 +20,9 @@ use crate::{WidgetBase, widget_base::AsWidget};
 #[derive(Extend, Object)]
 #[widget_view(variant = "LineEdit")]
 pub struct LineEdit {
+    /// Base widget — delegates geometry, state, focus policy, and object core.
     #[base]
-    widget_base: WidgetBase,
+    pub widget_base: WidgetBase,
     /// Current text content.
     #[property(notify = text_changed)]
     pub text: String,

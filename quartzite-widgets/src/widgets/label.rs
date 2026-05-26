@@ -19,8 +19,9 @@ use crate::{HAlignment, WidgetBase, widget_base::AsWidget};
 #[derive(Extend, Object)]
 #[widget_view(variant = "Label")]
 pub struct Label {
+    /// Base widget — delegates geometry, state, focus policy, and object core.
     #[base]
-    widget_base: WidgetBase,
+    pub widget_base: WidgetBase,
     /// Text displayed by this label.
     #[property]
     pub text: String,
