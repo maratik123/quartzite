@@ -14,7 +14,7 @@ Reactive audit subagent. Walks every entry in `ai-docs/learnings.md` and checks 
 
 Read up front:
 
-1. `ai-docs/learnings.md` — full learning log (entries are append-only; do not delete).
+1. `ai-docs/learnings.md` — full learning log (entries are append-only; do not delete). **Tuple-extraction prelude FIRST** (Step 1 prelude): extract `(date, escalated, kind, superseded_by)` tuples from the per-entry YAML preambles (file-level FM at lines 1–4 is the file-class discriminator `kind: learnings` and is NOT part of the per-entry scan). Read entry bodies ONLY for entries the tuple scan flags as candidates for the current pass (⚠️ Mismatch / ❌ Broken / 🌱 Stale-validation) — full-file body Read is no longer required.
 2. `AGENTS.md` — current project rules.
 3. `.claude/settings.json` — hooks + permissions.
 4. Every `.claude/skills/*/SKILL.md` and `.claude/agents/*.md` — the targets that entries may point at.
@@ -39,6 +39,33 @@ Multiple values are comma-separated (`AGENTS.md, hook`). Each must independently
 
 ## Workflow
 
+### Step 1 prelude: Tuple-extraction (NEW — runs before Step 1, Step 2, Step 2b)
+
+Before any per-entry-body Read, extract `(date, escalated, kind, superseded_by)` tuples from the per-entry fenced ```yaml``` preambles in `ai-docs/learnings.md` via PyYAML on a bash one-liner. The file-level `---`-delimited block at lines 1–4 (`schema_version: 1` + `kind: learnings`) is the file-class discriminator and is addressed separately by source location — the tuple scan ignores it.
+
+**PyYAML form (primary):**
+
+```bash
+python3 -c "
+import yaml, re, sys
+raw = open('ai-docs/learnings.md').read()
+blocks = re.findall(r'\`\`\`yaml\n(.*?)\n\`\`\`\n### (\d{4}-\d{2}-\d{2})', raw, re.S)
+for body, date in blocks:
+    meta = yaml.safe_load(body)
+    print(date, meta.get('escalated'), meta.get('kind'), meta.get('superseded_by'))
+"
+```
+
+**awk fallback (zero-dep escape hatch when PyYAML isn't on PATH):** dump the raw fenced-block bodies for per-entry `yaml.safe_load`:
+
+```bash
+awk '/^```yaml$/{f=1; next} /^```$/{f=0; next} f{print}' ai-docs/learnings.md
+```
+
+Then pipe each block body through `yaml.safe_load` per-block. Both forms yield the same tuple list; pick the one whose dependency is available in the current execution environment. The PyYAML form + the awk fallback are cited verbatim in this file's sister consumer `.claude/agents/self-improve.md` (Step 1 prelude) — the two consumers SHARE these extraction primitives so the tuple shape is identical across `/improve` and `/ai-audit` Phase 1 paths.
+
+The tuple list is the index used by Step 1 (Parse entries — gain `(date, escalated, kind, superseded_by)` without a full-body walk; full-body Read still happens for `**Rule:**` extraction but only on entries Step 2 flags as ⚠️ / ❌ / 🌱 candidates) and Step 2 (Verify each escalation target — entry-body Read only for the flagged subset, where Stale-validation uses `kind == "validation"` from the FM tuple). Now that `kind:` is in the per-entry FM floor, the Stale-validation conjunct of Step 2b can pre-filter to `kind: validation` entries in script before any body Read.
+
 ### Step 1: Parse entries
 
 Each entry in `ai-docs/learnings.md` follows:
@@ -50,11 +77,11 @@ Each entry in `ai-docs/learnings.md` follows:
 **Escalated?** ...
 ```
 
-Extract `(date, category, description, rule, escalated)` for each entry.
+Consume the tuple list from the Step 1 prelude for `(date, escalated, kind, superseded_by)` — these four come from the per-entry FM preamble and require no body Read. Category and description come from the `### …` heading line via the same regex as the tuple extractor. Rule comes from the `**Rule:**` body line — extracting the rule field is the one unavoidable per-entry body Read, and it is deferred to flagged candidates only (see Step 2). The Step 1 output is the `(date, category, description, rule, escalated)` quintuple per entry, with `rule` populated lazily.
 
 ### Step 2: Verify each escalation target
 
-For each entry where `Escalated?` is **not** `no`:
+For each entry where `Escalated?` is **not** `no` (filter the tuple list from the Step 1 prelude on `escalated != "no"`; Read the entry body for the `**Rule:**` field ONLY for the filtered subset — full-file body Read is no longer required):
 
 - For each target in the comma-separated list:
   - **`AGENTS.md`** — `rg -n "<keyword from rule>" AGENTS.md`. The rule keyword should be a distinctive phrase from the `Rule:` field, not generic (avoid "test", "commit"). If no match → mismatch.
