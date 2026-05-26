@@ -61,11 +61,12 @@ pub enum SignalConnectionError {
 /// Connects `from_signal` on `from` to `to_signal` on `to` using the dynamic meta-system.
 ///
 /// When `from_signal` is emitted, the forwarding callback invokes `to_signal` on `to`
-/// with the same argument values. The connection silently breaks when all strong [`Arc`]
-/// holders of `to` are released.
+/// with the first `to_arity` argument values; any extra source arguments are dropped.
+/// The connection silently breaks when all strong [`Arc`] holders of `to` are released.
 ///
-/// Type compatibility is validated at connection time by comparing
-/// [`SignalMeta::params`](crate::meta::SignalMeta) arity and `type_name` strings.
+/// Arity is validated as `from_arity >= to_arity` at connection time. `type_name` strings
+/// are compared on the first `to_arity` parameters; extra source arguments are dropped at
+/// emit time.
 ///
 /// # Cycles
 ///
@@ -85,10 +86,14 @@ pub enum SignalConnectionError {
 ///
 /// # Errors
 ///
-/// Returns [`SignalConnectionError`] when either signal name is unknown, arities
-/// differ, any `type_name` pair mismatches, or the validated signal name is
-/// unexpectedly rejected by [`Object::connect_signal`]
-/// ([`SignalConnectionError::InternalError`]).
+/// - [`SignalConnectionError::UnknownFromSignal`] when `from_signal` is not declared on `from`.
+/// - [`SignalConnectionError::UnknownToSignal`] when `to_signal` is not declared on `to`.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < to_arity` (source signal
+///   has fewer parameters than the target requires).
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs on the
+///   first `to_arity` parameters.
+/// - [`SignalConnectionError::InternalError`] when the validated signal name is unexpectedly
+///   rejected by [`Object::connect_signal`].
 ///
 /// # Examples
 ///
@@ -129,14 +134,14 @@ pub fn connect_signal_to_signal(
     // Validate arity.
     let from_arity = from_meta.params.len();
     let to_arity = to_meta.params.len();
-    if from_arity != to_arity {
+    if from_arity < to_arity {
         return Err(SignalConnectionError::ArityMismatch {
             from: from_arity,
             to: to_arity,
         });
     }
 
-    // Validate type names.
+    // Validate type names on the retained prefix (first to_arity parameters).
     for (i, (fp, tp)) in from_meta
         .params
         .iter()
@@ -158,19 +163,19 @@ pub fn connect_signal_to_signal(
     let callback: SignalCallback = match conn_type {
         ConnectionType::Direct => Box::new(move |args: &[Value]| {
             if let Some(arc) = to_weak.upgrade() {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             }
         }),
         ConnectionType::SingleShot => Box::new(move |args: &[Value]| {
             if let Some(arc) = to_weak.upgrade() {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             }
         }),
         ConnectionType::Queued => Box::new(move |args: &[Value]| {
             let Some(arc) = to_weak.upgrade() else {
                 return;
             };
-            let args_owned: Vec<Value> = args.to_vec();
+            let args_owned: Vec<Value> = args[..to_arity].to_vec();
             let sig_name = to_signal_name.clone();
             if let Some(d) = queued_dispatcher() {
                 d.post(
@@ -186,9 +191,9 @@ pub fn connect_signal_to_signal(
                 return;
             };
             if std::thread::current().id() == to_thread_id {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             } else {
-                let args_owned: Vec<Value> = args.to_vec();
+                let args_owned: Vec<Value> = args[..to_arity].to_vec();
                 let sig_name = to_signal_name.clone();
                 if let Some(d) = queued_dispatcher() {
                     d.post(
