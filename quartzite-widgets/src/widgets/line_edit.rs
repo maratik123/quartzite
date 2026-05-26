@@ -23,13 +23,13 @@ pub struct LineEdit {
     #[base]
     widget_base: WidgetBase,
     /// Current text content.
-    #[prop(notify = text_changed)]
+    #[property(notify = text_changed)]
     pub text: String,
     /// Placeholder text shown when the field is empty.
-    #[prop]
+    #[property]
     pub placeholder: String,
     /// Whether the field is read-only.
-    #[prop]
+    #[property]
     pub read_only: bool,
     /// Emitted when the text changes; carries the new text.
     #[signal]

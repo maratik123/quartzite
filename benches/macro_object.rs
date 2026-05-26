@@ -11,7 +11,7 @@ use std::hint::black_box;
 struct BenchObject {
     #[base]
     object_base: ObjectBase,
-    #[prop(notify = count_changed)]
+    #[property(notify = count_changed)]
     pub count: i64,
     #[signal]
     pub count_changed: Signal<(i64,)>,
@@ -77,7 +77,7 @@ fn bench_property_rw(c: &mut Criterion) {
         b.iter(|| black_box(obj.read_property(black_box("count"))));
     });
 
-    // write_property with #[prop(notify = count_changed)] also emits the notify signal —
+    // write_property with #[property(notify = count_changed)] also emits the notify signal —
     // this is intentional: the bench measures the realistic macro-generated write path.
     group.bench_function("write", |b| {
         let mut obj = BenchObject::new();

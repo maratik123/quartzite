@@ -38,8 +38,8 @@ pub(crate) fn parse(
         // fall through to the error.
         let is_undocumented_kv = syn::parse2::<syn::MetaNameValue>(attr.clone())
             .ok()
-            .filter(|nv| nv.path.is_ident("undocumented"))
-            .is_some();
+            .as_ref()
+            .is_some_and(|nv| nv.path.is_ident("undocumented"));
         if !is_undocumented_kv {
             return Err(syn::Error::new_spanned(
                 attr,

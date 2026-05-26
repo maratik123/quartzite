@@ -23,10 +23,10 @@ pub struct TextEdit {
     #[base]
     widget_base: WidgetBase,
     /// Plain-text content of the editor.
-    #[prop(notify = text_changed)]
+    #[property(notify = text_changed)]
     pub plain_text: String,
     /// Whether the editor is read-only.
-    #[prop]
+    #[property]
     pub read_only: bool,
     /// Emitted when the content changes; carries the new plain text.
     #[signal]

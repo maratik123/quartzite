@@ -128,7 +128,7 @@ mod tests {
 
     #[test]
     fn invoke_method_classified() {
-        // Proves #[invoke] (renamed from #[invokable]) is correctly parsed by object_part.
+        // Proves #[invoke] (the post-rename name) is correctly parsed by object_part.
         let ir = parse_ok(quote! {
             impl Foo {
                 #[invoke]

@@ -10,7 +10,7 @@ use quartzite::macros::{Extend, Object, object_impl};
 struct Sensor {
     #[base]
     object_base: ObjectBase,
-    #[prop]
+    #[property]
     pub reading: i32,
     #[signal]
     pub reading_changed: Signal<(i32,)>,

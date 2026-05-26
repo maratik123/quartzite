@@ -22,10 +22,10 @@ pub struct Label {
     #[base]
     widget_base: WidgetBase,
     /// Text displayed by this label.
-    #[prop]
+    #[property]
     pub text: String,
     /// Horizontal alignment of the text.
-    #[prop]
+    #[property]
     pub alignment: HAlignment,
 }
 

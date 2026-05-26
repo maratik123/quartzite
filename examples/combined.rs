@@ -18,7 +18,7 @@ struct Counter {
     #[base]
     object_base: ObjectBase,
     /// Current value; `write_property` fires `count_changed` automatically.
-    #[prop(notify = count_changed)]
+    #[property(notify = count_changed)]
     pub count: i32,
     #[signal]
     pub count_changed: Signal<(i32,)>,
@@ -68,7 +68,7 @@ impl Resettable for Counter {
 // Final object_impl — drains both parts and adds an invokable.
 #[object_impl]
 impl Counter {
-    #[invokable]
+    #[invoke]
     const fn value(&self) -> i32 {
         self.count
     }
@@ -82,7 +82,7 @@ struct LimitedCounter {
     #[base]
     base: Counter,
     /// Upper bound; increment is a no-op once count == max.
-    #[prop]
+    #[property]
     pub max: i32,
 }
 
