@@ -1,3 +1,5 @@
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Third-party widget integration test — AC8.
 //!
 //! Defines a `ThirdPartyWidget` *outside* `quartzite-widgets` (via

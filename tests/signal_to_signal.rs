@@ -1,3 +1,5 @@
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Integration tests for signal-to-signal connections through the `quartzite` facade crate (AC1–AC11).
 
 // Integration tests for signal-to-signal connections (AC1–AC11).

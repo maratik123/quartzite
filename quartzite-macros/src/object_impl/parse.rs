@@ -1,6 +1,6 @@
 use syn::{FnArg, Ident, ImplItem, ItemImpl, Pat, ReturnType, Type, parse2, spanned::Spanned};
 
-use crate::util::extract_attr;
+use crate::util::{Level, extract_attr, extract_undocumented_per_item, parse_undocumented_kv};
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ObjectImplInput {
@@ -10,6 +10,8 @@ pub(crate) struct ObjectImplInput {
     pub trait_path: Option<syn::Path>,
     pub methods: Vec<MethodItem>,
     pub other_items: Vec<ImplItem>,
+    /// Level from `#[object_impl(undocumented = "...")]` or `#[object_part(undocumented = "...")]`.
+    pub per_invocation_level: Option<Level>,
 }
 
 #[derive(Clone)]
@@ -18,6 +20,10 @@ pub(crate) struct MethodItem {
     pub ident: Ident,
     pub params: Vec<ParamMeta>,
     pub ret_ty: ReturnType,
+    /// Whether the method has a `#[doc = "..."]` attribute (i.e. a `///` doc comment).
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this method.
+    pub per_item_level: Option<Level>,
 }
 
 #[derive(Clone)]
@@ -31,11 +37,30 @@ pub(crate) fn parse(
     attr: proc_macro2::TokenStream,
     input: proc_macro2::TokenStream,
 ) -> syn::Result<ObjectImplInput> {
+    // Accept zero arguments OR exactly `undocumented = "..."` as the sole key-value.
+    // Any other non-empty attribute body is an error with the #[object_part] hint.
+    let mut per_invocation_level: Option<Level> = None;
     if !attr.is_empty() {
-        return Err(syn::Error::new_spanned(
-            attr,
-            "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
-        ));
+        // Try to parse as `undocumented = "..."` — if it succeeds, accept it; otherwise
+        // fall through to the error.
+        let attr_result = syn::parse2::<syn::MetaNameValue>(attr.clone());
+        match attr_result {
+            Ok(ref nv) if nv.path.is_ident("undocumented") => {
+                if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(ref s),
+                    ..
+                }) = nv.value
+                {
+                    per_invocation_level = Some(parse_undocumented_kv(s)?);
+                }
+            }
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    attr,
+                    "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
+                ));
+            }
+        }
     }
     let mut item: ItemImpl = parse2(input)?;
 
@@ -51,19 +76,23 @@ pub(crate) fn parse(
         match impl_item {
             ImplItem::Fn(mut fn_item) => {
                 let is_slot = extract_attr(&mut fn_item.attrs, "slot");
-                let is_invokable = extract_attr(&mut fn_item.attrs, "invokable");
+                let is_invoke = extract_attr(&mut fn_item.attrs, "invokable");
 
-                if is_slot || is_invokable {
+                if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
+                    let doc_present = fn_item.attrs.iter().any(|a| a.path().is_ident("doc"));
+                    let per_item_level = extract_undocumented_per_item(&mut fn_item.attrs)?;
                     let params = extract_params(&fn_item.sig.inputs)?;
                     let ret_ty = fn_item.sig.output.clone();
                     methods.push(MethodItem {
                         ident,
                         params,
                         ret_ty,
+                        doc_present,
+                        per_item_level,
                     });
                 }
-                // Re-push the (possibly slot/invokable-stripped) fn so it ends up in the impl block.
+                // Re-push the (possibly slot/invoke-stripped) fn so it ends up in the impl block.
                 other_items.push(ImplItem::Fn(fn_item));
             }
             other => other_items.push(other),
@@ -77,6 +106,7 @@ pub(crate) fn parse(
         trait_path,
         methods,
         other_items,
+        per_invocation_level,
     })
 }
 
@@ -199,6 +229,20 @@ mod tests {
     }
 
     #[test]
+    fn undocumented_kv_in_attr_accepted() {
+        // Proves that #[object_impl(undocumented = "allow")] is accepted by the parser.
+        let result = parse(
+            quote! { undocumented = "allow" },
+            quote! { impl Foo { fn bar(&self) {} } },
+        );
+        assert!(
+            result.is_ok(),
+            "expected #[object_impl(undocumented = \"allow\")] to parse successfully, got: {:?}",
+            result.unwrap_err()
+        );
+    }
+
+    #[test]
     fn trait_impl_accepted() {
         let ir = parse_ok(quote! {
             impl MyTrait for Foo {
@@ -252,5 +296,59 @@ mod tests {
         // only `name: String`, not `&self`
         assert_eq!(ir.methods[0].params.len(), 1);
         assert_eq!(ir.methods[0].params[0].ident, "name");
+    }
+
+    #[test]
+    fn undocumented_kv_deny_sets_per_invocation_level() {
+        // Proves #[object_impl(undocumented = "deny")] populates per_invocation_level.
+        let ir = parse(
+            quote! { undocumented = "deny" },
+            quote! { impl Foo { fn bar(&self) {} } },
+        )
+        .expect("should parse successfully");
+        assert_eq!(
+            ir.per_invocation_level,
+            Some(Level::Deny),
+            "per_invocation_level should be Some(Deny)"
+        );
+    }
+
+    #[test]
+    fn doc_present_true_when_doc_attr_on_slot() {
+        let ir = parse_ok(quote! {
+            impl Foo {
+                /// My slot.
+                #[slot]
+                fn do_thing(&mut self) {}
+            }
+        });
+        assert!(ir.methods[0].doc_present, "doc_present should be true");
+    }
+
+    #[test]
+    fn doc_present_false_when_no_doc_attr_on_slot() {
+        let ir = parse_ok(quote! {
+            impl Foo {
+                #[slot]
+                fn do_thing(&mut self) {}
+            }
+        });
+        assert!(!ir.methods[0].doc_present, "doc_present should be false");
+    }
+
+    #[test]
+    fn per_item_allow_on_invoke_method_parsed() {
+        let ir = parse_ok(quote! {
+            impl Foo {
+                #[undocumented(allow)]
+                #[invokable]
+                fn compute(&self) -> i32 { 0 }
+            }
+        });
+        assert_eq!(
+            ir.methods[0].per_item_level,
+            Some(Level::Allow),
+            "per_item_level should be Some(Allow)"
+        );
     }
 }

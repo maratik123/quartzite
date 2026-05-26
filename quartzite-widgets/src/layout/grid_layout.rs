@@ -110,8 +110,9 @@ impl GridCell {
 #[derive(Extend, Object)]
 #[root]
 pub struct GridLayout {
+    /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.
     #[base]
-    object: ObjectBase,
+    pub object: ObjectBase,
     cells: Vec<GridCell>,
 }
 

@@ -11,6 +11,14 @@ description = "Proc-macro crate for the quartzite GUI framework"
 [lib]
 proc-macro = true
 
+[features]
+## Set the global undocumented-item diagnostic level to `allow` (silent).
+## If `undocumented-deny` is also active, `deny` wins (the strictest level prevails).
+undocumented-allow = []
+## Set the global undocumented-item diagnostic level to `deny` (hard compile error).
+## Wins over `undocumented-allow` when both are active.
+undocumented-deny = []
+
 [dependencies]
 syn = { version = "2", features = ["full", "extra-traits"] }
 quote = "1"
@@ -20,6 +28,7 @@ proc-macro-crate = "3"
 
 [dev-dependencies]
 quartzite = { path = ".." }
+trybuild = "1"
 
 [lints]
 workspace = true

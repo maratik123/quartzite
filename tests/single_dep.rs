@@ -1,3 +1,5 @@
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Integration test verifying single-dep usage of the `quartzite` facade crate: `quartzite::prelude::*` is sufficient (no direct `quartzite-core` or `quartzite-macros` import needed).
 
 // Verifies single-dep usage: only `quartzite::prelude::*` — no direct `quartzite-core` or

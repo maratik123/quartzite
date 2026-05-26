@@ -23,11 +23,12 @@ use crate::{WidgetBase, widget_base::AsWidget};
 #[derive(Extend, Object)]
 #[widget_view(variant = "Container")]
 pub struct Container {
+    /// Base widget — delegates geometry, state, focus policy, and object core.
     #[base]
-    widget_base: WidgetBase,
+    pub widget_base: WidgetBase,
     /// Ordered list of child widget ids.
     #[widget_children(slice)]
-    children: Vec<ObjectId>,
+    pub children: Vec<ObjectId>,
 }
 
 impl Container {

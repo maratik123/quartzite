@@ -1,4 +1,6 @@
 //! Integration tests for the `#[derive(Object)]` macro: property read/write, notify signals, and read-only flags.
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 
 use std::sync::Arc;
 

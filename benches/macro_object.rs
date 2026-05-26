@@ -1,4 +1,6 @@
 //! Benchmarks for the derive-macro `Object` implementation.
+// Bench structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use quartzite::core::{Object, ObjectBase, Signal, Value};
