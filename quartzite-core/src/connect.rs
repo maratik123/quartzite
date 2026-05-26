@@ -61,11 +61,12 @@ pub enum SignalConnectionError {
 /// Connects `from_signal` on `from` to `to_signal` on `to` using the dynamic meta-system.
 ///
 /// When `from_signal` is emitted, the forwarding callback invokes `to_signal` on `to`
-/// with the same argument values. The connection silently breaks when all strong [`Arc`]
-/// holders of `to` are released.
+/// with the first `to_arity` argument values; any extra source arguments are dropped.
+/// The connection silently breaks when all strong [`Arc`] holders of `to` are released.
 ///
-/// Type compatibility is validated at connection time by comparing
-/// [`SignalMeta::params`](crate::meta::SignalMeta) arity and `type_name` strings.
+/// Arity is validated as `from_arity >= to_arity` at connection time. `type_name` strings
+/// are compared on the first `to_arity` parameters; extra source arguments are dropped at
+/// emit time.
 ///
 /// # Cycles
 ///
@@ -85,10 +86,14 @@ pub enum SignalConnectionError {
 ///
 /// # Errors
 ///
-/// Returns [`SignalConnectionError`] when either signal name is unknown, arities
-/// differ, any `type_name` pair mismatches, or the validated signal name is
-/// unexpectedly rejected by [`Object::connect_signal`]
-/// ([`SignalConnectionError::InternalError`]).
+/// - [`SignalConnectionError::UnknownFromSignal`] when `from_signal` is not declared on `from`.
+/// - [`SignalConnectionError::UnknownToSignal`] when `to_signal` is not declared on `to`.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < to_arity` (source signal
+///   has fewer parameters than the target requires).
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs on the
+///   first `to_arity` parameters.
+/// - [`SignalConnectionError::InternalError`] when the validated signal name is unexpectedly
+///   rejected by [`Object::connect_signal`].
 ///
 /// # Examples
 ///
@@ -129,14 +134,14 @@ pub fn connect_signal_to_signal(
     // Validate arity.
     let from_arity = from_meta.params.len();
     let to_arity = to_meta.params.len();
-    if from_arity != to_arity {
+    if from_arity < to_arity {
         return Err(SignalConnectionError::ArityMismatch {
             from: from_arity,
             to: to_arity,
         });
     }
 
-    // Validate type names.
+    // Validate type names on the retained prefix (first to_arity parameters).
     for (i, (fp, tp)) in from_meta
         .params
         .iter()
@@ -158,19 +163,19 @@ pub fn connect_signal_to_signal(
     let callback: SignalCallback = match conn_type {
         ConnectionType::Direct => Box::new(move |args: &[Value]| {
             if let Some(arc) = to_weak.upgrade() {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             }
         }),
         ConnectionType::SingleShot => Box::new(move |args: &[Value]| {
             if let Some(arc) = to_weak.upgrade() {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             }
         }),
         ConnectionType::Queued => Box::new(move |args: &[Value]| {
             let Some(arc) = to_weak.upgrade() else {
                 return;
             };
-            let args_owned: Vec<Value> = args.to_vec();
+            let args_owned: Vec<Value> = args[..to_arity].to_vec();
             let sig_name = to_signal_name.clone();
             if let Some(d) = queued_dispatcher() {
                 d.post(
@@ -186,9 +191,9 @@ pub fn connect_signal_to_signal(
                 return;
             };
             if std::thread::current().id() == to_thread_id {
-                let _ = arc.lock().emit_signal(&to_signal_name, args);
+                let _ = arc.lock().emit_signal(&to_signal_name, &args[..to_arity]);
             } else {
-                let args_owned: Vec<Value> = args.to_vec();
+                let args_owned: Vec<Value> = args[..to_arity].to_vec();
                 let sig_name = to_signal_name.clone();
                 if let Some(d) = queued_dispatcher() {
                     d.post(
@@ -214,20 +219,22 @@ pub fn connect_signal_to_signal(
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))
 }
 
-/// Connects a named signal on `source` to a named zero-argument slot on `target`.
+/// Connects a named signal on `source` to a named slot on `target`.
 ///
 /// When `signal_name` is emitted on `source`, the registered callback upgrades a
 /// `Weak<Mutex<dyn Object>>` to a strong [`Arc`], locks `target`, and calls
-/// `target.invoke_method(slot_name, &[])`.
+/// `target.invoke_method(slot_name, args)`.
 ///
-/// Unlike [`connect_signal_to_signal`], slot-name validation is **deferred** to
-/// emit time. If `slot_name` is unknown on `target` at emission, `invoke_method`
-/// returns `None` and the emission is silently ignored — no error is produced.
-/// This trade-off avoids adding new error variants and mirrors the common pattern
-/// where a slot is a concrete method that does not appear in the meta-system
-/// (e.g. a hand-rolled `invoke_method` implementation). The slot is invoked with
-/// an empty argument list (`&[]`); only zero-argument slots are meaningfully
-/// supported — non-zero-arity slots silently no-op, identical to an unknown slot name.
+/// **Meta-validated path** — when `target.meta_object().method(slot_name)` returns
+/// `Some(meta)` at connection time: arity (`from_arity >= meta.params.len()`) and
+/// `type_name` equality on the first `meta.params.len()` parameters are validated
+/// eagerly. At emit time the slot is invoked with `&args[..slot_arity]` (the retained
+/// prefix only; extra source arguments are dropped).
+///
+/// **Fallback path** — when `meta_object().method(slot_name)` returns `None` (slot is
+/// not declared in the meta-system, e.g. a hand-rolled `invoke_method` implementation):
+/// the connection succeeds with no further validation, and the slot is invoked with
+/// `&[]` at emit time. Non-zero-arity hand-rolled slots silently no-op in this branch.
 ///
 /// The callback holds only a `Weak<Mutex<dyn Object>>` downgraded from `target`.
 /// If all strong [`Arc`] handles to `target` are released before an emission, the
@@ -242,8 +249,13 @@ pub fn connect_signal_to_signal(
 ///
 /// # Errors
 ///
-/// Returns [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not
-/// declared on `source`. This is the only validation performed at connection time.
+/// - [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not declared
+///   on `source`. Always validated eagerly at connection time.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < slot_arity`. Only
+///   returned when `target.meta_object().method(slot_name)` returns `Some(_)`.
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string on the
+///   retained prefix differs. Only returned when `meta_object().method(slot_name)`
+///   returns `Some(_)`.
 ///
 /// # Examples
 ///
@@ -262,8 +274,8 @@ pub fn connect_signal_to_slot(
     target: &Arc<Mutex<dyn Object>>,
     slot_name: &str,
 ) -> Result<ConnectionId, SignalConnectionError> {
-    // Validate signal_name eagerly — lazy slot validation is documented.
-    source
+    // Validate signal_name eagerly — must fire UnknownFromSignal before any slot lookup.
+    let from_meta = source
         .meta_object()
         .signal(signal_name)
         .ok_or_else(|| SignalConnectionError::UnknownFromSignal(signal_name.into()))?;
@@ -271,11 +283,47 @@ pub fn connect_signal_to_slot(
     let slot_name_owned = slot_name.to_owned();
     let target_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(target);
 
-    let callback: SignalCallback = Box::new(move |_args: &[Value]| {
-        if let Some(arc) = target_weak.upgrade() {
-            let _ = arc.lock().invoke_method(&slot_name_owned, &[]);
+    // Look up slot arity from the target's meta-system (may be absent for hand-rolled objects).
+    let slot_meta = target.lock().meta_object().method(slot_name);
+
+    let callback: SignalCallback = match slot_meta {
+        Some(meta) => {
+            // Validated path: enforce arity and type-name compatibility at connection time.
+            let from_arity = from_meta.params.len();
+            let slot_arity = meta.params.len();
+            if from_arity < slot_arity {
+                return Err(SignalConnectionError::ArityMismatch {
+                    from: from_arity,
+                    to: slot_arity,
+                });
+            }
+            // Validate type names on the retained prefix.
+            for (i, (fp, sp)) in from_meta.params.iter().zip(meta.params.iter()).enumerate() {
+                if fp.type_name != sp.type_name {
+                    return Err(SignalConnectionError::TypeMismatch {
+                        index: i,
+                        from: fp.type_name.into(),
+                        to: sp.type_name.into(),
+                    });
+                }
+            }
+            Box::new(move |args: &[Value]| {
+                if let Some(arc) = target_weak.upgrade() {
+                    let _ = arc
+                        .lock()
+                        .invoke_method(&slot_name_owned, &args[..slot_arity]);
+                }
+            })
         }
-    });
+        None => {
+            // Fallback path: slot not in meta-system; invoke with empty args (current behaviour).
+            Box::new(move |_args: &[Value]| {
+                if let Some(arc) = target_weak.upgrade() {
+                    let _ = arc.lock().invoke_method(&slot_name_owned, &[]);
+                }
+            })
+        }
+    };
 
     source
         .connect_signal(signal_name, callback, crate::signal::ConnectionType::Direct)
@@ -288,7 +336,9 @@ pub fn connect_signal_to_slot(
 /// field for the source, avoiding the `&[Value]` round-trip on the hot path for `Auto`
 /// and `Queued` connections.
 ///
-/// Type compatibility is still validated at connection time via the meta-system.
+/// Arity is validated as `from_arity >= to_arity` at connection time. `type_name` strings
+/// are compared on the first `to_arity` parameters; extra source arguments are dropped at
+/// emit time via `&values[..to_arity]`.
 ///
 /// # Parameters
 ///
@@ -305,10 +355,10 @@ pub fn connect_signal_to_slot(
 ///   declared on `from_obj`.
 /// - [`SignalConnectionError::UnknownToSignal`] when `to_signal_name` is not
 ///   declared on `to`.
-/// - [`SignalConnectionError::ArityMismatch`] when the two signals have different
-///   parameter counts.
-/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs
-///   between corresponding parameters.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < to_arity` (source signal
+///   has fewer parameters than the target requires).
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs on the
+///   first `to_arity` parameters.
 ///
 /// # Examples
 ///
@@ -368,14 +418,14 @@ where
     // Arity check.
     let from_arity = from_meta.params.len();
     let to_arity = to_meta.params.len();
-    if from_arity != to_arity {
+    if from_arity < to_arity {
         return Err(SignalConnectionError::ArityMismatch {
             from: from_arity,
             to: to_arity,
         });
     }
 
-    // Type-name check.
+    // Type-name check on the retained prefix (first to_arity parameters).
     for (i, (fp, tp)) in from_meta
         .params
         .iter()
@@ -403,7 +453,7 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
                 },
                 ct,
             )
@@ -422,7 +472,7 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
                 },
                 guard_weak,
             )
@@ -439,23 +489,20 @@ where
                     return;
                 };
                 let values = args.to_values();
-                let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
             })
         }
     };
     Ok(id)
 }
 
+/// Tests that require access to `crate::signal::tests` (a `#[cfg(test)]`-private
+/// dispatcher helper) live here. All other connect tests are in
+/// `quartzite-core/tests/connect.rs` (integration tests) to keep this file
+/// within the 1000-line production / 1500-line total hard limit.
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{
-        Arc,
-        atomic::{AtomicI32, Ordering},
-    };
-
-    use parking_lot::Mutex;
-
     use crate::{
         id::ConnectionId,
         meta::MetaObject,
@@ -463,13 +510,16 @@ mod tests {
         signal::{ConnectionType, Signal},
         value::Value,
     };
+    use parking_lot::Mutex;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicI32, Ordering},
+    };
 
-    // Minimal hand-written object with two signals for testing.
     struct Sender {
         base: ObjectBase,
         pub sig_a: Signal<(i32,)>,
     }
-
     impl Sender {
         fn new() -> Self {
             Self {
@@ -478,7 +528,6 @@ mod tests {
             }
         }
     }
-
     impl crate::AsObject for Sender {
         fn object_base(&self) -> &ObjectBase {
             &self.base
@@ -493,7 +542,6 @@ mod tests {
             self
         }
     }
-
     static SENDER_PARAMS: [crate::meta::ParamMeta; 1] =
         [crate::meta::ParamMeta::new("arg0", "i32")];
     static SENDER_SIGNALS: [crate::meta::SignalMeta; 1] =
@@ -515,7 +563,6 @@ mod tests {
         crate::meta::noop_lookup_method,
         crate::meta::noop_lookup_enum,
     );
-
     impl crate::Object for Sender {
         fn meta_object(&self) -> &'static MetaObject {
             &SENDER_META
@@ -654,582 +701,6 @@ mod tests {
                 _ => None,
             }
         }
-    }
-
-    #[test]
-    fn unknown_from_signal_returns_error() {
-        let mut sender = Sender::new();
-        let to = Arc::new(Mutex::new(Receiver::new())) as Arc<Mutex<dyn Object>>;
-        let err = connect_signal_to_signal(
-            &mut sender,
-            "nonexistent",
-            &to,
-            "sig_b",
-            ConnectionType::Direct,
-        )
-        .unwrap_err();
-        assert_eq!(
-            err,
-            SignalConnectionError::UnknownFromSignal("nonexistent".into())
-        );
-    }
-
-    #[test]
-    fn unknown_to_signal_returns_error() {
-        let mut sender = Sender::new();
-        let to = Arc::new(Mutex::new(Receiver::new())) as Arc<Mutex<dyn Object>>;
-        let err = connect_signal_to_signal(
-            &mut sender,
-            "sig_a",
-            &to,
-            "nonexistent",
-            ConnectionType::Direct,
-        )
-        .unwrap_err();
-        assert_eq!(
-            err,
-            SignalConnectionError::UnknownToSignal("nonexistent".into())
-        );
-    }
-
-    #[test]
-    fn arity_mismatch_returns_error() {
-        // Sender has sig_a: Signal<(i32,)> — 1 param.
-        // Create a receiver with zero-param signal.
-        struct NullRecv {
-            base: ObjectBase,
-            pub _sig: Signal<()>,
-        }
-        static NULL_SIGS: [crate::meta::SignalMeta; 1] = [crate::meta::SignalMeta::new("sig", &[])];
-        static NULL_META: MetaObject = MetaObject::new(
-            "NullRecv",
-            &[],
-            &NULL_SIGS,
-            &[],
-            &[],
-            crate::meta::noop_lookup_property,
-            |name| {
-                if name == "sig" {
-                    Some(NULL_SIGS[0])
-                } else {
-                    None
-                }
-            },
-            crate::meta::noop_lookup_method,
-            crate::meta::noop_lookup_enum,
-        );
-        impl crate::AsObject for NullRecv {
-            fn object_base(&self) -> &ObjectBase {
-                &self.base
-            }
-            fn object_base_mut(&mut self) -> &mut ObjectBase {
-                &mut self.base
-            }
-            fn as_any(&self) -> &dyn core::any::Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
-                self
-            }
-        }
-        impl crate::Object for NullRecv {
-            fn meta_object(&self) -> &'static MetaObject {
-                &NULL_META
-            }
-            fn read_property(&self, _: &str) -> Option<Value> {
-                None
-            }
-            fn write_property(&mut self, _: &str, _: Value) -> bool {
-                false
-            }
-            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
-                None
-            }
-            fn connect_signal(
-                &mut self,
-                _signal: &str,
-                _callback: crate::traits::SignalCallback,
-                _conn_type: ConnectionType,
-            ) -> Option<ConnectionId> {
-                None
-            }
-            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
-                None
-            }
-        }
-        let mut sender = Sender::new();
-        let nr = NullRecv {
-            base: ObjectBase::new(),
-            _sig: Signal::new(),
-        };
-        let to = Arc::new(Mutex::new(nr)) as Arc<Mutex<dyn Object>>;
-        let err =
-            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig", ConnectionType::Direct)
-                .unwrap_err();
-        assert_eq!(err, SignalConnectionError::ArityMismatch { from: 1, to: 0 });
-    }
-
-    #[test]
-    fn type_mismatch_returns_error() {
-        struct BoolRecv {
-            base: ObjectBase,
-            pub _sig: Signal<(bool,)>,
-        }
-        static BOOL_PARAMS: [crate::meta::ParamMeta; 1] =
-            [crate::meta::ParamMeta::new("arg0", "bool")];
-        static BOOL_SIGS: [crate::meta::SignalMeta; 1] =
-            [crate::meta::SignalMeta::new("sig", &BOOL_PARAMS)];
-        static BOOL_META: MetaObject = MetaObject::new(
-            "BoolRecv",
-            &[],
-            &BOOL_SIGS,
-            &[],
-            &[],
-            crate::meta::noop_lookup_property,
-            |name| {
-                if name == "sig" {
-                    Some(BOOL_SIGS[0])
-                } else {
-                    None
-                }
-            },
-            crate::meta::noop_lookup_method,
-            crate::meta::noop_lookup_enum,
-        );
-        impl crate::AsObject for BoolRecv {
-            fn object_base(&self) -> &ObjectBase {
-                &self.base
-            }
-            fn object_base_mut(&mut self) -> &mut ObjectBase {
-                &mut self.base
-            }
-            fn as_any(&self) -> &dyn core::any::Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
-                self
-            }
-        }
-        impl crate::Object for BoolRecv {
-            fn meta_object(&self) -> &'static MetaObject {
-                &BOOL_META
-            }
-            fn read_property(&self, _: &str) -> Option<Value> {
-                None
-            }
-            fn write_property(&mut self, _: &str, _: Value) -> bool {
-                false
-            }
-            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
-                None
-            }
-            fn connect_signal(
-                &mut self,
-                _signal: &str,
-                _callback: crate::traits::SignalCallback,
-                _conn_type: ConnectionType,
-            ) -> Option<ConnectionId> {
-                None
-            }
-            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
-                None
-            }
-        }
-        let mut sender = Sender::new();
-        let br = BoolRecv {
-            base: ObjectBase::new(),
-            _sig: Signal::new(),
-        };
-        let to = Arc::new(Mutex::new(br)) as Arc<Mutex<dyn Object>>;
-        let err =
-            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig", ConnectionType::Direct)
-                .unwrap_err();
-        assert_eq!(
-            err,
-            SignalConnectionError::TypeMismatch {
-                index: 0,
-                from: "i32".into(),
-                to: "bool".into()
-            }
-        );
-    }
-
-    #[test]
-    fn direct_connection_forwards_signal() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver.lock().sig_b.connect(move |args: &(i32,)| {
-                c.store(args.0, Ordering::Relaxed);
-            });
-        }
-        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        let id =
-            connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Direct)
-                .expect("connection must succeed");
-
-        sender.sig_a.emit_unconditionally(&(42,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            42,
-            "value must be forwarded"
-        );
-
-        // AC8: disconnect stops forwarding.
-        sender.sig_a.disconnect(id);
-        sender.sig_a.emit_unconditionally(&(99,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            42,
-            "value must not change after disconnect"
-        );
-    }
-
-    #[test]
-    fn single_shot_fires_once_and_slot_is_removed() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver
-                .lock()
-                .sig_b
-                .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
-        }
-        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(
-            &mut sender,
-            "sig_a",
-            &to,
-            "sig_b",
-            ConnectionType::SingleShot,
-        )
-        .expect("connection must succeed");
-
-        sender.sig_a.emit_unconditionally(&(1,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            1,
-            "must fire on first emit"
-        );
-
-        sender.sig_a.emit_unconditionally(&(2,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            1,
-            "slot must not fire on second emit — auto-disconnected after first delivery"
-        );
-    }
-
-    #[test]
-    fn liveness_silently_drops_when_to_arc_released() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver.lock().sig_b.connect(move |args: &(i32,)| {
-                c.store(args.0, Ordering::Relaxed);
-            });
-        }
-        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Direct)
-            .unwrap();
-        // Verify it fires before drop.
-        sender.sig_a.emit_unconditionally(&(1,));
-        assert_eq!(counter.load(Ordering::Relaxed), 1);
-        // Drop all strong Arcs — Weak inside the callback now returns None.
-        drop(to);
-        drop(receiver);
-        // AC7: no panic, connection silently skipped.
-        sender.sig_a.emit_unconditionally(&(2,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            1,
-            "no forwarding after to is dropped"
-        );
-    }
-
-    #[test]
-    fn connect_signals_typed_direct_forwards() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver.lock().sig_b.connect(move |args: &(i32,)| {
-                c.store(args.0, Ordering::Relaxed);
-            });
-        }
-        let id = connect_signals(
-            &mut sender,
-            "sig_a",
-            |obj: &mut Sender| &mut obj.sig_a,
-            &receiver,
-            "sig_b",
-            ConnectionType::Direct,
-        )
-        .expect("typed connection must succeed");
-
-        sender.sig_a.emit_unconditionally(&(7,));
-        assert_eq!(counter.load(Ordering::Relaxed), 7);
-        sender.sig_a.disconnect(id);
-        sender.sig_a.emit_unconditionally(&(8,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            7,
-            "no forwarding after disconnect"
-        );
-    }
-
-    #[test]
-    fn connect_signals_typed_liveness() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver.lock().sig_b.connect(move |args: &(i32,)| {
-                c.store(args.0, Ordering::Relaxed);
-            });
-        }
-        connect_signals(
-            &mut sender,
-            "sig_a",
-            |obj: &mut Sender| &mut obj.sig_a,
-            &receiver,
-            "sig_b",
-            ConnectionType::Direct,
-        )
-        .unwrap();
-        sender.sig_a.emit_unconditionally(&(3,));
-        assert_eq!(counter.load(Ordering::Relaxed), 3);
-        drop(receiver);
-        sender.sig_a.emit_unconditionally(&(4,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            3,
-            "no forwarding after drop"
-        );
-    }
-
-    // AC6 — Auto same-thread: fires synchronously (no dispatcher needed).
-    #[test]
-    fn auto_same_thread_fires_synchronously() {
-        let mut sender = Sender::new();
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let counter = Arc::new(AtomicI32::new(0));
-        {
-            let c = Arc::clone(&counter);
-            receiver
-                .lock()
-                .sig_b
-                .connect(move |args: &(i32,)| c.store(args.0, Ordering::Relaxed));
-        }
-        let to: Arc<Mutex<dyn Object>> = Arc::clone(&receiver) as Arc<Mutex<dyn Object>>;
-        connect_signal_to_signal(&mut sender, "sig_a", &to, "sig_b", ConnectionType::Auto).unwrap();
-
-        sender.sig_a.emit_unconditionally(&(55,));
-        assert_eq!(
-            counter.load(Ordering::Relaxed),
-            55,
-            "AC6 same-thread Auto must fire synchronously"
-        );
-    }
-
-    // R2 partial — connect_signals arity / type mismatch error arms
-    // (connect_signal_to_signal already has arity/type tests; these cover
-    // the same checks inside the typed connect_signals wrapper at lines 293-315.)
-
-    #[test]
-    fn connect_signals_typed_arity_mismatch_returns_error() {
-        // Sender has sig_a: Signal<(i32,)> — 1 param.
-        // Receiver has sig_b: Signal<(i32,)> — 1 param.
-        // Pass `(i32, i32)` as Args to force a mismatch with Receiver's 1-param signal.
-        // Note: from_arity in this path is inferred from Args length (2), but the
-        // meta says sig_a has 1 param — so from_arity (1) != to_arity (1 for sig_b)
-        // doesn't trigger, but connect_signals delegates to connect_signal_to_signal
-        // which already does the check. To force arity mismatch within connect_signals
-        // itself, use a 2-arg sender meta pointing at a 1-arg receiver.
-        // Easiest approach: use connect_signal_to_signal's arity check result by
-        // building a 2-arg sender. Since connect_signals calls connect_signal_to_signal
-        // internally, validate via the top-level error result.
-        struct Sender2 {
-            base: ObjectBase,
-            pub sig: Signal<(i32, i32)>,
-        }
-        static S2_PARAMS: [crate::meta::ParamMeta; 2] = [
-            crate::meta::ParamMeta::new("a", "i32"),
-            crate::meta::ParamMeta::new("b", "i32"),
-        ];
-        static S2_SIGS: [crate::meta::SignalMeta; 1] =
-            [crate::meta::SignalMeta::new("sig", &S2_PARAMS)];
-        static S2_META: MetaObject = MetaObject::new(
-            "Sender2",
-            &[],
-            &S2_SIGS,
-            &[],
-            &[],
-            crate::meta::noop_lookup_property,
-            |name| {
-                if name == "sig" {
-                    Some(S2_SIGS[0])
-                } else {
-                    None
-                }
-            },
-            crate::meta::noop_lookup_method,
-            crate::meta::noop_lookup_enum,
-        );
-        impl crate::AsObject for Sender2 {
-            fn object_base(&self) -> &ObjectBase {
-                &self.base
-            }
-            fn object_base_mut(&mut self) -> &mut ObjectBase {
-                &mut self.base
-            }
-            fn as_any(&self) -> &dyn core::any::Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
-                self
-            }
-        }
-        impl crate::Object for Sender2 {
-            fn meta_object(&self) -> &'static MetaObject {
-                &S2_META
-            }
-            fn read_property(&self, _: &str) -> Option<Value> {
-                None
-            }
-            fn write_property(&mut self, _: &str, _: Value) -> bool {
-                false
-            }
-            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
-                None
-            }
-            fn connect_signal(
-                &mut self,
-                _s: &str,
-                _cb: crate::traits::SignalCallback,
-                _ct: ConnectionType,
-            ) -> Option<ConnectionId> {
-                None
-            }
-            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
-                None
-            }
-        }
-        let mut s2 = Sender2 {
-            base: ObjectBase::new(),
-            sig: Signal::new(),
-        };
-        let receiver = Arc::new(Mutex::new(Receiver::new()));
-        let err = connect_signals::<_, _, (i32, i32)>(
-            &mut s2,
-            "sig",
-            |obj: &mut Sender2| &mut obj.sig,
-            &receiver,
-            "sig_b",
-            ConnectionType::Direct,
-        )
-        .unwrap_err();
-        assert_eq!(err, SignalConnectionError::ArityMismatch { from: 2, to: 1 });
-    }
-
-    #[test]
-    fn connect_signals_typed_type_mismatch_returns_error() {
-        // Sender has sig_a: Signal<(i32,)> — type "i32".
-        // Build a receiver with sig carrying type "bool" to trigger TypeMismatch.
-        struct BoolRecv2 {
-            base: ObjectBase,
-            _sig: Signal<(bool,)>,
-        }
-        static BR2_PARAMS: [crate::meta::ParamMeta; 1] =
-            [crate::meta::ParamMeta::new("arg0", "bool")];
-        static BR2_SIGS: [crate::meta::SignalMeta; 1] =
-            [crate::meta::SignalMeta::new("sig", &BR2_PARAMS)];
-        static BR2_META: MetaObject = MetaObject::new(
-            "BoolRecv2",
-            &[],
-            &BR2_SIGS,
-            &[],
-            &[],
-            crate::meta::noop_lookup_property,
-            |name| {
-                if name == "sig" {
-                    Some(BR2_SIGS[0])
-                } else {
-                    None
-                }
-            },
-            crate::meta::noop_lookup_method,
-            crate::meta::noop_lookup_enum,
-        );
-        impl crate::AsObject for BoolRecv2 {
-            fn object_base(&self) -> &ObjectBase {
-                &self.base
-            }
-            fn object_base_mut(&mut self) -> &mut ObjectBase {
-                &mut self.base
-            }
-            fn as_any(&self) -> &dyn core::any::Any {
-                self
-            }
-            fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
-                self
-            }
-        }
-        impl crate::Object for BoolRecv2 {
-            fn meta_object(&self) -> &'static MetaObject {
-                &BR2_META
-            }
-            fn read_property(&self, _: &str) -> Option<Value> {
-                None
-            }
-            fn write_property(&mut self, _: &str, _: Value) -> bool {
-                false
-            }
-            fn invoke_method(&mut self, _: &str, _: &[Value]) -> Option<Value> {
-                None
-            }
-            fn connect_signal(
-                &mut self,
-                _s: &str,
-                _cb: crate::traits::SignalCallback,
-                _ct: ConnectionType,
-            ) -> Option<ConnectionId> {
-                None
-            }
-            fn emit_signal(&mut self, _: &str, _: &[Value]) -> Option<()> {
-                None
-            }
-        }
-        let mut sender = Sender::new();
-        let br2 = Arc::new(Mutex::new(BoolRecv2 {
-            base: ObjectBase::new(),
-            _sig: Signal::new(),
-        }));
-        let err = connect_signals::<_, _, (i32,)>(
-            &mut sender,
-            "sig_a",
-            |obj: &mut Sender| &mut obj.sig_a,
-            &br2,
-            "sig",
-            ConnectionType::Direct,
-        )
-        .unwrap_err();
-        assert_eq!(
-            err,
-            SignalConnectionError::TypeMismatch {
-                index: 0,
-                from: "i32".into(),
-                to: "bool".into()
-            }
-        );
     }
 
     // AC6 — Auto cross-thread: callback is posted to the queued dispatcher.

@@ -5,7 +5,7 @@
 // Integration tests for signal-to-signal connections (AC1–AC11).
 use std::sync::{
     Arc,
-    atomic::{AtomicI32, Ordering},
+    atomic::{AtomicI32, AtomicU32, Ordering},
 };
 
 use quartzite::prelude::*;
@@ -97,22 +97,58 @@ fn connect_signal_to_signal_unknown_from_signal_returns_error() {
     assert!(matches!(err, SignalConnectionError::UnknownFromSignal(_)));
 }
 
-// ----- AC4: arity mismatch returns ArityMismatch. -----
+// ----- AC4: arity mismatch returns ArityMismatch (from < to). -----
 
 #[test]
 fn connect_signal_to_signal_arity_mismatch_returns_error() {
     let mut emitter = new_emitter();
     let relay: Arc<Mutex<dyn Object>> = Arc::new(Mutex::new(new_relay()));
-    // value_sent has 1 param; clicked has 0.
+    // clicked has 0 params (from); value_received has 1 (to) → from < to triggers ArityMismatch.
     let err = connect_signal_to_signal(
         &mut emitter,
-        "value_sent",
-        &relay,
         "clicked",
+        &relay,
+        "value_received",
         ConnectionType::Direct,
     )
     .unwrap_err();
-    assert!(matches!(err, SignalConnectionError::ArityMismatch { .. }));
+    assert!(matches!(
+        err,
+        SignalConnectionError::ArityMismatch { from: 0, to: 1 }
+    ));
+}
+
+// ----- AC4b: from >= to (1-arg → 0-arg): connection succeeds and forwarding fires the target. -----
+
+#[test]
+fn connect_signal_to_signal_truncates_extras() {
+    let mut emitter = new_emitter();
+    let relay = Arc::new(Mutex::new(new_relay()));
+    // Counter incremented each time relay.clicked fires.
+    let counter = Arc::new(AtomicU32::new(0));
+    {
+        let c = Arc::clone(&counter);
+        relay.lock().clicked.connect(move |_args: &()| {
+            c.fetch_add(1, Ordering::Relaxed);
+        });
+    }
+    // Wire value_sent (1-arg i32) → clicked (0-arg): excess arg is dropped at emit time.
+    let to: Arc<Mutex<dyn Object>> = Arc::clone(&relay) as Arc<Mutex<dyn Object>>;
+    connect_signal_to_signal(
+        &mut emitter,
+        "value_sent",
+        &to,
+        "clicked",
+        ConnectionType::Direct,
+    )
+    .expect("1-arg → 0-arg must succeed under from >= to rule");
+
+    emitter.value_sent.emit_unconditionally(&(42,));
+    assert_eq!(
+        counter.load(Ordering::Relaxed),
+        1,
+        "clicked must have fired exactly once after truncated forwarding"
+    );
 }
 
 // ----- AC5: Direct connection forwards signal synchronously. -----
