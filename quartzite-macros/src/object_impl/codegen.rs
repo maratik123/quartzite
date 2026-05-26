@@ -3,13 +3,27 @@ use quote::quote;
 use syn::{Ident, Index, ReturnType};
 
 use super::parse::{MethodItem, ObjectImplInput};
-use crate::util::{crate_root, hidden_mod_ident, inline_if_concrete};
+use crate::util::{
+    crate_root, emit_undocumented_diagnostic, hidden_mod_ident, inline_if_concrete,
+    resolve_undocumented_level,
+};
 
 pub(crate) fn codegen(ir: &ObjectImplInput) -> TokenStream {
     let type_ident = &ir.self_ty_ident;
     let self_ty = &ir.self_ty;
     let other_items = &ir.other_items;
     let mod_ident = hidden_mod_ident(type_ident);
+
+    // Emit undocumented diagnostics for all annotated methods with missing docs.
+    let diagnostics: TokenStream = ir
+        .methods
+        .iter()
+        .filter(|m| !m.doc_present)
+        .map(|m| {
+            let level = resolve_undocumented_level(m.per_item_level, ir.per_invocation_level);
+            emit_undocumented_diagnostic(level, type_ident, &m.ident, m.ident.span())
+        })
+        .collect();
 
     let methods_static = emit_methods_static(type_ident, &ir.methods);
     let invoke_fn = emit_invoke_method(type_ident, &ir.methods);
@@ -21,6 +35,7 @@ pub(crate) fn codegen(ir: &ObjectImplInput) -> TokenStream {
 
     quote! {
         #impl_block
+        #diagnostics
 
         #methods_static
         #invoke_fn

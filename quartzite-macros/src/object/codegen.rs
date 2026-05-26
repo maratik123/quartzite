@@ -3,7 +3,9 @@ use quote::quote;
 use syn::{Ident, Index, Type};
 
 use super::parse::{ObjectInput, PropField, SignalField};
-use crate::util::{crate_root, hidden_mod_ident};
+use crate::util::{
+    crate_root, emit_undocumented_diagnostic, hidden_mod_ident, resolve_undocumented_level,
+};
 
 /// Constructs the synthesised `name_changed` built-in signal prepended to every `#[object]` type.
 fn make_name_changed_builtin() -> SignalField {
@@ -16,6 +18,9 @@ fn make_name_changed_builtin() -> SignalField {
         ident,
         args_ty,
         builtin: true,
+        // Built-in signals are always considered documented; no user-facing diagnostic.
+        doc_present: true,
+        per_item_level: None,
     }
 }
 
@@ -23,6 +28,26 @@ pub(crate) fn codegen(ir: &ObjectInput) -> TokenStream {
     let cr = crate_root();
     let type_ident = &ir.ident;
     let mod_ident = hidden_mod_ident(type_ident);
+
+    // Emit undocumented diagnostics for props and signals with missing docs.
+    let prop_diagnostics: TokenStream = ir
+        .props
+        .iter()
+        .filter(|p| !p.doc_present)
+        .map(|p| {
+            let level = resolve_undocumented_level(p.per_item_level, ir.per_invocation_level);
+            emit_undocumented_diagnostic(level, type_ident, &p.ident, p.ident.span())
+        })
+        .collect();
+    let signal_diagnostics: TokenStream = ir
+        .signals
+        .iter()
+        .filter(|s| !s.doc_present && !s.builtin)
+        .map(|s| {
+            let level = resolve_undocumented_level(s.per_item_level, ir.per_invocation_level);
+            emit_undocumented_diagnostic(level, type_ident, &s.ident, s.ident.span())
+        })
+        .collect();
 
     // Prepend the built-in name_changed signal; all dispatch functions receive the full list.
     // Wrapper functions (emit_<sig>, connect_<sig>_auto, connect_<sig>_queued) skip built-ins.
@@ -43,6 +68,9 @@ pub(crate) fn codegen(ir: &ObjectInput) -> TokenStream {
     let emit_signal_fn = emit_emit_signal(type_ident, &signals_all);
 
     quote! {
+        #prop_diagnostics
+        #signal_diagnostics
+
         #[doc(hidden)]
         #[allow(non_snake_case, non_upper_case_globals)]
         mod #mod_ident {

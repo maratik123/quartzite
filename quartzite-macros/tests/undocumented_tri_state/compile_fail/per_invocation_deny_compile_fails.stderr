@@ -1,0 +1,5 @@
+error: Annotated item `Baz::get_z` is missing `///` documentation. Opt out via `#[undocumented(allow)]` or set the lint level to warn/allow via `#[object_impl(undocumented = "warn")]` or feature `undocumented-allow`.
+  --> tests/undocumented_tri_state/compile_fail/per_invocation_deny_compile_fails.rs:20:14
+   |
+20 |     const fn get_z(&self) -> i32 {
+   |              ^^^^^

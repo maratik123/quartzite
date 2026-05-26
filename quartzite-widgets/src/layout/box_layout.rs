@@ -42,8 +42,9 @@ pub enum Direction {
 #[derive(Extend, Object)]
 #[root]
 pub struct BoxLayout {
+    /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.
     #[base]
-    object: ObjectBase,
+    pub object: ObjectBase,
     /// Stacking direction.
     pub direction: Direction,
     children: Vec<(ObjectId, i32)>,

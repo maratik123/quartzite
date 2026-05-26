@@ -5,7 +5,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
 use super::parse::{MethodItem, ParamMeta};
-use crate::util::emit_compile_error;
+use crate::util::{Level, emit_compile_error};
 
 /// Span-free representation stored across proc-macro invocation boundaries.
 ///
@@ -18,6 +18,8 @@ struct StoredMethod {
     name: String,
     params: Vec<(String, String)>,
     ret_ty: Option<String>,
+    doc_present: bool,
+    per_item_level: Option<Level>,
 }
 
 fn to_stored(method: MethodItem) -> StoredMethod {
@@ -35,6 +37,8 @@ fn to_stored(method: MethodItem) -> StoredMethod {
             syn::ReturnType::Default => None,
             syn::ReturnType::Type(_, ty) => Some(quote! { #ty }.to_string()),
         },
+        doc_present: method.doc_present,
+        per_item_level: method.per_item_level,
     }
 }
 
@@ -64,6 +68,8 @@ fn from_stored(stored: StoredMethod) -> MethodItem {
         ident: Ident::new(&stored.name, cs),
         params,
         ret_ty,
+        doc_present: stored.doc_present,
+        per_item_level: stored.per_item_level,
     }
 }
 
@@ -133,6 +139,8 @@ mod tests {
             ident: Ident::new(name, Span::call_site()),
             params: vec![],
             ret_ty: syn::ReturnType::Default,
+            doc_present: false,
+            per_item_level: None,
         }
     }
 
@@ -230,6 +238,8 @@ mod tests {
                     Box::new(ty),
                 )
             },
+            doc_present: false,
+            per_item_level: None,
         };
         push(type_name, vec![method]);
         let drained = drain(type_name);

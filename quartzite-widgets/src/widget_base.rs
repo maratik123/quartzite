@@ -79,8 +79,9 @@ pub type WidgetStates = BitFlags<WidgetState>;
 #[derive(Extend)]
 #[root]
 pub struct WidgetBase {
+    /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.
     #[base]
-    object: ObjectBase,
+    pub object: ObjectBase,
     /// Bounding rectangle of the widget in parent coordinates.
     pub geometry: Rect,
     /// Combined widget state flags (visibility, enabled, hover, etc.).
