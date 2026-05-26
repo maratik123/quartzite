@@ -1,4 +1,6 @@
 //! Integration tests for the `#[derive(Extend)]` macro: `#[root]` trait generation and `#[base]` delegation.
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 
 use quartzite::core::{AsObject, ObjectBase};
 use quartzite_macros::Extend;

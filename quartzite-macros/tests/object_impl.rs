@@ -1,4 +1,6 @@
 //! Integration tests for the `#[object_impl]` and `#[object_part]` attribute macros across sole-mode and multi-block types.
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 
 use quartzite::core::{Object, ObjectBase, Signal, Value};
 use quartzite_macros::{Extend, Object, object_impl, object_part};

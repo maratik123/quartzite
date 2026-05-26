@@ -1,6 +1,6 @@
 use syn::{Data, DeriveInput, Fields, Ident, Type, parse2, spanned::Spanned};
 
-use crate::util::extract_attr;
+use crate::util::{Level, extract_attr, extract_undocumented_per_item, parse_undocumented_kv};
 
 /// How a field tagged with `#[widget_children]` provides children.
 #[cfg_attr(test, derive(Debug, PartialEq))]
@@ -16,6 +16,10 @@ pub(crate) enum WidgetChildrenKind {
 pub(crate) struct WidgetChildrenField {
     pub ident: Ident,
     pub kind: WidgetChildrenKind,
+    /// Whether the field has a `#[doc = "..."]` attribute.
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
+    pub per_item_level: Option<Level>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -30,6 +34,8 @@ pub(crate) struct ExtendInput {
     pub widget_view_variant: Option<String>,
     /// Field that provides children via `#[widget_children(slice|optional)]`.
     pub widget_children_field: Option<WidgetChildrenField>,
+    /// Level from `#[extend(undocumented = "...")]` sibling attribute on the struct.
+    pub per_invocation_level: Option<Level>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -37,6 +43,10 @@ pub(crate) struct BaseField {
     pub ident: Ident,
     pub ty_ident: Ident,
     pub ty: Type,
+    /// Whether the field has a `#[doc = "..."]` attribute.
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
+    pub per_item_level: Option<Level>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -44,6 +54,10 @@ pub(crate) struct MixinField {
     pub ident: Ident,
     pub ty_ident: Ident,
     pub ty: Type,
+    /// Whether the field has a `#[doc = "..."]` attribute.
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
+    pub per_item_level: Option<Level>,
 }
 
 /// Removes and parses `#[widget_view(variant = "X")]` from `attrs`.
@@ -126,6 +140,9 @@ fn extract_last_ident(ty: &Type, context: &Ident) -> syn::Result<Ident> {
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput> {
     let mut derive: DeriveInput = parse2(input)?;
 
+    // Extract per-invocation level from `#[extend(undocumented = "...")]` sibling attribute.
+    let per_invocation_level = extract_extend_invocation_level(&mut derive.attrs)?;
+
     // Must be a named-field struct.
     let fields = match &derive.data {
         Data::Struct(s) => match &s.fields {
@@ -164,6 +181,9 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
     let mut widget_children_field: Option<WidgetChildrenField> = None;
 
     for mut field in fields.named {
+        // Capture doc_present and per_item_level before consuming attributes.
+        let doc_present = field.attrs.iter().any(|a| a.path().is_ident("doc"));
+        let per_item_level = extract_undocumented_per_item(&mut field.attrs)?;
         let is_base = extract_attr(&mut field.attrs, "base");
         let is_mixin = extract_attr(&mut field.attrs, "mixin");
         let wc_kind = extract_widget_children_kind(&mut field.attrs)?;
@@ -175,6 +195,8 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                 ident: field_ident.clone(),
                 ty_ident,
                 ty: field.ty.clone(),
+                doc_present,
+                per_item_level,
             });
         } else if is_mixin {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
@@ -182,6 +204,8 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                 ident: field_ident.clone(),
                 ty_ident,
                 ty: field.ty.clone(),
+                doc_present,
+                per_item_level,
             });
         }
 
@@ -192,9 +216,13 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                     "at most one #[widget_children] field allowed",
                 ));
             }
+            // Share the same doc_present / per_item_level already captured above
+            // (the #[undocumented] attr was already consumed from this field).
             widget_children_field = Some(WidgetChildrenField {
                 ident: field_ident,
                 kind,
+                doc_present,
+                per_item_level,
             });
         }
     }
@@ -223,7 +251,30 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         mixin_fields,
         widget_view_variant,
         widget_children_field,
+        per_invocation_level,
     })
+}
+
+/// Extracts the per-invocation level from `#[extend(undocumented = "...")]` on the struct.
+fn extract_extend_invocation_level(
+    attrs: &mut Vec<syn::Attribute>,
+) -> syn::Result<Option<Level>> {
+    let Some(pos) = attrs.iter().position(|a| a.path().is_ident("extend")) else {
+        return Ok(None);
+    };
+    let attr = attrs.remove(pos);
+    let mut level: Option<Level> = None;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("undocumented") {
+            let value = meta.value()?;
+            let s: syn::LitStr = value.parse()?;
+            level = Some(parse_undocumented_kv(&s)?);
+            Ok(())
+        } else {
+            Err(meta.error("unknown `#[extend(...)]` key; expected `undocumented = \"...\"`"))
+        }
+    })?;
+    Ok(level)
 }
 
 #[cfg(test)]

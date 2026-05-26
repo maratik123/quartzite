@@ -1,17 +1,33 @@
 use syn::{ImplItem, ItemImpl, parse2};
 
 use crate::object_impl::parse::{MethodItem, ObjectImplInput, extract_params};
-use crate::util::extract_attr;
+use crate::util::{Level, extract_attr, extract_undocumented_per_item, parse_undocumented_kv};
 
 pub(crate) fn parse(
     attr: proc_macro2::TokenStream,
     input: proc_macro2::TokenStream,
 ) -> syn::Result<ObjectImplInput> {
+    // Accept zero arguments OR exactly `undocumented = "..."` as the sole key-value.
+    let mut per_invocation_level: Option<Level> = None;
     if !attr.is_empty() {
-        return Err(syn::Error::new_spanned(
-            attr,
-            "`#[object_part]` takes no arguments",
-        ));
+        let attr_result = syn::parse2::<syn::MetaNameValue>(attr.clone());
+        match attr_result {
+            Ok(ref nv) if nv.path.is_ident("undocumented") => {
+                if let syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(ref s),
+                    ..
+                }) = nv.value
+                {
+                    per_invocation_level = Some(parse_undocumented_kv(s)?);
+                }
+            }
+            _ => {
+                return Err(syn::Error::new_spanned(
+                    attr,
+                    "`#[object_part]` takes no arguments",
+                ));
+            }
+        }
     }
     let mut item: ItemImpl = parse2(input)?;
 
@@ -31,12 +47,18 @@ pub(crate) fn parse(
 
                 if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
+                    let doc_present =
+                        fn_item.attrs.iter().any(|a| a.path().is_ident("doc"));
+                    let per_item_level =
+                        extract_undocumented_per_item(&mut fn_item.attrs)?;
                     let params = extract_params(&fn_item.sig.inputs)?;
                     let ret_ty = fn_item.sig.output.clone();
                     methods.push(MethodItem {
                         ident,
                         params,
                         ret_ty,
+                        doc_present,
+                        per_item_level,
                     });
                 }
                 other_items.push(ImplItem::Fn(fn_item));
@@ -52,6 +74,7 @@ pub(crate) fn parse(
         trait_path,
         methods,
         other_items,
+        per_invocation_level,
     })
 }
 
@@ -151,5 +174,40 @@ mod tests {
             }
         });
         assert_eq!(ir.methods.len(), 1);
+        assert_eq!(ir.methods[0].per_item_level, Some(Level::Allow));
+    }
+
+    #[test]
+    fn per_invocation_deny_sets_level() {
+        // Proves #[object_part(undocumented = "deny")] is accepted.
+        let ir = parse(
+            quote! { undocumented = "deny" },
+            quote! { impl Foo { fn bar(&self) {} } },
+        )
+        .expect("should parse successfully");
+        assert_eq!(ir.per_invocation_level, Some(Level::Deny));
+    }
+
+    #[test]
+    fn doc_present_false_on_slot_without_doc() {
+        let ir = parse_ok(quote! {
+            impl Foo {
+                #[slot]
+                fn reset(&mut self) {}
+            }
+        });
+        assert!(!ir.methods[0].doc_present);
+    }
+
+    #[test]
+    fn doc_present_true_on_slot_with_doc() {
+        let ir = parse_ok(quote! {
+            impl Foo {
+                /// Reset the counter.
+                #[slot]
+                fn reset(&mut self) {}
+            }
+        });
+        assert!(ir.methods[0].doc_present);
     }
 }

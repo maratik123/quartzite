@@ -3,13 +3,15 @@ use syn::{
     spanned::Spanned,
 };
 
-use crate::util::extract_attr;
+use crate::util::{Level, extract_attr, extract_undocumented_per_item, parse_undocumented_kv};
 
 #[cfg_attr(test, derive(Debug))]
 pub(crate) struct ObjectInput {
     pub ident: Ident,
     pub props: Vec<PropField>,
     pub signals: Vec<SignalField>,
+    /// Level from `#[object(undocumented = "...")]` sibling attribute on the struct.
+    pub per_invocation_level: Option<Level>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -26,6 +28,10 @@ pub(crate) struct PropField {
     pub designable: bool,
     pub user: bool,
     pub constant: bool,
+    /// Whether the field has a `#[doc = "..."]` attribute (i.e. a `///` doc comment).
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
+    pub per_item_level: Option<Level>,
 }
 
 #[derive(Clone)]
@@ -35,10 +41,17 @@ pub(crate) struct SignalField {
     pub args_ty: Type,
     /// `true` for the synthesised `name_changed` built-in; `false` for user-declared signals.
     pub builtin: bool,
+    /// Whether the field has a `#[doc = "..."]` attribute.
+    pub doc_present: bool,
+    /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
+    pub per_item_level: Option<Level>,
 }
 
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput> {
-    let derive: DeriveInput = parse2(input)?;
+    let mut derive: DeriveInput = parse2(input)?;
+
+    // Extract per-invocation level from `#[object(undocumented = "...")]` sibling attribute.
+    let per_invocation_level = extract_object_invocation_level(&mut derive.attrs)?;
 
     let fields = match &derive.data {
         Data::Struct(s) => match &s.fields {
@@ -76,11 +89,16 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
             props.push(parse_prop_field(field)?);
         } else if has_signal {
             let field_ident = field.ident.clone().expect("named field has ident");
+            let doc_present = field.attrs.iter().any(|a| a.path().is_ident("doc"));
+            let mut field_attrs = field.attrs;
+            let per_item_level = extract_undocumented_per_item(&mut field_attrs)?;
             let args_ty = extract_signal_args(&field.ty, &field_ident)?;
             signals.push(SignalField {
                 ident: field_ident,
                 args_ty,
                 builtin: false,
+                doc_present,
+                per_item_level,
             });
         }
     }
@@ -100,7 +118,30 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
         ident: derive.ident,
         props,
         signals,
+        per_invocation_level,
     })
+}
+
+/// Extracts the per-invocation level from `#[object(undocumented = "...")]` on the struct.
+fn extract_object_invocation_level(
+    attrs: &mut Vec<syn::Attribute>,
+) -> syn::Result<Option<Level>> {
+    let Some(pos) = attrs.iter().position(|a| a.path().is_ident("object")) else {
+        return Ok(None);
+    };
+    let attr = attrs.remove(pos);
+    let mut level: Option<Level> = None;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("undocumented") {
+            let value = meta.value()?;
+            let s: syn::LitStr = value.parse()?;
+            level = Some(parse_undocumented_kv(&s)?);
+            Ok(())
+        } else {
+            Err(meta.error("unknown `#[object(...)]` key; expected `undocumented = \"...\"`"))
+        }
+    })?;
+    Ok(level)
 }
 
 /// Returns true if the field has a `#[property]` or `#[property(...)]` attribute (without removing it).
@@ -110,6 +151,11 @@ fn has_attr(field: &Field, name: &str) -> bool {
 
 fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
     let field_ident = field.ident.clone().expect("named field has ident");
+
+    // Check doc presence before consuming the property attribute.
+    let doc_present = field.attrs.iter().any(|a| a.path().is_ident("doc"));
+    // Extract per-item undocumented level (removes the attribute from attrs).
+    let per_item_level = extract_undocumented_per_item(&mut field.attrs)?;
 
     // Find and remove the #[property] or #[property(...)] attribute.
     let prop_attr_idx = field
@@ -185,6 +231,8 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
         designable,
         user,
         constant,
+        doc_present,
+        per_item_level,
     })
 }
 

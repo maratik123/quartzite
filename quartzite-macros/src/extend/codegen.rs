@@ -3,12 +3,53 @@ use quote::quote;
 use syn::Ident;
 
 use super::parse::{BaseField, ExtendInput, MixinField, WidgetChildrenField, WidgetChildrenKind};
-use crate::util::{accessor_name, as_trait_name, crate_root, inline_if_concrete, widgets_root};
+use crate::util::{
+    accessor_name, as_trait_name, crate_root, emit_undocumented_diagnostic, inline_if_concrete,
+    resolve_undocumented_level, widgets_root,
+};
 
 pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
     let mut out = TokenStream::new();
+    let type_ident = &ir.ident;
     let wv = ir.widget_view_variant.as_deref();
     let wc = ir.widget_children_field.as_ref();
+
+    // Emit undocumented diagnostics for base, mixin, and widget_children fields.
+    if let Some(base) = &ir.base_field
+        && !base.doc_present
+    {
+        let level = resolve_undocumented_level(base.per_item_level, ir.per_invocation_level);
+        out.extend(emit_undocumented_diagnostic(
+            level,
+            type_ident,
+            &base.ident,
+            base.ident.span(),
+        ));
+    }
+    for mixin in &ir.mixin_fields {
+        if !mixin.doc_present {
+            let level =
+                resolve_undocumented_level(mixin.per_item_level, ir.per_invocation_level);
+            out.extend(emit_undocumented_diagnostic(
+                level,
+                type_ident,
+                &mixin.ident,
+                mixin.ident.span(),
+            ));
+        }
+    }
+    if let Some(wc_field) = &ir.widget_children_field
+        && !wc_field.doc_present
+    {
+        let level =
+            resolve_undocumented_level(wc_field.per_item_level, ir.per_invocation_level);
+        out.extend(emit_undocumented_diagnostic(
+            level,
+            type_ident,
+            &wc_field.ident,
+            wc_field.ident.span(),
+        ));
+    }
 
     // NOTE: The original struct is NOT re-emitted here.
     // Derive macros append to the item; re-emitting would cause duplicate definitions.

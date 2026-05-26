@@ -1,4 +1,6 @@
 //! Integration test verifying macros accessed via the `quartzite::macros` facade emit `::quartzite::core` paths (no direct `quartzite_macros` import needed).
+// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 
 // Verifies that macros accessed via `quartzite::macros` emit `::quartzite::core` paths —
 // no direct `quartzite_macros` import is needed.
