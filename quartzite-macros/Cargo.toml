@@ -13,10 +13,11 @@ proc-macro = true
 
 [features]
 ## Set the global undocumented-item diagnostic level to `allow` (silent).
-## Mutually exclusive with `undocumented-deny`; declaring both emits a compile error.
+## When both `undocumented-allow` and `undocumented-deny` are active (e.g. under
+## `cargo doc --all-features`), `deny` wins — see `doc-convention.md` § Annotated items.
 undocumented-allow = []
 ## Set the global undocumented-item diagnostic level to `deny` (hard compile error).
-## Mutually exclusive with `undocumented-allow`; declaring both emits a compile error.
+## Wins over `undocumented-allow` when both are active — see `doc-convention.md` § Annotated items.
 undocumented-deny = []
 
 [dependencies]
