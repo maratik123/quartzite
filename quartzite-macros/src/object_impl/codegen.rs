@@ -319,7 +319,7 @@ mod tests {
     fn typed_invokable_emits_into_value() {
         let out = emit(quote! {
             impl Foo {
-                #[invokable]
+                #[invoke]
                 fn doubled(&self) -> i32 { 0 }
             }
         });
@@ -339,7 +339,7 @@ mod tests {
     fn multi_param_emits_arg_bindings_and_arity_check() {
         let out = emit(quote! {
             impl Foo {
-                #[invokable]
+                #[invoke]
                 fn add(&self, a: i32, b: i32) -> i32 { a + b }
             }
         });
@@ -360,7 +360,7 @@ mod tests {
     fn methods_static_includes_metadata() {
         let out = emit(quote! {
             impl Foo {
-                #[invokable]
+                #[invoke]
                 fn compute(&self, x: i32) -> bool { false }
             }
         });
@@ -443,7 +443,7 @@ mod tests {
             impl Foo {
                 #[slot]
                 fn reset(&mut self) {}
-                #[invokable]
+                #[invoke]
                 fn doubled(&self) -> i32 { 0 }
             }
         });
@@ -486,7 +486,7 @@ mod tests {
             impl Foo {
                 #[slot]
                 fn reset(&mut self) {}
-                #[invokable]
+                #[invoke]
                 fn doubled(&self) -> i32 { 0 }
             }
         });
@@ -549,7 +549,7 @@ mod tests {
             impl Foo {
                 #[slot]
                 fn reset(&mut self) {}
-                #[invokable]
+                #[invoke]
                 fn doubled(&self) -> i32 { 0 }
             }
         });

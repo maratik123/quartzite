@@ -69,7 +69,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
     let mut signals = Vec::new();
 
     for mut field in fields.named {
-        let has_prop = has_attr(&field, "prop");
+        let has_prop = has_attr(&field, "property");
         let has_signal = extract_attr(&mut field.attrs, "signal");
 
         if has_prop {
@@ -103,7 +103,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ObjectInput>
     })
 }
 
-/// Returns true if the field has a `#[prop]` or `#[prop(...)]` attribute (without removing it).
+/// Returns true if the field has a `#[property]` or `#[property(...)]` attribute (without removing it).
 fn has_attr(field: &Field, name: &str) -> bool {
     field.attrs.iter().any(|a| a.path().is_ident(name))
 }
@@ -111,11 +111,11 @@ fn has_attr(field: &Field, name: &str) -> bool {
 fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
     let field_ident = field.ident.clone().expect("named field has ident");
 
-    // Find and remove the #[prop] or #[prop(...)] attribute.
+    // Find and remove the #[property] or #[property(...)] attribute.
     let prop_attr_idx = field
         .attrs
         .iter()
-        .position(|a| a.path().is_ident("prop"))
+        .position(|a| a.path().is_ident("property"))
         .expect("checked above");
     let prop_attr = field.attrs.remove(prop_attr_idx);
 
@@ -126,10 +126,10 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
     let mut user = false;
     let mut constant = false;
 
-    // #[prop] with no parens is valid; #[prop(...)] is parsed with nested meta.
+    // #[property] with no parens is valid; #[property(...)] is parsed with nested meta.
     match &prop_attr.meta {
         syn::Meta::Path(_) => {
-            // bare #[prop], all defaults
+            // bare #[property], all defaults
         }
         syn::Meta::List(_) => {
             prop_attr.parse_nested_meta(|meta| {
@@ -152,7 +152,7 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
                     constant = true;
                 } else {
                     return Err(meta.error(format!(
-                        "unknown #[prop] option `{}`",
+                        "unknown #[property] option `{}`",
                         meta.path
                             .get_ident()
                             .map_or_else(|| "?".to_owned(), ToString::to_string)
@@ -164,7 +164,7 @@ fn parse_prop_field(mut field: Field) -> syn::Result<PropField> {
         syn::Meta::NameValue(_) => {
             return Err(syn::Error::new(
                 prop_attr.span(),
-                "#[prop] does not support name-value syntax; use #[prop(notify = name)]",
+                "#[property] does not support name-value syntax; use #[property(notify = name)]",
             ));
         }
     }
@@ -230,7 +230,7 @@ mod tests {
     fn bare_prop_defaults() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop]
+                #[property]
                 pub count: i32,
             }
         });
@@ -249,7 +249,7 @@ mod tests {
     fn prop_with_notify() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop(notify = count_changed)]
+                #[property(notify = count_changed)]
                 pub count: i32,
                 #[signal]
                 pub count_changed: Signal<(i32,)>,
@@ -263,7 +263,7 @@ mod tests {
     fn notify_missing_signal_errors() {
         let err = parse_err(quote! {
             struct Foo {
-                #[prop(notify = count_changed)]
+                #[property(notify = count_changed)]
                 pub count: i32,
             }
         });
@@ -277,7 +277,7 @@ mod tests {
     fn prop_read_only() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop(read_only)]
+                #[property(read_only)]
                 pub val: i32,
             }
         });
@@ -288,7 +288,7 @@ mod tests {
     fn prop_stored_false() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop(stored = false)]
+                #[property(stored = false)]
                 pub val: i32,
             }
         });
@@ -299,7 +299,7 @@ mod tests {
     fn prop_constant() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop(constant)]
+                #[property(constant)]
                 pub val: i32,
             }
         });
@@ -310,7 +310,7 @@ mod tests {
     fn prop_constant_with_notify_errors() {
         let err = parse_err(quote! {
             struct Foo {
-                #[prop(constant, notify = changed)]
+                #[property(constant, notify = changed)]
                 pub val: i32,
             }
         });
@@ -347,7 +347,7 @@ mod tests {
     fn mixed_props_and_signals() {
         let ir = parse_ok(quote! {
             struct Foo {
-                #[prop(notify = count_changed)]
+                #[property(notify = count_changed)]
                 pub count: i32,
                 #[signal]
                 pub count_changed: Signal<(i32,)>,
@@ -362,11 +362,14 @@ mod tests {
     fn unknown_prop_option_errors() {
         let err = parse_err(quote! {
             struct Foo {
-                #[prop(unknown_opt)]
+                #[property(unknown_opt)]
                 pub val: i32,
             }
         });
-        assert!(err.contains("unknown #[prop] option"), "unexpected: {err}");
+        assert!(
+            err.contains("unknown #[property] option"),
+            "unexpected: {err}"
+        );
     }
 
     // R6 — error paths not yet covered
@@ -404,7 +407,7 @@ mod tests {
     fn generic_struct_type_param_errors() {
         let err = parse_err(quote! {
             struct Foo<T> {
-                #[prop]
+                #[property]
                 x: T,
             }
         });
@@ -418,7 +421,7 @@ mod tests {
     fn generic_struct_lifetime_errors() {
         let err = parse_err(quote! {
             struct Foo<'a> {
-                #[prop]
+                #[property]
                 x: &'a str,
             }
         });
@@ -445,7 +448,7 @@ mod tests {
     fn prop_name_value_syntax_errors() {
         let err = parse_err(quote! {
             struct Foo {
-                #[prop = "x"]
+                #[property = "x"]
                 pub x: i32,
             }
         });
@@ -453,5 +456,21 @@ mod tests {
             err.contains("does not support name-value"),
             "unexpected: {err}"
         );
+    }
+
+    #[test]
+    fn undocumented_allow_on_property_field_parses_cleanly() {
+        // Proves that #[undocumented(allow)] on a #[property] field does not
+        // cause a parse error — it is registered in attributes(...) and is
+        // treated as an inert helper attribute that the parser ignores.
+        let ir = parse_ok(quote! {
+            struct Foo {
+                #[undocumented(allow)]
+                #[property]
+                pub count: i32,
+            }
+        });
+        assert_eq!(ir.props.len(), 1);
+        assert_eq!(ir.props[0].ident, "count");
     }
 }

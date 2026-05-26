@@ -2,7 +2,7 @@
 //!
 //! - [`Object`](derive_object) / [`object_impl`]: generate `AsObject`/`Object` trait impls
 //!   with property access, method dispatch, and signal connection.
-//! - [`object_part`]: accumulate `#[slot]`/`#[invokable]` methods from one impl block
+//! - [`object_part`]: accumulate `#[slot]`/`#[invoke]` methods from one impl block
 //!   and emit the cleaned block, deferring `MetaObject` generation to [`object_impl`].
 //! - [`Extend`](derive_extend): generate `AsObject` delegation via a `#[base]` field,
 //!   enabling type-safe single-inheritance hierarchies.
@@ -60,7 +60,10 @@ pub(crate) mod object_part;
 ///     widget: Widget,
 /// }
 /// ```
-#[proc_macro_derive(Extend, attributes(root, base, mixin, widget_view, widget_children))]
+#[proc_macro_derive(
+    Extend,
+    attributes(root, base, mixin, widget_view, widget_children, undocumented, extend)
+)]
 pub fn derive_extend(input: TokenStream) -> TokenStream {
     extend::expand(input.into()).into()
 }
@@ -73,7 +76,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///
 /// # Attributes on fields
 ///
-/// - `#[prop]` — marks a field as a readable/writable property. Supports sub-options:
+/// - `#[property]` — marks a field as a readable/writable property. Supports sub-options:
 ///   - `notify = signal_name` — emit `signal_name` after every successful write
 ///   - `read_only` — disallow property writes
 ///   - `constant` — value never changes (implies `read_only`)
@@ -82,6 +85,17 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///   - `user` — mark as the primary user-editable property
 /// - `#[signal]` — marks a `Signal<Args>` field so its
 ///   parameter types are recorded in the `MetaObject`.
+/// - `#[undocumented(allow|warn|deny)]` — per-field tri-state diagnostic level
+///   override. Controls whether a missing `///` doc on this field emits nothing
+///   (`allow`), a deprecation warning (`warn`, the default), or a compile error
+///   (`deny`). Bare `#[undocumented]` with no argument is rejected.
+///
+/// ## Per-invocation diagnostic level
+///
+/// Place `#[object(undocumented = "allow")]` (or `"warn"` / `"deny"`) as a
+/// sibling attribute on the struct to set the level for all `#[property]` and
+/// `#[signal]` fields in this invocation. Per-field `#[undocumented(...)]`
+/// overrides still win.
 ///
 /// # Examples
 ///
@@ -94,18 +108,18 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 /// struct Counter {
 ///     #[base]
 ///     object_base: ObjectBase,
-///     #[prop(notify = count_changed)]
+///     #[property(notify = count_changed)]
 ///     pub count: i32,
 ///     #[signal]
 ///     pub count_changed: Signal<(i32,)>,
 /// }
 /// ```
-#[proc_macro_derive(Object, attributes(prop, signal))]
+#[proc_macro_derive(Object, attributes(property, signal, undocumented, object))]
 pub fn derive_object(input: TokenStream) -> TokenStream {
     object::expand(input.into()).into()
 }
 
-/// Attribute macro applied to an `impl` block to accumulate `#[slot]`/`#[invokable]`
+/// Attribute macro applied to an `impl` block to accumulate `#[slot]`/`#[invoke]`
 /// methods and emit the cleaned impl block.
 ///
 /// Use this when the `Object` implementation is split across multiple impl blocks.
@@ -115,8 +129,10 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 /// `#[object_part]` accepts no arguments. Methods inside the block may be annotated with:
 ///
 /// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
-/// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
+/// - `#[invoke]` — callable via `Object::invoke_method` with a return value converted
 ///   via `IntoValue`
+/// - `#[undocumented(allow|warn|deny)]` — per-method tri-state diagnostic level
+///   override for missing `///` docs. Bare `#[undocumented]` with no argument is rejected.
 ///
 /// Works on both inherent and trait impl blocks.
 ///
@@ -137,7 +153,7 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 ///
 /// #[object_impl]
 /// impl Counter {
-///     #[invokable]
+///     #[invoke]
 ///     fn doubled(&self) -> i32 { /* ... */ }
 /// }
 /// ```
@@ -152,8 +168,10 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// and the complete `Object` trait impl. Methods inside the block can be annotated with:
 ///
 /// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
-/// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
+/// - `#[invoke]` — callable via `Object::invoke_method` with a return value converted
 ///   via `IntoValue`
+/// - `#[undocumented(allow|warn|deny)]` — per-method tri-state diagnostic level
+///   override for missing `///` docs. Bare `#[undocumented]` with no argument is rejected.
 ///
 /// The struct must already derive both [`Extend`] and [`Object`].
 ///
@@ -167,7 +185,9 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///   accumulated methods, merges them with the current block's methods, then emits the
 ///   full output.
 ///
-/// `#[object_impl]` accepts no arguments.
+/// `#[object_impl]` accepts no arguments. To set the per-invocation diagnostic level,
+/// use `#[object_impl(undocumented = "allow")]` (or `"warn"` / `"deny"`). Per-method
+/// `#[undocumented(...)]` overrides still win.
 ///
 /// # Examples
 ///
@@ -180,7 +200,7 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// struct Counter {
 ///     #[base]
 ///     object_base: ObjectBase,
-///     #[prop(notify = count_changed)]
+///     #[property(notify = count_changed)]
 ///     pub count: i32,
 ///     #[signal]
 ///     pub count_changed: Signal<(i32,)>,
@@ -193,7 +213,7 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///         self.count = 0;
 ///     }
 ///
-///     #[invokable]
+///     #[invoke]
 ///     fn doubled(&self) -> i32 {
 ///         self.count * 2
 ///     }

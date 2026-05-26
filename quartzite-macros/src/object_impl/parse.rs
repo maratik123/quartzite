@@ -31,11 +31,21 @@ pub(crate) fn parse(
     attr: proc_macro2::TokenStream,
     input: proc_macro2::TokenStream,
 ) -> syn::Result<ObjectImplInput> {
+    // Accept zero arguments OR exactly `undocumented = "..."` as the sole key-value.
+    // Any other non-empty attribute body is an error with the #[object_part] hint.
     if !attr.is_empty() {
-        return Err(syn::Error::new_spanned(
-            attr,
-            "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
-        ));
+        // Try to parse as `undocumented = "..."` — if it succeeds, accept it; otherwise
+        // fall through to the error.
+        let is_undocumented_kv = syn::parse2::<syn::MetaNameValue>(attr.clone())
+            .ok()
+            .filter(|nv| nv.path.is_ident("undocumented"))
+            .is_some();
+        if !is_undocumented_kv {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "`#[object_impl]` takes no arguments — use `#[object_part]` for accumulating blocks",
+            ));
+        }
     }
     let mut item: ItemImpl = parse2(input)?;
 
@@ -51,9 +61,9 @@ pub(crate) fn parse(
         match impl_item {
             ImplItem::Fn(mut fn_item) => {
                 let is_slot = extract_attr(&mut fn_item.attrs, "slot");
-                let is_invokable = extract_attr(&mut fn_item.attrs, "invokable");
+                let is_invoke = extract_attr(&mut fn_item.attrs, "invoke");
 
-                if is_slot || is_invokable {
+                if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
                     let params = extract_params(&fn_item.sig.inputs)?;
                     let ret_ty = fn_item.sig.output.clone();
@@ -63,7 +73,7 @@ pub(crate) fn parse(
                         ret_ty,
                     });
                 }
-                // Re-push the (possibly slot/invokable-stripped) fn so it ends up in the impl block.
+                // Re-push the (possibly slot/invoke-stripped) fn so it ends up in the impl block.
                 other_items.push(ImplItem::Fn(fn_item));
             }
             other => other_items.push(other),
@@ -112,7 +122,7 @@ pub(crate) fn extract_params(
                     other => {
                         return Err(syn::Error::new(
                             other.span(),
-                            "#[slot]/#[invokable] method parameters must be simple named bindings",
+                            "#[slot]/#[invoke] method parameters must be simple named bindings",
                         ));
                     }
                 };
@@ -164,7 +174,7 @@ mod tests {
     fn invokable_method_classified() {
         let ir = parse_ok(quote! {
             impl Foo {
-                #[invokable]
+                #[invoke]
                 fn compute(&self, a: i32, b: i32) -> i32 { a + b }
             }
         });
@@ -196,6 +206,20 @@ mod tests {
         assert_eq!(ir.methods.len(), 1);
         // other_items for re-emit (stripped of #[slot])
         assert_eq!(ir.other_items.len(), 1);
+    }
+
+    #[test]
+    fn undocumented_kv_in_attr_accepted() {
+        // Proves that #[object_impl(undocumented = "allow")] is accepted by the parser.
+        let result = parse(
+            quote! { undocumented = "allow" },
+            quote! { impl Foo { fn bar(&self) {} } },
+        );
+        assert!(
+            result.is_ok(),
+            "expected #[object_impl(undocumented = \"allow\")] to parse successfully, got: {:?}",
+            result.unwrap_err()
+        );
     }
 
     #[test]
@@ -245,7 +269,7 @@ mod tests {
     fn no_receiver_params_extracted() {
         let ir = parse_ok(quote! {
             impl Foo {
-                #[invokable]
+                #[invoke]
                 fn greet(&self, name: String) -> String { name }
             }
         });
