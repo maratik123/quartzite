@@ -46,10 +46,10 @@ pub struct ScrollArea {
     #[widget_children(optional)]
     pub content_widget: Option<ObjectId>,
     /// Horizontal scrollbar policy.
-    #[property]
+    #[prop]
     pub horizontal_policy: ScrollPolicy,
     /// Vertical scrollbar policy.
-    #[property]
+    #[prop]
     pub vertical_policy: ScrollPolicy,
 }
 

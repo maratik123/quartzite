@@ -9,7 +9,7 @@ use quartzite::prelude::*;
 struct Counter {
     #[base]
     object_base: ObjectBase,
-    #[property(notify = count_changed)]
+    #[prop(notify = count_changed)]
     pub count: i32,
     #[signal]
     pub count_changed: Signal<(i32,)>,

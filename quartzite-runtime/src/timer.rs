@@ -173,12 +173,12 @@ pub struct Timer {
     /// Duration between successive `tick` emissions.
     ///
     /// Changes take effect on the next [`start`](Self::start) call.
-    #[property]
+    #[prop]
     pub interval: Duration,
     /// When `true`, the timer fires exactly once and then stops.
     ///
     /// Changes take effect on the next [`start`](Self::start) call.
-    #[property]
+    #[prop]
     pub single_shot: bool,
     /// Shared tick signal — the same `Arc` as `TimerState::signal`.
     tick: Arc<Mutex<Signal<(TimerEvent,)>>>,

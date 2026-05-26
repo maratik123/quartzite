@@ -27,7 +27,7 @@ use quartzite::prelude::*;
 struct Counter {
     #[base]
     object_base: ObjectBase,
-    #[property(notify = count_changed)]
+    #[prop(notify = count_changed)]
     pub count: i32,
     #[signal]
     pub count_changed: Signal<(i32,)>,
@@ -92,10 +92,10 @@ example. The [`runtime`](crate::runtime) section below covers it."#
 //! Properties are typed fields registered with the reflection layer, accessible
 //! by name through [`Object::read_property`](core::Object::read_property) and
 //! [`Object::write_property`](core::Object::write_property). Mark a field with
-//! `#[property]`; pair it with a notify signal so writes auto-emit:
+//! `#[prop]`; pair it with a notify signal so writes auto-emit:
 //!
 //! ```ignore
-//! #[property(notify = age_changed)]
+//! #[prop(notify = age_changed)]
 //! pub age: u32,
 //! #[signal]
 //! pub age_changed: Signal<(u32,)>,

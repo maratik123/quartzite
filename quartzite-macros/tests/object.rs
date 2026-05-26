@@ -16,11 +16,11 @@ use quartzite_macros::{Extend, Object, object_impl};
 struct Counter {
     #[base]
     object_base: ObjectBase,
-    #[property(notify = count_changed)]
+    #[prop(notify = count_changed)]
     pub count: i32,
     #[signal]
     pub count_changed: Signal<(i32,)>,
-    #[property(read_only)]
+    #[prop(read_only)]
     pub version: i32,
 }
 

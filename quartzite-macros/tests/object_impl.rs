@@ -12,7 +12,7 @@ use quartzite_macros::{Extend, Object, object_impl, object_part};
 struct Widget {
     #[base]
     object_base: ObjectBase,
-    #[property]
+    #[prop]
     pub value: i32,
     #[signal]
     pub value_changed: Signal<(i32,)>,
@@ -25,7 +25,7 @@ impl Widget {
         self.value = v;
     }
 
-    #[invoke]
+    #[invokable]
     const fn doubled(&self) -> i32 {
         self.value * 2
     }
@@ -38,7 +38,7 @@ impl Widget {
 struct MultiBlock {
     #[base]
     object_base: ObjectBase,
-    #[property]
+    #[prop]
     pub value: i32,
 }
 
@@ -54,7 +54,7 @@ impl MultiBlock {
 // AC4: #[object_impl] in terminal mode — drains accumulated methods and emits full output.
 #[object_impl]
 impl MultiBlock {
-    #[invoke]
+    #[invokable]
     const fn via_impl(&self) -> i32 {
         self.value * 3
     }
@@ -71,7 +71,7 @@ trait Resettable {
 struct TraitPartWidget {
     #[base]
     object_base: ObjectBase,
-    #[property]
+    #[prop]
     pub value: i32,
 }
 

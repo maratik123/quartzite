@@ -28,13 +28,13 @@ pub struct Button {
     #[base]
     pub widget_base: WidgetBase,
     /// Display text of the button.
-    #[property(notify = text_changed)]
+    #[prop(notify = text_changed)]
     pub text: String,
     /// Whether this button behaves as a toggle (checkable).
-    #[property]
+    #[prop]
     pub checkable: bool,
     /// Current checked state; only meaningful when `checkable` is `true`.
-    #[property]
+    #[prop]
     pub checked: bool,
     /// Emitted when the text changes; carries the new text.
     #[signal]
