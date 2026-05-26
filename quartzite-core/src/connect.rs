@@ -293,7 +293,9 @@ pub fn connect_signal_to_slot(
 /// field for the source, avoiding the `&[Value]` round-trip on the hot path for `Auto`
 /// and `Queued` connections.
 ///
-/// Type compatibility is still validated at connection time via the meta-system.
+/// Arity is validated as `from_arity >= to_arity` at connection time. `type_name` strings
+/// are compared on the first `to_arity` parameters; extra source arguments are dropped at
+/// emit time via `&values[..to_arity]`.
 ///
 /// # Parameters
 ///
@@ -310,10 +312,10 @@ pub fn connect_signal_to_slot(
 ///   declared on `from_obj`.
 /// - [`SignalConnectionError::UnknownToSignal`] when `to_signal_name` is not
 ///   declared on `to`.
-/// - [`SignalConnectionError::ArityMismatch`] when the two signals have different
-///   parameter counts.
-/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs
-///   between corresponding parameters.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < to_arity` (source signal
+///   has fewer parameters than the target requires).
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string differs on the
+///   first `to_arity` parameters.
 ///
 /// # Examples
 ///
@@ -373,14 +375,14 @@ where
     // Arity check.
     let from_arity = from_meta.params.len();
     let to_arity = to_meta.params.len();
-    if from_arity != to_arity {
+    if from_arity < to_arity {
         return Err(SignalConnectionError::ArityMismatch {
             from: from_arity,
             to: to_arity,
         });
     }
 
-    // Type-name check.
+    // Type-name check on the retained prefix (first to_arity parameters).
     for (i, (fp, tp)) in from_meta
         .params
         .iter()
@@ -408,7 +410,7 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
                 },
                 ct,
             )
@@ -427,7 +429,7 @@ where
                         return;
                     };
                     let values = args.to_values();
-                    let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                    let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
                 },
                 guard_weak,
             )
@@ -444,7 +446,7 @@ where
                     return;
                 };
                 let values = args.to_values();
-                let _ = arc.lock().emit_signal(&to_signal_str, &values);
+                let _ = arc.lock().emit_signal(&to_signal_str, &values[..to_arity]);
             })
         }
     };
