@@ -13,15 +13,42 @@ Deep corrections analysis Subagent. Invoked via `/improve` when corrections have
 ## Inputs
 
 Read:
-1. `ai-docs/learnings.md` — full learning log
+1. `ai-docs/learnings.md` — full learning log. **Tuple-extraction prelude FIRST** (Step 1 prelude): extract `(date, escalated, kind, superseded_by)` tuples from the per-entry YAML preambles (file-level FM at lines 1–4 is the file-class discriminator `kind: learnings` and is NOT part of the per-entry scan). Read entry bodies ONLY for entries the tuple scan flags as candidates for the current pass — full-file body Read is no longer required.
 2. `AGENTS.md` — current instructions
 3. `.claude/skills/` and `.claude/agents/` — current Skill/Subagent files
 
 ## Workflow
 
+### Step 1 prelude: Tuple-extraction (NEW — runs before Step 1, Step 1b, Step 1c)
+
+Before any per-entry-body Read, extract `(date, escalated, kind, superseded_by)` tuples from the per-entry fenced ```yaml``` preambles in `ai-docs/learnings.md` via PyYAML on a bash one-liner. The file-level `---`-delimited block at lines 1–4 (`schema_version: 1` + `kind: learnings`) is the file-class discriminator and is addressed separately by source location — the tuple scan ignores it.
+
+**PyYAML form (primary):**
+
+```bash
+python3 -c "
+import yaml, re, sys
+raw = open('ai-docs/learnings.md').read()
+blocks = re.findall(r'\`\`\`yaml\n(.*?)\n\`\`\`\n### (\d{4}-\d{2}-\d{2})', raw, re.S)
+for body, date in blocks:
+    meta = yaml.safe_load(body)
+    print(date, meta.get('escalated'), meta.get('kind'), meta.get('superseded_by'))
+"
+```
+
+**awk fallback (zero-dep escape hatch when PyYAML isn't on PATH):** dump the raw fenced-block bodies for per-entry `yaml.safe_load`:
+
+```bash
+awk '/^```yaml$/{f=1; next} /^```$/{f=0; next} f{print}' ai-docs/learnings.md
+```
+
+Then pipe each block body through `yaml.safe_load` per-block. Both forms yield the same tuple list; pick the one whose dependency is available in the current execution environment.
+
+The tuple list is the index used by Step 1 (Correction pass: filter `escalated == "no"` + check recurrence), Step 1b (Carrot pass: filter `kind == "validation"`), and Step 1c (auto-memory companion sweep: cross-check against `kind: validation` entries in `learnings.md`). Now that `kind:` is in the per-entry FM floor, both Correction and Carrot passes filter entirely in script — the round-1 markdown-body regex sidecar for `**Kind:**` extraction is gone. Entry-body Reads happen ONLY on entries flagged by the tuple scan (per-entry `**Rule:**` / `**What happened:**` body lines are still markdown-only; only the FM-level fields are tuple-extracted).
+
 ### Step 1: Find patterns (Correction pass)
 
-Go through `ai-docs/learnings.md` and group entries **whose `Kind:` field is `correction`** (default when `Kind:` is omitted — legacy entries pre-Phase-1 are implicitly `correction` and stay in the Correction pass's scope):
+Filter the tuple list from the Step 1 prelude for entries where `escalated == "no"`. Then read entry bodies only for those flagged candidates and group entries **whose `kind` tuple value is `"correction"`** (default when the per-entry FM's `kind:` mirrors a missing `**Kind:**` markdown line — legacy entries pre-Phase-1 are implicitly `correction` per the AGENTS.md defaulting rule and stay in the Correction pass's scope):
 
 - By category (`code-style`, `process`, `architecture`, `testing`, `search`, `other`)
 - By recurrence (how many times the same mistake)
@@ -31,7 +58,7 @@ Go through `ai-docs/learnings.md` and group entries **whose `Kind:` field is `co
 
 ### Step 1b: Find patterns (Carrot pass)
 
-Runs **alongside** Step 1, not after it. Scan `ai-docs/learnings.md` a second time for entries whose `**Kind:** validation` line is **explicitly present** (the default-when-omitted rule leaves legacy entries OUT of carrot-pass scope — they belong to the Correction pass).
+Runs **alongside** Step 1, not after it. Filter the same tuple list (from the Step 1 prelude) for entries where `kind == "validation"` — the FM-level `kind:` mirrors the markdown `**Kind:**` value with the default-when-omitted rule applied (legacy entries without `**Kind:**` get `kind: "correction"` in their FM block, so they're OUT of carrot-pass scope; only entries with explicit `**Kind:** validation` carry `kind: "validation"` in the FM). Read entry bodies only for the validation-flagged subset.
 
 Group by **topic / target surface** (Skill / Subagent / AGENTS.md section). Topic is derived from the `**Rule:**` line's named surface (e.g., a validation entry whose `Rule:` names `/context-reset` groups under `skill:context-reset`). Count validation entries per topic — the count drives Step 2b routing.
 
