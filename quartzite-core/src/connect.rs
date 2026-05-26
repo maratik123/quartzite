@@ -219,20 +219,22 @@ pub fn connect_signal_to_signal(
         .ok_or_else(|| SignalConnectionError::InternalError(from_signal.into()))
 }
 
-/// Connects a named signal on `source` to a named zero-argument slot on `target`.
+/// Connects a named signal on `source` to a named slot on `target`.
 ///
 /// When `signal_name` is emitted on `source`, the registered callback upgrades a
 /// `Weak<Mutex<dyn Object>>` to a strong [`Arc`], locks `target`, and calls
-/// `target.invoke_method(slot_name, &[])`.
+/// `target.invoke_method(slot_name, args)`.
 ///
-/// Unlike [`connect_signal_to_signal`], slot-name validation is **deferred** to
-/// emit time. If `slot_name` is unknown on `target` at emission, `invoke_method`
-/// returns `None` and the emission is silently ignored — no error is produced.
-/// This trade-off avoids adding new error variants and mirrors the common pattern
-/// where a slot is a concrete method that does not appear in the meta-system
-/// (e.g. a hand-rolled `invoke_method` implementation). The slot is invoked with
-/// an empty argument list (`&[]`); only zero-argument slots are meaningfully
-/// supported — non-zero-arity slots silently no-op, identical to an unknown slot name.
+/// **Meta-validated path** — when `target.meta_object().method(slot_name)` returns
+/// `Some(meta)` at connection time: arity (`from_arity >= meta.params.len()`) and
+/// `type_name` equality on the first `meta.params.len()` parameters are validated
+/// eagerly. At emit time the slot is invoked with `&args[..slot_arity]` (the retained
+/// prefix only; extra source arguments are dropped).
+///
+/// **Fallback path** — when `meta_object().method(slot_name)` returns `None` (slot is
+/// not declared in the meta-system, e.g. a hand-rolled `invoke_method` implementation):
+/// the connection succeeds with no further validation, and the slot is invoked with
+/// `&[]` at emit time. Non-zero-arity hand-rolled slots silently no-op in this branch.
 ///
 /// The callback holds only a `Weak<Mutex<dyn Object>>` downgraded from `target`.
 /// If all strong [`Arc`] handles to `target` are released before an emission, the
@@ -247,8 +249,13 @@ pub fn connect_signal_to_signal(
 ///
 /// # Errors
 ///
-/// Returns [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not
-/// declared on `source`. This is the only validation performed at connection time.
+/// - [`SignalConnectionError::UnknownFromSignal`] when `signal_name` is not declared
+///   on `source`. Always validated eagerly at connection time.
+/// - [`SignalConnectionError::ArityMismatch`] when `from_arity < slot_arity`. Only
+///   returned when `target.meta_object().method(slot_name)` returns `Some(_)`.
+/// - [`SignalConnectionError::TypeMismatch`] when any `type_name` string on the
+///   retained prefix differs. Only returned when `meta_object().method(slot_name)`
+///   returns `Some(_)`.
 ///
 /// # Examples
 ///
@@ -267,8 +274,8 @@ pub fn connect_signal_to_slot(
     target: &Arc<Mutex<dyn Object>>,
     slot_name: &str,
 ) -> Result<ConnectionId, SignalConnectionError> {
-    // Validate signal_name eagerly — lazy slot validation is documented.
-    source
+    // Validate signal_name eagerly — must fire UnknownFromSignal before any slot lookup.
+    let from_meta = source
         .meta_object()
         .signal(signal_name)
         .ok_or_else(|| SignalConnectionError::UnknownFromSignal(signal_name.into()))?;
@@ -276,11 +283,47 @@ pub fn connect_signal_to_slot(
     let slot_name_owned = slot_name.to_owned();
     let target_weak: Weak<Mutex<dyn Object>> = Arc::downgrade(target);
 
-    let callback: SignalCallback = Box::new(move |_args: &[Value]| {
-        if let Some(arc) = target_weak.upgrade() {
-            let _ = arc.lock().invoke_method(&slot_name_owned, &[]);
+    // Look up slot arity from the target's meta-system (may be absent for hand-rolled objects).
+    let slot_meta = target.lock().meta_object().method(slot_name);
+
+    let callback: SignalCallback = match slot_meta {
+        Some(meta) => {
+            // Validated path: enforce arity and type-name compatibility at connection time.
+            let from_arity = from_meta.params.len();
+            let slot_arity = meta.params.len();
+            if from_arity < slot_arity {
+                return Err(SignalConnectionError::ArityMismatch {
+                    from: from_arity,
+                    to: slot_arity,
+                });
+            }
+            // Validate type names on the retained prefix.
+            for (i, (fp, sp)) in from_meta.params.iter().zip(meta.params.iter()).enumerate() {
+                if fp.type_name != sp.type_name {
+                    return Err(SignalConnectionError::TypeMismatch {
+                        index: i,
+                        from: fp.type_name.into(),
+                        to: sp.type_name.into(),
+                    });
+                }
+            }
+            Box::new(move |args: &[Value]| {
+                if let Some(arc) = target_weak.upgrade() {
+                    let _ = arc
+                        .lock()
+                        .invoke_method(&slot_name_owned, &args[..slot_arity]);
+                }
+            })
         }
-    });
+        None => {
+            // Fallback path: slot not in meta-system; invoke with empty args (current behaviour).
+            Box::new(move |_args: &[Value]| {
+                if let Some(arc) = target_weak.upgrade() {
+                    let _ = arc.lock().invoke_method(&slot_name_owned, &[]);
+                }
+            })
+        }
+    };
 
     source
         .connect_signal(signal_name, callback, crate::signal::ConnectionType::Direct)
