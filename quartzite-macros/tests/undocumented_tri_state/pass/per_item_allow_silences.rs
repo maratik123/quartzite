@@ -13,7 +13,7 @@ struct AllowItem {
     pub object_base: ObjectBase,
     // No `///` doc on `val`; per-item allow suppresses the diagnostic.
     #[undocumented(allow)]
-    #[property]
+    #[prop]
     pub val: i32,
 }
 

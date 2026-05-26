@@ -12,7 +12,7 @@ struct Foo {
     #[base]
     pub object_base: ObjectBase,
     // No `///` doc on `x` — triggers the warn-level diagnostic.
-    #[property]
+    #[prop]
     pub x: i32,
 }
 

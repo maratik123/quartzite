@@ -607,8 +607,8 @@ comment regardless of visibility.
 
 ### Annotated-attribute inventory
 
-The attributes covered by this convention: `#[signal]`, `#[slot]`, `#[invoke]`,
-`#[property]` (from `derive(Object)` / `#[object_impl]` / `#[object_part]`),
+The attributes covered by this convention: `#[signal]`, `#[slot]`, `#[invokable]`,
+`#[prop]` (from `derive(Object)` / `#[object_impl]` / `#[object_part]`),
 and `#[root]`, `#[base]`, `#[mixin]`, `#[widget_view(variant = ...)]`,
 `#[widget_children(slice|optional)]` (from `derive(Extend)`). See
 `quartzite-macros/src/lib.rs` `attributes(...)` lists for the authoritative

@@ -14,7 +14,7 @@ struct Cascade {
     #[base]
     pub object_base: ObjectBase,
     /// A documented property.
-    #[property]
+    #[prop]
     pub count: i32,
 }
 
@@ -22,13 +22,13 @@ struct Cascade {
 impl Cascade {
     // No `///` doc, but per-item `allow` beats the per-invocation `deny`.
     #[undocumented(allow)]
-    #[invoke]
+    #[invokable]
     const fn overridden(&self) -> i32 {
         self.count
     }
 
     /// Returns twice the count.
-    #[invoke]
+    #[invokable]
     const fn value(&self) -> i32 {
         self.count * 2
     }

@@ -10,7 +10,7 @@ struct Bar {
     pub object_base: ObjectBase,
     // No `///` doc on `y`; per-item deny escalates to compile error.
     #[undocumented(deny)]
-    #[property]
+    #[prop]
     pub y: i32,
 }
 

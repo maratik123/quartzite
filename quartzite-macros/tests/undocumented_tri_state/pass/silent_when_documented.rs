@@ -11,7 +11,7 @@ struct Documented {
     #[base]
     pub object_base: ObjectBase,
     /// Current counter value.
-    #[property]
+    #[prop]
     pub count: i32,
     /// Fired when `count` changes.
     #[signal]
@@ -27,7 +27,7 @@ impl Documented {
     }
 
     /// Returns the current value.
-    #[invoke]
+    #[invokable]
     const fn value(&self) -> i32 {
         self.count
     }

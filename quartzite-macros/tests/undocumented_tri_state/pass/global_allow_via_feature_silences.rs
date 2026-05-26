@@ -22,7 +22,7 @@ struct GlobalAllowed {
     // No `///` docs on any of these fields — suppressed by the global feature.
     #[base]
     pub object_base: ObjectBase,
-    #[property]
+    #[prop]
     pub a: i32,
     #[signal]
     pub a_changed: Signal<(i32,)>,
@@ -31,7 +31,7 @@ struct GlobalAllowed {
 #[object_impl]
 impl GlobalAllowed {
     // No `///` doc — suppressed by global feature.
-    #[invoke]
+    #[invokable]
     const fn value(&self) -> i32 {
         self.a
     }

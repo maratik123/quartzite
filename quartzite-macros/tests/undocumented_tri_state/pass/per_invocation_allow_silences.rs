@@ -12,15 +12,15 @@ struct AllowInvocation {
     #[base]
     pub object_base: ObjectBase,
     /// A documented property.
-    #[property]
+    #[prop]
     pub count: i32,
 }
 
-// Per-invocation allow: missing-doc `#[invoke]` and `#[slot]` are both suppressed.
+// Per-invocation allow: missing-doc `#[invokable]` and `#[slot]` are both suppressed.
 #[object_impl(undocumented = "allow")]
 impl AllowInvocation {
     // No `///` doc — suppressed by per-invocation allow.
-    #[invoke]
+    #[invokable]
     const fn value(&self) -> i32 {
         self.count
     }

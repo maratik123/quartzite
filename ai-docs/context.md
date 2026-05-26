@@ -33,7 +33,7 @@ Python interop (`quartzite-python` via PyO3) is **deferred** — the reflection 
 | Concept | quartzite implementation |
 |---|---|
 | Object tree | `ObjectBase` + `AsObject` trait + arena ownership |
-| Property system | `#[property]` on struct fields; proc-macro generates metadata |
+| Property system | `#[prop]` on struct fields; proc-macro generates metadata |
 | Signals & slots | `Signal<Args>` struct; type-safe at compile time |
 | Meta-object / reflection | `MetaObject` static struct; `Object` trait for runtime dispatch |
 | Widget base | `WidgetBase` struct + `AsWidget` / `WidgetExt` traits |
@@ -81,9 +81,9 @@ AsObject        AsWidget        AsWidget (generated)
 | Macro | Input | Output |
 |---|---|---|
 | `#[derive(Extend)]` | struct with `#[root]`/`#[base]`/`#[mixin]` | `As{TypeName}` trait, delegation impls |
-| `#[derive(Object)]` | struct with `#[property]`, `#[signal]` fields | property + signal metadata arrays, partial `impl Object` |
-| `#[object_part]` | impl block with `#[slot]`/`#[invoke]` methods (inherent or trait impl); for multi-block accumulation | accumulates methods into thread-local; emits only the cleaned impl block |
-| `#[object_impl]` | impl block with `#[slot]`/`#[invoke]` methods; no flags | auto-detects mode: empty accumulator → sole (full output); non-empty → terminal (drain + merge + full output) |
+| `#[derive(Object)]` | struct with `#[prop]`, `#[signal]` fields | property + signal metadata arrays, partial `impl Object` |
+| `#[object_part]` | impl block with `#[slot]`/`#[invokable]` methods (inherent or trait impl); for multi-block accumulation | accumulates methods into thread-local; emits only the cleaned impl block |
+| `#[object_impl]` | impl block with `#[slot]`/`#[invokable]` methods; no flags | auto-detects mode: empty accumulator → sole (full output); non-empty → terminal (drain + merge + full output) |
 
 ### Ownership Model
 

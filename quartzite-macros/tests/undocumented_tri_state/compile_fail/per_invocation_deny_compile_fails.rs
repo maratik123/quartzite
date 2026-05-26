@@ -1,5 +1,5 @@
 // AC7 path (g): per-invocation `#[object_impl(undocumented = "deny")]` on an impl block
-// with a missing-doc `#[invoke]` method escalates to `compile_error!` directly.
+// with a missing-doc `#[invokable]` method escalates to `compile_error!` directly.
 use quartzite::prelude::*;
 
 #[derive(Extend, Object)]
@@ -9,14 +9,14 @@ struct Baz {
     #[base]
     pub object_base: ObjectBase,
     /// A documented property.
-    #[property]
+    #[prop]
     pub z: i32,
 }
 
 #[object_impl(undocumented = "deny")]
 impl Baz {
     // No `///` doc on `get_z`; per-invocation deny escalates to compile error.
-    #[invoke]
+    #[invokable]
     const fn get_z(&self) -> i32 {
         self.z
     }
