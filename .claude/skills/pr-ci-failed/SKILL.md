@@ -192,6 +192,21 @@ Run the mapped local reproducer command. Capture exit code and the last ~100 lin
 
 **Write progress at this step boundary** before further tool calls: rewrite this round's `**current_step:**` to `Round M Step 3 — reproduced` (or `Round M Step 3 — NO REPRODUCE, surfaced to user`); append a `### Decisions log (round M)` bullet recording reproduction outcome (one line, prefixed `Step 3:`).
 
+> **Downstream consumer note (pointer-only).** A separate skill
+> (`/dependabot-pr`) spawns this skill with a prompt-level directive to
+> EXIT between Step 3 and Step 4 — see
+> [`.claude/skills/dependabot-pr/reference.md` § `/pr-ci-failed`
+> delegation-prompt template](../dependabot-pr/reference.md#pr-ci-failed-delegation-prompt-template)
+> for the carve-out wording and the precondition table covering the
+> child's `class = other` / degraded-coverage exit-at-Step-2 path. If
+> you restructure the Step 3 / Step 4 boundary (or rename a class such
+> that the verdict-translation table needs updating), update that
+> template too. This comment is a **pointer only** — `/pr-ci-failed`
+> does NOT branch behaviour on "is this Dependabot?", and `/pr-ci-failed`
+> does NOT know about Dependabot (per the `/dependabot-pr` spec's
+> KD-14 at `ai-docs/plans/2026-05-27-dependabot-pr-skill.spec.md`,
+> moved to `ai-docs/plans/done/` on PR merge).
+
 ### Step 4 — Diagnose and fix
 
 Root-cause the failure from the log + reproducer output. Two paths:
