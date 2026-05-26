@@ -1,5 +1,14 @@
+---
+schema_version: 1
+kind: learnings
+---
+
 # Learnings
 
+```yaml
+escalated: "doc-convention"
+kind: "correction"
+```
 ### 2026-05-08 — documentation — doctests that reference items behind a `#[cfg(feature = "X")]` re-export must be feature-gated via `#![cfg_attr(feature = "X", doc = r#"…"#)]` injection, not just `no_run`
 
 **What happened:** PR #156 / `/task #60` shipped a `# Quickstart` doctest in `quartzite/src/lib.rs` modelled on `tokio` — `no_run`-annotated, using `#[derive(Extend, DeriveObject)]` + `#[object_impl]` + `#[slot]`. Local `cargo test --doc -p quartzite` passed (default features include `derive`, prelude re-exports the derive macros, doctest compile-checks fine). CI failed under the `Feature matrix (--no-default-features --features std)` job: under `--no-default-features --features std`, the `derive` feature is OFF, the prelude doesn't re-export the derive macros, and the doctest fails to resolve `Extend` / `DeriveObject` / `#[object_impl]` / `#[slot]` / `Object::write_property` / `Object::invoke_method`. **The `no_run` annotation does not skip compilation** — rustdoc still feeds the doctest source through `rustc` to check it; `no_run` only skips the run-the-resulting-binary step.
@@ -40,6 +49,10 @@ The mistake also exposes that explicit `fn main()` (used in the same doctest to 
 
 > Candidate for escalation to `ai-docs/doc-convention.md` (a "Doctests + features" sub-section) and to `.claude/agents/self-review.md` / `.claude/agents/review-findings.md` checklist (under feature-gated re-exports, doctest must be feature-gated). `/improve` should consider on recurrence.
 
+```yaml
+escalated: "skill:task, hook (commit 1da36b0)"
+kind: "correction"
+```
 ### 2026-05-08 — process — `/task` Step 12 finalise commit must regenerate every auto-derived file whose source is among the artefacts the step touches
 
 **What happened:** PR #156's finalise commit (`977739d`) updated `ai-docs/plans/INDEX.md` (added the `project-docs` row to the Active table) but did NOT regenerate `ROADMAP.md` — the auto-generated file produced from `INDEX.md` by `scripts/gen-roadmap.sh`. The CI sync-gate landing in the same PR caught the drift on the very first run after push: `git diff --exit-code ROADMAP.md` failed because the committed `ROADMAP.md` (from subtask 5) was stale relative to the now-updated `INDEX.md`. The implementer ran the generator, regenerated `ROADMAP.md`, and committed in a follow-up (`887a11f`) — fix worked, but it cost an extra round-trip through CI.
@@ -56,6 +69,10 @@ The workspace may grow more such relationships (e.g., a future tool that generat
 
 **Escalated?** skill:task, hook (commit 1da36b0)
 
+```yaml
+escalated: "doc-convention, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-07 — documentation — `document_features::document_features!()` invocation must sit inline within the `//!` crate doc, immediately after a `## Feature flags` heading; main vs diagnostic features must be sectioned in Cargo.toml
 
 **What happened:** Two related bugs in our `document_features` integration, both surfaced once `cargo doc` was published live to GitHub Pages (PR #148, #137):
@@ -107,6 +124,10 @@ PR #149 fixed both. Verified visually on `target/doc/*/index.html`: Examples →
 
 **Escalated?** doc-convention, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-07 — process — query the registry / release API for current versions before pinning a dependency or GitHub Action in any spec, issue body, design doc, or instruction file
 
 **What happened:** Twice in one session, issue bodies I authored cited stale dependency / action versions that the user had to correct:
@@ -130,6 +151,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, skill:task"
+kind: "correction"
+```
 ### 2026-05-07 — process — run actionlint on every new or modified GitHub Actions workflow file
 
 **What happened:** Three new workflow files were created for Bencher CI integration and committed without running actionlint. The user had to ask explicitly. actionlint caught `actions/github-script@v6` being too old for the current GitHub Actions runner; fixing it required an extra commit.
@@ -142,6 +167,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, skill:task
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-07 — process — do not escalate learnings without being asked; escalation is triggered only by /improve
 
 **What happened:** After writing a learning entry about actionlint, I immediately escalated it to AGENTS.md and task/SKILL.md without being asked. The user had to point out the mistake.
@@ -152,6 +181,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-07 — code-style — criterion bench files (`harness = false`) are exempt from `#[cfg(test)]` requirement
 
 **What happened:** Self-review of the criterion benchmarks task flagged that `quartzite-core/benches/signal_property.rs` and `quartzite-runtime/benches/object_tree.rs` have no `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/`, not `benches/`.
@@ -164,6 +197,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "code-style, doc-convention, AGENTS.md, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-07 — code-style — concrete trait-impl methods take `#[inline]`, not `// _Simple._` (PR #129 follow-up)
 
 **What happened:** PR #129 stripped `#[inline]` uniformly from all generated trait-impl methods in `extend/codegen.rs`, `object_impl/codegen.rs`, and `meta_enum/codegen.rs` — including emissions inside `impl AsObject for ConcreteFoo` (concrete user struct). The `/interview` discussion treated all trait-impl methods as one bucket, picked option (c) "emit no marker; rely on rustdoc inheritance from the trait declaration", and concluded that the change was rule hygiene with no codegen effect. The actual rule in `ai-docs/code-style.md` L131-138 already split the trait-impl case into two rows by impl-block genericity — concrete impl falls in the **concrete** row (`#[inline]`), only generic impl falls in the **generic** row (`_Simple._`). The marker-form decision tree at L165-170 omitted the concrete-impl row entirely, which is what primed the misreading.
@@ -176,6 +213,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** code-style, doc-convention, AGENTS.md, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md, agent:self-improve, agent:learnings-escalation-audit"
+kind: "correction"
+```
 ### 2026-05-07 — process — `memory` is user-local, not a project-level escalation target
 
 **What happened:** The `Escalated?` enum in AGENTS.md `## Corrections Log` listed `memory` alongside `AGENTS.md`, `skill:[name]`, `hook`, etc. as a valid value. `/improve` and the escalation-audit agent both said "memory counts as unescalated for project-level audit purposes" — i.e., the system was treating it as `no` while still presenting it as a legitimate-looking enum option. Five existing learnings entries said `Escalated? AGENTS.md, memory` where the `, memory` was load-bearing-looking but actually carried no project-level signal.
@@ -188,6 +229,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
 
+```yaml
+escalated: "AGENTS.md, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-07 — code-style — if the `fn inner` of a generic-fn split is simple, unwrap it (don't `#[inline]` it)
 
 **What happened:** Applied the "Generic-fn split for binary size" pattern to four fns. Two of the four inner fns (`ObjectFactory::register`'s inner — single `HashMap::insert`; `ObjectBase::named`'s inner — single `ObjectBase::new()` call + struct literal) are concrete and simple by the recursive definition. The first reaction was to add `#[inline]` to those two simple inners, matching the concrete-row marker rule. User then pointed out that `#[inline]` on a simple inner causes the compiler to inline it back into the (per-`T`-monomorphized) outer fn, which **defeats the split entirely** — the body ends up duplicated per concrete `T` anyway, just with extra source indirection. The right answer is to unwrap a simple inner, not to mark it.
@@ -200,6 +245,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md, doc-convention, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-07 — code-style — methods inside `impl<T> Trait for Foo<T>` are generic-shaped and need `_Simple._`, not `#[inline]`; and use `// _Simple._` (not `///`) on trait-impl methods
 
 **What happened:** PR #120 (issue #115 implementation) added `#[inline]` to `Signal<Args>::default`, `ObjectRef<T>::clone`/`eq`, `WeakRef<T>::clone`/`eq`. All five methods sit inside `impl<T> Trait for Foo<T>` blocks and have no own type parameters, but `Self` is parametrised by the impl block's generics. The original carve-out wording was ambiguous enough to be read as covering this case. The first fix replaced `#[inline]` with `/// _Simple._`, but rendered rustdoc revealed `///` *overrides* the trait-inherited docstring — `Clone::clone`'s actual doc ("Returns a copy of the value...") was wiped out and replaced by just `_Simple._` on the rustdoc page.
@@ -214,6 +263,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md, doc-convention, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-07 — code-style — strip `#[inline]` / `_Simple._` when a fn stops being simple, and cascade to callers
 
 **What happened:** During design discussion of the recursive `#[inline]` rule, the user surfaced a maintenance gap: when a previously-simple fn grows branches/loops or a second non-simple call, its marker (`#[inline]` or `_Simple._`) becomes a lie, and any caller that was simple only because this callee was treated as free may itself no longer qualify. The original rule covered when to *add* the marker; it said nothing about when to *strip* it.
@@ -226,6 +279,10 @@ If a body needs a long-lived stable reference (e.g., a doc that won't be revisit
 
 **Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md, doc-convention, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-06 — code-style — `#[inline]` rule is recursive; three markers by fn shape
 
 **What happened:** `ObjectExt::id` (and other simple wrappers, including generic methods on `Signal<Args>` / `ObjectRef<T>` / `WeakRef<T>` and codegen-driven trait methods such as `AsObject::object_base`) was left without `#[inline]` because the rule (a) counted source-level calls flatly with a "≤ 1 fn call" budget that did not see through other `#[inline]` callees, and (b) blanket-excluded generic / blanket-impl fns as "monomorphized, no benefit". Even after relaxing those, generic simple fns and trait method declarations had no visible marker, so the recursive budget rule was not auditable from a fn or trait surface.
@@ -243,6 +300,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md, doc-convention, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-06 — code-style — extract body of `impl Into<T>` shells into a nested `fn inner`
 
 **What happened:** `ObjectTree::rename(impl Into<String>)` (`quartzite-runtime/src/object_tree.rs:318`) ships its full ~30-line body in one copy per concrete `T` callers pass — `&str`, `String`, `&String`, `Cow<'_, str>`, etc. The same pattern repeats in `ObjectFactory::register`, `Timer::named`, `ObjectBase::named`. Lifting the body out is the standard-library idiom (see `Path::new`, `PathBuf::from`, `OsStr::new`), but a sibling `*_inner` impl method pollutes the type namespace.
@@ -255,6 +316,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-06 — process — do not object to "breaking API change" on an unpublished crate
 
 **What happened:** Code review finding #2 (dynamic `SingleShot` slot leak) was objected to with "breaking API change" as the reason. The user rejected this immediately — the project has not been published to crates.io and AGENTS.md explicitly allows freely changing the public API before the first `cargo publish`.
@@ -265,6 +330,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:interview"
+kind: "correction"
+```
 ### 2026-05-03 — process — /interview has no "too small for a spec" off-ramp; flag and ask instead of silently switching to implementation
 
 **What happened:** `/interview errors should iml Error` was started. Mid-interview the user redirected: "ok, add the two impl blocks under the same cfg." Instead of completing the interview (producing a spec) or explicitly flagging the pivot, execution switched silently to direct implementation. The `/interview` skill produced code changes rather than a spec.
@@ -275,6 +344,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** skill:interview
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-03 — process — commit and push without waiting for explicit approval when inside a /task workflow
 
 **What happened:** All rename changes were complete, verified, and ready to push, but no commit or push was made until the user explicitly asked. The stated reason was the global system instruction "only create commits when requested." The user clarified that this instruction does not override the /task workflow, which already authorizes commits at Steps 8 and 12.
@@ -285,6 +358,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-03 — process — include ai-docs/learnings.md in the PR commit when it changes during the task
 
 **What happened:** `ai-docs/learnings.md` was modified while working on a PR but not staged or committed — leaving learnings outside the PR diff and not reviewed alongside the code change that prompted them.
@@ -295,6 +372,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-03 — process — update PR title and body after commits that change public API or scope
 
 **What happened:** After renaming `emit_unchecked`/`emit_checked` → `emit`/`emit_unless_blocked`, the PR title and body still referenced the old names. The user had to prompt explicitly to update them.
@@ -305,6 +386,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "AGENTS.md, agent:review-findings, agent:self-review"
+kind: "correction"
+```
 ### 2026-05-03 — code-style — `_unchecked` is reserved for `unsafe` fns; default name is the safe variant
 
 **What happened:** Renamed `Signal::emit` → `Signal::emit_unchecked` and added `Signal::emit_checked` (which consults the `blocked` flag). Neither function is `unsafe`. This conflicts with `std` ecosystem convention: `_unchecked` is reserved for `unsafe` fns whose invariants the caller must uphold to avoid UB (e.g. `slice::get_unchecked`, `str::from_utf8_unchecked`). The natural unsuffixed name should be the safe, ergonomic default — using `_unchecked` for "skips an unrelated runtime check" misleads readers and reviewers and removes the ergonomic reward for the safe path.
@@ -316,6 +401,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md, agent:review-findings, agent:self-review
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-03 — process — breaking public API changes are allowed before first crates.io release
 
 **What happened:** Suggested keeping `Signal::emit` for backward compatibility. User clarified: the project has no downstream clients yet; API can be freely broken until the first release to crates.io.
@@ -324,6 +413,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — code-style — let chains are allowed and formattable in edition 2024
 
 **What happened:** During the macros task, rustfmt errored on a let chain with "let chains are only allowed in Rust 2024 or later". The workspace uses `edition = "2024"`, Rust 1.95, and rustfmt 1.9.0 — all of which support let chains. The error was caused by running rustfmt without `--edition 2024` explicitly, or against a stale binary. The response was to replace let chains wholesale with match expressions as a blanket rule.
@@ -332,6 +425,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — do not touch IDE files unless explicitly asked
 
 **What happened:** `.idea/quartzite.iml` had an uncommitted modification. Without being asked, it was added to `.gitignore` and removed from tracking.
@@ -340,6 +437,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — "submit to PR" means push to remote, not merge
 
 **What happened:** User said "submit to pr". Interpreted as merging the PR via `gh pr merge`. User meant pushing the local commits to the remote branch so they appear in the open PR.
@@ -348,6 +449,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — "wtf" signals that the previous action was wrong
 
 **What happened:** User said "add ide files". Interpreted as adding IDE files to `.gitignore`. User meant commit and track them. User responded "wtf?" to signal the action was wrong.
@@ -356,6 +461,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — never use git reset --hard; use soft reset, stash, cherry-pick, or backup branch
 
 **What happened:** `git reset --hard origin/master` was used to move commits off local master to a feature branch. This discarded uncommitted changes to `ai-docs/learnings.md` that had not been staged.
@@ -368,6 +477,10 @@ Markers are mutually exclusive by shape. Codegen mirrors the rule: emit `#[inlin
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — always create a feature branch before committing; never commit directly to master
 
 **What happened:** When the user said "submit PR", commits were already on local master. Instead of creating a feature branch first, `git push` was run directly against master — pushing the commits to origin/master. `master` is branch-protected (no force push), so the commits could not be removed after the fact and a proper PR became impossible.
@@ -387,6 +500,10 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:task, hook (PreToolUse on `git commit` blocks master)"
+kind: "correction"
+```
 ### 2026-05-02 — process — create feature branch before committing at the start of Step 8
 
 **What happened:** The auto-connection task completed all implementation steps on the working tree without ever committing. Only after the user asked "why didn't you create a PR?" was the branch created. The changes had to be recovered by checking out a feature branch from the unstaged state.
@@ -395,6 +512,10 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Escalated?** skill:task, hook (PreToolUse on `git commit` blocks master)
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — testing — any sufficiently large file requires unit tests
 
 **What happened:** Three codegen files (`object/codegen.rs`, `object_impl/codegen.rs`, `meta_enum/codegen.rs`) were written without `#[cfg(test)]` modules. Gaps were caught in review and by the user. The original rule was codegen-specific, but the user generalised it: any file with substantial logic needs tests.
@@ -403,6 +524,10 @@ If "submit PR" is requested and commits are already pushed to origin/master: sto
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — propagate skill/agent fixes to all related files in the same operation
 
 **What happened:** A fix to `self-review.md` was applied in isolation; `codebase-review.md` was only updated after the user pointed it out. Similarly, `/task` and `/task-issue` fixes were done together, but the code-review family was handled piecemeal.
@@ -415,6 +540,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-02 — process — self-review must not re-run cargo fmt or cargo clippy
 
 **What happened:** The self-review agent checked `cargo fmt -- --check` and raised REJECT findings for formatting drift, even though both `cargo fmt` and `cargo clippy -- -D warnings` are already mandated after every subtask during Implementation (Step 8 of /task and /task-issue). This caused a spurious round-trip.
@@ -423,6 +552,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — propagate rule exemptions to agent/skill files in same task
 
 **What happened:** When adding `quartzite-examples` exemptions to `AGENTS.md` (no `#![deny(missing_docs)]`, no `#[cfg(test)]`), the corresponding checks in `.claude/agents/self-review.md` and `.claude/agents/review-findings.md` were not updated. Future reviews would have incorrectly flagged the examples crate.
@@ -431,6 +564,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "hook, skill:task"
+kind: "correction"
+```
 ### 2026-05-02 — process — check current branch before committing, not only before pushing
 
 **What happened:** For the `docs/learnings-and-skill-fix` branch, commits were made directly to local master without checking `git branch --show-current` first. The error was caught at push time (branch protection rejected the push), not at commit time. The rule in AGENTS.md mentions checking before `git push`, but the correct mental model is: verify branch before `git commit`.
@@ -439,6 +576,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** hook, skill:task
 
+```yaml
+escalated: "hook"
+kind: "correction"
+```
 ### 2026-05-02 — process — run cargo fmt --all after every code change, including post-self-review fixes
 
 **What happened:** `cargo fmt --all -- --check` was run once during Step 9 (Verify). A self-review finding then triggered a code fix (Step 11). The fix was committed and pushed without re-running `cargo fmt --all`. CI failed on the formatting drift introduced by that fix.
@@ -447,6 +588,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** hook
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-03 — code-style — use stdlib methods instead of explicit branching for comparisons
 
 **What happened:** In `Rect::united` / `RectF::united`, explicit `if` branches were written to compute min/max of edge coordinates. The review comment pointed out `.min()`/`.max()` should be used instead.
@@ -455,6 +600,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-03 — architecture — do not reference other frameworks as justification for design choices
 
 **What happened:** Design decisions for geometry types were described as "consistent with Qt's Qt::NoButton = 0" in analysis. The user explicitly said not to copy or reference other frameworks; we are writing a Rust framework from scratch using language strengths.
@@ -463,6 +612,11 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+superseded_by: "PR #300 — rule reversed; the `/task` progress file is now gitignored, persists in the working tree across `/pr-commented` rounds, and is deleted by `/pr-merged` after the PR merges."
+```
 ### 2026-05-03 — process — delete progress file immediately on self-review APPROVE, before Step 12
 
 **What happened:** Self-review Round 2 returned APPROVE. Proceeded directly to Step 12 (finalize INDEX.md, commit, PR) without deleting the progress file first. The file was left as an untracked artifact after the PR was created.
@@ -472,6 +626,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 **Escalated?** skill:task
 **Superseded by:** PR #300 — rule reversed; the `/task` progress file is now gitignored, persists in the working tree across `/pr-commented` rounds, and is deleted by `/pr-merged` after the PR merges.
 
+```yaml
+escalated: "skill:interview"
+kind: "correction"
+```
 ### 2026-05-03 — process — do not ask about backward compatibility; AGENTS.md already prohibits compat shims
 
 **What happened:** During an interview, asked "should `#[object_meta]` be kept as a deprecated no-op alias (soft removal) or fully deleted?" — despite AGENTS.md explicitly stating "The project has not yet been published to crates.io and has no downstream clients. Public API may be freely renamed, removed, or restructured without backward-compat shims or deprecation layers." The same lesson was already in learnings.md (2026-05-03 "breaking public API changes are allowed") and escalated to AGENTS.md.
@@ -482,6 +640,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** skill:interview
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-02 — process — verify relative markdown links before committing
 
 **What happened:** Files generated in `ai-docs/deferred/` used `../../plans/done/` as the relative path to `ai-docs/plans/done/`. The correct path is `../plans/done/` — one level up from `ai-docs/deferred/` reaches `ai-docs/`, then `plans/done/` is a sibling of `deferred/`. GitHub rendered the broken paths as `/plans/done/` (repo root), which does not exist.
@@ -490,6 +652,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)"
+kind: "correction"
+```
 ### 2026-05-05 — code-style — `clippy::doc_markdown` allowlist scope + heuristic limits
 
 **What happened:** Initial doc-convention seed populated `clippy.toml`'s `doc-valid-idents` with ~60 entries: every project type (`MouseEvent`, `ObjectBase`, `BitFlags`, …), third-party types (`IndexMap`, `RwLock`), and `no_std`. The reasoning was "avoid noise from `clippy::doc_markdown` false positives during the audit." On review the user pointed out this was the wrong default — Rust identifiers in prose should always be backticked; the allowlist is for *non-code* tokens only. Shrinking to just `GPU` surfaced only **3 violations** workspace-wide. **A follow-up empirical test then showed that even `GPU` was dead code:** the `doc_markdown` heuristic flags `CamelCase` identifiers (`HelloWorld` → warning) but does NOT flag pure all-caps acronyms regardless of length (`GPU`, `REALLYLONGACRONYM` → no warning). The entire `clippy.toml` was deleted as a result.
@@ -500,6 +666,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** doc-convention (`ai-docs/doc-convention.md` *Linking and code references* + *Lints* sections)
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — architecture — prefer AtomicBool + safe OnceLock over AtomicPtr + unsafe for process-global accessors
 
 **What happened:** The `global_tree` process-global accessor used `static TREE_PTR: AtomicPtr<Mutex<ObjectTree>>` with an `unsafe` dereference inside `try_with_tree`. The user pointed out that the `AtomicPtr` + `unsafe` design is unnecessary: since `APP: OnceLock<Arc<ApplicationInner>>` already holds the tree for the process lifetime, a simple `AtomicBool TREE_LIVE` flag (set by `Application::new`, cleared by `Drop`) is sufficient. `try_with_tree` then checks the bool, calls `APP.get()?`, and locks safely — no raw pointers, no unsafe blocks.
@@ -510,6 +680,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "agent:self-review"
+kind: "correction"
+```
 ### 2026-05-05 — process — context-reset and self-review agents must check `#[inline]` on every simple new fn
 
 **What happened:** The context-reset subagent implementing Tasks 3–11 of the timer-object task wrote `impl AsObject` and `impl Object` methods (`object_base`, `object_base_mut`, `as_any`, `as_any_mut`, `meta_object`, `invoke_method`, `connect_signal`) without `#[inline]`. The self-review agent's Round 1 pass also missed the gap, only flagging it in Round 2. The user had to point it out explicitly before the PR commit.
@@ -522,6 +696,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** agent:self-review
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-05 — architecture — use existing derive macros for `AsObject`/`Object`; do not write manual impls
 
 **What happened:** The context-reset subagent implementing the Timer type wrote manual `impl AsObject for Timer` and `impl Object for Timer` instead of using `#[derive(Extend, Object)]` from `quartzite-macros`. The design document explicitly specified the derive approach. Adding `quartzite-macros` as a dependency of `quartzite-runtime` has no circular dependency (quartzite-macros only depends on `syn`/`quote`/`proc-macro2`), so there was no obstacle. The manual impl caused a 2-round review cycle to surface the `#[inline]` gap the macro would have generated automatically.
@@ -534,6 +712,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** no
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — code-style — use `.ok()?` not `.unwrap()` on `Mutex::lock` in library code
 
 **What happened:** `try_with_tree` used `mutex.lock().unwrap()`, which panics on a poisoned mutex. Since AGENTS.md mandates non-panicking APIs for libraries, and mutex poisoning (another thread panicking while holding the lock) is not a broken global invariant from the caller's perspective, returning `None` is the correct behaviour. `.lock().ok()?` achieves this with no additional code.
@@ -544,6 +726,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:interview"
+kind: "correction"
+```
 ### 2026-05-05 — process — never ask whether a library API should panic for an avoidable error
 
 **What happened:** During interview for #55 (parent/children accessors), asked "should `parent()` / `children()` panic or return a default when called outside an Application scope?" — AGENTS.md already answers this: "Prefer non-panicking APIs for libraries; panicking is acceptable only when a fundamental invariant is broken." Being outside an Application scope is a recoverable condition, not a broken global invariant, so `None`/empty is the correct answer by rule.
@@ -554,6 +740,10 @@ Note: `code-review` is a **skill** (user-facing workflow); `review-findings` and
 
 **Escalated?** skill:interview
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — process — filter to unresolved PR review threads before reading comments
 
 **What happened:** When the user said "I've commented gh pr", all inline comments were fetched and read — including ones already resolved by the reviewer in a prior session. Time was wasted re-reading and re-resolving already-closed threads.
@@ -568,6 +758,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)"
+kind: "correction"
+```
 ### 2026-05-05 — process — always run the PR body check after every push, even if no edit seems needed
 
 **What happened:** After pushing AGENTS.md + learnings.md changes to the open PR branch, the PR body check (`gh pr view <N>`) was skipped on the grounds that instruction-only commits can't affect code claims. The rule is unconditional: re-read first, then decide. Reasoning your way out of the check is the failure mode the rule prevents.
@@ -578,6 +772,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — process — resolve fixed review comments; leave objected ones for the reviewer
 
 **What happened:** After applying fixes and posting an objection reply to a PR review comment, neither type of comment was resolved on GitHub. The user clarified the correct rule: resolve only comments that were fixed; leave comments where an objection was posted so the reviewer can decide whether to accept the objection.
@@ -590,6 +788,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — code-style — use thiserror for error types; apply undocumented_unsafe_blocks to every crate
 
 **What happened:** `TreeAccessError` was initially hand-rolled with manual `Display` / `std::error::Error` impls. PR review requested `thiserror = "2"` be added. Separately, `#![warn(clippy::undocumented_unsafe_blocks)]` was added only to `quartzite-runtime` when first introduced; review comment pointed out it should be in every crate's `lib.rs`.
@@ -600,6 +802,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)"
+kind: "correction"
+```
 ### 2026-05-05 — process — keep PR description in sync after every push to an open PR
 
 **What happened:** While iterating on PR #83 (doc-convention) after it was already open, we landed two follow-up commits — first tightening the "backtick every Rust identifier" rule and shrinking `clippy.toml` to one entry, then deleting `clippy.toml` entirely after an empirical test showed the heuristic ignores all-caps tokens. The original PR body still claimed "New workspace-root `clippy.toml` with a ~60-entry `doc-valid-idents` allowlist…" and the AC6 test-plan line still said "seeded; no growth needed". Neither was true after the follow-ups. The PR description was not synced until the user explicitly asked. The `/task` skill *does* spell out this rule in Step 11 ("If the fixes changed any public API name, scope, or AC referenced in the PR title/body (and the PR is already open), run `gh pr edit --title ... --body ...` to bring the PR description in sync before pushing"), but the rule applies to *any* push that invalidates a claim in the body — not only Step 11 review-fix commits.
@@ -610,6 +816,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md, skill:task, hook (PostToolUse Bash pr-sync reminder in `.claude/settings.json`)
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — process — `gh pr view` not needed immediately after `gh pr create`
 
 **What happened:** After `gh pr create` for PR #85, ran `gh pr view 85` to "apply the new unconditional read rule". The body returned was exactly what was just authored a second earlier — the read was wasted work. The "PR body sync after every push" rule treats `gh pr create` as if it were a subsequent push that might have invalidated the body, but in fact the body and the push are authored together: there is nothing to discover.
@@ -620,6 +830,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:interview"
+kind: "correction"
+```
 ### 2026-05-05 — process — backward-compat question asked again despite skill:interview escalation
 
 **What happened:** During `/interview` for issue #36, asked "should the current `Timer` construction/usage API stay roughly the same (just gaining object-tree integration), or is a full redesign expected?" — i.e., a backward-compat framing. The rule was already escalated to `skill:interview` on 2026-05-03 ("do not ask about backward compatibility; AGENTS.md already prohibits compat shims"). User rightly pushed back again.
@@ -630,6 +844,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** skill:interview
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-05 — tooling — use `0.x` version format for 0.x.y deps, not bare `0`
 
 **What happened:** Added `tracing = "0"` and `itertools = "0"` to Cargo.toml. AGENTS.md rule is "use `0.x` for `0.x.y` versions — never pin the patch." The correct forms are `tracing = "0.1"` (tracing is 0.1.x) and `itertools = "0.14"` (itertools is 0.14.x). Bare `"0"` is overly broad; it would accept any 0.x.y release including incompatible minor versions.
@@ -640,6 +858,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, agent:self-improve"
+kind: "correction"
+```
 ### 2026-05-05 — process — switch to feature branch BEFORE editing files in `/improve` (and similar skills)
 
 **What happened:** During `/improve`, all instruction-file edits were applied while on `master`. Only at commit time was the branch-switch made reactively (`git checkout -b chore/...`). AGENTS.md says "create a feature branch before any commits" — that was technically respected (no commits on master), but the spirit (don't accumulate work on master) was broken. `/task` already gates this at Step 8; `/improve` had no equivalent gate.
@@ -650,6 +872,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** AGENTS.md, agent:self-improve
 
+```yaml
+escalated: "hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)"
+kind: "correction"
+```
 ### 2026-05-06 — code-style — never use .expect() on mutex locks or condvar waits in production code
 
 **What happened:** All `.lock().expect("... poisoned")` and `condvar.wait().expect("...")` calls in `ThreadDriver`, `AppDriver`, and `PoolDriver` were written as panicking. Reviewer flagged all three sites asking why panicking behavior was there and whether it was avoidable.
@@ -660,6 +886,10 @@ then filter `isResolved == false` before reading any comment bodies.
 
 **Escalated?** hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)
 
+```yaml
+escalated: "agent:self-review, hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)"
+kind: "correction"
+```
 ### 2026-05-06 — code-style — `.expect()` on mutex/condvar/Option is still a panic; checklist must catch it explicitly
 
 **What happened:** `timer.rs` was implemented with `.expect("... mutex poisoned")` on every `Mutex::lock()`, `Condvar::wait()`, and `BinaryHeap::peek()`/`pop()` call in `ThreadDriver`, `AppDriver`, and `PoolDriver`. Two rounds of self-review (Rounds 2 and 3) both approved without catching these. The user had to flag all five sites via PR comments.
@@ -681,6 +911,10 @@ Concrete substitutions:
 
 **Escalated?** agent:self-review, hook (PostToolUse Edit/Write panic-gate in `.claude/settings.json`)
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-06 — process — "add to learnings" means learnings only; do not propagate to agent/skill files
 
 **What happened:** User said "add to learnings: unwrap/expect/panic should be avoided... with explanations how this quality gate is broken." I wrote the learnings entry, then also updated `.claude/agents/self-review.md` and `.claude/agents/review-findings.md` citing the Propagation Rule. The user flagged this as unauthorized — they asked for one action (learnings), not three.
@@ -691,6 +925,10 @@ Concrete substitutions:
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:next"
+kind: "correction"
+```
 ### 2026-05-06 — process — `/next` skill cannot see "Blocked by:" in issue bodies; use a GitHub label instead
 
 **What happened:** `/next small` recommended issue #48 (BlockingQueued) as a runner-up even though its body says "Blocked by: Per-thread event loops (#51, still open)". The skill fetches issues via `gh issue list --json number,title,labels,updatedAt` — it gets labels but never reads issue bodies. The "Skip blocked items" selection rule in the skill refers to the plan index (🔴 flags) and does not cross-reference GitHub issue bodies.
@@ -701,6 +939,10 @@ Concrete substitutions:
 
 **Escalated?** skill:next
 
+```yaml
+escalated: "AGENTS.md (GraphQL recipe added to \"PR review comment resolution\" bullet)"
+kind: "correction"
+```
 ### 2026-05-06 — process — resolve fixed PR review comments via GraphQL after pushing the fix
 
 **What happened:** After fixing the panicking mutex ops (commits 543bb4f, 2ddece7), I replied to each comment but did not resolve the conversations. I attempted `resolveReviewThread` via GraphQL but used a guessed thread ID (`PRRT_kwDOSR5chs5UHUwU`) that did not exist, got NOT_FOUND, printed "resolve via graphql not available", and moved on. AGENTS.md says: "After pushing fixes, resolve only the comments that were addressed by a code change" — this was not done.
@@ -723,6 +965,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md (GraphQL recipe added to "PR review comment resolution" bullet)
 
+```yaml
+escalated: "AGENTS.md, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-06 — code-style — significant state-mutating fns should open with a debug! trace
 
 **What happened:** `ObjectTree::rename` had a `debug!` call but `clear_name` was added without one. The reviewer caught the inconsistency.
@@ -735,6 +981,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md, skill:task"
+kind: "correction"
+```
 ### 2026-05-07 — process — actionlint skipped again on docs.yml despite existing learnings entry
 
 **What happened:** `.github/workflows/docs.yml` was created, committed, and pushed without running `actionlint`. The user had to ask explicitly — same pattern as the previous entry (2026-05-07, line ~26). The existing learning is `Escalated? no` and has not been enforced.
@@ -745,6 +995,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, skill:task
 
+```yaml
+escalated: "skill:task, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-07 — process — do not skip design/design-review for "simple" tasks
 
 **What happened:** `/task 116` was a pure annotation task (replace `#[inline]` with `/// _Simple._` at 12 sites). I skipped Steps 6–7 (design agent + design review) on the grounds that no design decision existed. The user called out the omission.
@@ -755,6 +1009,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** skill:task, AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-07 — process — bench binaries are exempt from the `#[cfg(test)]` requirement
 
 **What happened:** Self-review flagged that `benches/macro_object.rs` (~90 lines) lacked a `#[cfg(test)] mod tests` block. AGENTS.md exempts only `examples/` explicitly. In practice, criterion bench binaries cannot host a test module — `criterion_main!` generates `main`, making the binary incompatible with the test runner.
@@ -763,6 +1021,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-08 — code-style — `quartzite_runtime::ApplicationError` has no `error` sub-module; it is re-exported at crate root
 
 **What happened:** The `/task` prompt for Task 7 referenced `quartzite_runtime::error::ApplicationError` as the import path for the integration test. That module path does not exist — `ApplicationError` is re-exported directly via `pub use application::{Application, ApplicationError, TreeAccessError}` in `quartzite_runtime/src/lib.rs`, so the correct import is `use quartzite_runtime::ApplicationError`.
@@ -771,6 +1033,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-08 — architecture — `WindowedApplication::new()` must return `Result<Self, RendererError>`, not `Result<Self, ApplicationError>`
 
 **What happened:** The design doc said `new() -> Result<Self, ApplicationError>`, but `EventLoop::new()` can also fail with `winit::error::EventLoopError`, which is not convertible to `ApplicationError`. Returning `ApplicationError` would force either panicking on EventLoop error or silently discarding it. The correct approach is to return `Result<Self, RendererError>` and add an `Application(#[from] ApplicationError)` variant to `RendererError`, so both failure modes are propagated cleanly.
@@ -779,6 +1045,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** no
 
+```yaml
+escalated: "AGENTS.md, skill:task, skill:bugfix, skill:project-review"
+kind: "correction"
+```
 ### 2026-05-08 — tooling — `--workspace` clippy is required for leaf crates not in the default dep tree
 
 **What happened:** `cargo clippy -- -D warnings` (without `--workspace`) passed for `quartzite-renderer` because it is a leaf crate not depended upon by the workspace root or any default-dep member. Running `cargo clippy --workspace -- -D warnings` caught a `clippy::must_use_candidate` lint on `VelloPainter::new()` that the per-default-tree run missed.
@@ -787,6 +1057,10 @@ When a GraphQL mutation fails with NOT_FOUND, do not silently move on — invest
 
 **Escalated?** AGENTS.md, skill:task, skill:bugfix, skill:project-review
 
+```yaml
+escalated: "skill:task, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-08 — process — update ai-docs/panic-index.md when introducing production panic sites
 
 **What happened:** Graphics-stack (#73) introduced `WindowedApplication::run` which documents a platform-level panic (macOS main-thread requirement from `winit::run_app`) in its `# Panics` section. The panic-index was not checked or updated during implementation or at Step 9 (Verify). The omission was caught only after the PR merged.
@@ -800,6 +1074,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** skill:task, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "skill:task, hook (commit 1da36b0 — auto-fix at commit time)"
+kind: "correction"
+```
 ### 2026-05-08 — process — regenerate ROADMAP.md after every INDEX.md change
 
 **What happened:** Updated `ai-docs/plans/INDEX.md` (marking graphics-stack ✅, unblocking widgets/paint-style) without re-running `scripts/gen-roadmap.sh`. The ROADMAP sync CI gate re-ran the generator, found a diff, and failed on PR #159.
@@ -808,6 +1086,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** skill:task, hook (commit 1da36b0 — auto-fix at commit time)
 
+```yaml
+escalated: "AGENTS.md, code-style"
+kind: "correction"
+```
 ### 2026-05-08 — code-style — generic-fn split (`fn inner`) requires a conversion-style generic param; don't apply it to parameter-less fns
 
 **What happened:** `WindowedApplication::new()` in `quartzite-renderer/src/application.rs` wrapped its entire body in a nested `fn inner()` and called it, despite having no parameters at all. The generic-fn split pattern (AGENTS.md "Generic-fn split for binary size") exists solely to avoid monomorphization bloat from `impl Into<T>` / `impl AsRef<T>` / `impl ToString` generics. With no generic param, the indirection is dead weight — the body lands in one copy regardless, and the extra wrapper just adds noise.
@@ -816,6 +1098,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** AGENTS.md, code-style
 
+```yaml
+escalated: "code-style, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-08 — code-style — `_Simple._` and `#[inline]` are mutually exclusive; drop `_Simple._` when `#[inline]` is present
 
 **What happened:** Default trait method bodies in `WidgetExt` ended up with both `/// _Simple._` in the doc comment and `#[inline]` on the fn. Reviewer corrected: if a fn already has `#[inline]`, `_Simple._` is redundant and should be dropped. `_Simple._` is only for positions where `#[inline]` can't go (abstract trait method declarations with no body, generic impls).
@@ -824,6 +1110,11 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** code-style, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "code-style, agent:self-review, agent:review-findings"
+kind: "correction"
+superseded_by: "2026-05-08 (\"`_Simple._` and `#[inline]` are mutually exclusive\") — corrected: the two markers are mutually exclusive; drop `_Simple._` when `#[inline]` is present. (The inline `(superseded by next entry)` note in this entry's title refers to the same correction; the formal field is the machine-readable record.)"
+```
 ### 2026-05-08 — code-style — default trait method bodies need `#[inline]` in addition to `/// _Simple._` (superseded by next entry)
 
 **What happened:** `WidgetExt` default method bodies (e.g. `fn geometry(&self) -> Rect { ... }`) carried `/// _Simple._` in their doc but no `#[inline]`. Reviewer flagged that the doc marker carries no optimizer hint. `#[inline]` was added alongside `/// _Simple._`.
@@ -833,6 +1124,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 **Escalated?** code-style, agent:self-review, agent:review-findings
 **Superseded by:** 2026-05-08 ("`_Simple._` and `#[inline]` are mutually exclusive") — corrected: the two markers are mutually exclusive; drop `_Simple._` when `#[inline]` is present. (The inline `(superseded by next entry)` note in this entry's title refers to the same correction; the formal field is the machine-readable record.)
 
+```yaml
+escalated: "code-style, AGENTS.md, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-08 — code-style — use named constants instead of magic numbers
 
 **What happened:** `Palette::default()` used raw `Color::new(0.94, 0.94, 0.94, 1.0)` etc. literals inline. Reviewer flagged them as magic numbers.
@@ -841,6 +1136,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** code-style, AGENTS.md, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-08 — process — learnings are append-only; never edit or remove existing entries
 
 **What happened:** A learning entry was deleted because a newer entry contradicted it. User corrected: learnings are a permanent record — every entry stays, including superseded or wrong ones.
@@ -849,6 +1148,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-08 — process — on corrections, write to learnings only; do not update instruction files
 
 **What happened:** When the user pointed out `_Simple._` and `#[inline]` should not coexist, the response was to update `code-style.md` and `AGENTS.md` directly. User corrected: corrections go to `ai-docs/learnings.md` only. Instruction files are updated exclusively by `/improve`.
@@ -857,6 +1160,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-07 — process — do not escalate learnings inline during `/task`; leave `Escalated? no` for `/improve`
 
 **What happened:** During `/task 143`, I wrote a learnings entry and immediately escalated it by editing `AGENTS.md`, `.claude/agents/self-review.md`, and `.claude/agents/review-findings.md` in the same commit. The user corrected: escalation is `/improve`'s job.
@@ -865,6 +1172,10 @@ For each hit, add an entry to `ai-docs/panic-index.md` (location, trigger, invar
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-08 — process — verify a GitHub Action's actual behaviour against its source; "the action defaults match" is not a free claim
 
 **What happened:** PR #179 (`/task #178`) added `mozilla-actions/sccache-action@v0.0.10` to five merge-gate compile jobs in `.github/workflows/ci.yml`. The spec and design both stated: *"No `env:` block, no `with:` block on the sccache-action step is required — the action's defaults (`SCCACHE_GHA_ENABLED=true`, `RUSTC_WRAPPER=sccache`) match the spec's GHA-backed decision and the leave-default cache-size decision."* That claim was **false**. The action's `src/setup.ts` exports only `SCCACHE_PATH`, `ACTIONS_CACHE_SERVICE_V2`, `ACTIONS_RESULTS_URL`, `ACTIONS_RUNTIME_TOKEN` — it does **not** set `RUSTC_WRAPPER` or `SCCACHE_GHA_ENABLED`. The README's "Rust code" subsection says these "should be set" — explicitly the user's responsibility. After PR #179 merged, sccache binary was installed in every compile job but cargo never invoked it, so AC4 (sccache stats visible in logs) silently failed and the cache stayed empty. PRs #180 and #181 (docs-only) wouldn't have benefited from sccache anyway, but on any source-touching PR we'd have paid setup overhead with zero compile savings.
@@ -896,6 +1207,11 @@ If the action's setup script doesn't export the env vars your design assumed it 
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, doc-convention, skill:task, agent:self-review, agent:review-findings"
+kind: "correction"
+superseded_by: "2026-05-14 (\"all-features = true for doc quality gates\") — refined: the blanket `--features serde` / `--all-features` synchronisation rule has a mutually-exclusive carve-out for crates with `std`/`libm`-style conditional feature pairs (use `no-default-features = true` + an explicit representative `features = [...]` instead)."
+```
 ### 2026-05-10 — documentation — enable all feature-gated optional features when running cargo doc, and in package.metadata.docs.rs, to get full doc coverage
 
 **What happened:** The CI docs job ran `cargo doc --no-deps --workspace` without `--features serde`. Intra-doc links in `quartzite-core/src/lib.rs` that pointed to items in the `serde`-gated `snapshot` module (`[`snapshot`]`, `[`snapshot::ObjectSnapshot`]`, `[`snapshot::TreeSnapshot`]`) failed to resolve, breaking the docs build.
@@ -910,6 +1226,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 **Escalated?** AGENTS.md, doc-convention, skill:task, agent:self-review, agent:review-findings
 **Superseded by:** 2026-05-14 ("all-features = true for doc quality gates") — refined: the blanket `--features serde` / `--all-features` synchronisation rule has a mutually-exclusive carve-out for crates with `std`/`libm`-style conditional feature pairs (use `no-default-features = true` + an explicit representative `features = [...]` instead).
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-09 — process — /task with a bare issue number should activate a matching deferred spec instead of starting a fresh interview
 
 **What happened:** `/task 47` was invoked. Issue #47 has a matching deferred spec at `ai-docs/plans/deferred/2026-05-01-paint-style.spec.md` (`**Tracked in:** #47`). Instead of moving that spec to `ai-docs/plans/` and confirming ACs with the user, the interview machinery was started and a spurious state file `ai-docs/plans/2026-05-09-paint-style.spec.md.state.md` was created.
@@ -918,6 +1238,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "doc-convention"
+kind: "correction"
+```
 ### 2026-05-10 — documentation — prefer inline form `[`Foo`](path)` over reference form `[`Foo`][path]` for intra-doc links
 
 **What happened:** Post-merge code review of PR #200 (issue #199 docs cleanup) surfaced 24 intra-doc links across 8 files using the CommonMark **reference-style** form `` [`Foo`][crate::path::Foo] `` instead of the **inline** form `` [`Foo`](crate::path::Foo) ``. Both forms render to identical HTML, but the workspace was inconsistent — 100+ inline-form sites against 24 reference-form sites concentrated in the snapshot module (one author's stylistic choice).
@@ -930,6 +1254,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** doc-convention
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-11 — testing — a local FAILED result was not investigated before pushing; CI caught the same failure
 
 **What happened:** During `/task #53` (multi-window support), the first local `cargo test` run returned `FAILED. 27 passed; 1 failed`. Instead of identifying the specific failing test and fixing it, a second run was performed (`--nocapture`) which returned `ok. 28 passed; 0 failed`. The "green" second run was accepted as proof the failure was transient and the code was pushed. CI then failed on the same test (`ac7_builder_exists_and_build_works` on Ubuntu; `build_result_is_ok_or_already_exists` on macOS and Windows): both called `winit::EventLoop::new()` on `cargo test` worker threads, which winit forbids on all platforms unless `with_any_thread(true)` is passed (Linux-only API). The local second run appeared green because the user's machine had a display session AND the Wayland/X11 check may have been satisfied, but CI worker threads did not have that environment.
@@ -942,6 +1270,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "agent:design-review, agent:self-review, skill:task"
+kind: "correction"
+```
 ### 2026-05-13 — process — design-review notes not resolved in the design document before implementation started
 
 **What happened:** Design review Round 2 issued a GO verdict but included two notes: (1) use `b.kind()` method (not `b.kind` field — it's private); (2) use `quartzite_widgets::Alignment` (not `quartzite_geometry::Alignment`) to avoid adding a non-dev dep. Both notes were applied correctly during implementation, but they were never written back into the design document before coding started. The user asked why the two notes were not fixed before implementation began.
@@ -952,6 +1284,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** agent:design-review, agent:self-review, skill:task
 
+```yaml
+escalated: "skill:triage, agent:triage-runner, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-13 — process — `/triage` lost classification state between subagent invocations
 
 **What happened:** A `/triage` run executed in three subagent turns. Turn 1 (agent `a11b5ffeee8bc82c6`) walked all 51 `Tracked = —` candidates, classified them into 35 declines + 15 promotes, and surfaced the decline table for user spot-check. The user approved with one tweak (move row L179 from decline to promote). Turn 2 spawned a fresh `triage-runner` instance, prompted to "apply your prior classifications" — but the new instance had no memory of turn 1's partition (subagents do not share context, and no progress file persisted the state). It correctly halted with a "classification list not recoverable from current context" report instead of guessing which 34 of the 35 declines to write. Turn 3 worked around the gap by re-pasting the full classification table into the next subagent prompt verbatim — recoverable only because the parent (this assistant) still had the table in its own context. A compaction or context-reset would have forced a full reclassification pass (~10 min of work + risk of inconsistent decisions).
@@ -964,6 +1300,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** skill:triage, agent:triage-runner, AGENTS.md
 
+```yaml
+escalated: "skill:task, agent:spec-writer"
+kind: "correction"
+```
 ### 2026-05-13 — process — `/task` on a `blocked`-labelled gh issue must reconcile blockers before proceeding
 
 **What happened:** Proactive rule added by the user (no specific incident this session). Today `/task <N>` and `/task` activating a deferred spec linked to issue `#N` both ignore the issue's labels entirely — the skill proceeds directly into spec activation or the interview machinery regardless of whether the issue carries a `blocked` label. The user wants the skill to inspect the issue's blockers when `blocked` is present and either auto-clean the label (if all blockers are closed) or pause for direction (if any blocker is still open).
@@ -985,6 +1325,10 @@ All three must be kept in sync whenever a new optional feature adds public API w
 
 **Escalated?** skill:task, agent:spec-writer
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-13 — process — stale `.progress.md` after a merge mis-routes the next `/task` into the RESUME path
 
 **What happened:** `/task` was invoked with a fresh argument (the AGENTS.md size warning). `/task`'s first action probes `ai-docs/plans/*.progress.md` and, if any match exists, jumps to the RESUME path (skip Steps 1–7). The probe matched `2026-05-13-default-style-snapshot-tests.progress.md`, but PR #322 for that task had already merged at commit `80c5550` and the spec / design were already in `ai-docs/plans/done/`. Only the gitignored `.progress.md` remained because `/pr-merged` was never run after the GitHub UI merge. Following RESUME would have pointed at a completed task instead of starting the new one; recovery required asking the user before deleting the file.
@@ -1000,6 +1344,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "AGENTS.md, agent:self-improve, agent:learnings-escalation-audit"
+kind: "correction"
+```
 ### 2026-05-13 — process — Boundary Rule 2 needs a carve-out for in-flow learning entries discovered during the same `/task` workflow
 
 **What happened:** During the AGENTS.md shrink task (PR #324, `/task #323`), the workflow surfaced two natural learning candidates that emerged organically during implementation — not from external user correction, but from the work itself: (1) this very entry, observing that Boundary Rule 2 over-restricts the natural ergonomics of the `/task` flow; (2) the immediately-following entry, codifying the 40k-char ceiling for every project instruction file. Boundary Rule 2 currently forbids writing these in the same conversation turn as the AGENTS.md edits, even when the learning is about insights gained during the task. The current rule creates an internal contradiction with the `Workflow` section's own directive ("Before every `git commit` during a PR task, check `git status` for `ai-docs/learnings.md`. If it appears modified or untracked, stage it together with the related code changes — learnings are part of the task deliverable and must be visible in the PR diff."): the staging rule presumes learnings.md may be modified during the implementation phase, yet Boundary Rule 2 forbids that modification when the same turn also touches AGENTS.md. The workaround used in this session was to artificially split the two writes across turns (write learnings → AskUserQuestion → user response → new turn → edit AGENTS.md). That split is ceremonial; it adds latency and risks the learning being forgotten when the AskUserQuestion round-trip is skipped.
@@ -1012,6 +1360,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-13 — tooling — every project instruction file Claude loads on each invocation MUST stay below 40,000 chars
 
 **What happened:** An agent surfaced the warning `"⚠ Large AGENTS.md will impact performance (40.2k chars > 40.0k)"`. `AGENTS.md` was at 40,572 chars. PR #324 reduced it to 31,466 chars (~20% headroom). The threshold is enforced by the harness, not by project tooling — and the threshold applies to **any** instruction file the harness loads as context per invocation. Today `AGENTS.md` is the most prominent example, but `.claude/skills/**/SKILL.md`, `.claude/agents/**.md`, `ai-docs/code-style.md`, `ai-docs/doc-convention.md`, `ai-docs/context.md`, `CLAUDE.md`, and the auto-memory `MEMORY.md` are all candidates for crossing the threshold next. Without a project-side check, the 40k cap will be re-discovered reactively the next time another instruction file silently grows past it — exactly the same recovery cycle PR #324 just executed.
@@ -1027,6 +1379,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, agent:self-improve, agent:learnings-escalation-audit"
+kind: "correction"
+```
 ### 2026-05-13 — process — Boundary Rule 2 in-flow `/task` carve-out: "running skill is `/task` Steps 8–12" should be read to include sub-skills (`/bugfix`, `/context-reset`) invoked from within that range
 
 **What happened:** Post-PR-#327 inspection (triggered by the user's "do not change anything, just inspect" prompt) asked whether the in-flow learning-capture carve-out applies to `/bugfix`. Walking the structure: `/bugfix` does NOT independently produce the staging conflict the carve-out resolves (no Step-12-equivalent commit ritual; doesn't normally edit Boundary-Rule-2-protected instruction files; `allowed-tools` whitelist is `cargo` + trace-artifact `rm` only). However, AGENTS.md `## Workflow` Step 8 explicitly delegates: *"Bug report during impl → activate `/bugfix`, then return here"* — so `/bugfix` is documented as a `/task` sub-skill in Steps 8–12. The carve-out's first condition reads *"the running skill is `/task`, currently in Steps 8 (Implementation), 9 (Verify), 10 (Self-review), 11 (Fix), or 12 (Finalise)"* — a strict reading could interpret "running skill" as the **innermost** currently-executing skill (which during a `/bugfix` detour is `/bugfix`, not `/task`), in which case the parent `/task`'s carve-out would not cover any same-turn `learnings.md` ←→ instruction-file pairing inside the sub-skill window. That would be inconsistent with the carve-out's stated rationale, which scopes to *"the in-flight `/task` workflow"*, not to "turns where `/task` itself is the innermost executing skill". The same ambiguity affects `/context-reset` invoked from `/task` Step 8 (the handoff path the SKILL describes when N=3 of M≥5 subtasks completes).
@@ -1047,6 +1403,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** AGENTS.md, agent:self-improve, agent:learnings-escalation-audit
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-13 — process — workflows triggered only on `push: master` invert the PR safety net; completeness-claim drift in the introducing commit slips through the merge boundary
 
 **What happened:** Commit `bdeca71` (*"ci: install libfontconfig1-dev on all Linux CI jobs"*) added the `libfontconfig1-dev` apt-install step to `ci.yml`, `coverage.yml`, `base_benchmarks.yml`, and `fork_pr_benchmarks_run.yml` — but the diff omitted `docs.yml`. The commit message claimed *"all"*; the implementation was *"all except one"*. Because `docs.yml` triggers on `on: push: branches: [master]` only (NOT on `pull_request`), the regression was invisible during the introducing PR's CI run: PR CI executed `ci.yml` (which had been patched), succeeded, and merged. The first push to master after `bdeca71` triggered `docs.yml` for the first time post-merge — `cargo doc --no-deps --workspace --all-features` panicked in `yeslogic-fontconfig-sys`'s `build.rs` because `pkg-config` could not find `fontconfig.pc`. **14 consecutive master pushes failed `Docs` over ~12 hours** before PR #331 added the missing install step. Throughout that window the `Deploy to GitHub Pages` step silently skipped (`needs: build` gate), so the published `cargo doc` site was stale and nobody noticed until the user explicitly observed *"every merge commit to master has failed CI checks"*.
@@ -1068,6 +1428,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:bugfix, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-13 — process — `/bugfix` Step 6 (Verify) lacks the `self-review` second-opinion pass that `/task` Step 10 has — nits reach the human reviewer that an automated review would catch pre-push
 
 **What happened:** Ran `/bugfix` end-to-end on the `button_checked.png` invisibility regression (`Palette::default` left `ColorRole::Highlight` at `Color::WHITE`, making `DefaultStyle.draw_button` render checked buttons as all-white tiles). Step 6 (Verify) consists of: run the new failing test → run full suite → `cargo clippy --workspace -- -D warnings` → `cargo fmt -- --check` → delete the trace artifact. All five gates passed. Pushed to PR #333, body authored, opened. Within minutes the user (reviewer) posted a single line-anchored comment on the new `palette.rs:119` literal: *"magic numbers?"*. That nit was visible in the diff — a `Color::new(0.0, 0.5, 1.0, 1.0)` literal at the use-site with no companion named constant. `/pr-commented` then took 1 round (1 commit, 1 reply, 1 resolve) to address it. The follow-up `/pr-commented` invocation **did** spawn `self-review` as Step 5 (per its workflow), and `self-review` APPROVE'd on first attempt — confirming the agent would have flagged the same nit pre-push had `/bugfix` invoked it.
@@ -1092,6 +1456,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** skill:bugfix, AGENTS.md
 
+```yaml
+escalated: "hook (commit 1da36b0 — auto-fix at commit time)"
+kind: "correction"
+```
 ### 2026-05-14 — process — ROADMAP.md must be regenerated before pushing to a PR
 
 **What happened:** PR #337 CI failed on the "ROADMAP sync" check. The script `scripts/gen-roadmap.sh` generates `ROADMAP.md` from `ai-docs/plans/INDEX.md`; the new `quartzite-style-dispatch` row was added to INDEX.md but `ROADMAP.md` was not regenerated before `git push`. Required a second fix commit.
@@ -1100,6 +1468,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** hook (commit 1da36b0 — auto-fix at commit time)
 
+```yaml
+escalated: "skill:task, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-14 — process — self-review loop (Step 10) was skipped before creating the PR
 
 **What happened:** During `/task #281`, after Step 9 (Verify) and Step 9.5 (Update docs) all passed, the implementation jumped directly to Step 12 (commit + PR) without running the self-review agent loop at Step 10. The PR (#339) was created without a self-review pass.
@@ -1108,6 +1480,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** skill:task, AGENTS.md
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-14 — process — too many subtasks taken without /context-reset leads to compaction before all tasks finish
 
 **What happened:** During `/task #281`, six subtasks were planned and all executed in a single long conversation without calling `/context-reset` between subtasks. The conversation exceeded the context window and was compacted mid-task. Compaction discarded useful in-context state (notably the strict step sequence of the `/task` skill), which caused Step 10 (self-review loop) to be silently skipped — the compacted summary did not reproduce the skill's step contract faithfully enough to trigger it.
@@ -1116,6 +1492,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "doc-convention, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-14 — documentation — do not rely on `all-features = true` for doc quality gates or docs generation
 
 **What happened:** PR #339 introduced `std` and `libm` as mutually-conditional features in `quartzite-paint-api`. The `[package.metadata.docs.rs]` section for that crate and the root `quartzite` crate retained `all-features = true`, which activates both `std` and `libm` simultaneously. While this compiles, it is not representative of any real usage and conflates two alternative float-backend paths. The reviewer flagged this and requested explicit feature lists instead.
@@ -1124,6 +1504,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** doc-convention, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "skill:task"
+kind: "correction"
+```
 ### 2026-05-14 — process — `/task`'s active-task probe is not branch-aware; parallel PRs need progress-file parking
 
 **What happened:** PR #339 was in flight (with `ai-docs/plans/2026-05-14-paint-brush-gradient-variants.progress.md` live in the working tree) when Issue #340 (macOS CI rustup-init mis-route) became urgent and required its own `/task` cycle on a separate branch. The `/task` skill's active-task probe (`ls ai-docs/plans/*.progress.md`) is a flat glob — it matches any progress file regardless of git branch, so naively running `/task #340` from master would silently enter the RESUME path against #339's progress file and break both flows. The `**Branch:**` field inside each progress file is recorded but not consulted by the probe.
@@ -1132,6 +1516,11 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 
 **Escalated?** skill:task
 
+```yaml
+escalated: "agent:spec-writer, agent:self-review, agent:review-findings"
+kind: "correction"
+superseded_by: "2026-05-15 \"spec-writer tools regression\" — root-cause inspection confirmed copy-paste regression (not intentional constraint); `Write` / `Edit` restored to frontmatter; AC-verification-grep re-run gate added to self-review / review-findings to catch the failure mode."
+```
 ### 2026-05-14 — tooling — `spec-writer` agent uses `cat > … <<EOF` heredocs to write the spec instead of Claude Code's Write/Edit tools — needs inspection
 
 **What happened:** Observed during `/task #340` interview phase. The `spec-writer` subagent (`.claude/agents/spec-writer.md`) writes the spec file via Bash `cat > 'ai-docs/plans/…spec.md' <<'EOF' … EOF` rather than the harness-native `Write` / `Edit` tools. Confirmed by the agent's front-matter `tools: Read, Grep, Glob, Bash` — it has no `Write` or `Edit` access, so heredoc is its only file-writing mechanism. This is a shell-based write path with no harness-level diff tracking, weaker rollback ergonomics, and exposure to bash quoting / `EOF` collisions in spec body content.
@@ -1141,6 +1530,11 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Escalated?** agent:spec-writer, agent:self-review, agent:review-findings
 **Superseded by:** 2026-05-15 "spec-writer tools regression" — root-cause inspection confirmed copy-paste regression (not intentional constraint); `Write` / `Edit` restored to frontmatter; AC-verification-grep re-run gate added to self-review / review-findings to catch the failure mode.
 
+```yaml
+escalated: "skill:task, agent:design-review"
+kind: "correction"
+superseded_by: "2026-05-15 (\"spec amendment during `/pr-commented`\") — recurrence in new surface; escalation fanned out to all three downstream fix skills (`/pr-commented`, `/pr-ci-failed`, `/master-ci-failed`) + AGENTS.md Propagation Rule row via /improve"
+```
 ### 2026-05-15 — process — spec amendment during GO-with-notes resolution requires a full return to the design → design-review loop, not just a design-doc annotation
 
 **What happened:** During `/task #348` (Sonnet-fitness skill re-entry protocol), design-review Round 2 returned GO with 3 Notes whose resolution required reconciling spec AC1/AC9/Technical-constraints wording ("Restart Step 1" was overspecified — the design's per-skill variants A/B/C correctly route through preambles instead of a literal "Step 1"). I surfaced two paths via `AskUserQuestion` (Path A: amend spec to match variants; Path B: annotate design with a "Spec amendment / supersession" subsection). User chose Path A. I then mechanically amended the spec (3 edits to AC1, AC9, Technical constraints) AND folded the remaining 2 Notes into the design — and proceeded toward Step 8 without re-running Step 6 (design agent) and Step 7 (design-review) against the amended spec. User stopped me mid-flow: "spec is changed = need to return back to design -> design-review loop".
@@ -1150,6 +1544,10 @@ The cost of doing nothing is asymmetric: 30 seconds of cleanup at merge time vs.
 **Escalated?** skill:task, agent:design-review
 **Superseded by:** 2026-05-15 ("spec amendment during `/pr-commented`") — recurrence in new surface; escalation fanned out to all three downstream fix skills (`/pr-commented`, `/pr-ci-failed`, `/master-ci-failed`) + AGENTS.md Propagation Rule row via /improve
 
+```yaml
+escalated: "agent:spec-writer, agent:self-review, agent:review-findings"
+kind: "correction"
+```
 ### 2026-05-15 — tooling — `spec-writer` agent's `tools:` frontmatter shipped without `Write` / `Edit` — root cause is a copy-paste regression from `design-review`, NOT an intentional constraint
 
 **What happened:** Recurrence of the 2026-05-14 `cat > 'spec.md' <<EOF` observation during `/task #348` interview phase. Inspection of the originating PR #295 (commit `b9bf40c`, `chore(claude): extract /interview spec-drafting into spec-writer opus subagent`) shows the regression unambiguously:
@@ -1168,6 +1566,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** agent:spec-writer, agent:self-review, agent:review-findings
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-15 — process — CI-fix code changes require self-review before declaring done
 
 **What happened:** After PR #356 was opened, CI failed with `field 'sig' is never read` (dead-code lint promoted to error by `-D warnings` in the test job). The fix (rename `pub sig` → `_sig` in a test-local struct) was committed and pushed directly without running a self-review pass first. The user had to explicitly request self-review after the push.
@@ -1176,6 +1578,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md, skill:task"
+kind: "correction"
+```
 ### 2026-05-15 — process — learnings.md changes during PR evolution must be committed to the branch
 
 **What happened:** After the initial PR #356 implementation commits, `ai-docs/learnings.md` was updated (CI-fix self-review learning). The file sat as an unstaged working-tree change until the user explicitly asked to commit it. AGENTS.md already says to check `git status` for `learnings.md` before every `git commit` and stage it with related code changes — but this rule was not applied after the standalone CI-fix commit because the learning was written after the push, not before.
@@ -1184,6 +1590,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md, skill:task
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-15 — process — fail-loud pattern added in one PR but the style guide that anchors patterns was not updated in the same PR — propagation gap closed by a dedicated Propagation Rule row + grep recipe scanning the style guide
 
 **What happened:** Surfaced while investigating PR #357 (`/pr-failed` skill, blocked on this work). PR #349 (resolved #348, merged 2026-05-14) introduced the **Compaction recovery check** callout pattern and applied it to six code-side SKILL.md files in three per-skill variants (A: probe-driven path discovery; B: fixed-glob single artefact; C: parent-routing) — but `ai-docs/agent-writing-style.md`, the dual-model style reference for fail-loud rules in `AGENTS.md` / `.claude/skills/**` / `.claude/agents/**`, did not receive a pattern entry, citation, or `## Out of scope` review in the same PR. The variant taxonomy lived only inside the archival design doc at `ai-docs/plans/done/2026-05-14-sonnet-skill-reentry-protocol.design.md` — non-normative. Root cause: AGENTS.md `## Propagation Rule` Procedure step 1 grep recipe was `grep -rn "<changed-keyword>" .claude/agents/ .claude/skills/ AGENTS.md` — it did **not** include `ai-docs/agent-writing-style.md` in the scan paths, so editing six SKILL.md files with a new visual fail-loud pattern produced zero grep hits in the style guide and the propagation step was silently skipped.
@@ -1192,6 +1602,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "skill:pr-commented, skill:pr-ci-failed, skill:master-ci-failed, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-15 — process — spec amendment during `/pr-commented` requires the design → design-review loop, not just self-review — `/task` Step 7's rule recurs in `/pr-commented` (same root cause, different surface)
 
 **What happened:** During `/pr-commented` Round 1 on PR #361 (the just-opened ci-failed-skills PR), the reviewer-comment fix flipped `disable-model-invocation: true` → `false` in both new SKILL.md files AND amended three lines of the spec (`done/2026-05-15-ci-failed-skills.spec.md` lines 96, 97, 153) to keep the spec text consistent with the new shipped value. The spec text is part of the PR diff and would otherwise contradict the implementation, so the amendment was the right call. The mistake: I committed the change and then immediately spawned `self-review` to gate the Step-6 push. The user stopped me — *"why self-review? spec is changed"*. The correct flow when a spec amendment lands as part of a `/pr-commented` round is the same as `/task` Step 7's *Spec Amendment recipe*: re-run **Step 6 (design)** → **Step 7 (design-review)** on the amended spec + updated design FIRST; `self-review` runs at the end, not as a substitute. This is a recurrence of the 2026-05-15 *"spec amendment during GO-with-notes resolution requires a full return to the design → design-review loop"* learning — same root cause (spec change demands re-validation through design-review, not just self-review), different surface (`/pr-commented` round-1 fix instead of `/task` Step 7 GO-with-notes resolution). The prior learning was `Escalated? skill:task, agent:design-review` — escalation did not include `skill:pr-commented`, and the rule is not surfaced in `.claude/skills/pr-commented/SKILL.md`. That propagation gap is what let the same mistake repeat in a new surface.
@@ -1200,6 +1614,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** skill:pr-commented, skill:pr-ci-failed, skill:master-ci-failed, AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-15 — process — "the rule already exists in learnings.md" is NOT a valid reason to skip writing a new learning entry — every instruction violation gets its own entry, regardless of whether a similar rule was already recorded
 
 **What happened:** Immediately after the user corrected me for using `self-review` instead of the design → design-review loop on a spec amendment, they asked *"why add to learning is not added to plan?"* — pointing out that the violation should be written to `ai-docs/learnings.md`. In my reply I listed two reasons it hadn't been added: (1) `/pr-commented` SKILL.md forbids touching `learnings.md` from within the skill (correct constraint); (2) **"The rule already exists in `learnings.md`"** — citing the 2026-05-15 *"spec amendment during GO-with-notes resolution"* entry as already covering the rule. The user immediately corrected me: *"'The rule already exists in learnings.md' - is not the reason to not to save to learnings (this one should be saved too)"*. Treating "the rule already exists" as a reason to skip writing was itself an instruction violation: AGENTS.md `## Corrections Log` says *"On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`."* — and `## Corrections Log § Boundary rule 1` says *"The history of corrections (including superseded and wrong ones) is itself the artefact `/improve` audits."* — the history is the artefact; collapsing recurrences erases the propagation-gap signal that `/improve` needs to extend escalation. A recurrence of an existing rule in a NEW surface (the 2026-05-15 spec-amendment rule first landed in `/task` Step 7; the recurrence happened in `/pr-commented` Round 1) is *evidence of an escalation gap* — exactly what a new entry should record so `/improve` can fan the rule out to the missing escalation targets.
@@ -1208,6 +1626,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-15 — process — meta-rule: ANY instruction violation, of any kind, MUST be recorded as a new `ai-docs/learnings.md` entry — stronger than AGENTS.md `## Corrections Log`'s "non-obvious correction" wording
 
 **What happened:** During `/pr-commented` Round 1 on PR #361, after appending the two prior entries (the spec-amendment-in-`/pr-commented` recurrence and the "rule-already-exists is not a valid skip reason" meta-correction), the user followed up: *"is 'any instruction violation should be saved to learnings' saved to learnings as meta-learning?"* I had to acknowledge: no — the meta-rule was embedded INSIDE the prior entry's `**Rule:**` clause but not surfaced as a standalone entry. The standalone form is needed because (a) the meta-rule is broader than the narrower "rule-already-exists" entry that wraps it; (b) per the rule the meta-rule itself articulates, recurrences and meta-rules each deserve their own entry, not embedding inside a related entry's body; (c) AGENTS.md `## Corrections Log` currently says *"On non-obvious correction or confirmed approach, write to `ai-docs/learnings.md`"* — the user's stronger formulation drops the "non-obvious" qualifier, so the rule as stated in AGENTS.md is weaker than the rule the user actually applies.
@@ -1216,6 +1638,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md
 
+```yaml
+escalated: "agent:self-improve"
+kind: "correction"
+superseded_by: "PR #367 — `.claude/agents/self-improve.md` § Step 6 now carries a *Primitive-absence statement* + *pause-and-surface protocol*; the silent-substitution failure mode this entry records is contractually prevented (Step 6 handoff yields to the parent thread instead of attempting same-context close-reads)."
+```
 ### 2026-05-15 — process — `self-improve` subagent silently degraded `/improve` Step 6 from clean-context evals to same-context close-reads — must PAUSE-and-surface before substituting a primitive, not flag the substitution in the post-completion report
 
 **What happened:** During a `/improve` run after PR #361 merged (`chore/2026-05-15-improve-spec-amend-and-learnings-rule` branch), the `self-improve` subagent was given a prompt that explicitly invoked the workflow's Step 6 eval: *"Run 3 eval agents (one per pattern) and report PASS/FAIL."* The user had just confirmed this scope via `AskUserQuestion` (Choice 3 = "Run 3 eval agents (Recommended)"). The subagent applied Commits A + B as planned, then in the eval phase reported in its post-completion deliverable: *"No subagent dispatch tool available. The user's plan said 'Run 3 eval agents... in clean context'. The harness exposes `TaskCreate`/`TaskList`/`TaskUpdate` for queue management but no agent-spawn primitive. I created the three reproducer tasks (#29, #30, #31), confirmed the gap, then deleted them and ran the evals as a same-context close-read of the post-Commit-A instruction files. This is a degraded eval — same model self-grading its own writes — and I'm flagging it explicitly."* The flag was post-completion, AFTER the work was done; the subagent did not pause BEFORE the eval phase to surface the gap and ask whether to proceed degraded or abort. The main thread (which DOES have `Agent`) had to re-run the 3 evals manually in clean context to close the workflow contract; both runs were necessary because the same-context evals' PASS verdicts were not trustable.
@@ -1225,6 +1652,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** agent:self-improve
 **Superseded by:** PR #367 — `.claude/agents/self-improve.md` § Step 6 now carries a *Primitive-absence statement* + *pause-and-surface protocol*; the silent-substitution failure mode this entry records is contractually prevented (Step 6 handoff yields to the parent thread instead of attempting same-context close-reads).
 
+```yaml
+escalated: "skill:task, skill:context-reset, agent:design, agent:design-review"
+kind: "correction"
+superseded_by: "PR #376 — N=3-of-M≥5 gate replaced with every-group `/context-reset` handoff in `/task` Step 8; the gate trigger condition this entry records no longer exists (every group fans out, including M=1)."
+```
 ### 2026-05-16 — process — N=3 of M≥5 handoff gate silently skipped across multiple subtasks in `/task` Step 8
 
 **What happened:** `/task` Step 8 was implementing a 10-subtask plan. The session was resumed after compaction with an outdated progress file ("subtask 1 of 10 complete"). Without re-reading the design's `## Handoff plan` section, the session continued directly with tasks 2, 3, 4, 5, and partially into 6 — all in a single conversation turn, without ever spawning the `/context-reset` handoff required at the N=3 gate. The user had to manually stop and ask why the gate wasn't triggered.
@@ -1234,6 +1666,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** skill:task, skill:context-reset, agent:design, agent:design-review
 **Superseded by:** PR #376 — N=3-of-M≥5 gate replaced with every-group `/context-reset` handoff in `/task` Step 8; the gate trigger condition this entry records no longer exists (every group fans out, including M=1).
 
+```yaml
+escalated: "agent:self-improve"
+kind: "correction"
+```
 ### 2026-05-15 — tooling — `self-improve` subagent genuinely lacks the `Agent` / subagent-dispatch primitive in its runtime tool exposure — the prior side-note hypothesis (that the subagent's report was a reasoning error) is falsified; the missing primitive is real and `self-improve.md` Step 6 contract is structurally unfulfillable by the subagent itself
 
 **What happened:** The 2026-05-15 *"`self-improve` silently degraded `/improve` Step 6"* entry (PR #362 Commit C) closed with a side note: *"the published `.claude/agents/self-improve.md` tool list grants 'all tools' per the system prompt's available-agent-types list — the subagent's claim that it lacked a subagent-dispatch primitive may itself be wrong (the `Agent` tool should have been available). The rule above applies regardless of root cause; the diagnostic gap can be a separate follow-up."* The follow-up `/improve` invocation that produced PR #363 investigated the side note explicitly. Result: **the side note's hypothesis is falsified.** `.claude/agents/self-improve.md` lines 1–5 omit the `tools:` frontmatter field (which by Claude Code convention means "inherit all tools"), BUT the runtime tool set actually exposed to the `self-improve` agent class lacks an `Agent` / subagent-dispatch primitive. ToolSearch queries against the deferred-tools list for "Agent subagent dispatch spawn task" return only the `Task*` family (`TaskCreate` / `TaskUpdate` / `TaskGet` / `TaskList` / `TaskStop` / `TaskOutput`), which is **queue management for in-flight subagents**, not subagent spawning. The system prompt's deferred-tools list also has no `Agent` entry for `self-improve`'s class. So the prior `self-improve` invocation's "no subagent dispatch tool available" report was substantively correct; the rule the Commit-C entry codified (pause-and-surface before substituting a primitive) remains valid; the diagnostic root cause is **harness-exposed tool absence**, not subagent reasoning error.
@@ -1242,12 +1678,21 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** agent:self-improve
 
+```yaml
+escalated: "skill:task, skill:context-reset, agent:design, agent:design-review"
+kind: "correction"
+superseded_by: "PR #376 — every-group `/context-reset` handoff redesign; orchestrator no longer executes subtask code in its own context during Step 8, removing the context-rot surface this entry records."
+```
 ### 2026-05-16 — process — PR #374 context rot demonstrated N=3 gate is fragile
 **What happened:** During /task implementation of PR #374 (Hybrid Paint<W> dispatch, large multi-subtask), running on the sonnet model hit auto-compaction mid-Step-8. The post-compaction orchestrator session exhibited "context rot" — Step 9 verify gates skipped, Step 10 self-review not spawned, and the N=3-of-M≥5 /context-reset handoff missed.
 **Rule:** /task Step 8 now spawns /context-reset at the start of **every** design-defined group (including the first group, and including single-subtask designs). The orchestrator never executes subtask code in its own context during Step 8. PR #375 lands the redesign; designs of every M ≥ 1 carry a ## Handoff plan section.
 **Escalated?** skill:task, skill:context-reset, agent:design, agent:design-review
 **Superseded by:** PR #376 — every-group `/context-reset` handoff redesign; orchestrator no longer executes subtask code in its own context during Step 8, removing the context-rot surface this entry records.
 
+```yaml
+escalated: "AGENTS.md, agent:spec-writer"
+kind: "correction"
+```
 ### 2026-05-17 — process — claimed "would add X as a dep we're trying to avoid" without verifying X is already a project dep (recurring pattern)
 
 **What happened:** Issue #440 ("replace `serial_test` with std `Mutex<()>`") was filed with an *"Out of scope"* bullet stating: *"Migrating from `Mutex` to `parking_lot::Mutex`. The std mutex is sufficient; `parking_lot` would add a dep we're trying to avoid."* The user objected: `parking_lot` is **already** a project dep — `parking_lot = "0.12"` appears in `quartzite-core/Cargo.toml:34` (optional, gated on `std` feature) AND `quartzite-runtime/Cargo.toml:19` (unconditional). `cargo tree --invert parking_lot` confirmed it is transitively reached by every leaf crate via `quartzite-core`. The reasoning "would add a new dep" was factually wrong; the actual reasons to prefer `std::sync::Mutex` for test isolation (no perf-sensitivity in tests; std avoids the binary-size hit of two mutex impls in tests vs prod) were never articulated. The user noted this is **not the first time** such an "avoid adding X" claim has been made against an X that was already present in the project.
@@ -1256,6 +1701,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** AGENTS.md, agent:spec-writer
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-17 — code-style — defaulted to per-crate copy-paste over a shared workspace crate for a tiny helper
 
 **What happened:** Drafted spec for #440 (replace `serial_test` with a `test_lock()` helper). The issue body listed three placement options — (a) per-crate `static` + helper fn duplicated across each affected crate, (b) a tiny shared crate `quartzite-test-helpers`, (c) reuse of existing `tests/support/mod.rs` modules — and recommended (a) on "minimal surface, no new crate" grounds. The spec adopted that recommendation verbatim, deferring only the per-crate module layout to design. The user redirected: *"let change spec: create shared crate `quartzite-test-helpers` (or similar). No need to copy-paste."* The spec was correct on per-binary mutex semantics but wrong on the duplication trade-off — the `static` + `fn` would have been copied across 4 prod crates + 2 integration test binaries (6 sites).
@@ -1272,6 +1721,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
+```yaml
+escalated: "hook (commit 1da36b0)"
+kind: "correction"
+```
 ### 2026-05-18 — process — forgot to regenerate ROADMAP.md after updating INDEX.md
 
 **What happened:** Added a new row to `ai-docs/plans/INDEX.md` in the Step 12 finalise commit (PR #475) but did not run `bash scripts/gen-roadmap.sh` to regenerate `ROADMAP.md`. The CI `ROADMAP sync` check (`roadmap-sync` job) failed on the first PR push because the generated file was stale.
@@ -1280,6 +1733,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** hook (commit 1da36b0)
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-18 — tooling — Cargo [lints] workspace = true and per-crate [lints.clippy] are mutually exclusive
 
 **What happened:** The design for subtask 3 (cast family Narrow) specified adding a `[lints.clippy]` per-crate allow block to `quartzite-widgets/Cargo.toml` alongside the existing `[lints] workspace = true`. Cargo rejected this with "cannot override `workspace.lints` in `lints`, either remove the overrides or `lints.workspace = true` and manually specify the lints". All crates in this project use `[lints] workspace = true`.
@@ -1288,6 +1745,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
+```yaml
+escalated: "skill:context-reset (commit 1da36b0)"
+kind: "correction"
+```
 ### 2026-05-19 — process — context-reset group should spawn one agent for the whole group, not one per subtask
 
 **What happened:** During `/task` Step 8 Group A and Group B, the context-reset orchestrator spawned one Agent per subtask (3 separate agent calls for a 3-subtask group). The user corrected this: a group of N subtasks should be handled by a single agent spawn, not N separate spawns.
@@ -1296,6 +1757,11 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** skill:context-reset (commit 1da36b0)
 
+```yaml
+escalated: "no"
+kind: "validation"
+superseded_by: "PR #492 — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution)."
+```
 ### 2026-05-19 — process — compaction-recovery protocol in skill files works — follow it exactly
 
 **What happened:** During a 4-round `/pr-commented` session on PR #490, multiple context compressions occurred. Each time, following the `⚡ Compaction recovery check` at the top of the skill file — locating the progress file, reading it end-to-end, re-entering the skill from the top of its body — fully preserved workflow state (current round, thread classifications, gates passed, commit SHAs). User explicitly confirmed focus was maintained throughout all 4 rounds and all compressions.
@@ -1308,6 +1774,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Superseded by:** PR #492 — Phase 1 worked-example retro-add of `Kind: validation`; named Boundary-Rule-1 carve-out (Q1 resolution).
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-19 — process — reinforce with carrot and stick: record positive validations, not only violations
 
 **What happened:** The corrections log (`learnings.md`) and the auto-memory system were used mainly for violations and restrictions ("stick"). User pointed out that effective behavioral reinforcement requires both restrictions AND rewards ("carrot"): when a user explicitly confirms an approach worked well, that confirmation is also a learning worth preserving — otherwise the system drifts away from validated approaches while avoiding past mistakes.
@@ -1316,6 +1786,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-20 — tooling — commit-block hook false-positives when a `git commit` substring appears in any shell command line
 
 **What happened:** Ran `gh issue edit 507 --body "$(cat <<'EOF' ... git[[:space:]]+commit ... EOF)"` to append content describing the `scripts/gen-roadmap.sh` PreToolUse hook. The PreToolUse hook in `.claude/settings.json:21` scans `tool_input.command` with `grep -qE '(^|[ ;&|`])git[[:space:]]+commit\b'` to block `git commit` on `master`. The heredoc body contained the literal substring `git commit` (inside a regex `git[[:space:]]+commit`), the hook matched it, and the `gh issue edit` was blocked with the "BLOCKED: git commit on master is forbidden" message — even though the actual command was `gh issue edit`, not `git commit`.
@@ -1331,6 +1805,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** no
 
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-21 — process — `/ui-design` skill not invoked proactively when starting a `/task` for Palette / ColorRole work
 
 **What happened:** Started `/task 402` (palette-state-groups — extends `ColorRole` and `Palette` API with `ColorGroup` axis + `FocusRing` role). The `/ui-design` skill description explicitly lists "Palette / ColorRole edits" as a trigger, and `disable-model-invocation: false` is set (PR #510). Despite the clear match, the model entered the `/task` workflow steps immediately (check progress file, check deferred specs, spawn spec-writer) without invoking `/ui-design` first. The system instructions say skill invocation on a matching trigger is a BLOCKING REQUIREMENT before any other response.
@@ -1342,6 +1820,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** no
 
 
+```yaml
+escalated: "skill:task, agent:self-review, agent:design-review, AGENTS.md"
+kind: "correction"
+```
 ### 2026-05-21 — process — design doc change during self-review fix requires Design Amendment recipe, not a direct commit
 
 **What happened:** Self-review Round 1 returned finding #1 (major): design doc Task 4 was stale — it described using `with_role_all_groups` for non-stateful roles, but the implementation used a `with_role_dark` helper for all roles. Instead of triggering the Design Amendment recipe (stop, surface to user for approval, update design, re-run design-review, then resume), the fix was committed directly as a code-fix commit in Step 11. The user had to intervene: "design was changed, need go back to design-review loop."
@@ -1353,6 +1835,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** skill:task, agent:self-review, agent:design-review, AGENTS.md
 
 
+```yaml
+escalated: "skill:interview, agent:spec-writer"
+kind: "correction"
+```
 ### 2026-05-22 — process — gh issue payload for `/interview` should be persisted to `<spec>.state.md`, not just inlined in the round-1 prompt
 
 **What happened:** During `/task 531`, the orchestrator fetched `gh issue view 531 --json title,body,state,labels,body` and `gh issue view 531 --json comments` once at Step 1, then forwarded only the `issue_body` field inline (as a `|`-block) inside each spec-writer round's prompt. The other gh fields — `title`, `state`, `labels`, `comments`, plus any future linked-issue / linked-PR pointers — were never written to the durable `<spec>.state.md` artefact. The user observed: the spec-writer subagent logs showed zero `gh *` calls (correct per `.claude/agents/spec-writer.md:31` — the body is passed verbatim in the prompt) but the rest of the gh metadata had no durable home. On auto-compaction / cold re-entry the round-1 prompt is gone; round N+1 must either re-issue `gh issue view` or live without labels / linked-PR context.
@@ -1368,6 +1854,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** skill:interview, agent:spec-writer
 
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-22 — process — /ai-audit M9 35,000-char early-warning findings must be actioned in-pass (proactive extraction), not deferred as a passive heads-up
 
 **What happened:** During two consecutive `/ai-audit` runs on PR #535, the M9 sub-check fired on `AGENTS.md` (36,334 chars — over the 35,000 early-warning band, under the 40,000 hard cap). Both runs surfaced it as "Heads-up surfaced (no fix this pass)" and deferred extraction to "a future `/ai-audit` pass". The user clarified: the 35,000–39,999 band is itself a `minor` proactive-extraction trigger per the `AGENTS.md § Build & Test` AXIOM — the audit should propose the extraction in the same pass, asking the user for approval like any other `minor` finding, NOT defer.
@@ -1383,6 +1873,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** no
 
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-23 — process — `/interview` orchestrator emits misleading "SendMessage not available — using cold spawn" message every round
 
 **What happened:** During `/task` Steps 1–5 (the `/interview` skill), the orchestrator narrates "SendMessage not available — using cold spawn for round N with full state" before every round 2+ spec-writer invocation. The phrasing implies a degraded fallback path; in this Claude Code build, `SendMessage` is not exposed via the default tool surface (and `ToolSearch query: "select:SendMessage"` returns "No matching deferred tools found"), so the orchestrator always cold-spawns. The user observes this same sentence on every `/interview` invocation and finds it confusing/noisy.
@@ -1398,6 +1892,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Escalated?** no
 
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-23 — process — investigate holding a warmed-up spec-writer across all `/interview` rounds until the skill terminates
 
 **What happened:** Companion to the 2026-05-23 SendMessage entry above. The user asked: instead of cold-spawning the spec-writer once per round (current default per `.claude/skills/interview/SKILL.md` § Step 3a), explore whether the orchestrator can hold a single warmed-up spec-writer subagent **across every round** of one `/interview` invocation — spawn at round 1, hand new rounds to the same agent via the harness's continuation mechanism, only terminate at `ready` / `abort` / `defer_to_deferred`. Open questions: (a) which continuation tool is actually exposed in current Claude Code builds (`SendMessage` is documented but the project has observed it absent at the default tool surface — see prior entry); (b) does the harness preserve the warm agent's context across the orchestrator's intermediate `AskUserQuestion` calls and Read/Write ops, or does it evict between rounds; (c) cost/benefit vs cold spawn — warm reuse avoids re-paying the spec-writer's preamble (read `.claude/agents/spec-writer.md`, AGENTS.md preflight, Rule-5 substring blacklist load) on every round, but cold spawn is robust to harness eviction.
@@ -1412,6 +1910,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — code-style — `#[inline]` / `_Simple._` axiom violations across 4 self-review rounds on a single PR
 
 **What happened:** During `/task #317` (textedit-caret-selection) self-review caught 4 distinct `#[inline]`/`_Simple._` co-occurrence or missing-`#[inline]` violations across 4 consecutive REJECT rounds before APPROVE on round 5. Round 1: concrete `impl Style for DefaultStyle` methods `caret_visible_now` and `prefers_reduced_motion` carried both `// _Simple._` and `#[inline]` — co-occurrence violation. Round 2: concrete `impl Default for StyleClock::default()` carried `/// _Simple._` + `#[inline]`; separately, default trait method `Style::prefers_reduced_motion` was missing `#[inline]`. Round 3: concrete `impl TextCaretCursor for ParleyCaretCursor` simple getter methods (`caret_x`, `line_top`, `line_height`) missing `#[inline]`. Round 4 (non-inline violation): `/// # Features` non-canonical doc section heading in `start_blink_timer`.
@@ -1422,12 +1924,20 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — testing — Read-only guard bypassed by snapshot test widget setup order
 
 **What happened:** Both `line_edit_read_only_selection_renders` and `dark_line_edit_read_only_selection_renders` set `w.read_only = true` before calling `w.set_caret(1)` / `w.set_selection_anchor(Some(3))`. Both setters guard `if self.read_only { return; }`, so the fields stayed at their defaults (`caret=0, selection_anchor=None`). `selection_range()` returned `None`, `paint_selection_line_edit` exited early, and the goldens captured "read-only without selection" — a state that would pass even if the entire selection-paint path were removed.
 **Rule:** When configuring a widget for a snapshot test that tests a feature guarded by a setter (e.g. `set_caret`, `set_selection_anchor`) and a state flag that guards that setter (e.g. `read_only`), set the feature state FIRST (via direct field writes if needed), then set the guarding flag. The golden will otherwise silently capture the wrong state.
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — process — design subagent did not write design file; orchestrator wrote it instead of re-running the agent
 
 **What happened:** The `design` subagent (Step 6 of `/task`) produced the full design document as text in its response but never called the `Write` tool to persist `ai-docs/plans/2026-05-24-design-system-conformance.design.md`. The orchestrator noticed the file was missing post-run and transcribed the agent's output text into the file using `Write` directly — a second process violation layered on the first.
@@ -1435,6 +1945,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — process — orchestrator directly edited spec instead of invoking spec-writer for user tweak
 
 **What happened:** During `/interview` orchestration, after the spec-writer returned `status: ready` and the user selected "Tweak first" then described the change ("add vertical alignment axis controls to scope"), the orchestrator directly edited `ai-docs/plans/2026-05-24-design-system-conformance.spec.md` using the `Edit` tool — updating Out of scope, Deferred, K5, Technical constraints, ACs, and Open questions — without invoking the spec-writer subagent for another round.
@@ -1442,6 +1956,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — process — design subagent did not write design file (recurrence #2 — /task 557)
 
 **What happened:** The `design` subagent (Step 6 of `/task 557`) produced the full design document as text in its response but never called the `Write` tool to persist `ai-docs/plans/2026-05-24-fix-ac10-public-docs.design.md`. The orchestrator again wrote the file manually using `Write` instead of re-running the design agent. Same violation pattern as the 2026-05-24 entry above for `/task` design-system-conformance.
@@ -1449,6 +1967,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — process — Design Amendment applied directly by orchestrator; skill does not route amendments through design subagent
 
 **What happened:** During `/pr-commented` round 1, a reviewer requested an API split (`Alignment` → `HAlignment` + `VAlignment`). The Design Amendment recipe in `.claude/skills/task/SKILL.md` says "update the design doc, re-run Step 7 design-review" — the orchestrator interpreted "update the design doc" as permission to edit `*.design.md` directly using `Edit` tools, bypassing the `design` subagent. The user expected the design subagent to be spawned for the amendment.
@@ -1456,6 +1978,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — code-style — `match` counts as branching; `#[inline]` must not be placed on functions containing `match`
 
 **What happened:** `ApplicationBuilder::tick_duration` and `WindowedApplicationBuilder::tick_duration` were marked `#[inline]` despite containing a `match` expression with two arms. The reviewer flagged: "why inline for fn with branching?". The AGENTS.md `#[inline]` rule says simple = no branches/loops; a `match` is a branch regardless of how short the arms are.
@@ -1463,6 +1989,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — testing — new integration test file with wall-clock-bounded assertions missing #![cfg(not(miri))]
 
 **What happened:** `quartzite-runtime/tests/timer_single_shot_app.rs` was added as a separate binary for the AC11 single-shot test without the `#![cfg(not(miri))]` per-file gate. Its sibling `timer.rs` already had the gate for the same reason (interpreter budget — 500 ms wall-clock timeout). The missing tag caused Miri CI run 26357397751 to fail with "AppDriver single_shot must fire at least once".
@@ -1470,6 +2000,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "validation"
+```
 ### 2026-05-24 — process — spec amendment sub-flow during /pr-commented correctly spawns design subagent before self-review
 
 **What happened:** During `/pr-commented` Round 1 on PR #565, the round's diff touched `ai-docs/plans/done/*.spec.md` (AC3 amended to restore `Application::new()`). The spec amendment recipe fired: the design subagent was spawned with the amended spec + current design to verify decomposition stability, then design-review was run before self-review. Both steps verified the two review-driven changes fit within the existing subtask groupings with no structural redesign needed.
@@ -1477,6 +2011,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** validation
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-24 — process — orchestrator edited design doc directly during spec amendment sub-flow instead of delegating to design subagent
 
 **What happened:** During the spec amendment sub-flow triggered by `/pr-commented` Round 1 on PR #565, the orchestrator applied fixes to `ai-docs/plans/done/*.design.md` itself (using `Edit` tool calls inline) rather than spawning the `design` subagent. The user stopped this and redirected: "do not do work for design subagent, you are orchestrator, not design writer / design reviewer."
@@ -1484,6 +2022,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-26 — documentation — repo-internal references shipped in user-visible Cargo.toml `##` doc-comments
 
 **What happened:** During `/task` #564 Step 11 Round 2, two `##` doc-comments on the new `undocumented-allow` / `undocumented-deny` cargo features in `quartzite-macros/Cargo.toml` cited `doc-convention.md § Annotated items` and mentioned `cargo doc --all-features` as the activation context. Both lines shipped in commit `16ef0f8`. The reviewer caught them on PR #572: *"why internal project doc reference here?"* — Family A (repo-internal artefact path: `doc-convention.md`) and Family B (contributor-tooling instruction: `cargo doc --all-features`) violations per `ai-docs/doc-convention.md § Self-sufficiency`. `##` lines are processed by `document_features::document_features!()` for docs.rs rendering, so they are part of the published rustdoc surface, not internal documentation. The local enforcement greps in doc-convention.md scope to `--type rust` and missed the Cargo.toml surface.
@@ -1491,6 +2033,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-26 — process — `/pr-commented` skill text contradicts AGENTS.md learning-log rule (for self-authored violations)
 
 **What happened:** During `/pr-commented` Round 1 on PR #572, a reviewer flagged a self-authored doc-convention violation (Family A + B repo-internal references in `Cargo.toml` `##` doc-comments). I read `.claude/skills/pr-commented/SKILL.md` § Scope's "**Out:** Appending to `ai-docs/learnings.md` — **never** from this skill" as an absolute prohibition and skipped the learnings entry. The user pointed out the gap: quality-gate violations ARE the reason to save to learnings, and the entry was missed.
@@ -1498,6 +2044,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-26 — code-style — test module in connect.rs grew past 1500-line total hard limit
 
 **What happened:** During the arity-relaxation task (#566), the `#[cfg(test)] mod tests` block in `quartzite-core/src/connect.rs` expanded from ~1292 to 1776 lines total (hard limit 1500) after adding NullRecv, RecordingNullRecv, Sender2, BigReceiver, RecordingSlotRecv fixtures and 9 new tests. Self-review (Round 1) caught the violation. Fix: moved all tests that don't need private `crate::signal::tests` helpers to `quartzite-core/tests/connect.rs` (new integration test file); only Sender, Receiver fixtures and `auto_cross_thread_posts_to_dispatcher` stayed inline. Result: `src/connect.rs` 720 lines; `tests/connect.rs` 1201 lines.
@@ -1505,6 +2055,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-26 — process — hand-resolved merge conflict in generated ROADMAP.md instead of regenerating
 
 **What happened:** While merging `origin/master` into `feat/2026-05-25-signal-arity-relaxation`, ROADMAP.md had a merge conflict between the PR's added row (`signal-arity-relaxation`) and master's added row (`annotated-attribute-docs`). I resolved the conflict by hand-editing the markdown table to keep both rows. The user redirected: "no need to fix merge conflict in ROADMAP.md, it is generated from script". The correct procedure was to take either side wholesale (`git checkout --theirs ROADMAP.md`) and re-run `scripts/gen-roadmap.sh` — the script re-derives ROADMAP from the `ai-docs/plans/INDEX.md` entries plus done/* contents, so any hand edit is wasted and likely subtly wrong.
@@ -1512,6 +2066,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Kind:** correction
 **Escalated?** no
 
+```yaml
+escalated: "no"
+kind: "correction"
+```
 ### 2026-05-26 — process — moved committed plan files via `mv` + selective `git add` left duplicates on both paths
 
 **What happened:** During `/task` Step 12 of PR #569 (signal arity relaxation), the spec and design files were first committed at their original paths (`ai-docs/plans/2026-05-25-signal-arity-relaxation.{spec,design}.md`) in commit `8f52a2c`. Step 12 then moved them to the `done/` subdir using `mv` (filesystem rename, not `git mv`) and committed with `git add ai-docs/plans/done/2026-05-25-signal-arity-relaxation.{spec,design}.md ai-docs/plans/INDEX.md ai-docs/deferred/_inbox.md` — staging ONLY the destination paths. Because the source files had already been committed in a previous commit, the unstaged "deletion" from the working tree was never recorded in the new commit; git committed the additions in `done/` while keeping the originals in HEAD. Result: master ended up with both `ai-docs/plans/2026-05-25-signal-arity-relaxation.{spec,design}.md` AND `ai-docs/plans/done/2026-05-25-signal-arity-relaxation.{spec,design}.md` after PR merge — four files, two pairs of byte-identical content. Caught after `/pr-merged` step 2's `git pull` printed both `create mode 100644` lines.

@@ -82,7 +82,7 @@ except ImportError:  # pragma: no cover - environment guard
 
 LEARNINGS_PATH = Path("ai-docs/learnings.md")
 
-FILE_LEVEL_FM = "---\nschema_version: 1\nkind: learnings\n---\n"
+FILE_LEVEL_FM = "---\nschema_version: 1\nkind: learnings\n---\n\n"
 
 HEADING_RE = re.compile(r"^### (\d{4}-\d{2}-\d{2}) — ")
 ESCALATED_RE = re.compile(r"^\*\*Escalated\?\*\*\s*(.*)$")
