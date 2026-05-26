@@ -607,24 +607,18 @@ comment regardless of visibility.
 
 ### Annotated-attribute inventory
 
-| Attribute | Defined by macro | Site | Notes |
-|---|---|---|---|
-| `#[signal]` | `derive(Object)` | field of type `Signal<Args>` | recorded in `MetaObject`; codegen synthesises `emit_*` / `connect_*` methods |
-| `#[slot]` | `#[object_impl]` / `#[object_part]` | method, return type `()` | callable via `Object::invoke_method` |
-| `#[invoke]` | `#[object_impl]` / `#[object_part]` | method, any return type implementing `IntoValue` | callable via `Object::invoke_method` (renamed from `#[invokable]`) |
-| `#[property]` | `derive(Object)` | field | readable/writable property; sub-attrs `notify`, `read_only`, `constant`, `stored`, `designable`, `user` (renamed from `#[prop]`) |
-| `#[root]` | `derive(Extend)` | struct attr | marks hierarchy root |
-| `#[base]` | `derive(Extend)` | field | parent-object delegation target |
-| `#[mixin]` | `derive(Extend)` | field | additional delegation target |
-| `#[widget_view(variant = ...)]` | `derive(Extend)` | struct attr | only meaningful for `AsWidget` subtypes |
-| `#[widget_children(slice\|optional)]` | `derive(Extend)` | field | overrides `AsWidget::children` default |
+The attributes covered by this convention: `#[signal]`, `#[slot]`, `#[invoke]`,
+`#[property]` (from `derive(Object)` / `#[object_impl]` / `#[object_part]`),
+and `#[root]`, `#[base]`, `#[mixin]`, `#[widget_view(variant = ...)]`,
+`#[widget_children(slice|optional)]` (from `derive(Extend)`). See
+`quartzite-macros/src/lib.rs` `attributes(...)` lists for the authoritative
+source.
 
 ### Summary-line template
 
 Use the standard third-person-present-indicative summary line. There is no
-per-attribute fixed wording — choose prose that accurately describes the
-item's role in the type. The summary line is the same regardless of whether
-the item is `pub` or private.
+per-attribute fixed wording — pick prose that accurately describes the
+item's role. The summary line is the same regardless of visibility.
 
 ### Tri-state diagnostic
 
@@ -656,9 +650,10 @@ The level is configurable at three scopes; the most-specific scope wins
 
 3. **Global** — set a workspace-wide baseline via one of:
    - **Cargo feature on `quartzite-macros`:** `undocumented-allow` (sets
-     `allow`) or `undocumented-deny` (sets `deny`). The two features are
-     mutually exclusive; declaring both is a compile error. The default
-     (`warn`) is the absence of both features.
+     `allow`) or `undocumented-deny` (sets `deny`). When both are active
+     (e.g. under `cargo doc --all-features`), `deny` wins — the strictest
+     setting prevails, mirroring rust's native lint-level precedence. The
+     default (`warn`) is the absence of both features.
    - **Environment variable `QUARTZITE_UNDOCUMENTED`** — set to `allow`,
      `warn`, or `deny`. Read via `option_env!` **at compile time of
      `quartzite-macros` itself** (not at proc-macro expansion time in user

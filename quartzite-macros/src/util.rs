@@ -260,15 +260,10 @@ pub(crate) fn extract_undocumented_per_item(
 /// 1. `option_env!("QUARTZITE_UNDOCUMENTED")` — baked at `quartzite-macros` compile time.
 ///    Rebuild `quartzite-macros` to change (e.g. `cargo clean -p quartzite-macros && \
 ///    QUARTZITE_UNDOCUMENTED=allow cargo build`).
-/// 2. Cargo feature `undocumented-allow` → `Allow`.
-/// 3. Cargo feature `undocumented-deny`  → `Deny`.
-/// 4. Both features set → `compile_error!` emitted; function panics in tests.
-/// 5. None set → returns `None` (falls through to built-in default `Warn`).
-///
-/// # Panics
-///
-/// Panics in test contexts when both `undocumented-allow` AND `undocumented-deny` are set,
-/// mirroring the `compile_error!` emission in production use.
+/// 2. Cargo feature `undocumented-deny`  → `Deny` (wins over `undocumented-allow` when both
+///    are active — the strictest setting prevails, mirroring rust's lint-level precedence).
+/// 3. Cargo feature `undocumented-allow` → `Allow`.
+/// 4. None set → returns `None` (falls through to built-in default `Warn`).
 pub(crate) fn global_undocumented_level() -> Option<Level> {
     // Env var beats features (per KD9).
     if let Some(val) = option_env!("QUARTZITE_UNDOCUMENTED") {
@@ -279,16 +274,12 @@ pub(crate) fn global_undocumented_level() -> Option<Level> {
             _ => None, // malformed env var — fall through to features
         };
     }
-    let allow_feature = cfg!(feature = "undocumented-allow");
-    let deny_feature = cfg!(feature = "undocumented-deny");
-    assert!(
-        !(allow_feature && deny_feature),
-        "quartzite-macros: features 'undocumented-allow' and 'undocumented-deny' are mutually exclusive"
-    );
-    if allow_feature {
-        Some(Level::Allow)
-    } else if deny_feature {
+    // `deny` wins over `allow` when both features are active (e.g. cargo doc --all-features),
+    // matching rust's lint-level precedence.
+    if cfg!(feature = "undocumented-deny") {
         Some(Level::Deny)
+    } else if cfg!(feature = "undocumented-allow") {
+        Some(Level::Allow)
     } else {
         None
     }
@@ -298,7 +289,7 @@ pub(crate) fn global_undocumented_level() -> Option<Level> {
 ///
 /// Cascade: per-item > per-invocation > global > built-in default (`Warn`).
 /// See [`global_undocumented_level`] for the global scope resolution.
-// _Simple._
+#[inline]
 pub(crate) fn resolve_undocumented_level(
     per_item: Option<Level>,
     per_invocation: Option<Level>,
