@@ -329,6 +329,11 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 
 ### Entry format
 
+````
+```yaml
+escalated: "<verbatim-rhs-of-Escalated?-line>"
+kind: "<verbatim-rhs-of-Kind:-line>"
+superseded_by: "<verbatim-rhs-of-Superseded-by-line>"   # only when present
 ```
 ### YYYY-MM-DD — [category] — [short description]
 **What happened:** [quote or paraphrase]
@@ -336,9 +341,11 @@ On **ANY** instruction violation, of any kind, write a new entry to `ai-docs/lea
 **Kind:** correction | validation    (optional; defaults to `correction` when omitted)
 **Escalated?** no | AGENTS.md | skill:[name] | hook | settings | agent:[name] | rules:[name] | doc-convention | code-style (comma-separate multiple)
 **Superseded by:** [ref] — [one-line reason]    (optional; omitted when not applicable)
-```
+````
 
-`Kind:` defaults to `correction` when omitted — existing entries need NO rewrite. Write `Kind: validation` for entries that document a working protocol / pattern the subagent should keep doing (carrot signal); write `Kind: correction` (or omit) for entries that document a violation to stop doing (stick signal).
+**Per-entry preamble.** Fenced ```yaml``` block sits immediately above each `### YYYY-MM-DD —` heading (no blank line between). Floor: `escalated:` always (mirrors `**Escalated?**` rhs; default `"no"`); `kind:` always (mirrors `**Kind:**` rhs; default `"correction"`); `superseded_by:` only when the entry has the bold-key line. **NOT** `id:` / `date:` / `category:` — recoverable from the heading. **Two `kind:`'s.** File-level `kind: learnings` (file-class) lives in the top-of-file `---` block; per-entry `kind: correction | validation` lives in the fenced block. Address by source location, not key name.
+
+`Kind:` defaults to `correction` when omitted — existing entries need NO rewrite. Write `Kind: validation` for entries that document a working protocol / pattern the subagent should keep doing (carrot signal); write `Kind: correction` (or omit) for entries that document a violation to stop doing (stick signal). The per-entry preamble mirrors this default — entries without `**Kind:**` get `kind: "correction"`.
 
 See [`ai-docs/corrections-log.md` → Entry format — field glossary](ai-docs/corrections-log.md#entry-format--field-glossary) for the semantics of each field (`Kind:` values, `Escalated?` values, `doc-convention` vs `code-style`, `Superseded by:` reference format).
 
