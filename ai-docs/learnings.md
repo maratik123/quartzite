@@ -1483,3 +1483,10 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 **Rule:** The orchestrator NEVER edits `*.design.md` files directly. All design doc writes — including amendment fixes, stale-text cleanup, and decomposition updates — MUST go through the `design` subagent (Agent with `subagent_type="design"`). The orchestrator's role is: (1) identify what needs updating, (2) spawn the design subagent with a clear description, (3) spawn design-review on the result. This applies during the spec amendment recipe in `/pr-commented`, `/task`, and any other skill.
 **Kind:** correction
 **Escalated?** no
+
+### 2026-05-26 — code-style — test module in connect.rs grew past 1500-line total hard limit
+
+**What happened:** During the arity-relaxation task (#566), the `#[cfg(test)] mod tests` block in `quartzite-core/src/connect.rs` expanded from ~1292 to 1776 lines total (hard limit 1500) after adding NullRecv, RecordingNullRecv, Sender2, BigReceiver, RecordingSlotRecv fixtures and 9 new tests. Self-review (Round 1) caught the violation. Fix: moved all tests that don't need private `crate::signal::tests` helpers to `quartzite-core/tests/connect.rs` (new integration test file); only Sender, Receiver fixtures and `auto_cross_thread_posts_to_dispatcher` stayed inline. Result: `src/connect.rs` 720 lines; `tests/connect.rs` 1201 lines.
+**Rule:** When adding test fixtures and tests to an inline `#[cfg(test)] mod tests`, check the total file line count BEFORE committing. If adding the tests would push the file past 1500 lines total, extract to integration tests (under `crate/tests/`) first. Tests that require private `crate::` access must stay inline; all others can go to `tests/`.
+**Kind:** correction
+**Escalated?** no
