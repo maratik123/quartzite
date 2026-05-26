@@ -1,3 +1,5 @@
+// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Shows `Extend`, `Object`, `object_impl`, `object_part`, and `emit!` working together.
 //!
 //! Layout:

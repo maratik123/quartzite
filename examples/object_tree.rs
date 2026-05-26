@@ -1,3 +1,5 @@
+// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Example demonstrating `ObjectTree` insertion, named-child lookup, and traversal via the `quartzite` facade.
 
 use quartzite::prelude::*;

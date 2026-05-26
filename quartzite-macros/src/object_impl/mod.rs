@@ -50,6 +50,8 @@ mod tests {
             ident: Ident::new(name, Span::call_site()),
             params: vec![],
             ret_ty: syn::ReturnType::Default,
+            doc_present: false,
+            per_item_level: None,
         }
     }
 

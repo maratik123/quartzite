@@ -597,6 +597,70 @@ The workspace declares (each crate opts in via `[lints] workspace = true`):
 CI runs `cargo clippy -- -D warnings`, so the four `warn`-level lints are
 hard errors in practice.
 
+## Annotated items
+
+Annotated items are fields and methods that carry one of the workspace
+proc-macro attributes listed in the inventory table below. The standard
+pub-only doc exemption in [§ Scope](#scope) does **not** apply when any of
+these attributes is present — annotated items always require a `///` doc
+comment regardless of visibility.
+
+### Annotated-attribute inventory
+
+The attributes covered by this convention: `#[signal]`, `#[slot]`, `#[invokable]`,
+`#[prop]` (from `derive(Object)` / `#[object_impl]` / `#[object_part]`),
+and `#[root]`, `#[base]`, `#[mixin]`, `#[widget_view(variant = ...)]`,
+`#[widget_children(slice|optional)]` (from `derive(Extend)`). See
+`quartzite-macros/src/lib.rs` `attributes(...)` lists for the authoritative
+source.
+
+### Summary-line template
+
+Use the standard third-person-present-indicative summary line. There is no
+per-attribute fixed wording — pick prose that accurately describes the
+item's role. The summary line is the same regardless of visibility.
+
+### Tri-state diagnostic
+
+The proc macros emit a tri-state diagnostic at expansion time when an
+annotated item is missing its `///` doc. The three levels mirror Rust's
+native lint vocabulary:
+
+- **`allow`** — silent; no diagnostic emitted.
+- **`warn`** (default) — surfaced during `cargo build` as a non-error
+  diagnostic.
+- **`deny`** — surfaced as a compile error (`compile_error!`-equivalent).
+
+The level is configurable at three scopes; the most-specific scope wins
+(per-item > per-invocation > global > built-in default `warn`):
+
+1. **Per-item** — place `#[undocumented(allow)]`, `#[undocumented(warn)]`,
+   or `#[undocumented(deny)]` directly on the annotated field or method.
+   Bare `#[undocumented]` with no argument is rejected.
+
+2. **Per-invocation** — place `undocumented = "allow"` (or `"warn"` /
+   `"deny"`) as a key-value argument inside the enclosing macro invocation:
+   - `#[object_impl(undocumented = "allow")]`
+   - `#[object_part(undocumented = "warn")]`
+   - `#[derive(Object)] #[object(undocumented = "deny")]` (sibling attribute)
+   - `#[derive(Extend)] #[extend(undocumented = "allow")]` (sibling attribute)
+
+   Every annotated item inside the block inherits the per-invocation level;
+   per-item overrides on individual fields/methods still win.
+
+3. **Global** — set a workspace-wide baseline via one of:
+   - **Cargo feature on `quartzite-macros`:** `undocumented-allow` (sets
+     `allow`) or `undocumented-deny` (sets `deny`). When both are active
+     (e.g. under `cargo doc --all-features`), `deny` wins — the strictest
+     setting prevails, mirroring rust's native lint-level precedence. The
+     default (`warn`) is the absence of both features.
+   - **Environment variable `QUARTZITE_UNDOCUMENTED`** — set to `allow`,
+     `warn`, or `deny`. Read via `option_env!` **at compile time of
+     `quartzite-macros` itself** (not at proc-macro expansion time in user
+     crates). The env var beats the cargo feature when both are set.
+     **Rebuild `quartzite-macros` to change the env-var-driven level:**
+     `cargo clean -p quartzite-macros && QUARTZITE_UNDOCUMENTED=allow cargo build`.
+
 ## Behavioural enforcement (what lints cannot check)
 
 Lints cannot verify:

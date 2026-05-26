@@ -1,3 +1,5 @@
+// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+#![allow(deprecated)]
 //! Minimal example introducing the `Counter` object: property read/write and notify-signal wiring through the `quartzite` facade.
 
 use quartzite::prelude::*;

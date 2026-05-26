@@ -60,7 +60,10 @@ pub(crate) mod object_part;
 ///     widget: Widget,
 /// }
 /// ```
-#[proc_macro_derive(Extend, attributes(root, base, mixin, widget_view, widget_children))]
+#[proc_macro_derive(
+    Extend,
+    attributes(root, base, mixin, widget_view, widget_children, undocumented, extend)
+)]
 pub fn derive_extend(input: TokenStream) -> TokenStream {
     extend::expand(input.into()).into()
 }
@@ -82,6 +85,17 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///   - `user` — mark as the primary user-editable property
 /// - `#[signal]` — marks a `Signal<Args>` field so its
 ///   parameter types are recorded in the `MetaObject`.
+/// - `#[undocumented(allow|warn|deny)]` — per-field tri-state diagnostic level
+///   override. Controls whether a missing `///` doc on this field emits nothing
+///   (`allow`), a deprecation warning (`warn`, the default), or a compile error
+///   (`deny`). Bare `#[undocumented]` with no argument is rejected.
+///
+/// ## Per-invocation diagnostic level
+///
+/// Place `#[object(undocumented = "allow")]` (or `"warn"` / `"deny"`) as a
+/// sibling attribute on the struct to set the level for all `#[prop]` and
+/// `#[signal]` fields in this invocation. Per-field `#[undocumented(...)]`
+/// overrides still win.
 ///
 /// # Examples
 ///
@@ -100,7 +114,7 @@ pub fn derive_extend(input: TokenStream) -> TokenStream {
 ///     pub count_changed: Signal<(i32,)>,
 /// }
 /// ```
-#[proc_macro_derive(Object, attributes(prop, signal))]
+#[proc_macro_derive(Object, attributes(prop, signal, undocumented, object))]
 pub fn derive_object(input: TokenStream) -> TokenStream {
     object::expand(input.into()).into()
 }
@@ -117,6 +131,8 @@ pub fn derive_object(input: TokenStream) -> TokenStream {
 /// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
 /// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
 ///   via `IntoValue`
+/// - `#[undocumented(allow|warn|deny)]` — per-method tri-state diagnostic level
+///   override for missing `///` docs. Bare `#[undocumented]` with no argument is rejected.
 ///
 /// Works on both inherent and trait impl blocks.
 ///
@@ -154,6 +170,8 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// - `#[slot]` — callable via `Object::invoke_method`; return type must be `()`
 /// - `#[invokable]` — callable via `Object::invoke_method` with a return value converted
 ///   via `IntoValue`
+/// - `#[undocumented(allow|warn|deny)]` — per-method tri-state diagnostic level
+///   override for missing `///` docs. Bare `#[undocumented]` with no argument is rejected.
 ///
 /// The struct must already derive both [`Extend`] and [`Object`].
 ///
@@ -167,7 +185,9 @@ pub fn object_part(attr: TokenStream, item: TokenStream) -> TokenStream {
 ///   accumulated methods, merges them with the current block's methods, then emits the
 ///   full output.
 ///
-/// `#[object_impl]` accepts no arguments.
+/// `#[object_impl]` accepts no arguments. To set the per-invocation diagnostic level,
+/// use `#[object_impl(undocumented = "allow")]` (or `"warn"` / `"deny"`). Per-method
+/// `#[undocumented(...)]` overrides still win.
 ///
 /// # Examples
 ///

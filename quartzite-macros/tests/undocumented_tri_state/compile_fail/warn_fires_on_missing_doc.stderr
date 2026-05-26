@@ -1,0 +1,11 @@
+error: use of deprecated function `__quartzite_warn_foo_x`: annotated item `Foo::x` lacks `///` doc; see ai-docs/doc-convention.md § Annotated items
+  --> tests/undocumented_tri_state/compile_fail/warn_fires_on_missing_doc.rs:16:9
+   |
+16 |     pub x: i32,
+   |         ^
+   |
+note: the lint level is defined here
+  --> tests/undocumented_tri_state/compile_fail/warn_fires_on_missing_doc.rs:4:9
+   |
+ 4 | #![deny(deprecated)]
+   |         ^^^^^^^^^^
