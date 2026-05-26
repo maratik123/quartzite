@@ -624,7 +624,7 @@ mod tests {
     fn writable_prop_flags() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub count: i32,
             }
         });
@@ -645,7 +645,7 @@ mod tests {
     fn read_only_prop_has_writable_false() {
         let out = emit(quote! {
             struct Foo {
-                #[property(read_only)]
+                #[prop(read_only)]
                 pub val: i32,
             }
         });
@@ -660,7 +660,7 @@ mod tests {
     fn constant_prop_has_writable_false() {
         let out = emit(quote! {
             struct Foo {
-                #[property(constant)]
+                #[prop(constant)]
                 pub val: i32,
             }
         });
@@ -676,7 +676,7 @@ mod tests {
     fn notify_prop_has_notify_true() {
         let out = emit(quote! {
             struct Foo {
-                #[property(notify = changed)]
+                #[prop(notify = changed)]
                 pub val: i32,
                 #[signal]
                 pub changed: Signal<(i32,)>,
@@ -726,7 +726,7 @@ mod tests {
     fn read_property_emits_into_value_arm() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub score: i32,
             }
         });
@@ -746,7 +746,7 @@ mod tests {
     fn write_property_writable_uses_from_value() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub score: i32,
             }
         });
@@ -760,7 +760,7 @@ mod tests {
     fn write_property_read_only_arm_is_false() {
         let out = emit(quote! {
             struct Foo {
-                #[property(read_only)]
+                #[prop(read_only)]
                 pub version: i32,
             }
         });
@@ -784,7 +784,7 @@ mod tests {
     fn write_property_notify_emits_signal_call() {
         let out = emit(quote! {
             struct Foo {
-                #[property(notify = changed)]
+                #[prop(notify = changed)]
                 pub val: i32,
                 #[signal]
                 pub changed: Signal<(i32,)>,
@@ -802,7 +802,7 @@ mod tests {
     fn write_property_notify_uses_emit_macro() {
         let out = emit(quote! {
             struct Foo {
-                #[property(notify = changed)]
+                #[prop(notify = changed)]
                 pub val: i32,
                 #[signal]
                 pub changed: Signal<(i32,)>,
@@ -829,7 +829,7 @@ mod tests {
     fn write_property_no_notify_no_guard() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub val: i32,
             }
         });
@@ -868,7 +868,7 @@ mod tests {
     fn lookup_prop_fn_has_match_arm() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub score: i32,
             }
         });
@@ -951,7 +951,7 @@ mod tests {
     fn emit_wrappers_no_signals_no_block() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub count: i32,
             }
         });
@@ -1093,7 +1093,7 @@ mod tests {
     fn connect_auto_wrapper_absent_with_no_signals() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub count: i32,
             }
         });
@@ -1184,7 +1184,7 @@ mod tests {
     fn connect_queued_wrapper_absent_with_no_signals() {
         let out = emit(quote! {
             struct Foo {
-                #[property]
+                #[prop]
                 pub count: i32,
             }
         });

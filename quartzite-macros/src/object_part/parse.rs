@@ -43,7 +43,7 @@ pub(crate) fn parse(
         match impl_item {
             ImplItem::Fn(mut fn_item) => {
                 let is_slot = extract_attr(&mut fn_item.attrs, "slot");
-                let is_invoke = extract_attr(&mut fn_item.attrs, "invoke");
+                let is_invoke = extract_attr(&mut fn_item.attrs, "invokable");
 
                 if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
@@ -149,10 +149,10 @@ mod tests {
 
     #[test]
     fn invoke_method_classified() {
-        // Proves #[invoke] (the post-rename name) is correctly parsed by object_part.
+        // Proves #[invokable] is correctly parsed by object_part.
         let ir = parse_ok(quote! {
             impl Foo {
-                #[invoke]
+                #[invokable]
                 fn compute(&self, x: i32) -> i32 { x }
             }
         });
@@ -162,12 +162,12 @@ mod tests {
 
     #[test]
     fn undocumented_allow_on_invoke_method_parses_cleanly() {
-        // Proves that #[undocumented(allow)] on an #[invoke] method does not cause a
+        // Proves that #[undocumented(allow)] on an #[invokable] method does not cause a
         // parse error — it is an inert helper attribute that the parser skips.
         let ir = parse_ok(quote! {
             impl Foo {
                 #[undocumented(allow)]
-                #[invoke]
+                #[invokable]
                 fn compute(&self, x: i32) -> i32 { x }
             }
         });

@@ -76,7 +76,7 @@ pub(crate) fn parse(
         match impl_item {
             ImplItem::Fn(mut fn_item) => {
                 let is_slot = extract_attr(&mut fn_item.attrs, "slot");
-                let is_invoke = extract_attr(&mut fn_item.attrs, "invoke");
+                let is_invoke = extract_attr(&mut fn_item.attrs, "invokable");
 
                 if is_slot || is_invoke {
                     let ident = fn_item.sig.ident.clone();
@@ -142,7 +142,7 @@ pub(crate) fn extract_params(
                     other => {
                         return Err(syn::Error::new(
                             other.span(),
-                            "#[slot]/#[invoke] method parameters must be simple named bindings",
+                            "#[slot]/#[invokable] method parameters must be simple named bindings",
                         ));
                     }
                 };
@@ -194,7 +194,7 @@ mod tests {
     fn invokable_method_classified() {
         let ir = parse_ok(quote! {
             impl Foo {
-                #[invoke]
+                #[invokable]
                 fn compute(&self, a: i32, b: i32) -> i32 { a + b }
             }
         });
@@ -289,7 +289,7 @@ mod tests {
     fn no_receiver_params_extracted() {
         let ir = parse_ok(quote! {
             impl Foo {
-                #[invoke]
+                #[invokable]
                 fn greet(&self, name: String) -> String { name }
             }
         });
@@ -341,7 +341,7 @@ mod tests {
         let ir = parse_ok(quote! {
             impl Foo {
                 #[undocumented(allow)]
-                #[invoke]
+                #[invokable]
                 fn compute(&self) -> i32 { 0 }
             }
         });
