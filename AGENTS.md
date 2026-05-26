@@ -156,6 +156,7 @@ When adding or editing dependencies in `Cargo.toml`:
 - `.gitignore` (not `.arcignore`).
 - After generating/moving a markdown file with relative links, trace one link via `realpath` before committing. → [§ Markdown link tracing after generate/move](ai-docs/workflow.md#markdown-link-tracing-after-generatemove)
 - **PR review comment resolution:** Resolve only comments fixed by code; objections stay open for the reviewer. → [§ PR review comment resolution](ai-docs/workflow.md#pr-review-comment-resolution)
+- **Auto-generated files in merge conflicts.** `ROADMAP.md` is derived from `ai-docs/plans/INDEX.md` + `ai-docs/plans/done/*` via `scripts/gen-roadmap.sh`. On merge conflict: `git checkout --theirs <file> && bash scripts/gen-roadmap.sh && git add <file>`. NEVER hand-resolve the markdown table — the script re-derives from source and hand-edits silently drift. → [§ Auto-generated files in merge conflicts](ai-docs/workflow.md#auto-generated-files-in-merge-conflicts)
 
 > **AXIOM 2 — Read the PR body via `gh pr view <N>` after EVERY `git push` to a feature branch with an open PR. Unconditional.**
 > The READ is mandatory even when the push was a routine typo / format / nit. The EDIT is conditional — only when the body contradicts the new commits.

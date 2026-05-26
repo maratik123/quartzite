@@ -78,7 +78,16 @@ If implementation (Step 8) reveals a necessary deviation from the design, **or**
 
 1. **Stop** the current step immediately. Do not silently continue with the deviated approach.
 2. **Surface to user:** describe what changed and why the design must be updated. Wait for approval.
-3. Update `ai-docs/plans/YYYY-MM-DD-name.design.md` to reflect the new approach.
+3. **Spawn the `design` Subagent** to update `ai-docs/plans/YYYY-MM-DD-name.design.md` to reflect the new approach. The orchestrator MUST NOT edit `*.design.md` directly — the `design` Subagent owns ALL writes to `*.design.md` (per the AXIOM in `SKILL.md` above the Design Amendment header). Orchestrator-side direct edits are FORBIDDEN.
+   ```
+   Agent(subagent_type="general-purpose", prompt="
+     Read .claude/agents/design.md and follow it.
+     Spec: ai-docs/plans/YYYY-MM-DD-name.spec.md
+     Existing design: ai-docs/plans/YYYY-MM-DD-name.design.md
+     Context: design must be amended during implementation / self-review — describe what changed and the user-approved direction.
+   ")
+   ```
+   On Subagent return, immediately verify the design file was written (`ls ai-docs/plans/YYYY-MM-DD-name.design.md`). If missing — re-spawn the Subagent; do NOT transcribe its text output into the file.
 4. Re-run design review — same as Step 7 (max 3 rounds total across all design-review runs):
    ```
    Agent(subagent_type="general-purpose", prompt="
@@ -103,7 +112,7 @@ If a Step 7 design-review GO verdict surfaces a `note` / `minor` / recommendatio
 1. **Classify each note** at Step 7 close: **design-internal** (fold into the design doc in-place; no loop — current behaviour) vs **spec-amending** (the note implies a spec wording / AC / constraint change). Mixed batches are allowed; spec-amending notes trigger this recipe, design-internal notes proceed normally.
 2. **Stop before Step 8.** Do not begin implementation against the pre-amendment spec, and do not fold spec-amending notes into the design alone — FORBIDDEN. The design doc is the implementation contract built **against the spec**; if the spec changes, the contract must be re-established and re-verified.
 3. **Surface to user via `AskUserQuestion`** — describe the candidate spec amendment (which AC / which line / proposed new wording) and wait for explicit approval. Two paths are common: **Path A** — amend the spec to match the design's discovered shape; **Path B** — annotate the design with a "Spec amendment / supersession" subsection (still requires the re-loop below if the design's shape effectively changes the spec). Path A is the default.
-4. **On user approval — amend the spec.** Edit `ai-docs/plans/YYYY-MM-DD-name.spec.md` with the agreed changes (AC table, Technical constraints, Out-of-scope, whichever sections are touched).
+4. **On user approval — amend the spec via the `spec-writer` Subagent.** The orchestrator MUST NOT edit `*.spec.md` directly (per the AXIOM in `SKILL.md` above the Design Amendment header). Spawn `spec-writer` with the user's approved amendment as a synthetic round (`extra_context` carries the amendment description); the Subagent re-writes the spec on disk. Orchestrator-side direct `*.spec.md` edits with `Edit` / `Write` are FORBIDDEN — mirrors `.claude/skills/interview/SKILL.md` § Anti-patterns ("Mutating the spec yourself").
 5. **Re-enter Step 6 (`design` Subagent)** with explicit context: "spec was amended at Step 7 GO-with-notes resolution — re-verify decomposition and ACs against the new spec":
    ```
    Agent(subagent_type="general-purpose", prompt="
