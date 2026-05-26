@@ -445,6 +445,27 @@ lint listed below is a hard error in practice.
 - `cargo fmt -- --check` (rustfmt enforcement) — line length,
   whitespace, let-chain layout. Owned by [Source files](#source-files).
 
+## Annotated items
+
+Fields and methods carrying any of the workspace proc-macro attributes
+(`#[property]`, `#[signal]`, `#[slot]`, `#[invoke]`, `#[base]`, `#[mixin]`,
+`#[widget_children]`) are **annotated items**. The visibility-lift rule:
+
+- Every annotated item is `pub` by default.
+- Exception: the item may remain private if an immediately-preceding
+  `// why-private: <reason>` comment defends the exception. Acceptable
+  reasons: macro-codegen invariant the public surface must not expose;
+  internal-only invariant the macro relies on. The comment must be on the
+  line immediately before the attribute chain.
+- The doc-comment requirement from [`doc-convention.md` § *Annotated
+  items*](doc-convention.md#annotated-items) applies regardless of the
+  visibility decision — both `pub` and private annotated items require
+  `///` docs.
+
+See [`doc-convention.md` § *Annotated items*](doc-convention.md#annotated-items)
+for the tri-state diagnostic surface (`#[undocumented(allow|warn|deny)]`,
+per-invocation and global scopes, default level = `warn`).
+
 ## Behavioural enforcement (what lints cannot check)
 
 Lints cannot verify the rules below; reviewers (and the

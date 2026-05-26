@@ -597,6 +597,75 @@ The workspace declares (each crate opts in via `[lints] workspace = true`):
 CI runs `cargo clippy -- -D warnings`, so the four `warn`-level lints are
 hard errors in practice.
 
+## Annotated items
+
+Annotated items are fields and methods that carry one of the workspace
+proc-macro attributes listed in the inventory table below. The standard
+pub-only doc exemption in [§ Scope](#scope) does **not** apply when any of
+these attributes is present — annotated items always require a `///` doc
+comment regardless of visibility.
+
+### Annotated-attribute inventory
+
+| Attribute | Defined by macro | Site | Notes |
+|---|---|---|---|
+| `#[signal]` | `derive(Object)` | field of type `Signal<Args>` | recorded in `MetaObject`; codegen synthesises `emit_*` / `connect_*` methods |
+| `#[slot]` | `#[object_impl]` / `#[object_part]` | method, return type `()` | callable via `Object::invoke_method` |
+| `#[invoke]` | `#[object_impl]` / `#[object_part]` | method, any return type implementing `IntoValue` | callable via `Object::invoke_method` (renamed from `#[invokable]`) |
+| `#[property]` | `derive(Object)` | field | readable/writable property; sub-attrs `notify`, `read_only`, `constant`, `stored`, `designable`, `user` (renamed from `#[prop]`) |
+| `#[root]` | `derive(Extend)` | struct attr | marks hierarchy root |
+| `#[base]` | `derive(Extend)` | field | parent-object delegation target |
+| `#[mixin]` | `derive(Extend)` | field | additional delegation target |
+| `#[widget_view(variant = ...)]` | `derive(Extend)` | struct attr | only meaningful for `AsWidget` subtypes |
+| `#[widget_children(slice\|optional)]` | `derive(Extend)` | field | overrides `AsWidget::children` default |
+
+### Summary-line template
+
+Use the standard third-person-present-indicative summary line. There is no
+per-attribute fixed wording — choose prose that accurately describes the
+item's role in the type. The summary line is the same regardless of whether
+the item is `pub` or private.
+
+### Tri-state diagnostic
+
+The proc macros emit a tri-state diagnostic at expansion time when an
+annotated item is missing its `///` doc. The three levels mirror Rust's
+native lint vocabulary:
+
+- **`allow`** — silent; no diagnostic emitted.
+- **`warn`** (default) — surfaced during `cargo build` as a non-error
+  diagnostic.
+- **`deny`** — surfaced as a compile error (`compile_error!`-equivalent).
+
+The level is configurable at three scopes; the most-specific scope wins
+(per-item > per-invocation > global > built-in default `warn`):
+
+1. **Per-item** — place `#[undocumented(allow)]`, `#[undocumented(warn)]`,
+   or `#[undocumented(deny)]` directly on the annotated field or method.
+   Bare `#[undocumented]` with no argument is rejected.
+
+2. **Per-invocation** — place `undocumented = "allow"` (or `"warn"` /
+   `"deny"`) as a key-value argument inside the enclosing macro invocation:
+   - `#[object_impl(undocumented = "allow")]`
+   - `#[object_part(undocumented = "warn")]`
+   - `#[derive(Object)] #[object(undocumented = "deny")]` (sibling attribute)
+   - `#[derive(Extend)] #[extend(undocumented = "allow")]` (sibling attribute)
+
+   Every annotated item inside the block inherits the per-invocation level;
+   per-item overrides on individual fields/methods still win.
+
+3. **Global** — set a workspace-wide baseline via one of:
+   - **Cargo feature on `quartzite-macros`:** `undocumented-allow` (sets
+     `allow`) or `undocumented-deny` (sets `deny`). The two features are
+     mutually exclusive; declaring both is a compile error. The default
+     (`warn`) is the absence of both features.
+   - **Environment variable `QUARTZITE_UNDOCUMENTED`** — set to `allow`,
+     `warn`, or `deny`. Read via `option_env!` **at compile time of
+     `quartzite-macros` itself** (not at proc-macro expansion time in user
+     crates). The env var beats the cargo feature when both are set.
+     **Rebuild `quartzite-macros` to change the env-var-driven level:**
+     `cargo clean -p quartzite-macros && QUARTZITE_UNDOCUMENTED=allow cargo build`.
+
 ## Behavioural enforcement (what lints cannot check)
 
 Lints cannot verify:
