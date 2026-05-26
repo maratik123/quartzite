@@ -126,6 +126,7 @@ Marketplace plugins enabled in `~/.claude/settings.json`:
 | `pr-ci-failed` | One CI-failure round on PR branch |
 | `pr-merged` | Post-merge cleanup |
 | `master-ci-failed` | CI-failure round on master (new branch + new PR) |
+| `dependabot-pr` | One round of Dependabot cargo-PR triage (matrix routing; never auto-merges) |
 | `next` | Pick next task from deferred queue |
 | `triage` | Promote deferred rows → gh issues |
 | `improve` | Audit `learnings.md`; spawn `self-improve` |
