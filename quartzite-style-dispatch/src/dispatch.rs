@@ -710,6 +710,8 @@ mod tests {
         label.show();
         label.set_geometry(Rect::new(label_origin, Size::new(300, 200)));
 
+        let expected_clip = area.content_rect();
+
         let mut resolver = StubResolver::new();
         resolver.insert(area_id, area);
         resolver.insert(label_id, label);
@@ -738,9 +740,12 @@ mod tests {
             "got: {relevant:?}"
         );
         assert!(matches!(relevant[1], PaintEvent::Save), "got: {relevant:?}");
-        assert!(
-            matches!(relevant[2], PaintEvent::ClipRect(_)),
-            "expected ClipRect after Save: {relevant:?}"
+        let PaintEvent::ClipRect(actual_clip) = relevant[2] else {
+            panic!("expected ClipRect after Save: {relevant:?}");
+        };
+        assert_eq!(
+            *actual_clip, expected_clip,
+            "ClipRect rect must equal scroll_area.content_rect()"
         );
         assert!(
             matches!(relevant[3], PaintEvent::Translate(_)),

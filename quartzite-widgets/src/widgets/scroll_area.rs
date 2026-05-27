@@ -81,7 +81,7 @@ impl ScrollArea {
     /// in this widget's local coordinate frame.
     ///
     /// In v1 (no scrollbar chrome) this is the full local-space rect.
-    /// When scrollbar chrome lands (#315), this method insets for the chrome.
+    /// When scrollbar chrome lands, this method will inset for the chrome.
     ///
     /// # Examples
     ///
