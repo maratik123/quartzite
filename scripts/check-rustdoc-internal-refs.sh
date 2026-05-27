@@ -19,9 +19,9 @@
 #
 #   1. quartzite-style/src/default_style_tests.rs:2
 #        Sibling-file shape. The file is attached via
-#          quartzite-style/src/default_style.rs:267-269
+#          quartzite-style/src/default_style/mod.rs:392-394
 #            #[cfg(test)]
-#            #[path = "default_style_tests.rs"]
+#            #[path = "../default_style_tests.rs"]
 #            mod tests;
 #        Every doc-comment in this file is consequently #[cfg(test)]-enclosed.
 #
@@ -112,18 +112,21 @@ fi
 sibling_re='#\[cfg\(test\)\][[:space:]]*(#\[[^]]*\][[:space:]]*)*#\[path[[:space:]]*=[[:space:]]*"([^"]+\.rs)"\][[:space:]]*(#\[[^]]*\][[:space:]]*)*mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;'
 
 # Verify the multiline form actually captures the known site as a smoke check —
-# if rg --multiline returns empty against default_style.rs (where we know the
+# if rg --multiline returns empty against default_style/mod.rs (where we know the
 # shape exists in-tree), error out loudly so a future regex regression is
 # caught at script-startup time, not silently masked as "no false-positives".
-known_sibling_site=quartzite-style/src/default_style.rs
-sibling_attached_files=""
-if [[ -f $known_sibling_site ]]; then
-    if ! rg --type rust --multiline -o "$sibling_re" "$known_sibling_site" >/dev/null 2>&1; then
-        echo "error: shape-2 multiline regex no longer matches the known sibling-attached site $known_sibling_site:267-269" >&2
-        echo "       update sibling_re in scripts/check-rustdoc-internal-refs.sh" >&2
-        exit 2
-    fi
+known_sibling_site=quartzite-style/src/default_style/mod.rs
+if [[ ! -f $known_sibling_site ]]; then
+    echo "error: known sibling-attached site $known_sibling_site not found" >&2
+    echo "       update known_sibling_site in scripts/check-rustdoc-internal-refs.sh" >&2
+    exit 2
 fi
+if ! rg --type rust --multiline -o "$sibling_re" "$known_sibling_site" >/dev/null 2>&1; then
+    echo "error: shape-2 multiline regex no longer matches the known sibling-attached site $known_sibling_site:392-394" >&2
+    echo "       update sibling_re in scripts/check-rustdoc-internal-refs.sh" >&2
+    exit 2
+fi
+sibling_attached_files=""
 # Capture every "path = NAME.rs" basename from all matches across the
 # workspace. rg's --replace gives us just the capture group; we then collect
 # unique basenames.
