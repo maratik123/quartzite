@@ -426,6 +426,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+    )]
     #[allow(
         clippy::significant_drop_tightening,
         reason = "MutexGuard held intentionally to keep critical section atomic"
@@ -454,6 +458,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+    )]
     fn post_multiple_preserves_order() {
         let el = Arc::new(EventLoop::new());
         let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
@@ -474,6 +482,10 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(
+        miri,
+        ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+    )]
     fn stop_terminates_run() {
         let el = Arc::new(EventLoop::new());
         let el2 = Arc::clone(&el);
