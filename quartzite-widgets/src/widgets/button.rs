@@ -231,6 +231,13 @@ mod tests {
     }
 
     #[test]
+    fn button_children_clip_rect_returns_none() {
+        use crate::widget_base::AsWidget;
+        let btn = Button::new("x".into());
+        assert!(btn.children_clip_rect().is_none());
+    }
+
+    #[test]
     fn checkable_click_toggles_checked_and_emits_toggled() {
         let mut btn = Button::new("Toggle".into());
         btn.checkable = true;
