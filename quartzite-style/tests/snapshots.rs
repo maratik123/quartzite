@@ -19,9 +19,13 @@
 
 mod support;
 
+use std::collections::HashMap;
+
+use quartzite_core::ObjectId;
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::Painter;
-use quartzite_style::{DefaultStyle, Style, StyleClock};
+use quartzite_style::{DefaultStyle, Style, StyleClock, StyleRegistry};
+use quartzite_style_dispatch::{WidgetResolver, dispatch_paint};
 use quartzite_style_types::{DARK_PALETTE, Palette};
 use quartzite_widgets::{AsWidget, Button, Label, LineEdit, ScrollArea, TextEdit, WidgetExt};
 
@@ -936,4 +940,67 @@ fn dark_line_edit_read_only_selection_renders() {
             &DARK_PALETTE,
         );
     });
+}
+
+// ---------------------------------------------------------------------------
+// AC12 end-to-end clip snapshot — dispatch_paint path
+// ---------------------------------------------------------------------------
+
+/// A minimal [`WidgetResolver`] backed by a [`HashMap`], used by the AC12
+/// clip snapshot test to supply `dispatch_paint` with a small widget tree.
+struct MapResolver(HashMap<ObjectId, Box<dyn AsWidget>>);
+
+impl MapResolver {
+    fn new() -> Self {
+        Self(HashMap::new())
+    }
+
+    fn insert<W: AsWidget + 'static>(&mut self, id: ObjectId, widget: W) {
+        self.0.insert(id, Box::new(widget));
+    }
+}
+
+impl WidgetResolver for MapResolver {
+    fn resolve(&self, id: ObjectId) -> Option<&dyn AsWidget> {
+        self.0.get(&id).map(|b| b.as_ref() as &dyn AsWidget)
+    }
+}
+
+/// Snapshot test (AC12): a `ScrollArea` whose `content_widget` has geometry
+/// extending beyond the `ScrollArea`'s own bounds renders with the content
+/// visually clipped at `content_rect()`.
+///
+/// Routes through `dispatch_paint` (the full Vello end-to-end path), not
+/// `DefaultStyle::draw_widget` directly, so the clip layer inserted by
+/// `TranslateGuard::with_clip` is exercised.
+#[test]
+fn scroll_area_clips_oversized_content_renders() {
+    let _lock = quartzite_test_helpers::test_lock();
+    let Some(mut harness) = harness_or_skip("scroll_area_clips_oversized_content_renders") else {
+        return;
+    };
+    StyleRegistry::set_style(Box::new(DefaultStyle::new()));
+
+    let area_id = ObjectId::new();
+    let label_id = ObjectId::new();
+
+    let mut area = ScrollArea::new();
+    area.set_geometry(canvas_rect());
+    area.show();
+    area.content_widget = Some(label_id);
+
+    // Label geometry is 200×200 — extends well beyond the 64×64 canvas so any
+    // ink that escapes the clip layer would be visible in the golden.
+    let mut label = Label::new("content".into());
+    label.set_geometry(Rect::new(Point::new(0, 0), Size::new(200, 200)));
+    label.show();
+
+    let mut resolver = MapResolver::new();
+    resolver.insert(area_id, area);
+    resolver.insert(label_id, label);
+
+    let image = harness.render_widget(|painter| {
+        dispatch_paint(area_id, &resolver, painter, &Palette::default());
+    });
+    snapshot_assert("scroll_area_clips_oversized_content", &image);
 }

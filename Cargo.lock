@@ -2772,6 +2772,7 @@ dependencies = [
  "quartzite-paint-api",
  "quartzite-renderer",
  "quartzite-runtime",
+ "quartzite-style-dispatch",
  "quartzite-style-types",
  "quartzite-test-helpers",
  "quartzite-widgets",
