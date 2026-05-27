@@ -1,11 +1,9 @@
-# Why master-only: Miri is 10-30x slower than native `cargo test`; running per-PR
-# would impose an unacceptable latency tax. No PR-side workflow exercises an
-# equivalent Miri / Tree Borrows path — this gate is the intended
-# defense-in-depth surface, with findings visible via /master-ci-failed.
-name: Miri (master push)
+name: Miri
 
 on:
   push:
+    branches: [master]
+  pull_request:
     branches: [master]
 
 permissions:
@@ -19,8 +17,8 @@ jobs:
     name: Miri / Tree Borrows
     runs-on: ubuntu-latest
     # v1 policy: surface Miri findings in the CI summary without turning master
-    # red. Flip to `false` after a stabilisation window of Miri-clean runs is
-    # tracked as a deferred follow-up to #422.
+    # or PR CI red. Flip to `false` after a stabilisation window of Miri-clean
+    # runs is tracked as a deferred follow-up to #422.
     continue-on-error: true
     env:
       # `-Zmiri-tree-borrows`: aliasing model per spec / design Round 2.

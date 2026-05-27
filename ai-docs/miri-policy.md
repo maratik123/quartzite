@@ -6,7 +6,8 @@ across every workspace crate by default; individual tests / files / crates opt
 
 ## Workflow command
 
-The master-only `miri.yml` runs a single primary invocation:
+`miri.yml` runs on push to master and on pull requests targeting master,
+with a single primary invocation:
 
 ```bash
 MIRIFLAGS='-Zmiri-tree-borrows -Zmiri-ignore-leaks -Zmiri-disable-isolation' \
