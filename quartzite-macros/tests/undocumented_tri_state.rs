@@ -33,6 +33,18 @@
 //! The deny-level tests (f) and (g) remain compile failures regardless — `compile_error!` is
 //! emitted at the per-item / per-invocation scope, which the global allow cannot override.
 
+// Skipped under Miri at the file level: every test in this file constructs a
+// `trybuild::TestCases`, whose `Drop` impl shells out to `cargo metadata` via
+// `std::process::Command::output()`. The std spawn path routes through
+// `posix_spawn → pidfd_spawnp`, which Miri does not emulate (`error:
+// unsupported operation: extern static 'pidfd_spawnp' is not supported by
+// Miri`). Tripped master Miri job 77985154290 (run 26483302992) on commit
+// 46b43cf. Per-file shape is appropriate per ai-docs/miri-policy.md: every
+// `#[test]` here uses `trybuild::TestCases` — there are no Miri-clean tests
+// left to keep if the trybuild ones are skipped. The native `cargo test` gate
+// retains full AC7 coverage.
+#![cfg(not(miri))]
+
 /// AC7 paths (b)–(d) and (h): pass fixtures that must compile successfully.
 #[test]
 fn pass_fixtures() {

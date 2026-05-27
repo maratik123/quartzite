@@ -20,6 +20,10 @@ fn start_loop(el: Arc<EventLoop>) -> thread::JoinHandle<()> {
 
 // AC6 — closure posted from another thread executes on the loop thread.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn post_from_other_thread_executes_on_loop_thread() {
     let el = Arc::new(EventLoop::new());
     let loop_tid: Arc<Mutex<Option<thread::ThreadId>>> = Arc::new(Mutex::new(None));
@@ -47,6 +51,10 @@ fn post_from_other_thread_executes_on_loop_thread() {
 
 // Post ordering — three closures posted in order must execute in order.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn post_multiple_preserves_order() {
     let el = Arc::new(EventLoop::new());
     let log: Arc<Mutex<Vec<u32>>> = Arc::new(Mutex::new(Vec::new()));
@@ -68,6 +76,10 @@ fn post_multiple_preserves_order() {
 
 // request_stop() causes run() to return within a reasonable timeout.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn stop_terminates_run() {
     let el = Arc::new(EventLoop::new());
     let el2 = Arc::clone(&el);
@@ -84,6 +96,10 @@ fn stop_terminates_run() {
 // AC9(a) — tickless run() exits when a spawned thread calls request_stop().
 // The join must complete within 200 ms.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn ac9a_tickless_run_exits_on_request_stop_within_200ms() {
     use std::sync::mpsc;
     let el = Arc::new(EventLoop::new());
@@ -104,6 +120,10 @@ fn ac9a_tickless_run_exits_on_request_stop_within_200ms() {
 // wake-ups. Post one counter-incrementing closure, idle 100 ms, call request_stop,
 // join, assert counter == 1.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn ac9b_tickless_no_spurious_wakeups() {
     let el = Arc::new(EventLoop::new());
     let counter = Arc::new(AtomicU32::new(0));
@@ -131,6 +151,10 @@ fn ac9b_tickless_no_spurious_wakeups() {
 // Post a tick-counting closure, idle 200 ms, call request_stop, join within
 // 300 ms total, assert counter >= 2 (at least 2 ticks fired).
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn ac9c_tick_based_loop_fires_multiple_ticks() {
     let el = Arc::new(EventLoop::with_tick(Some(Duration::from_millis(50))));
     let counter = Arc::new(AtomicU32::new(0));
@@ -186,6 +210,10 @@ fn ac15_event_loop_object_base_and_id() {
 
 // AC17 / AC19 — invoke_method("stop") returns Some(Value::Null) and the loop exits.
 #[test]
+#[cfg_attr(
+    miri,
+    ignore = "interpreter budget — wall-clock-bounded event-loop integration"
+)]
 fn ac17_ac19_invoke_method_stop_exits_loop() {
     use std::sync::mpsc;
     let el = Arc::new(EventLoop::new());
