@@ -36,7 +36,7 @@ finding.
 |---|---|
 | **SKILL path** | `.claude/skills/master-ci-failed/SKILL.md` |
 | **wc -l at audit time** | 373 |
-| **wc -c at audit time** | 22,885 |
+| **wc -c at audit time** | 23,058 |
 | **Load-bearing reason** | Load-bearing residue after extraction: compaction-recovery callout (cat-3) + Workflow Steps 0–9 narrative (cat-3) + Step 1 progress-file schema (cat-2 round-template scaffolding the skill writes into during each round) + Step 2 log-fetch / classification / reproducer tables (cat-3 workflow-time, consulted every Step-2 execution). |
 | **Category map** | cat-2 round-template scaffolding (Step 1 progress-file schema) + cat-3 workflow narrative (Steps 0–9, compaction-recovery callout) + cat-3 workflow-time tables (Step 2 log-fetch / classification / reproducer). |
 
@@ -45,8 +45,8 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/pr-ci-failed/SKILL.md` |
-| **wc -l at audit time** | 326 |
-| **wc -c at audit time** | 22,320 |
+| **wc -l at audit time** | 341 |
+| **wc -c at audit time** | 23,438 |
 | **Load-bearing reason** | Load-bearing residue after extraction: compaction-recovery callout (cat-3) + Workflow Steps 0–9 narrative (cat-3) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 log-fetch / classification / reproducer + fallback bash (cat-3 workflow-time). |
 | **Category map** | cat-2 round-template scaffolding (Step 1 round-section template) + cat-3 workflow narrative (Steps 0–9, compaction-recovery callout) + cat-3 workflow-time content (Step 2 log-fetch / classification / reproducer + fallback bash). |
 
@@ -55,8 +55,8 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/pr-commented/SKILL.md` |
-| **wc -l at audit time** | 305 |
-| **wc -c at audit time** | 21,419 |
+| **wc -l at audit time** | 312 |
+| **wc -c at audit time** | 23,467 |
 | **Load-bearing reason** | Load-bearing residue after extraction: compaction-recovery callout (cat-3) + Workflow Steps 0–7 narrative (cat-3) + Step 0 GraphQL + REST snapshot recipes (cat-3 workflow-time, every invocation) + Step 1 round-section template (cat-2 round-template scaffolding) + Step 2 classification table + pause-trigger list (cat-3 workflow-time, every Step-2 per-thread loop). |
 | **Category map** | cat-2 round-template scaffolding (Step 1 round-section template) + cat-3 workflow narrative (Steps 0–7, compaction-recovery callout) + cat-3 workflow-time content (Step 0 GraphQL + REST snapshot recipes, Step 2 classification table + pause-trigger list). |
 
@@ -65,8 +65,8 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/bugfix/SKILL.md` |
-| **wc -l at audit time** | 257 |
-| **wc -c at audit time** | 14,095 |
+| **wc -l at audit time** | 284 |
+| **wc -c at audit time** | 15,790 |
 | **Load-bearing reason** | No category-(1) content; workflow narrative Steps 2–7 (cat-3) + Step 1 trace-file template (cat-2 round-template scaffolding) + Step 6.5 self-review prompt block (cat-3) all load-bearing. |
 | **Category map** | cat-2 round-template scaffolding (Step 1 trace-file template) + cat-3 workflow narrative (Steps 2–7) + cat-3 workflow-time content (Step 6.5 self-review prompt block). |
 
@@ -75,18 +75,28 @@ finding.
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/interview/SKILL.md` |
-| **wc -l at audit time** | 242 |
-| **wc -c at audit time** | 13,882 |
+| **wc -l at audit time** | 248 |
+| **wc -c at audit time** | 14,884 |
 | **Load-bearing reason** | No category-(1) content; Workflow Steps 1–4 narrative (cat-3) + State file YAML template (cat-2 round-template scaffolding) + Round/question caps table (cat-3) all load-bearing. |
 | **Category map** | cat-2 round-template scaffolding (State file YAML template) + cat-3 workflow narrative (Steps 1–4) + cat-3 workflow-time tables (Round/question caps table). |
+
+### `.claude/skills/dependabot-pr/SKILL.md`
+
+| Field | Value |
+|---|---|
+| **SKILL path** | `.claude/skills/dependabot-pr/SKILL.md` |
+| **wc -l at audit time** | 226 |
+| **wc -c at audit time** | 18,607 |
+| **Load-bearing reason** | Load-bearing residue after extraction (per-cell action bodies + delegation prompt + verdict-translation table extracted to sibling `reference.md`): compaction-recovery callout (cat-3) + Workflow Steps 0–6 narrative (cat-3) + Step 0 snapshot recipe (cat-3 workflow-time, every invocation) + Step 1 progress-file schema (cat-2 round-template scaffolding) + 2×3 `(diff-scope × CI-state)` matrix routing table (cat-3 workflow-time, every Step-3 routing decision) + Scope/In/Out lists + Anti-patterns + Gate checklist (cat-3 workflow-time). |
+| **Category map** | cat-2 round-template scaffolding (Step 1 progress-file schema) + cat-3 workflow narrative (Steps 0–6, compaction-recovery callout) + cat-3 workflow-time content (Step 0 snapshot recipe, 2×3 matrix routing table, Scope/In-Out, Anti-patterns, Gate checklist). |
 
 ### `.claude/skills/task/SKILL.md`
 
 | Field | Value |
 |---|---|
 | **SKILL path** | `.claude/skills/task/SKILL.md` |
-| **wc -l at audit time** | 228 |
-| **wc -c at audit time** | 26,707 |
+| **wc -l at audit time** | 239 |
+| **wc -c at audit time** | 28,241 |
 | **Load-bearing reason** | Residue is cat-(3) workflow (four ⚡ entry-routing preambles fire before any tool call + Step 8 every-group handoff + Step 12 commit/PR sub-steps); cat-(1) candidates already moved to `reference.md` + `inbox-propagation.md` (category-4 prior extraction). |
 | **Category map** | cat-3 workflow narrative (four ⚡ entry-routing preambles, Step 8 every-group handoff, Step 12 commit/PR sub-steps). |
 
