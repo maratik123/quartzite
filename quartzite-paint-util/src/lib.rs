@@ -7,7 +7,7 @@
 
 extern crate alloc;
 
-use quartzite_geometry::Point;
+use quartzite_geometry::{Point, Rect};
 use quartzite_paint_api::Painter;
 
 /// RAII guard that saves the painter state, translates the origin, and
@@ -159,6 +159,70 @@ impl<'a> TranslateGuard<'a> {
         Self { painter }
     }
 
+    /// Creates a guard that saves, clips to `clip`, then translates by `origin`.
+    ///
+    /// On drop, calls `restore()`, which pops both the translate and the clip layer.
+    /// The clip rect is in the caller's current coordinate frame (before translation).
+    ///
+    /// # Parameters
+    ///
+    /// - `painter`: the painter to borrow for the lifetime of this guard.
+    /// - `origin`: the translation delta passed to [`Painter::translate`].
+    /// - `clip`: the clip rect in the caller's coordinate frame, passed to
+    ///   [`Painter::clip_rect`] before the translation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use quartzite_geometry::{HAlignment, VAlignment, Point, Rect, Size};
+    /// use quartzite_paint_api::{Brush, Color, Font, Image, Painter, Path, Pen,
+    ///     TextCaretCursor, TextVisualLine, TextVisualLineCursor};
+    /// use quartzite_paint_util::TranslateGuard;
+    ///
+    /// struct NullCaret;
+    /// impl TextCaretCursor for NullCaret {
+    ///     fn advance_to(&mut self, _: usize) {}
+    ///     fn caret_x(&self) -> i32 { 0 }
+    ///     fn line_top(&self) -> i32 { 0 }
+    ///     fn line_height(&self) -> i32 { 0 }
+    /// }
+    /// struct NullLines;
+    /// impl TextVisualLineCursor for NullLines {
+    ///     fn next_line(&mut self) -> Option<quartzite_paint_api::TextVisualLine> { None }
+    /// }
+    ///
+    /// struct NullPainter { caret: NullCaret, lines: NullLines }
+    /// impl NullPainter { fn new() -> Self { Self { caret: NullCaret, lines: NullLines } } }
+    /// impl Painter for NullPainter {
+    ///     fn draw_rect(&mut self, _r: Rect, _p: &Pen, _b: &Brush) {}
+    ///     fn fill_rect(&mut self, _r: Rect, _b: &Brush) {}
+    ///     fn draw_line(&mut self, _a: Point, _b: Point, _p: &Pen) {}
+    ///     fn clip_rect(&mut self, _r: Rect) {}
+    ///     fn translate(&mut self, _d: Point) {}
+    ///     fn save(&mut self) {}
+    ///     fn restore(&mut self) {}
+    ///     fn draw_text(&mut self, _pos: Point, _t: &str, _f: &Font, _b: &Brush) {}
+    ///     fn draw_text_in(&mut self, _r: Rect, _t: &str, _f: &Font, _b: &Brush, _h: HAlignment, _v: VAlignment) {}
+    ///     fn draw_image(&mut self, _r: Rect, _i: &Image) {}
+    ///     fn draw_path(&mut self, _p: &Path, _pe: &Pen, _b: &Brush) {}
+    ///     fn text_carets(&mut self, _t: &str, _f: &Font) -> &mut dyn TextCaretCursor { &mut self.caret }
+    ///     fn text_visual_lines(&mut self, _t: &str, _f: &Font, _w: i32) -> &mut dyn TextVisualLineCursor { &mut self.lines }
+    /// }
+    ///
+    /// let mut painter = NullPainter::new();
+    /// let clip = Rect::new(Point::new(0, 0), Size::new(100, 50));
+    /// let _guard = TranslateGuard::with_clip(&mut painter, Point::new(5, 10), clip);
+    /// // save(), clip_rect(clip), and translate(Point::new(5, 10)) have been called
+    /// // restore() will be called when _guard drops
+    /// ```
+    #[inline]
+    pub fn with_clip(painter: &'a mut dyn Painter, origin: Point, clip: Rect) -> Self {
+        painter.save();
+        painter.clip_rect(clip);
+        painter.translate(origin);
+        Self { painter }
+    }
+
     /// Returns a mutable reference to the wrapped painter.
     ///
     /// # Examples
@@ -236,6 +300,7 @@ mod tests {
         Save,
         Restore,
         Translate(Point),
+        ClipRect(Rect),
         FillRect,
         Other,
     }
@@ -300,8 +365,8 @@ mod tests {
             self.events.push(PaintEvent::Other);
         }
 
-        fn clip_rect(&mut self, _rect: quartzite_geometry::Rect) {
-            self.events.push(PaintEvent::Other);
+        fn clip_rect(&mut self, rect: quartzite_geometry::Rect) {
+            self.events.push(PaintEvent::ClipRect(rect));
         }
 
         fn translate(&mut self, delta: Point) {
@@ -462,6 +527,48 @@ mod tests {
             [
                 PaintEvent::Save,
                 PaintEvent::Translate(Point::new(0, 0)),
+                PaintEvent::Restore,
+            ]
+        );
+    }
+
+    #[test]
+    fn with_clip_records_save_clip_translate_restore() {
+        let mut p = RecordingPainter::new();
+        let origin = Point::new(3, 7);
+        let clip = Rect::new(Point::new(0, 0), Size::new(100, 50));
+        {
+            let _guard = TranslateGuard::with_clip(&mut p, origin, clip);
+        }
+        assert_eq!(
+            p.events,
+            [
+                PaintEvent::Save,
+                PaintEvent::ClipRect(clip),
+                PaintEvent::Translate(origin),
+                PaintEvent::Restore,
+            ]
+        );
+    }
+
+    #[test]
+    fn with_clip_painter_accessor_works() {
+        let mut p = RecordingPainter::new();
+        let clip = Rect::new(Point::new(0, 0), Size::new(80, 40));
+        {
+            let mut guard = TranslateGuard::with_clip(&mut p, Point::new(0, 0), clip);
+            guard.painter().fill_rect(
+                Rect::new(Point::new(0, 0), Size::new(10, 10)),
+                &Brush::solid(Color::WHITE),
+            );
+        }
+        assert_eq!(
+            p.events,
+            [
+                PaintEvent::Save,
+                PaintEvent::ClipRect(clip),
+                PaintEvent::Translate(Point::new(0, 0)),
+                PaintEvent::FillRect,
                 PaintEvent::Restore,
             ]
         );

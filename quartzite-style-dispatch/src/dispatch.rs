@@ -149,6 +149,8 @@ fn visit(
 
     style.draw_widget(widget, painter, palette);
 
+    let children_clip = widget.children_clip_rect();
+
     for child_id in widget.children() {
         let Some(child) = resolver.resolve(child_id) else {
             tracing::warn!(id = ?child_id, "dispatch_paint: resolver miss");
@@ -158,7 +160,15 @@ fn visit(
             continue;
         }
         let origin = child.widget_base().geometry.origin();
-        let mut guard = TranslateGuard::new(painter, origin);
+        #[allow(
+            clippy::option_if_let_else,
+            reason = "map_or_else here hurts readability"
+        )]
+        let mut guard = if let Some(clip) = children_clip {
+            TranslateGuard::with_clip(painter, origin, clip)
+        } else {
+            TranslateGuard::new(painter, origin)
+        };
         visit(child_id, resolver, guard.painter(), palette, style);
     }
 }
@@ -186,6 +196,7 @@ mod tests {
         Save,
         Restore,
         Translate(Point),
+        ClipRect(Rect),
         Other,
     }
 
@@ -257,7 +268,9 @@ mod tests {
         }
         fn draw_image(&mut self, _rect: Rect, _image: &Image) {}
         fn draw_path(&mut self, _path: &Path, _pen: &Pen, _brush: &Brush) {}
-        fn clip_rect(&mut self, _rect: Rect) {}
+        fn clip_rect(&mut self, rect: Rect) {
+            self.events.push(PaintEvent::ClipRect(rect));
+        }
         fn text_carets(&mut self, _text: &str, _font: &Font) -> &mut dyn TextCaretCursor {
             &mut self.null_caret
         }
@@ -675,5 +688,309 @@ mod tests {
         dispatch_paint(root_id, &resolver, &mut painter, &Palette::default());
 
         assert_eq!(count_fill_rects(&painter.events), 1);
+    }
+
+    // ── clip-rect dispatch tests (AC5–AC11) ──────────────────────────────────
+
+    // AC5: ScrollArea with visible content → ClipRect emitted between Save and Translate.
+    #[test]
+    fn scroll_area_with_content_emits_clip_rect_between_save_and_translate() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let area_id = ObjectId::new();
+        let label_id = ObjectId::new();
+
+        let mut area = ScrollArea::new();
+        area.show();
+        area.set_geometry(Rect::new(Point::new(0, 0), Size::new(200, 100)));
+        area.content_widget = Some(label_id);
+
+        let label_origin = Point::new(0, 0);
+        let mut label = Label::new("content".into());
+        label.show();
+        label.set_geometry(Rect::new(label_origin, Size::new(300, 200)));
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(area_id, area);
+        resolver.insert(label_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(area_id, &resolver, &mut painter, &Palette::default());
+
+        // Expected sequence: FillRect(area), Save, ClipRect(content_rect), Translate, FillRect(label), Restore
+        let relevant: Vec<&PaintEvent> = painter
+            .events
+            .iter()
+            .filter(|e| {
+                matches!(
+                    e,
+                    PaintEvent::FillRect
+                        | PaintEvent::Save
+                        | PaintEvent::Restore
+                        | PaintEvent::Translate(_)
+                        | PaintEvent::ClipRect(_)
+                )
+            })
+            .collect();
+        assert_eq!(relevant.len(), 6, "events: {relevant:?}");
+        assert!(
+            matches!(relevant[0], PaintEvent::FillRect),
+            "got: {relevant:?}"
+        );
+        assert!(matches!(relevant[1], PaintEvent::Save), "got: {relevant:?}");
+        assert!(
+            matches!(relevant[2], PaintEvent::ClipRect(_)),
+            "expected ClipRect after Save: {relevant:?}"
+        );
+        assert!(
+            matches!(relevant[3], PaintEvent::Translate(_)),
+            "expected Translate after ClipRect: {relevant:?}"
+        );
+        assert!(
+            matches!(relevant[4], PaintEvent::FillRect),
+            "got: {relevant:?}"
+        );
+        assert!(
+            matches!(relevant[5], PaintEvent::Restore),
+            "got: {relevant:?}"
+        );
+    }
+
+    // AC6: ScrollArea without content → no ClipRect emitted.
+    #[test]
+    fn scroll_area_without_content_emits_no_clip_rect() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let area_id = ObjectId::new();
+
+        let mut area = ScrollArea::new();
+        area.show();
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(area_id, area);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(area_id, &resolver, &mut painter, &Palette::default());
+
+        assert!(
+            !painter
+                .events
+                .iter()
+                .any(|e| matches!(e, PaintEvent::ClipRect(_))),
+            "unexpected ClipRect: {:?}",
+            painter.events
+        );
+    }
+
+    // AC7: Hidden ScrollArea → no ClipRect emitted.
+    #[test]
+    fn hidden_scroll_area_emits_no_clip_rect() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let area_id = ObjectId::new();
+        let label_id = ObjectId::new();
+
+        let area = ScrollArea::new(); // not shown
+        let mut label = Label::new("content".into());
+        label.show();
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(area_id, area);
+        resolver.insert(label_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(area_id, &resolver, &mut painter, &Palette::default());
+
+        assert!(
+            painter.events.is_empty(),
+            "expected empty events for hidden root: {:?}",
+            painter.events
+        );
+    }
+
+    // AC8: Hidden content under ScrollArea → no ClipRect emitted.
+    #[test]
+    fn hidden_content_under_scroll_area_emits_no_clip_rect() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let area_id = ObjectId::new();
+        let label_id = ObjectId::new();
+
+        let mut area = ScrollArea::new();
+        area.show();
+        area.content_widget = Some(label_id);
+
+        let label = Label::new("content".into()); // not shown
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(area_id, area);
+        resolver.insert(label_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(area_id, &resolver, &mut painter, &Palette::default());
+
+        assert!(
+            !painter
+                .events
+                .iter()
+                .any(|e| matches!(e, PaintEvent::ClipRect(_))),
+            "unexpected ClipRect for hidden content: {:?}",
+            painter.events
+        );
+        assert_eq!(count_fill_rects(&painter.events), 1);
+    }
+
+    // AC9: Container with children → no ClipRect emitted.
+    #[test]
+    fn container_emits_no_clip_rect() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let outer_id = ObjectId::new();
+        let label_id = ObjectId::new();
+
+        let mut outer = Container::new();
+        outer.show();
+        outer.add_child(label_id);
+
+        let mut label = Label::new("L".into());
+        label.show();
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(outer_id, outer);
+        resolver.insert(label_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(outer_id, &resolver, &mut painter, &Palette::default());
+
+        assert!(
+            !painter
+                .events
+                .iter()
+                .any(|e| matches!(e, PaintEvent::ClipRect(_))),
+            "unexpected ClipRect from Container: {:?}",
+            painter.events
+        );
+    }
+
+    // AC10: ClipRect is paired correctly within Save/Restore scope.
+    #[test]
+    fn clip_rect_pairs_with_save_restore() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let area_id = ObjectId::new();
+        let label_id = ObjectId::new();
+
+        let mut area = ScrollArea::new();
+        area.show();
+        area.set_geometry(Rect::new(Point::new(0, 0), Size::new(100, 80)));
+        area.content_widget = Some(label_id);
+
+        let mut label = Label::new("content".into());
+        label.show();
+        label.set_geometry(Rect::new(Point::new(0, 0), Size::new(100, 80)));
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(area_id, area);
+        resolver.insert(label_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(area_id, &resolver, &mut painter, &Palette::default());
+
+        // Saves and restores must be balanced even when ClipRect is present.
+        assert!(
+            saves_and_restores_balanced(&painter.events),
+            "saves/restores unbalanced: {:?}",
+            painter.events
+        );
+        // ClipRect must appear after Save (and before Restore).
+        let save_pos = painter
+            .events
+            .iter()
+            .position(|e| matches!(e, PaintEvent::Save))
+            .expect("expected Save");
+        let clip_pos = painter
+            .events
+            .iter()
+            .position(|e| matches!(e, PaintEvent::ClipRect(_)))
+            .expect("expected ClipRect");
+        let restore_pos = painter
+            .events
+            .iter()
+            .rposition(|e| matches!(e, PaintEvent::Restore))
+            .expect("expected Restore");
+        assert!(save_pos < clip_pos, "ClipRect must come after Save");
+        assert!(clip_pos < restore_pos, "Restore must come after ClipRect");
+    }
+
+    // AC11: Custom widget with children_clip_rect returning Some → ClipRect emitted.
+    // Test-only widget with a hand-written AsWidget impl that returns a custom clip rect.
+    struct ClippingWidget {
+        base: WidgetBase,
+        child: ObjectId,
+    }
+    impl quartzite_core::AsObject for ClippingWidget {
+        fn object_base(&self) -> &quartzite_core::ObjectBase {
+            self.base.object_base()
+        }
+        fn object_base_mut(&mut self) -> &mut quartzite_core::ObjectBase {
+            self.base.object_base_mut()
+        }
+        fn as_any(&self) -> &dyn ::core::any::Any {
+            self
+        }
+        fn as_any_mut(&mut self) -> &mut dyn ::core::any::Any {
+            self
+        }
+    }
+    impl AsWidget for ClippingWidget {
+        fn widget_base(&self) -> &WidgetBase {
+            &self.base
+        }
+        fn widget_base_mut(&mut self) -> &mut WidgetBase {
+            &mut self.base
+        }
+        fn widget_view(&self) -> quartzite_widgets::WidgetView<'_> {
+            quartzite_widgets::WidgetView::Other(self)
+        }
+        fn children(&self) -> quartzite_widgets::WidgetChildren<'_> {
+            quartzite_widgets::WidgetChildren::Optional(Some(self.child))
+        }
+        fn children_clip_rect(&self) -> ::core::option::Option<Rect> {
+            Some(Rect::new(Point::new(5, 5), Size::new(90, 70)))
+        }
+    }
+
+    #[test]
+    fn custom_clipping_widget_emits_clip_rect() {
+        let _lock = quartzite_test_helpers::test_lock();
+        install_mark_style();
+        let root_id = ObjectId::new();
+        let child_id = ObjectId::new();
+
+        let mut root = ClippingWidget {
+            base: WidgetBase::new(),
+            child: child_id,
+        };
+        root.show();
+        root.set_geometry(Rect::new(Point::new(0, 0), Size::new(100, 80)));
+
+        let mut label = Label::new("child".into());
+        label.show();
+        label.set_geometry(Rect::new(Point::new(0, 0), Size::new(50, 40)));
+
+        let mut resolver = StubResolver::new();
+        resolver.insert(root_id, root);
+        resolver.insert(child_id, label);
+
+        let mut painter = RecordingPainter::new();
+        dispatch_paint(root_id, &resolver, &mut painter, &Palette::default());
+
+        let custom_clip = Rect::new(Point::new(5, 5), Size::new(90, 70));
+        assert!(
+            painter.events.contains(&PaintEvent::ClipRect(custom_clip)),
+            "expected ClipRect({custom_clip:?}) in events: {:?}",
+            painter.events
+        );
+        assert!(saves_and_restores_balanced(&painter.events));
     }
 }
