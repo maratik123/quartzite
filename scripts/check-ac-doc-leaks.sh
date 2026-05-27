@@ -1,73 +1,33 @@
 #!/usr/bin/env bash
-# scripts/check-rustdoc-internal-refs.sh
+# scripts/check-ac-doc-leaks.sh
 #
-# Regression gate for the "no repo-internal references in published-rustdoc
-# doc-comments" rule documented in ai-docs/doc-convention.md § Self-sufficiency.
-# Authored 2026-05-21 for issue #336 (PR feat/2026-05-21-rustdoc-strip-internal-refs).
+# Regression gate for the "no AC# acceptance-criteria tokens in published-rustdoc
+# doc-comments" rule introduced by issue #559 (PR feat/2026-05-27-ac-doc-leak-guard,
+# spec: ai-docs/plans/2026-05-27-ac-doc-leak-guard.spec.md).
 #
 # Walks the workspace's Rust source tree (excluding tests/, benches/,
-# quartzite-test-helpers/src/, and target/), runs the two audit patterns from
-# the spec's ## Audit patterns section against every line beginning with a
-# ///, //!, or #[doc = "..."] doc-comment, and exits non-zero on any retained
-# match. The "#[cfg(test)]-region filter" (option b — backward-scan heuristic)
-# drops hits that are inside a #[cfg(test)] sibling-file or an inline
-# #[cfg(test)] mod ... { ... } block, because those lines are not part of the
-# published rustdoc surface.
+# quartzite-test-helpers/src/, and target/) and matches lines that begin with a
+# doc-comment marker (///, //!, or #[doc = "..."]) and contain a token of shape
+# \bAC[0-9]+[a-z]*\b. The "#[cfg(test)]-region filter" drops hits that are
+# inside a #[cfg(test)] sibling-file or an inline #[cfg(test)] mod ... { ... }
+# block, because those lines are not part of the published rustdoc surface.
 #
-# Known #[cfg(test)]-enclosed false-positive sites in-tree at script-authoring
-# time (worked examples — these MUST be filtered out and the gate MUST exit 0):
+# Source-of-truth donor file. scripts/check-rustdoc-internal-refs.sh is the
+# structural precedent for this gate; the `sibling_re` regex, the
+# `is_cfg_test_enclosed` awk helper, and the `known_sibling_site` fail-loud
+# smoke-check block are copied verbatim from that script. Any bug fix to one
+# script's #[cfg(test)]-region filter MUST land in the other in the same PR
+# (drift risk tracked in the spec's design doc § Risks).
 #
-#   1. quartzite-style/src/default_style_tests.rs:2
-#        Sibling-file shape. The file is attached via
-#          quartzite-style/src/default_style/mod.rs:392-394
-#            #[cfg(test)]
-#            #[path = "../default_style_tests.rs"]
-#            mod tests;
-#        Every doc-comment in this file is consequently #[cfg(test)]-enclosed.
-#
-#   2. quartzite-runtime/src/timer_drivers.rs:450
-#        Inline-shape. The file has #[cfg(test)] at line 425 followed
-#        immediately by `mod tests {`, and line 450 is a doc-comment inside
-#        that block.
-#
-#   3. quartzite-renderer/src/render_harness.rs:543
-#        Inline-shape. The file has #[cfg(test)] at line 440 followed by
-#        `mod tests {`, and line 543 is a doc-comment inside that block.
-#
-# Implementation-limitation note. The #[cfg(test)]-region filter is a
-# heuristic, not a full Rust parser. It handles exactly the two shapes above:
-#   - inline `#[cfg(test)] mod NAME { ... }` (with brace-depth tracking)
-#   - sibling-file `#[cfg(test)] #[path = "NAME.rs"] mod IDENT;`
-# More exotic shapes — `#[cfg(any(test, feature = "bar"))]`, nested
-# #[cfg(test)] inside another `cfg`, doc-comments inside `cfg(test)`
-# expression blocks rather than `mod` blocks — would need follow-up if they
-# appear. The intent is to catch real published-surface leaks pre-merge, not
-# to verify Rust semantics.
-#
-# Optional flags:
-#   --list-skipped  print the file:line of each hit that was filtered out as
-#                   `#[cfg(test)]`-enclosed (debugging / verification mode).
+# v1 scope. No `--list-skipped` debugging flag (the precedent ships one; this
+# script can grow one in a follow-up if developers want a debugging mode).
 #
 # Exit codes:
 #   0  no retained published-surface hits
 #   1  at least one retained published-surface hit (gate FAILS)
-#   2  internal usage error (missing tool, bad flag)
+#   2  internal usage error (missing tool, missing known sibling site)
 
 set -euo pipefail
-
-LIST_SKIPPED=0
-case "${1:-}" in
-    --list-skipped)
-        LIST_SKIPPED=1
-        shift
-        ;;
-    "")
-        ;;
-    *)
-        echo "Usage: $0 [--list-skipped]" >&2
-        exit 2
-        ;;
-esac
 
 # Resolve repo root so the script works from any cwd.
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -79,18 +39,15 @@ if ! command -v rg >/dev/null 2>&1; then
     exit 2
 fi
 
-# Patterns from ai-docs/doc-convention.md § Self-sufficiency, identical to the
-# spec's ## Audit patterns section (Pattern A includes the round-3 design-system/,
-# CONTRIBUTING.md, .claude/ tokens AND the round-5 bare \b#[0-9]{1,4}\b token;
-# Pattern B includes the 2026-05-14 contributor-tooling tokens).
-PATTERN_A='^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(issues|pull|tree|blob|commit|raw)/|ai-docs/|AGENTS\.md|CLAUDE\.md|CONTRIBUTING\.md|design-system/|\.claude/|\bspec AC[0-9]|\bplan #[0-9]|tracked in|deferred to a future (plan|spec)|\b#[0-9]{1,4}\b)'
-PATTERN_B='^\s*(///|//!).*(\bVerify locally|\bcargo build -p|\bcargo test\b|\bcargo clippy\b|\bcargo fmt\b|RUSTDOCFLAGS|cargo doc --|scripts/[a-z]|\bthis PR\b|\bthis commit\b|\bthis implementation\b)'
+# Single combined regex covering all three published-doc-comment shapes
+# (///, //!, #[doc = "..."]) and the AC<digits>[lowercase]* token alphabet.
+PATTERN='^\s*(///|//!|#\[doc\s*=).*\bAC[0-9]+[a-z]*\b'
 
-# Raw hit list from both patterns, scoped to published-surface paths.
-# Note: the test-surface globs match the spec's ## Out of scope §1 and Scope §4
-# (quartzite-test-helpers now has [lib] doc = false, so its src/ is also out).
+# Raw hit list, scoped to published-surface paths (matches the precedent's
+# exclusion globs: out-of-process tests/, benches/, quartzite-test-helpers
+# (which sets [lib] doc = false), and the target/ build cache).
 hits_raw=$(rg --type rust -n --no-heading \
-    -e "$PATTERN_A" -e "$PATTERN_B" \
+    -e "$PATTERN" \
     -g '!**/tests/**' -g '!**/benches/**' \
     -g '!quartzite-test-helpers/src/**' -g '!target/**' \
     || true)
@@ -112,18 +69,24 @@ fi
 sibling_re='#\[cfg\(test\)\][[:space:]]*(#\[[^]]*\][[:space:]]*)*#\[path[[:space:]]*=[[:space:]]*"([^"]+\.rs)"\][[:space:]]*(#\[[^]]*\][[:space:]]*)*mod[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]*;'
 
 # Verify the multiline form actually captures the known site as a smoke check —
-# if rg --multiline returns empty against default_style/mod.rs (where we know the
-# shape exists in-tree), error out loudly so a future regex regression is
-# caught at script-startup time, not silently masked as "no false-positives".
+# if rg --multiline returns empty against default_style/mod.rs (where we know
+# the shape exists in-tree at lines 392-394), error out loudly so a future
+# regex regression is caught at script-startup time, not silently masked as
+# "no false-positives".
+#
+# Fail-loud shape (round-2 design directive vs precedent round-1 silent-skip):
+# the missing-site branch MUST `exit 2`, NOT a silent `if [[ -f ... ]]` skip.
+# The precedent's twin scripts/check-rustdoc-internal-refs.sh is being patched
+# to the same shape in subtask 4 of this PR.
 known_sibling_site=quartzite-style/src/default_style/mod.rs
 if [[ ! -f $known_sibling_site ]]; then
     echo "error: known sibling-attached site $known_sibling_site not found" >&2
-    echo "       update known_sibling_site in scripts/check-rustdoc-internal-refs.sh" >&2
+    echo "       update known_sibling_site in scripts/check-ac-doc-leaks.sh" >&2
     exit 2
 fi
 if ! rg --type rust --multiline -o "$sibling_re" "$known_sibling_site" >/dev/null 2>&1; then
     echo "error: shape-2 multiline regex no longer matches the known sibling-attached site $known_sibling_site:392-394" >&2
-    echo "       update sibling_re in scripts/check-rustdoc-internal-refs.sh" >&2
+    echo "       update sibling_re in scripts/check-ac-doc-leaks.sh" >&2
     exit 2
 fi
 sibling_attached_files=""
@@ -213,21 +176,13 @@ while IFS= read -r hit; do
     retained+=("$file:$line:$text")
 done <<<"$hits_raw"
 
-if (( LIST_SKIPPED )); then
-    if (( ${#skipped[@]} > 0 )); then
-        echo "# Skipped (cfg(test)-enclosed):"
-        printf '%s\n' "${skipped[@]}"
-    else
-        echo "# Skipped (cfg(test)-enclosed): (none)"
-    fi
-fi
-
 if (( ${#retained[@]} > 0 )); then
-    echo "error: repo-internal references found in published-surface doc-comments:" >&2
+    echo "error: AC# acceptance-criteria tokens found in published-surface doc-comments:" >&2
     printf '  %s\n' "${retained[@]}" >&2
     echo "" >&2
-    echo "See ai-docs/doc-convention.md § Self-sufficiency: no repo-internal references" >&2
-    echo "for the rule and Pattern A / Pattern B definitions." >&2
+    echo "See ai-docs/plans/2026-05-27-ac-doc-leak-guard.spec.md (issue #559)" >&2
+    echo "for the rule. AC# tokens belong in test traceability (// line comments)," >&2
+    echo "not in published rustdoc surfaces (///, //!, #[doc = \"...\"])." >&2
     exit 1
 fi
 
