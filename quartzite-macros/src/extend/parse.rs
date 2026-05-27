@@ -47,6 +47,9 @@ pub(crate) struct BaseField {
     pub doc_present: bool,
     /// Per-item level from `#[undocumented(allow|warn|deny)]` on this field.
     pub per_item_level: Option<Level>,
+    /// Ident of the method to call for `children_clip_rect`, from
+    /// `#[clip_rect(method = "<ident>")]`.  Only valid when `ty_ident == "WidgetBase"`.
+    pub clip_rect_method: Option<Ident>,
 }
 
 #[cfg_attr(test, derive(Debug))]
@@ -123,6 +126,35 @@ fn extract_widget_children_kind(
     Ok(kind)
 }
 
+/// Removes and parses `#[clip_rect(method = "<ident>")]` from `attrs`.
+/// Returns `Ok(None)` if absent; `Ok(Some(ident))` on success; `Err` if malformed.
+fn extract_clip_rect_method(attrs: &mut Vec<syn::Attribute>) -> syn::Result<Option<Ident>> {
+    let Some(pos) = attrs.iter().position(|a| a.path().is_ident("clip_rect")) else {
+        return Ok(None);
+    };
+    let attr = attrs.remove(pos);
+    let span = attr.span();
+    let mut method: Option<Ident> = None;
+    attr.parse_nested_meta(|meta| {
+        if meta.path.is_ident("method") {
+            let value = meta.value()?;
+            let s: syn::LitStr = value.parse()?;
+            let ident = Ident::new(&s.value(), s.span());
+            method = Some(ident);
+            Ok(())
+        } else {
+            Err(meta.error("expected `method = \"<ident>\"`"))
+        }
+    })?;
+    if method.is_none() {
+        return Err(syn::Error::new(
+            span,
+            "#[clip_rect] requires `method = \"<ident>\"`",
+        ));
+    }
+    Ok(method)
+}
+
 /// Extracts the last path-segment ident from a `Type::Path`.
 fn extract_last_ident(ty: &Type, context: &Ident) -> syn::Result<Ident> {
     let seg = match ty {
@@ -137,6 +169,10 @@ fn extract_last_ident(ty: &Type, context: &Ident) -> syn::Result<Ident> {
     })
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "Sequential field-classification loop with validation — extracting sub-steps would split one logical pass into noise"
+)]
 pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput> {
     let mut derive: DeriveInput = parse2(input)?;
 
@@ -187,18 +223,32 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
         let is_base = extract_attr(&mut field.attrs, "base");
         let is_mixin = extract_attr(&mut field.attrs, "mixin");
         let wc_kind = extract_widget_children_kind(&mut field.attrs)?;
+        let clip_rect_method = extract_clip_rect_method(&mut field.attrs)?;
         let field_ident = field.ident.clone().expect("named field has ident");
 
         if is_base {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
+            if clip_rect_method.is_some() && ty_ident != "WidgetBase" {
+                return Err(syn::Error::new(
+                    field_ident.span(),
+                    "#[clip_rect] is only valid on a `WidgetBase` base field",
+                ));
+            }
             base_fields.push(BaseField {
                 ident: field_ident.clone(),
                 ty_ident,
                 ty: field.ty.clone(),
                 doc_present,
                 per_item_level,
+                clip_rect_method,
             });
-        } else if is_mixin {
+        } else if clip_rect_method.is_some() {
+            return Err(syn::Error::new(
+                field_ident.span(),
+                "#[clip_rect] is only valid on a `#[base]` field",
+            ));
+        }
+        if is_mixin {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
             mixin_fields.push(MixinField {
                 ident: field_ident.clone(),
@@ -543,5 +593,81 @@ mod tests {
         });
         assert!(ir.base_field.is_some());
         assert!(ir.widget_children_field.is_some());
+    }
+
+    #[test]
+    fn clip_rect_on_widget_base_field_parsed() {
+        let ir = parse_ok(quote! {
+            struct ScrollArea {
+                #[base]
+                #[clip_rect(method = "content_rect")]
+                widget_base: WidgetBase,
+            }
+        });
+        let base = ir.base_field.as_ref().unwrap();
+        assert_eq!(base.ty_ident, "WidgetBase");
+        assert_eq!(
+            base.clip_rect_method
+                .as_ref()
+                .map(std::string::ToString::to_string),
+            Some("content_rect".to_owned())
+        );
+    }
+
+    #[test]
+    fn clip_rect_absent_is_none() {
+        let ir = parse_ok(quote! {
+            struct Button {
+                #[base]
+                widget_base: WidgetBase,
+            }
+        });
+        assert!(ir.base_field.as_ref().unwrap().clip_rect_method.is_none());
+    }
+
+    #[test]
+    fn clip_rect_on_non_widget_base_errors() {
+        let err = parse_err(quote! {
+            struct Panel {
+                #[base]
+                #[clip_rect(method = "content_rect")]
+                layout: LayoutBase,
+            }
+        });
+        assert!(
+            err.contains("#[clip_rect] is only valid on a `WidgetBase` base field"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn clip_rect_on_non_base_field_errors() {
+        let err = parse_err(quote! {
+            struct ScrollArea {
+                #[base]
+                widget_base: WidgetBase,
+                #[clip_rect(method = "content_rect")]
+                other: i32,
+            }
+        });
+        assert!(
+            err.contains("#[clip_rect] is only valid on a `#[base]` field"),
+            "unexpected: {err}"
+        );
+    }
+
+    #[test]
+    fn clip_rect_missing_method_key_errors() {
+        let err = parse_err(quote! {
+            struct ScrollArea {
+                #[base]
+                #[clip_rect(content_rect)]
+                widget_base: WidgetBase,
+            }
+        });
+        assert!(
+            err.contains("expected `method = \"<ident>\"`") || err.contains("#[clip_rect]"),
+            "unexpected: {err}"
+        );
     }
 }

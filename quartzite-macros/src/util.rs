@@ -125,6 +125,50 @@ pub(crate) fn widgets_root_from(
     }
 }
 
+/// Returns the leading path fragment for all `::quartzite::geometry::*` references in generated code.
+///
+/// Resolution order (facade-first):
+/// 1. `quartzite` facade found → `::name::geometry` (Name) or absolute path via pkg name (Itself)
+/// 2. `quartzite-geometry` found → `::name` (Name) or absolute path via pkg name (Itself)
+/// 3. Neither found → silent fallback to `::quartzite_geometry`
+///
+/// Used to qualify `Rect` and `Point` in emitted code so they resolve
+/// correctly both from within `quartzite-geometry` and from third-party crates.
+pub(crate) fn geometry_root() -> TokenStream {
+    let pkg_name = std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "quartzite".into());
+    let facade = crate_name("quartzite").ok();
+    let geometry = if facade.is_none() {
+        crate_name("quartzite-geometry").ok()
+    } else {
+        None
+    };
+    geometry_root_from(facade, geometry, &pkg_name)
+}
+
+pub(crate) fn geometry_root_from(
+    facade: Option<FoundCrate>,
+    geometry: Option<FoundCrate>,
+    _pkg_name: &str,
+) -> TokenStream {
+    match facade {
+        // Compiling quartzite facade itself: module `geometry` lives at `crate::geometry`.
+        Some(FoundCrate::Itself) => quote!(crate::geometry),
+        Some(FoundCrate::Name(n)) => {
+            let ident = Ident::new(&n, Span::call_site());
+            quote!(::#ident::geometry)
+        }
+        None => match geometry {
+            // Compiling quartzite-geometry itself: types live in `crate::`.
+            Some(FoundCrate::Itself) => quote!(crate),
+            Some(FoundCrate::Name(n)) => {
+                let ident = Ident::new(&n, Span::call_site());
+                quote!(::#ident)
+            }
+            None => quote!(::quartzite_geometry),
+        },
+    }
+}
+
 pub(crate) fn crate_root_from(
     facade: Option<FoundCrate>,
     core: Option<FoundCrate>,
@@ -367,6 +411,10 @@ mod tests {
         widgets_root_from(facade, widgets, "quartzite-widgets").to_string()
     }
 
+    fn gts(facade: Option<FoundCrate>, geometry: Option<FoundCrate>) -> String {
+        geometry_root_from(facade, geometry, "quartzite-geometry").to_string()
+    }
+
     #[test]
     fn crate_root_facade_itself() {
         assert_eq!(ts(Some(FoundCrate::Itself), None), ":: quartzite :: core");
@@ -430,6 +478,37 @@ mod tests {
     #[test]
     fn widgets_root_fallback() {
         assert_eq!(wts(None, None), ":: quartzite_widgets");
+    }
+
+    #[test]
+    fn geometry_root_facade_itself() {
+        assert_eq!(gts(Some(FoundCrate::Itself), None), "crate :: geometry");
+    }
+
+    #[test]
+    fn geometry_root_facade_name() {
+        assert_eq!(
+            gts(Some(FoundCrate::Name("my_quartzite".into())), None),
+            ":: my_quartzite :: geometry"
+        );
+    }
+
+    #[test]
+    fn geometry_root_geometry_itself() {
+        assert_eq!(gts(None, Some(FoundCrate::Itself)), "crate");
+    }
+
+    #[test]
+    fn geometry_root_geometry_name() {
+        assert_eq!(
+            gts(None, Some(FoundCrate::Name("quartzite_geometry".into()))),
+            ":: quartzite_geometry"
+        );
+    }
+
+    #[test]
+    fn geometry_root_fallback() {
+        assert_eq!(gts(None, None), ":: quartzite_geometry");
     }
 
     #[test]

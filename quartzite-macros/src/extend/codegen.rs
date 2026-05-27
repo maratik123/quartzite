@@ -4,8 +4,8 @@ use syn::Ident;
 
 use super::parse::{BaseField, ExtendInput, MixinField, WidgetChildrenField, WidgetChildrenKind};
 use crate::util::{
-    accessor_name, as_trait_name, crate_root, emit_undocumented_diagnostic, inline_if_concrete,
-    resolve_undocumented_level, widgets_root,
+    accessor_name, as_trait_name, crate_root, emit_undocumented_diagnostic, geometry_root,
+    inline_if_concrete, resolve_undocumented_level, widgets_root,
 };
 
 pub(crate) fn codegen(ir: &ExtendInput) -> TokenStream {
@@ -192,6 +192,7 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     // Extra methods emitted only when THIS struct IS the WidgetBase root.
     let (extra_trait_methods, extra_self_impl_methods) = if self_ident == "WidgetBase" {
         let wr = widgets_root();
+        let gr = geometry_root();
         (
             quote! {
                 /// Returns a typed view of the concrete widget for pattern-matching dispatch.
@@ -201,6 +202,16 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
                 /// _Simple._
                 fn children(&self) -> #wr::WidgetChildren<'_> {
                     #wr::WidgetChildren::Empty
+                }
+                /// Returns the clip rect applied to this widget's children when painting,
+                /// in this widget's local coordinate frame.
+                ///
+                /// Returns `None` for widgets that do not clip their children (the default).
+                /// Override this method to confine child painting to a sub-region.
+                ///
+                /// _Simple._
+                fn children_clip_rect(&self) -> ::core::option::Option<#gr::Rect> {
+                    ::core::option::Option::None
                 }
             },
             quote! {
@@ -321,8 +332,9 @@ fn emit_as_object_impl(
 }
 
 /// Emits `impl As{Parent} for {Self}` via field delegation — no `as_any` (that's in `AsObject`).
-/// When the immediate parent is `WidgetBase`, also emits `widget_view` and optionally
-/// `children` when `widget_children_field` is set.
+/// When the immediate parent is `WidgetBase`, also emits `widget_view`, optionally
+/// `children` when `widget_children_field` is set, and optionally `children_clip_rect`
+/// when `base.clip_rect_method` is set.
 fn emit_delegation_impl(
     self_ident: &Ident,
     base: &BaseField,
@@ -345,57 +357,74 @@ fn emit_delegation_impl(
     let (impl_generics, ty_generics, _) = bare_generics_idents.split_for_impl();
     let inline = inline_if_concrete(generics);
 
-    // Emit widget_view and optionally children only when the immediate parent is WidgetBase.
-    let (widget_view_method, children_method) = if base.ty_ident == "WidgetBase" {
-        let wr = widgets_root();
-        #[allow(
-            clippy::option_if_let_else,
-            reason = "map_or_else here hurts readability"
-        )]
-        let wv = if let Some(variant) = widget_view_variant {
-            let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
-            quote! {
-                #inline
-                fn widget_view(&self) -> #wr::WidgetView<'_> {
-                    #wr::WidgetView::#variant_ident(self)
-                }
-            }
-        } else {
-            quote! {
-                #inline
-                fn widget_view(&self) -> #wr::WidgetView<'_> {
-                    #wr::WidgetView::Other(self)
-                }
-            }
-        };
-        #[allow(
-            clippy::option_if_let_else,
-            reason = "map_or_else here hurts readability"
-        )]
-        let ch = match widget_children_field {
-            Some(wc) => {
-                let field_ident = &wc.ident;
-                let body = match wc.kind {
-                    WidgetChildrenKind::Slice => quote! {
-                        #wr::WidgetChildren::Slice(&self.#field_ident)
-                    },
-                    WidgetChildrenKind::Optional => quote! {
-                        #wr::WidgetChildren::Optional(self.#field_ident)
-                    },
-                };
+    // Emit widget_view, optionally children, and optionally children_clip_rect
+    // only when the immediate parent is WidgetBase.
+    let (widget_view_method, children_method, clip_rect_method_impl) =
+        if base.ty_ident == "WidgetBase" {
+            let wr = widgets_root();
+            let gr = geometry_root();
+            #[allow(
+                clippy::option_if_let_else,
+                reason = "map_or_else here hurts readability"
+            )]
+            let wv = if let Some(variant) = widget_view_variant {
+                let variant_ident = Ident::new(variant, proc_macro2::Span::call_site());
                 quote! {
                     #inline
-                    fn children(&self) -> #wr::WidgetChildren<'_> {
-                        #body
+                    fn widget_view(&self) -> #wr::WidgetView<'_> {
+                        #wr::WidgetView::#variant_ident(self)
                     }
                 }
-            }
-            None => quote! {},
+            } else {
+                quote! {
+                    #inline
+                    fn widget_view(&self) -> #wr::WidgetView<'_> {
+                        #wr::WidgetView::Other(self)
+                    }
+                }
+            };
+            #[allow(
+                clippy::option_if_let_else,
+                reason = "map_or_else here hurts readability"
+            )]
+            let ch = match widget_children_field {
+                Some(wc) => {
+                    let field_ident = &wc.ident;
+                    let body = match wc.kind {
+                        WidgetChildrenKind::Slice => quote! {
+                            #wr::WidgetChildren::Slice(&self.#field_ident)
+                        },
+                        WidgetChildrenKind::Optional => quote! {
+                            #wr::WidgetChildren::Optional(self.#field_ident)
+                        },
+                    };
+                    quote! {
+                        #inline
+                        fn children(&self) -> #wr::WidgetChildren<'_> {
+                            #body
+                        }
+                    }
+                }
+                None => quote! {},
+            };
+            #[allow(
+                clippy::option_if_let_else,
+                reason = "map_or_else here hurts readability"
+            )]
+            let cr_impl = if let Some(method_ident) = &base.clip_rect_method {
+                quote! {
+                    #[inline]
+                    fn children_clip_rect(&self) -> ::core::option::Option<#gr::Rect> {
+                        ::core::option::Option::Some(self.#method_ident())
+                    }
+                }
+            } else {
+                quote! {}
+            };
+            (wv, ch, cr_impl)
+        } else {
+            (quote! {}, quote! {}, quote! {})
         };
-        (wv, ch)
-    } else {
-        (quote! {}, quote! {})
-    };
 
     quote! {
         impl #impl_generics #parent_trait for #self_ident #ty_generics {
@@ -409,6 +438,7 @@ fn emit_delegation_impl(
             }
             #widget_view_method
             #children_method
+            #clip_rect_method_impl
         }
     }
 }
@@ -963,6 +993,92 @@ mod tests {
         assert!(
             out.contains("# [doc"),
             "missing doc attribute on root-trait accessor methods: {out}"
+        );
+    }
+
+    // WidgetBase root trait includes children_clip_rect default-None method.
+    #[test]
+    fn widget_base_root_emits_children_clip_rect_default_none() {
+        let out = emit(quote! {
+            #[root]
+            struct WidgetBase { x: i32 }
+        });
+        assert!(
+            out.contains("fn children_clip_rect"),
+            "missing children_clip_rect in trait: {out}"
+        );
+        assert!(out.contains("None"), "expected None default body: {out}");
+    }
+
+    // Non-WidgetBase root must NOT get children_clip_rect.
+    #[test]
+    fn non_widget_base_root_no_children_clip_rect() {
+        let out = emit(quote! {
+            #[root]
+            struct BoxLayout { x: i32 }
+        });
+        assert!(
+            !out.contains("children_clip_rect"),
+            "unexpected children_clip_rect in non-WidgetBase root: {out}"
+        );
+    }
+
+    // Self-ref impl of WidgetBase does NOT emit children_clip_rect override.
+    #[test]
+    fn widget_base_self_impl_no_clip_rect_override() {
+        let out = emit(quote! {
+            #[root]
+            struct WidgetBase { x: i32 }
+        });
+        // The trait declares children_clip_rect with default body.
+        // The self-ref `impl AsWidget for WidgetBase` must NOT re-declare it.
+        // We check: the impl block (after `impl AsWidget for WidgetBase {`) does not contain fn.
+        // Since both trait and impl appear in output, check count: trait has the decl,
+        // self-ref impl (which only has widget_view) must not repeat it.
+        // Simplest: trait has exactly one `fn children_clip_rect` — only in trait body.
+        let count = out.matches("fn children_clip_rect").count();
+        assert_eq!(
+            count, 1,
+            "expected exactly one children_clip_rect decl (in trait): {out}"
+        );
+    }
+
+    // Widget with #[clip_rect(method = "content_rect")] annotation emits override.
+    #[test]
+    fn clip_rect_annotation_emits_override() {
+        let out = emit(quote! {
+            #[widget_view(variant = "ScrollArea")]
+            struct ScrollArea {
+                #[base]
+                #[clip_rect(method = "content_rect")]
+                widget_base: WidgetBase,
+                #[widget_children(optional)]
+                content_widget: Option<ObjectId>,
+            }
+        });
+        assert!(
+            out.contains("fn children_clip_rect"),
+            "missing children_clip_rect override: {out}"
+        );
+        assert!(
+            out.contains("Some (self . content_rect ())"),
+            "expected Some(self.content_rect()) body: {out}"
+        );
+    }
+
+    // Widget without annotation does NOT emit children_clip_rect override.
+    #[test]
+    fn clip_rect_annotation_absent_no_override() {
+        let out = emit(quote! {
+            #[widget_view(variant = "Button")]
+            struct Button {
+                #[base]
+                widget_base: WidgetBase,
+            }
+        });
+        assert!(
+            !out.contains("fn children_clip_rect"),
+            "unexpected children_clip_rect override in non-annotated widget: {out}"
         );
     }
 }
