@@ -38,6 +38,9 @@ pub(crate) mod object_part;
 ///   override the `AsWidget::children` default. `slice` wraps a `Vec<ObjectId>` field as
 ///   `WidgetChildren::Slice`; `optional` wraps an `Option<ObjectId>` field as
 ///   `WidgetChildren::Optional`. Only meaningful for `AsWidget` subtypes.
+/// - `#[clip_rect(method = "method_name")]` — placed on a `WidgetBase` `#[base]` field to
+///   override `AsWidget::children_clip_rect`. The generated impl calls `self.method_name()`
+///   and wraps the result in `Some(...)`. Only valid on `WidgetBase` base fields.
 ///
 /// # Examples
 ///
@@ -62,7 +65,16 @@ pub(crate) mod object_part;
 /// ```
 #[proc_macro_derive(
     Extend,
-    attributes(root, base, mixin, widget_view, widget_children, undocumented, extend)
+    attributes(
+        root,
+        base,
+        mixin,
+        widget_view,
+        widget_children,
+        clip_rect,
+        undocumented,
+        extend
+    )
 )]
 pub fn derive_extend(input: TokenStream) -> TokenStream {
     extend::expand(input.into()).into()
