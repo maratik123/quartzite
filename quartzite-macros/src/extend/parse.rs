@@ -247,8 +247,7 @@ pub(crate) fn parse(input: proc_macro2::TokenStream) -> syn::Result<ExtendInput>
                 field_ident.span(),
                 "#[clip_rect] is only valid on a `#[base]` field",
             ));
-        }
-        if is_mixin {
+        } else if is_mixin {
             let ty_ident = extract_last_ident(&field.ty, &field_ident)?;
             mixin_fields.push(MixinField {
                 ident: field_ident.clone(),

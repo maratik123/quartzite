@@ -413,7 +413,7 @@ fn emit_delegation_impl(
             )]
             let cr_impl = if let Some(method_ident) = &base.clip_rect_method {
                 quote! {
-                    #[inline]
+                    #inline
                     fn children_clip_rect(&self) -> ::core::option::Option<#gr::Rect> {
                         ::core::option::Option::Some(self.#method_ident())
                     }
