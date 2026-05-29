@@ -1534,3 +1534,11 @@ Never `mv A B && git add B` for a previously-tracked source — the deletion of 
 **Rule:** Future enhancement to `/dependabot-pr`: in Step 0 (snapshot) OR a new dedicated step after CI classification, run `cargo update --dry-run` and `cargo update --verbose` and capture the output into the progress file. Report two facets to the user in Step 6 summary: (a) additional minor/patch updates not in the current Dependabot PR (candidates for `@dependabot recreate` to widen the bump scope, OR for a separate manual `cargo update` commit on master after this PR merges); (b) major-version updates held back by semver (purely informational — user decides whether to bump `Cargo.toml` manually for those). Do NOT auto-edit `Cargo.toml` or `Cargo.lock`; surface only. This is read-only inspection that adds signal at near-zero cost to each Dependabot round.
 **Kind:** correction
 **Escalated?** no
+
+### 2026-05-27 — documentation — published rustdoc on `ScrollArea::content_rect` leaked a GitHub issue number `(#315)`
+
+**What happened:** During `/task 397` (per-widget clip-rect) Step 8, the doc comment on the new `ScrollArea::content_rect()` method read `/// When scrollbar chrome lands (#315), this method insets for the chrome.` — embedding the literal GitHub issue number `(#315)` in published rustdoc. This violates `ai-docs/doc-convention.md` Pattern A (Family A): GitHub issue/PR numbers (`#NN`) are forbidden in published rustdoc because they are meaningless to a docs.rs reader and rot when issues are renumbered/closed. Caught by the `self-review` Subagent at Step 10 Round 1 (flagged `major`); fixed in commit `f297dde` by rewording to self-contained behaviour text: `/// When scrollbar chrome lands, this method will inset for the chrome.`
+
+**Rule:** Never put `#NN` issue/PR references in `///` rustdoc on public items. Forward-looking "this will change when X lands" notes must describe the behaviour change in self-contained prose, with no issue reference. Issue cross-links belong in commit messages, PR bodies, spec/design docs, and `// ` non-doc comments only — never in `///`. Quick pre-commit grep on touched files: `rg '///.*#[0-9]+' <file>` should return nothing.
+**Kind:** correction
+**Escalated?** no
