@@ -186,6 +186,7 @@ mod tests {
     use quartzite_widgets::{
         AsWidget, Button, Container, Label, ScrollArea, WidgetBase, WidgetExt,
     };
+    use std::assert_matches;
     use std::collections::HashMap;
 
     // ── fixtures ──────────────────────────────────────────────────────────────
@@ -511,11 +512,11 @@ mod tests {
             })
             .collect();
         assert_eq!(relevant.len(), 5);
-        assert!(matches!(relevant[0], PaintEvent::FillRect));
-        assert!(matches!(relevant[1], PaintEvent::Save));
-        assert!(matches!(relevant[2], PaintEvent::Translate(p) if *p == Point::new(10, 20)));
-        assert!(matches!(relevant[3], PaintEvent::FillRect));
-        assert!(matches!(relevant[4], PaintEvent::Restore));
+        assert_matches!(relevant[0], PaintEvent::FillRect);
+        assert_matches!(relevant[1], PaintEvent::Save);
+        assert_matches!(relevant[2], PaintEvent::Translate(p) if *p == Point::new(10, 20));
+        assert_matches!(relevant[3], PaintEvent::FillRect);
+        assert_matches!(relevant[4], PaintEvent::Restore);
     }
 
     // ── AC6a: ScrollArea without content → 1 paint ───────────────────────────
@@ -739,7 +740,7 @@ mod tests {
             matches!(relevant[0], PaintEvent::FillRect),
             "got: {relevant:?}"
         );
-        assert!(matches!(relevant[1], PaintEvent::Save), "got: {relevant:?}");
+        assert_matches!(relevant[1], PaintEvent::Save, "got: {relevant:?}");
         let PaintEvent::ClipRect(actual_clip) = relevant[2] else {
             panic!("expected ClipRect after Save: {relevant:?}");
         };
