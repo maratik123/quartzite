@@ -244,6 +244,7 @@ impl Default for Brush {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::assert_matches;
     use peniko::Gradient;
 
     #[test]
@@ -262,17 +263,15 @@ mod tests {
         let start = Point::new(0, 0);
         let end = Point::new(10, 0);
         let brush = Brush::linear_gradient(start, end, Color::RED, Color::BLUE);
-        assert!(
-            matches!(
-                brush.kind(),
-                BrushKind::LinearGradient {
-                    start: s,
-                    end: e,
-                    start_color,
-                    end_color,
-                } if *s == start && *e == end
-                    && *start_color == Color::RED && *end_color == Color::BLUE
-            ),
+        assert_matches!(
+            brush.kind(),
+            BrushKind::LinearGradient {
+                start: s,
+                end: e,
+                start_color,
+                end_color,
+            } if *s == start && *e == end
+                && *start_color == Color::RED && *end_color == Color::BLUE,
             "expected LinearGradient with start={start:?} end={end:?} RED/BLUE"
         );
     }
@@ -281,19 +280,17 @@ mod tests {
     fn radial_gradient_stores_fields() {
         let centre = Point::new(5, 5);
         let brush = Brush::radial_gradient(centre, 3.0, Color::WHITE, Color::BLACK);
-        assert!(
-            matches!(
-                brush.kind(),
-                BrushKind::RadialGradient {
-                    centre: c,
-                    radius,
-                    start_color,
-                    end_color,
-                } if *c == centre
-                    && (*radius - 3.0).abs() < f32::EPSILON
-                    && *start_color == Color::WHITE
-                    && *end_color == Color::BLACK
-            ),
+        assert_matches!(
+            brush.kind(),
+            BrushKind::RadialGradient {
+                centre: c,
+                radius,
+                start_color,
+                end_color,
+            } if *c == centre
+                && (*radius - 3.0).abs() < f32::EPSILON
+                && *start_color == Color::WHITE
+                && *end_color == Color::BLACK,
             "expected RadialGradient with centre={centre:?} radius 3.0, WHITE/BLACK"
         );
     }
@@ -302,22 +299,23 @@ mod tests {
     fn linear_gradient_is_const_fn() {
         const BRUSH: Brush =
             Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
-        assert!(matches!(BRUSH.kind(), BrushKind::LinearGradient { .. }));
+        assert_matches!(BRUSH.kind(), BrushKind::LinearGradient { .. });
     }
 
     #[test]
     fn radial_gradient_is_const_fn() {
         const BRUSH: Brush =
             Brush::radial_gradient(Point::new(5, 5), 10.0, Color::WHITE, Color::BLACK);
-        assert!(matches!(BRUSH.kind(), BrushKind::RadialGradient { .. }));
+        assert_matches!(BRUSH.kind(), BrushKind::RadialGradient { .. });
     }
 
     #[test]
     fn custom_gradient_round_trips() {
         let g = Gradient::new_linear((0.0f64, 0.0f64), (10.0f64, 0.0f64));
         let brush = Brush::custom_gradient(g.clone());
-        assert!(
-            matches!(brush.kind(), BrushKind::Custom(got) if got == &g),
+        assert_matches!(
+            brush.kind(),
+            BrushKind::Custom(got) if got == &g,
             "custom gradient did not round-trip"
         );
     }

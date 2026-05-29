@@ -237,6 +237,7 @@ impl Path {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use core::assert_matches;
 
     #[test]
     fn empty_path_returns_empty_slice() {
@@ -258,9 +259,9 @@ mod tests {
         path.move_to(p0).line_to(p1).close();
         let segs = path.segments();
         assert_eq!(segs.len(), 3);
-        assert!(matches!(segs[0], Segment::MoveTo(p) if p == p0));
-        assert!(matches!(segs[1], Segment::LineTo(p) if p == p1));
-        assert!(matches!(segs[2], Segment::Close));
+        assert_matches!(segs[0], Segment::MoveTo(p) if p == p0);
+        assert_matches!(segs[1], Segment::LineTo(p) if p == p1);
+        assert_matches!(segs[2], Segment::Close);
     }
 
     #[test]
@@ -279,11 +280,11 @@ mod tests {
             .arc_to(centre, radii, 0.0, core::f32::consts::PI);
         let segs = path.segments();
         assert_eq!(segs.len(), 2);
-        assert!(matches!(
+        assert_matches!(
             segs[0],
             Segment::CubicTo(a, b, c) if a == c1 && b == c2 && c == endpoint
-        ));
-        assert!(matches!(
+        );
+        assert_matches!(
             segs[1],
             Segment::ArcTo {
                 centre: cc,
@@ -294,7 +295,7 @@ mod tests {
                 && rr == radii
                 && start_angle == 0.0
                 && sweep_angle == core::f32::consts::PI
-        ));
+        );
     }
 
     #[test]
