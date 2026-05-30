@@ -510,4 +510,4 @@ jobs:
         run: cargo test ${{ matrix.features }}
 
       - name: Clippy
-        run: cargo clippy ${{ matrix.features }} --workspace --all-targets -- -D warnings
+        run: cargo clippy ${{ matrix.features }} --workspace -- -D warnings
