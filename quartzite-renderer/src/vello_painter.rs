@@ -153,6 +153,7 @@ impl TextVisualLineCursor for ParleyLineCursor {
 /// cannot write an exhaustive match directly. Any future variant added in that crate
 /// routes here to `Unknown`, preserving the existing "no brush" fallback semantics
 /// without requiring a `_` wildcard in the two consumer call sites.
+#[derive(Debug)]
 enum LocalBrushKind<'a> {
     Solid(&'a quartzite_paint_api::Color),
     LinearGradient {
@@ -770,6 +771,8 @@ impl Painter for VelloPainter<'_> {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use quartzite_geometry::{Point, Rect, Size};
     use quartzite_paint_api::{Brush, BrushKind, Color, Font, Image, Painter, Path, Pen};
     use vello::Scene;
@@ -936,29 +939,29 @@ mod tests {
     #[test]
     fn local_brush_kind_solid_classifies_correctly() {
         let brush = Brush::solid(Color::RED);
-        assert!(matches!(
+        assert_matches!(
             LocalBrushKind::from_brush_kind(brush.kind()),
             LocalBrushKind::Solid(_)
-        ));
+        );
     }
 
     #[test]
     fn local_brush_kind_linear_gradient_classifies_correctly() {
         let brush =
             Brush::linear_gradient(Point::new(0, 0), Point::new(10, 0), Color::RED, Color::BLUE);
-        assert!(matches!(
+        assert_matches!(
             LocalBrushKind::from_brush_kind(brush.kind()),
             LocalBrushKind::LinearGradient { .. }
-        ));
+        );
     }
 
     #[test]
     fn local_brush_kind_radial_gradient_classifies_correctly() {
         let brush = Brush::radial_gradient(Point::new(5, 5), 5.0, Color::WHITE, Color::BLACK);
-        assert!(matches!(
+        assert_matches!(
             LocalBrushKind::from_brush_kind(brush.kind()),
             LocalBrushKind::RadialGradient { .. }
-        ));
+        );
     }
 
     #[test]
@@ -979,9 +982,9 @@ mod tests {
                 },
             ]);
         let brush = Brush::custom_gradient(gradient);
-        assert!(matches!(
+        assert_matches!(
             LocalBrushKind::from_brush_kind(brush.kind()),
             LocalBrushKind::Custom(_)
-        ));
+        );
     }
 }

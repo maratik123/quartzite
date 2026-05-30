@@ -437,16 +437,16 @@ const fn align_up(value: u32, align: u32) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
 
     #[test]
     fn builder_zero_width_returns_err_from_build() {
         let err = RenderHarnessBuilder::new(0, 64).build().unwrap_err();
-        assert!(
-            matches!(
-                err,
-                RendererError::Paint(PaintError::Other("zero-extent render target"))
-            ),
+        assert_matches!(
+            err,
+            RendererError::Paint(PaintError::Other("zero-extent render target")),
             "unexpected error: {err}"
         );
     }
@@ -454,11 +454,9 @@ mod tests {
     #[test]
     fn builder_zero_height_returns_err_from_build() {
         let err = RenderHarnessBuilder::new(64, 0).build().unwrap_err();
-        assert!(
-            matches!(
-                err,
-                RendererError::Paint(PaintError::Other("zero-extent render target"))
-            ),
+        assert_matches!(
+            err,
+            RendererError::Paint(PaintError::Other("zero-extent render target")),
             "unexpected error: {err}"
         );
     }
@@ -466,10 +464,10 @@ mod tests {
     #[test]
     fn builder_zero_both_returns_err_from_build() {
         let err = RenderHarnessBuilder::new(0, 0).build().unwrap_err();
-        assert!(matches!(
+        assert_matches!(
             err,
             RendererError::Paint(PaintError::Other("zero-extent render target"))
-        ));
+        );
     }
 
     #[test]
@@ -481,10 +479,10 @@ mod tests {
         // Validates builder default without GPU — zero-extent error fires first.
         let harness = RenderHarnessBuilder::new(0, 64).build().unwrap_err();
         // Confirm it's the zero-extent path, not a scale-factor problem.
-        assert!(matches!(
+        assert_matches!(
             harness,
             RendererError::Paint(PaintError::Other("zero-extent render target"))
-        ));
+        );
         // Check the in-memory scale_factor field before GPU init via the builder.
         let builder = RenderHarnessBuilder::new(64, 64);
         assert_eq!(builder.scale_factor, 1.0);
