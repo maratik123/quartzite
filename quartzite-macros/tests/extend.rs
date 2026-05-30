@@ -1,5 +1,6 @@
 //! Integration tests for the `#[derive(Extend)]` macro: `#[root]` trait generation and `#[base]` delegation.
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `extend(undocumented = "allow")` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 
 use quartzite::core::{AsObject, ObjectBase};
@@ -8,6 +9,7 @@ use quartzite_macros::Extend;
 // AC1: #[root] struct generates As{Type} trait and self-ref impl.
 #[derive(Extend)]
 #[root]
+#[extend(undocumented = "allow")]
 struct Widget {
     #[base]
     object_base: ObjectBase,
@@ -28,6 +30,7 @@ fn ac1_root_trait_and_self_impl() {
 // AC2: concrete type with #[base] generates delegation impl for parent trait.
 #[derive(Extend)]
 #[allow(dead_code)]
+#[extend(undocumented = "allow")]
 struct Button {
     #[base]
     widget: Widget,
@@ -60,6 +63,7 @@ struct LayoutBase {
 }
 
 #[derive(Extend)]
+#[extend(undocumented = "allow")]
 struct Panel {
     #[base]
     widget: Widget,
