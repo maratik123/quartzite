@@ -34,6 +34,7 @@ pub struct LoopAlreadyInstalled;
 /// RAII guard that removes the current thread's registry entry on drop.
 ///
 /// Entered inside [`EventLoop::run`] so the registry stays clean even if a closure panics.
+#[derive(Debug)]
 pub(crate) struct RegistryGuard;
 
 impl Drop for RegistryGuard {
@@ -47,6 +48,7 @@ impl Drop for RegistryGuard {
 /// Worker threads register via [`EventLoop::install_for_current_thread`];
 /// [`ConnectionTable`](crate::connection_table::ConnectionTable) looks up the appropriate
 /// loop when routing queued signal invocations.
+#[derive(Debug)]
 pub(crate) struct LoopRegistry;
 
 impl LoopRegistry {

@@ -50,7 +50,7 @@ use crate::loop_registry::{LoopAlreadyInstalled, LoopRegistry, RegistryGuard};
 /// el.post(Box::new(|| println!("hello")));
 /// el.request_stop();
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[root]
 pub struct EventLoop {
     /// Core object data (id, name, thread affinity, signal-block flag).

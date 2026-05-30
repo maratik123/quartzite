@@ -44,6 +44,7 @@ use crate::timer::{TimerConfig, TimerDriver};
 /// std::thread::sleep(Duration::from_millis(200));
 /// timer.stop();
 /// ```
+#[derive(Debug)]
 pub struct ThreadDriver {
     running: Arc<AtomicBool>,
     /// `(Thread handle for unpark, JoinHandle for join)` stored together so `stop()` is atomic.
@@ -136,6 +137,7 @@ impl TimerDriver for ThreadDriver {
 /// std::thread::sleep(Duration::from_millis(200));
 /// timer.stop();
 /// ```
+#[derive(Debug)]
 pub struct AppDriver {
     running: Arc<AtomicBool>,
     handle: Mutex<Option<(Thread, JoinHandle<()>)>>,

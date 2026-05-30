@@ -28,6 +28,7 @@ type SignalIndex = usize;
 /// };
 /// assert_eq!(record.signal_index, 0);
 /// ```
+#[derive(Debug)]
 pub struct ConnectionRecord {
     /// [`ObjectId`] of the object that owns the signal.
     pub sender_id: ObjectId,
@@ -52,6 +53,7 @@ pub struct ConnectionRecord {
 /// let table = ConnectionTable::new();
 /// assert!(table.receivers_for_signal(quartzite_core::ObjectId::new(), 0).is_empty());
 /// ```
+#[derive(Debug)]
 pub struct ConnectionTable {
     connections: RwLock<HashMap<ConnectionId, ConnectionRecord>>,
     by_receiver: RwLock<HashMap<ObjectId, Vec<ConnectionId>>>,
