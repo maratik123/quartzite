@@ -51,6 +51,7 @@ A passing test doesn't mean it's correct. Mentally comment out the production fi
   - Mental test: comment out the production fix → does the test fail? If not → cosmetic → **REJECT**
 - No `unwrap()` in tests without justification?
 - All assertions specific — no vacuous `assert!(true)`?
+- **`assert_matches!` scrutinee impls `Debug`?** `assert_matches!` formats the scrutinee with `{:?}` on mismatch (`Result` needs `T`+`E`; `Box<dyn Trait>` needs a `Debug` supertrait). A diff that adds a production `#[derive(Debug)]` *only* to satisfy a test-only `assert_matches!` is an out-of-scope API change → REJECT; the convert-to-`assert!(matches!(...))` alternative imposes no such bound. (AGENTS.md § Rust Test Conventions.)
 
 ### 4. Safety and correctness
 - `unsafe` blocks: each one justified with a comment?
