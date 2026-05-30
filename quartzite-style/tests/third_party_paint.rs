@@ -1,4 +1,5 @@
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-item
+// `#[undocumented(allow)]` (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 //! Third-party widget integration test — AC8.
 //!
@@ -27,6 +28,7 @@ use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt, WidgetView};
 #[derive(Debug, Extend)]
 struct ThirdPartyWidget {
     #[base]
+    #[undocumented(allow)]
     widget_base: WidgetBase,
 }
 

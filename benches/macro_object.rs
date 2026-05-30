@@ -1,5 +1,6 @@
 //! Benchmarks for the derive-macro `Object` implementation.
-// Bench structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Bench fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -10,6 +11,8 @@ use std::hint::black_box;
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct BenchObject {
     #[base]
     object_base: ObjectBase,

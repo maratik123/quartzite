@@ -1,4 +1,5 @@
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 //! Integration tests for signal-to-signal connections through the `quartzite` facade crate (AC1–AC11).
 
@@ -15,6 +16,8 @@ use quartzite::prelude::*;
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Emitter {
     #[base]
     object_base: ObjectBase,
@@ -29,6 +32,8 @@ impl Emitter {}
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Relay {
     #[base]
     object_base: ObjectBase,
