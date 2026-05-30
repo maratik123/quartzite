@@ -132,6 +132,8 @@ pub(crate) fn drain(type_name: &str) -> Vec<MethodItem> {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
 
     fn make_method(name: &str) -> MethodItem {
@@ -247,8 +249,9 @@ mod tests {
         assert_eq!(drained[0].ident, "compute");
         assert_eq!(drained[0].params.len(), 1);
         assert_eq!(drained[0].params[0].ident, "x");
-        assert!(
-            matches!(drained[0].ret_ty, syn::ReturnType::Type(_, _)),
+        assert_matches!(
+            drained[0].ret_ty,
+            syn::ReturnType::Type(_, _),
             "expected typed return"
         );
     }

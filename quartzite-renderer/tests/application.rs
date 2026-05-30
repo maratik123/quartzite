@@ -18,6 +18,11 @@ fn windowed_application_builder_returns_already_exists_on_second_call() {
         .expect("Application::new() must succeed in a fresh process");
 
     let result = WindowedApplication::new();
+    // Carve-out: NOT converted to `assert_matches!` — the `Ok` variant of
+    // `result` is `WindowedApplication`, which is not `Debug` (it owns a winit
+    // `EventLoop`), so `assert_matches!` (which formats the scrutinee on
+    // mismatch) would fail to compile. `assert!(matches!(...))` does not need
+    // `Debug`, so it stays.
     assert!(
         matches!(
             result,
