@@ -164,7 +164,6 @@ impl Default for WidgetBase {
 /// Built-in widgets return their own variant; third-party widgets default to
 /// [`WidgetView::Other`]. The `#[non_exhaustive]` attribute means match arms must include
 /// a catch-all, keeping new built-in variants non-breaking.
-#[derive(Debug)]
 #[non_exhaustive]
 pub enum WidgetView<'a> {
     /// A [`Button`] widget.
@@ -261,8 +260,6 @@ impl Iterator for WidgetChildrenIter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches;
-
     use super::*;
     use crate::widget_ext::WidgetExt;
     use quartzite_core::AsObject;
@@ -348,7 +345,7 @@ mod tests {
     #[test]
     fn widget_base_widget_view_returns_other() {
         let w = WidgetBase::new();
-        assert_matches!(w.widget_view(), WidgetView::Other(_));
+        assert!(matches!(w.widget_view(), WidgetView::Other(_)));
     }
 
     #[test]

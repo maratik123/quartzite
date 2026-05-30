@@ -125,8 +125,6 @@ mod tests {
     use quartzite_core::{Object, ObjectId};
     use quartzite_geometry::{Point, Rect, Size};
 
-    use std::assert_matches;
-
     use super::*;
 
     #[test]
@@ -176,7 +174,10 @@ mod tests {
     #[test]
     fn widget_view_returns_scroll_area_variant() {
         let area = ScrollArea::new();
-        assert_matches!(area.widget_view(), crate::WidgetView::ScrollArea(_));
+        assert!(matches!(
+            area.widget_view(),
+            crate::WidgetView::ScrollArea(_)
+        ));
     }
 
     #[test]
