@@ -26,7 +26,7 @@ pub struct ObjectNode {
     /// The snapshot of the object at this node.
     pub snapshot: ObjectSnapshot,
     /// Ordered child nodes.
-    pub children: Vec<ObjectNode>,
+    pub children: Vec<Self>,
     /// The original [`ObjectId`](crate::ObjectId) raw u64 of this object at capture time.
     ///
     /// Used by `quartzite_runtime::snapshot::restore_tree` to build an
