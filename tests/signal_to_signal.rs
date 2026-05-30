@@ -3,6 +3,7 @@
 //! Integration tests for signal-to-signal connections through the `quartzite` facade crate (AC1–AC11).
 
 // Integration tests for signal-to-signal connections (AC1–AC11).
+use std::assert_matches;
 use std::sync::{
     Arc,
     atomic::{AtomicI32, AtomicU32, Ordering},
@@ -94,7 +95,7 @@ fn connect_signal_to_signal_unknown_from_signal_returns_error() {
         ConnectionType::Direct,
     )
     .unwrap_err();
-    assert!(matches!(err, SignalConnectionError::UnknownFromSignal(_)));
+    assert_matches!(err, SignalConnectionError::UnknownFromSignal(_));
 }
 
 // ----- AC4: arity mismatch returns ArityMismatch (from < to). -----
@@ -112,10 +113,7 @@ fn connect_signal_to_signal_arity_mismatch_returns_error() {
         ConnectionType::Direct,
     )
     .unwrap_err();
-    assert!(matches!(
-        err,
-        SignalConnectionError::ArityMismatch { from: 0, to: 1 }
-    ));
+    assert_matches!(err, SignalConnectionError::ArityMismatch { from: 0, to: 1 });
 }
 
 // ----- AC4b: from >= to (1-arg → 0-arg): connection succeeds and forwarding fires the target. -----
