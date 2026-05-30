@@ -1,5 +1,3 @@
-// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
-#![allow(deprecated)]
 //! Minimal example introducing the `Counter` object: property read/write and notify-signal wiring through the `quartzite` facade.
 
 use quartzite::prelude::*;
@@ -7,16 +5,20 @@ use quartzite::prelude::*;
 #[derive(Extend, Object)]
 #[root]
 struct Counter {
+    /// Object infrastructure (signals, dynamic dispatch) provided by `Extend`.
     #[base]
     object_base: ObjectBase,
+    /// Current value; writing it fires `count_changed`.
     #[prop(notify = count_changed)]
     pub count: i32,
+    /// Emitted with the new value whenever `count` changes.
     #[signal]
     pub count_changed: Signal<(i32,)>,
 }
 
 #[object_impl]
 impl Counter {
+    /// Resets `count` back to zero.
     #[slot]
     const fn reset(&mut self) {
         self.count = 0;
