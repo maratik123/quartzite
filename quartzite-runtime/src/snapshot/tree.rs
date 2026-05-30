@@ -50,7 +50,7 @@ pub fn capture_tree(tree: &ObjectTree, root_id: ObjectId) -> Result<TreeSnapshot
 fn capture_node(tree: &ObjectTree, id: ObjectId) -> Result<ObjectNode, SerializeError> {
     let snapshot = tree
         .with(id, |obj| capture_object(obj))
-        .ok_or(SerializeError::ObjectNotInTree { id: id.raw() })??;
+        .ok_or_else(|| SerializeError::ObjectNotInTree { id: id.raw() })??;
     let children = tree
         .children_of(id)
         .iter()
@@ -212,6 +212,7 @@ fn remap_value(val: &mut Value, remap: &HashMap<u64, u64>) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
     use std::sync::OnceLock;
 
     use quartzite_core::{
@@ -241,7 +242,7 @@ mod tests {
 
     impl TreeSample {
         fn new_boxed() -> Box<dyn Object> {
-            Box::new(TreeSample {
+            Box::new(Self {
                 base: ObjectBase::new(),
                 count: 0,
                 link: Value::Null,
@@ -440,7 +441,7 @@ mod tests {
             root: quartzite_core::snapshot::ObjectNode {
                 snapshot: quartzite_core::snapshot::ObjectSnapshot {
                     class_name: "X".into(),
-                    properties: Default::default(),
+                    properties: BTreeMap::default(),
                     signals_blocked: false,
                 },
                 children: vec![],
