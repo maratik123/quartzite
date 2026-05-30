@@ -174,9 +174,5 @@ fn ac22_unknown_signal_returns_error() {
     let target: Arc<Mutex<dyn Object>> = Arc::new(Mutex::new(ClickSource::new()));
 
     let result = connect_signal_to_slot(&mut source, "nonexistent", &target, "quit");
-    assert_matches!(
-        result,
-        Err(SignalConnectionError::UnknownFromSignal(_)),
-        "expected UnknownFromSignal, got {result:?}",
-    );
+    assert_matches!(result, Err(SignalConnectionError::UnknownFromSignal(_)));
 }

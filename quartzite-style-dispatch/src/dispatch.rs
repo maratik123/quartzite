@@ -736,8 +736,8 @@ mod tests {
             })
             .collect();
         assert_eq!(relevant.len(), 6, "events: {relevant:?}");
-        assert_matches!(relevant[0], PaintEvent::FillRect, "got: {relevant:?}");
-        assert_matches!(relevant[1], PaintEvent::Save, "got: {relevant:?}");
+        assert_matches!(relevant[0], PaintEvent::FillRect);
+        assert_matches!(relevant[1], PaintEvent::Save);
         let PaintEvent::ClipRect(actual_clip) = relevant[2] else {
             panic!("expected ClipRect after Save: {relevant:?}");
         };
@@ -745,13 +745,9 @@ mod tests {
             *actual_clip, expected_clip,
             "ClipRect rect must equal scroll_area.content_rect()"
         );
-        assert_matches!(
-            relevant[3],
-            PaintEvent::Translate(_),
-            "expected Translate after ClipRect: {relevant:?}"
-        );
-        assert_matches!(relevant[4], PaintEvent::FillRect, "got: {relevant:?}");
-        assert_matches!(relevant[5], PaintEvent::Restore, "got: {relevant:?}");
+        assert_matches!(relevant[3], PaintEvent::Translate(_));
+        assert_matches!(relevant[4], PaintEvent::FillRect);
+        assert_matches!(relevant[5], PaintEvent::Restore);
     }
 
     // AC6: ScrollArea without content → no ClipRect emitted.

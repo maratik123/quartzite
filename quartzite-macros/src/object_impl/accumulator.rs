@@ -249,10 +249,6 @@ mod tests {
         assert_eq!(drained[0].ident, "compute");
         assert_eq!(drained[0].params.len(), 1);
         assert_eq!(drained[0].params[0].ident, "x");
-        assert_matches!(
-            drained[0].ret_ty,
-            syn::ReturnType::Type(_, _),
-            "expected typed return"
-        );
+        assert_matches!(drained[0].ret_ty, syn::ReturnType::Type(_, _));
     }
 }

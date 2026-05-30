@@ -251,11 +251,7 @@ mod tests {
         let mut registry = WindowRegistry::new(true, wgpu::Instance::default());
         // active_loop slot is null — must get OutsideCallback
         let result = registry.try_create_window(Noop);
-        assert_matches!(
-            result,
-            Err(RendererError::OutsideCallback),
-            "expected OutsideCallback, got {result:?}"
-        );
+        assert_matches!(result, Err(RendererError::OutsideCallback));
     }
 
     #[test]
