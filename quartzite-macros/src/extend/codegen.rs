@@ -105,13 +105,25 @@ fn emit_root_trait_and_impl(ir: &ExtendInput) -> TokenStream {
     let acc = accessor_name(self_ident);
     let acc_mut = acc_mut_ident(&acc);
 
-    let supertrait = ir.base_field.as_ref().and_then(|b| {
+    let base_supertrait = ir.base_field.as_ref().and_then(|b| {
         if b.ty_ident == "ObjectBase" {
-            Some(quote! { : #cr::AsObject })
+            Some(quote! { #cr::AsObject })
         } else {
-            as_trait_name(&b.ty_ident).map(|parent_trait| quote! { : #parent_trait })
+            as_trait_name(&b.ty_ident).map(|parent_trait| quote! { #parent_trait })
         }
     });
+
+    // The macro-generated `AsWidget` trait (the `WidgetBase` root only) gains a
+    // `core::fmt::Debug` supertrait so `assert_matches!` can `{:?}`-format
+    // `WidgetView` scrutinees. Confined to the `WidgetBase` literal, mirroring the
+    // `widget_view`/`children` gate below — the Object hierarchy is untouched. The
+    // `Debug` bound must appear even when this root has no base field.
+    let supertrait = match (base_supertrait, self_ident == "WidgetBase") {
+        (Some(base), true) => Some(quote! { : #base + ::core::fmt::Debug }),
+        (Some(base), false) => Some(quote! { : #base }),
+        (None, true) => Some(quote! { : ::core::fmt::Debug }),
+        (None, false) => None,
+    };
 
     let self_name = self_ident.to_string();
     let trait_name = self_trait.to_string();
@@ -825,14 +837,24 @@ mod tests {
             out.contains("WidgetChildren :: Empty"),
             "expected WidgetChildren::Empty default body: {out}"
         );
+        // The generated AsWidget trait carries a core::fmt::Debug supertrait so
+        // assert_matches! can {:?}-format WidgetView scrutinees (AC14).
+        assert!(
+            out.contains(":: core :: fmt :: Debug"),
+            "missing Debug supertrait on generated AsWidget trait: {out}"
+        );
     }
 
-    // Non-WidgetBase root must NOT get widget_view/children.
+    // Non-WidgetBase root must NOT get widget_view/children, NOR the Debug supertrait —
+    // the WidgetBase-literal gate confines the Debug bound to the real AsWidget trait.
     #[test]
     fn non_widget_base_root_no_widget_view() {
         let out = emit(quote! {
             #[root]
-            struct BoxLayout { x: i32 }
+            struct BoxLayout {
+                #[base]
+                object_base: ObjectBase,
+            }
         });
         assert!(
             !out.contains("widget_view"),
@@ -841,6 +863,16 @@ mod tests {
         assert!(
             !out.contains("fn children"),
             "unexpected children in non-WidgetBase root: {out}"
+        );
+        // Supertrait is exactly `: AsObject` — no Debug bound leaks onto the
+        // Object hierarchy.
+        assert!(
+            out.contains("AsObject"),
+            "missing AsObject supertrait on non-WidgetBase root: {out}"
+        );
+        assert!(
+            !out.contains("Debug"),
+            "unexpected Debug supertrait on non-WidgetBase root: {out}"
         );
     }
 
