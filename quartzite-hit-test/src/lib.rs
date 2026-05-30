@@ -12,6 +12,8 @@
 //! `quartzite-style-dispatch` re-exports it so its `dispatch_paint` signature is
 //! unchanged.
 
+mod hit_test;
 mod resolver;
 
+pub use hit_test::hit_test;
 pub use resolver::WidgetResolver;
