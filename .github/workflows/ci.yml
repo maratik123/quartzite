@@ -503,6 +503,16 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.10
 
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          # libfontconfig1-dev: required by parley (yeslogic-fontconfig-sys),
+          # pulled in by quartzite-renderer when the Clippy step lints the full
+          # workspace (--workspace). The Build/Test steps omit --workspace so
+          # they never compile the renderer, but the Clippy step does.
+          sudo apt-get install -y libfontconfig1-dev
+
       - name: Build
         run: cargo build ${{ matrix.features }}
 
