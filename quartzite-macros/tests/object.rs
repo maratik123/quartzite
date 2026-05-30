@@ -1,5 +1,6 @@
 //! Integration tests for the `#[derive(Object)]` macro: property read/write, notify signals, and read-only flags.
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 
 use std::sync::Arc;
@@ -13,6 +14,8 @@ use quartzite_macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Counter {
     #[base]
     object_base: ObjectBase,

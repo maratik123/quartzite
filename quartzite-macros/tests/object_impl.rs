@@ -1,5 +1,6 @@
 //! Integration tests for the `#[object_impl]` and `#[object_part]` attribute macros across sole-mode and multi-block types.
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 
 use quartzite::core::{Object, ObjectBase, Signal, Value};
@@ -9,6 +10,8 @@ use quartzite_macros::{Extend, Object, object_impl, object_part};
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Widget {
     #[base]
     object_base: ObjectBase,
@@ -18,7 +21,7 @@ struct Widget {
     pub value_changed: Signal<(i32,)>,
 }
 
-#[object_impl]
+#[object_impl(undocumented = "allow")]
 impl Widget {
     #[slot]
     const fn set_value(&mut self, v: i32) {
@@ -35,6 +38,8 @@ impl Widget {
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct MultiBlock {
     #[base]
     object_base: ObjectBase,
@@ -43,7 +48,7 @@ struct MultiBlock {
 }
 
 // AC1: #[object_part] on an inherent impl — emits only the cleaned impl block.
-#[object_part]
+#[object_part(undocumented = "allow")]
 impl MultiBlock {
     #[slot]
     const fn via_part(&mut self) {
@@ -52,7 +57,7 @@ impl MultiBlock {
 }
 
 // AC4: #[object_impl] in terminal mode — drains accumulated methods and emits full output.
-#[object_impl]
+#[object_impl(undocumented = "allow")]
 impl MultiBlock {
     #[invokable]
     const fn via_impl(&self) -> i32 {
@@ -68,6 +73,8 @@ trait Resettable {
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct TraitPartWidget {
     #[base]
     object_base: ObjectBase,
@@ -83,7 +90,7 @@ impl Resettable for TraitPartWidget {
     }
 }
 
-#[object_impl]
+#[object_impl(undocumented = "allow")]
 impl TraitPartWidget {
     #[slot]
     const fn increment(&mut self) {

@@ -1,5 +1,6 @@
 //! Integration test verifying macros accessed via the `quartzite::macros` facade emit `::quartzite::core` paths (no direct `quartzite_macros` import needed).
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 
 // Verifies that macros accessed via `quartzite::macros` emit `::quartzite::core` paths —
@@ -9,6 +10,8 @@ use quartzite::macros::{Extend, Object, object_impl};
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Sensor {
     #[base]
     object_base: ObjectBase,

@@ -1,4 +1,5 @@
-// Test structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
+// Test fixtures opt out of the undocumented-item diagnostic via per-block
+// `undocumented = "allow"` attrs (doc prose on internal fixtures is noise).
 #![allow(deprecated)]
 //! Integration test verifying single-dep usage of the `quartzite` facade crate: `quartzite::prelude::*` is sufficient (no direct `quartzite-core` or `quartzite-macros` import needed).
 
@@ -8,6 +9,8 @@ use quartzite::prelude::*;
 
 #[derive(Extend, Object)]
 #[root]
+#[extend(undocumented = "allow")]
+#[object(undocumented = "allow")]
 struct Counter {
     #[base]
     object_base: ObjectBase,

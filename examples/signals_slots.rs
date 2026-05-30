@@ -1,14 +1,14 @@
 //! Example demonstrating signal emission and slot connection patterns through the `quartzite` facade.
-// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
-#![allow(deprecated)]
 
 use quartzite::prelude::*;
 
 #[derive(Extend, Object)]
 #[root]
 struct Greeter {
+    /// Object infrastructure (signals, dynamic dispatch) provided by `Extend`.
     #[base]
     object_base: ObjectBase,
+    /// Emitted with a greeting target name each time `emit_greeted` fires.
     #[signal]
     pub greeted: Signal<(String,)>,
 }

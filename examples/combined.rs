@@ -1,5 +1,3 @@
-// Example structs intentionally lack `///` docs; suppress the undocumented-item diagnostic.
-#![allow(deprecated)]
 //! Shows `Extend`, `Object`, `object_impl`, `object_part`, and `emit!` working together.
 //!
 //! Layout:
@@ -17,11 +15,13 @@ use quartzite::prelude::*;
 #[derive(Extend, Object)]
 #[root]
 struct Counter {
+    /// Object infrastructure (signals, dynamic dispatch) provided by `Extend`.
     #[base]
     object_base: ObjectBase,
     /// Current value; `write_property` fires `count_changed` automatically.
     #[prop(notify = count_changed)]
     pub count: i32,
+    /// Emitted with the new value whenever `count` changes.
     #[signal]
     pub count_changed: Signal<(i32,)>,
     /// Fired (via emit!) when the counter reaches zero.
@@ -32,12 +32,14 @@ struct Counter {
 // Part 1 — arithmetic slots.
 #[object_part]
 impl Counter {
+    /// Increments `count` by one, firing `count_changed` via the notify signal.
     #[slot]
     fn increment(&mut self) {
         // write_property uses emit! internally for the notify signal.
         self.write_property("count", Value::Int((self.count + 1).into()));
     }
 
+    /// Decrements `count` toward zero, emitting `zeroed` when it reaches zero.
     #[slot]
     fn decrement(&mut self) {
         let new = (self.count - 1).max(0);
@@ -57,6 +59,7 @@ trait Resettable {
 
 #[object_part]
 impl Resettable for Counter {
+    /// Resets `count` to zero, emitting both `count_changed` and `zeroed`.
     #[slot]
     fn reset(&mut self) {
         self.count = 0;
@@ -70,6 +73,7 @@ impl Resettable for Counter {
 // Final object_impl — drains both parts and adds an invokable.
 #[object_impl]
 impl Counter {
+    /// Returns the current `count`; callable dynamically via `invoke_method`.
     #[invokable]
     const fn value(&self) -> i32 {
         self.count
@@ -81,6 +85,7 @@ impl Counter {
 /// A Counter that clamps at a configurable maximum.
 #[derive(Extend, Object)]
 struct LimitedCounter {
+    /// Inherited `Counter`; supplies its properties, signals, and slots.
     #[base]
     base: Counter,
     /// Upper bound; increment is a no-op once count == max.
@@ -90,6 +95,7 @@ struct LimitedCounter {
 
 #[object_impl]
 impl LimitedCounter {
+    /// Increments the inherited `count`, but only while it stays below `max`.
     #[slot]
     fn increment(&mut self) {
         if self.base.count < self.max {

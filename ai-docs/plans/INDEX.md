@@ -154,6 +154,7 @@ Legend: ✅ done · 🟢 ready (spec+design, no blockers) · 🟡 spec-only (no 
 | [event-types-crate](done/2026-05-06-event-types-crate.spec.md) | `quartzite-event-types` `quartzite-events` `quartzite-runtime` | ✅ implemented (4 new tests) | — |
 | [recursive-inline-annotations](done/2026-05-07-recursive-inline-annotations.spec.md) | `quartzite-core` `quartzite-geometry` `quartzite-runtime` | ✅ implemented (0 new tests; annotation-only) | — |
 | [all-features-clippy-debt](done/2026-05-30-all-features-clippy-debt.spec.md) | `quartzite-core` `quartzite-runtime` CI | ✅ implemented (0 new tests; lint cleanup — 35 `--all-features` clippy sites across `quartzite-core` (28) + `quartzite-runtime` (7) + Feature-matrix clippy CI gate (no `--all-targets`); pre-existing `#[object_impl]` macro-doc-deny class under `--all-targets --all-features` deferred to #587. Closes #586.) | — |
+| [macro-doc-deny-debt](done/2026-05-30-macro-doc-deny-debt.spec.md) | `quartzite` examples/tests/benches `quartzite-macros` `quartzite-style` CI | ✅ implemented (0 new tests; resolved 51 `#[object_impl]` macro-doc-deny hard errors under `--all-targets --all-features` — genuine `///` docs on 15 `examples/` sites + per-block `undocumented = "allow"` opt-out on 36 macro-internal fixtures; extended the Feature-matrix clippy CI step to `--all-targets`. Closes #587, closes the deferred #586 gap.) | — |
 
 ## Deferred plans
 
