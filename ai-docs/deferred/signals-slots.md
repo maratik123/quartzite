@@ -21,7 +21,7 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | `BlockingQueued` — threading model not yet decided (already deferred in core-types spec) | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #48 |
 | Signal-to-signal connections — blocked on runtime design (already deferred) | [auto-connection spec](../plans/done/2026-05-01-auto-connection.spec.md) | | #49 (closed) |
 | Changes to `Signal::emit` itself (tracked in #38) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #38 (closed) |
-| Serialization of `signals_blocked` state (tracked in #39) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #39 |
+| Serialization of `signals_blocked` state (tracked in #39) | [signals-blocked spec](../plans/done/2026-05-02-signals-blocked.spec.md) | | #39 (closed) |
 | `connect_<signal>_direct` or any other connection type wrappers | [connect-queued-codegen spec](../plans/done/2026-05-03-connect-queued-codegen.spec.md) |  | #246 |
 | Changes to runtime or core crates | [connect-queued-codegen spec](../plans/done/2026-05-03-connect-queued-codegen.spec.md) |  | untracked |
 | `ConnectionTable` changes — guard check is local to `Signal::AutoSlotInner::dispatch`. | [receiver-guard-auto spec](../plans/done/2026-05-03-receiver-guard-auto.spec.md) |  | untracked |
