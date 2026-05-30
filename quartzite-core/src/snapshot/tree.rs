@@ -26,7 +26,7 @@ pub struct ObjectNode {
     /// The snapshot of the object at this node.
     pub snapshot: ObjectSnapshot,
     /// Ordered child nodes.
-    pub children: Vec<ObjectNode>,
+    pub children: Vec<Self>,
     /// The original [`ObjectId`](crate::ObjectId) raw u64 of this object at capture time.
     ///
     /// Used by `quartzite_runtime::snapshot::restore_tree` to build an
@@ -95,7 +95,7 @@ impl TreeSnapshot {
     ///     Err(DeserializeError::UnsupportedVersion { found: u32::MAX, supported: 1 })
     /// ));
     /// ```
-    pub fn validate_version(&self) -> Result<&Self, crate::snapshot::DeserializeError> {
+    pub const fn validate_version(&self) -> Result<&Self, crate::snapshot::DeserializeError> {
         if self.schema_version > crate::snapshot::CURRENT_SCHEMA_VERSION {
             Err(crate::snapshot::DeserializeError::UnsupportedVersion {
                 found: self.schema_version,

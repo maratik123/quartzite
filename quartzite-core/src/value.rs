@@ -568,7 +568,7 @@ impl Serialize for WeakObjectRef {
 impl<'de> Deserialize<'de> for WeakObjectRef {
     #[inline]
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        Ok(WeakObjectRef(u64::deserialize(d)?))
+        Ok(Self(u64::deserialize(d)?))
     }
 }
 
@@ -596,18 +596,18 @@ enum ValueProxy {
 impl From<ValueProxy> for Value {
     fn from(p: ValueProxy) -> Self {
         match p {
-            ValueProxy::Null => Value::Null,
-            ValueProxy::Bool(v) => Value::Bool(v),
-            ValueProxy::Int(v) => Value::Int(v),
-            ValueProxy::Float(v) => Value::Float(v),
-            ValueProxy::String(v) => Value::String(v),
-            ValueProxy::List(v) => Value::List(v),
-            ValueProxy::Map(v) => Value::Map(v),
-            ValueProxy::Bytes(v) => Value::Bytes(v),
-            ValueProxy::Custom(b) => Value::Custom(Arc::from(b)),
-            ValueProxy::Object(id) => Value::Object(WeakObjectRef(id)),
+            ValueProxy::Null => Self::Null,
+            ValueProxy::Bool(v) => Self::Bool(v),
+            ValueProxy::Int(v) => Self::Int(v),
+            ValueProxy::Float(v) => Self::Float(v),
+            ValueProxy::String(v) => Self::String(v),
+            ValueProxy::List(v) => Self::List(v),
+            ValueProxy::Map(v) => Self::Map(v),
+            ValueProxy::Bytes(v) => Self::Bytes(v),
+            ValueProxy::Custom(b) => Self::Custom(Arc::from(b)),
+            ValueProxy::Object(id) => Self::Object(WeakObjectRef(id)),
             ValueProxy::Duration(secs, nanos) => {
-                Value::Duration(core::time::Duration::new(secs, nanos))
+                Self::Duration(core::time::Duration::new(secs, nanos))
             }
         }
     }
@@ -618,24 +618,24 @@ impl Serialize for Value {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeTupleVariant;
         match self {
-            Value::Null => s.serialize_unit_variant("Value", 0, "Null"),
-            Value::Bool(v) => s.serialize_newtype_variant("Value", 1, "Bool", v),
-            Value::Int(v) => s.serialize_newtype_variant("Value", 2, "Int", v),
-            Value::Float(v) => s.serialize_newtype_variant("Value", 3, "Float", v),
-            Value::String(v) => s.serialize_newtype_variant("Value", 4, "String", v),
-            Value::List(v) => s.serialize_newtype_variant("Value", 5, "List", v),
-            Value::Map(v) => s.serialize_newtype_variant("Value", 6, "Map", v),
-            Value::Bytes(v) => s.serialize_newtype_variant("Value", 7, "Bytes", v),
-            Value::Custom(arc) => {
+            Self::Null => s.serialize_unit_variant("Value", 0, "Null"),
+            Self::Bool(v) => s.serialize_newtype_variant("Value", 1, "Bool", v),
+            Self::Int(v) => s.serialize_newtype_variant("Value", 2, "Int", v),
+            Self::Float(v) => s.serialize_newtype_variant("Value", 3, "Float", v),
+            Self::String(v) => s.serialize_newtype_variant("Value", 4, "String", v),
+            Self::List(v) => s.serialize_newtype_variant("Value", 5, "List", v),
+            Self::Map(v) => s.serialize_newtype_variant("Value", 6, "Map", v),
+            Self::Bytes(v) => s.serialize_newtype_variant("Value", 7, "Bytes", v),
+            Self::Custom(arc) => {
                 // typetag provides Serialize for Box<dyn CustomValue>; clone_box is the
                 // minimal cost path to avoid double-borrowing the Arc's inner dyn.
                 let boxed: Box<dyn CustomValue> = arc.as_ref().clone_box();
                 s.serialize_newtype_variant("Value", 8, "Custom", &boxed)
             }
-            Value::Object(WeakObjectRef(id)) => {
+            Self::Object(WeakObjectRef(id)) => {
                 s.serialize_newtype_variant("Value", 9, "Object", id)
             }
-            Value::Duration(d) => {
+            Self::Duration(d) => {
                 let mut tv = s.serialize_tuple_variant("Value", 10, "Duration", 2)?;
                 tv.serialize_field(&d.as_secs())?;
                 tv.serialize_field(&d.subsec_nanos())?;

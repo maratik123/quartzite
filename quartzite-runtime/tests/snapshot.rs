@@ -57,7 +57,7 @@ struct SerdeFixture {
 
 impl SerdeFixture {
     fn new_boxed() -> Box<dyn Object> {
-        Box::new(SerdeFixture {
+        Box::new(Self {
             base: ObjectBase::new(),
             count: 0,
             name: String::new(),
@@ -441,7 +441,7 @@ fn schema_version_rejected() {
         root: ObjectNode {
             snapshot: ObjectSnapshot {
                 class_name: "SerdeFixture".into(),
-                properties: Default::default(),
+                properties: BTreeMap::default(),
                 signals_blocked: false,
             },
             children: vec![],

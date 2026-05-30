@@ -113,6 +113,7 @@ pub fn restore_object(snap: &ObjectSnapshot) -> Result<Box<dyn Object>, Deserial
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::collections::BTreeMap;
     use std::sync::OnceLock;
 
     use quartzite_core::{
@@ -141,7 +142,7 @@ mod tests {
 
     impl Sample {
         fn new_boxed() -> Box<dyn Object> {
-            Box::new(Sample {
+            Box::new(Self {
                 base: ObjectBase::new(),
                 count: 0,
                 name: String::new(),
@@ -311,7 +312,7 @@ mod tests {
 
         let snap = ObjectSnapshot {
             class_name: "DoesNotExist".into(),
-            properties: Default::default(),
+            properties: BTreeMap::default(),
             signals_blocked: false,
         };
         assert!(matches!(
@@ -327,7 +328,7 @@ mod tests {
 
         let snap = ObjectSnapshot {
             class_name: "SnapshotSample".into(),
-            properties: [("count".into(), Value::Bool(true))].into_iter().collect(),
+            properties: std::iter::once(("count".into(), Value::Bool(true))).collect(),
             signals_blocked: false,
         };
         assert!(matches!(
@@ -344,7 +345,7 @@ mod tests {
 
     impl BrokenObject {
         fn new_boxed() -> Box<dyn Object> {
-            Box::new(BrokenObject {
+            Box::new(Self {
                 base: ObjectBase::new(),
             })
         }
