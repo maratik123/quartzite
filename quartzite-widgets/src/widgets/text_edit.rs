@@ -17,7 +17,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(edit.read_property("plain_text"), Some(Value::String(String::new())));
 /// assert_eq!(edit.meta_object().class_name, "TextEdit");
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[widget_view(variant = "TextEdit")]
 pub struct TextEdit {
     /// Base widget — delegates geometry, state, focus policy, and object core.

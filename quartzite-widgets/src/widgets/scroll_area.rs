@@ -37,7 +37,7 @@ pub enum ScrollPolicy {
 /// let area = ScrollArea::new();
 /// assert_eq!(area.meta_object().class_name, "ScrollArea");
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[widget_view(variant = "ScrollArea")]
 pub struct ScrollArea {
     /// Base widget — delegates geometry, state, focus policy, and object core.

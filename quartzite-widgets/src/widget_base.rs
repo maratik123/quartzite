@@ -76,7 +76,7 @@ pub type WidgetStates = BitFlags<WidgetState>;
 /// w.show();
 /// assert!(w.is_visible());
 /// ```
-#[derive(Extend)]
+#[derive(Debug, Extend)]
 #[root]
 pub struct WidgetBase {
     /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.
@@ -164,6 +164,7 @@ impl Default for WidgetBase {
 /// Built-in widgets return their own variant; third-party widgets default to
 /// [`WidgetView::Other`]. The `#[non_exhaustive]` attribute means match arms must include
 /// a catch-all, keeping new built-in variants non-breaking.
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum WidgetView<'a> {
     /// A [`Button`] widget.

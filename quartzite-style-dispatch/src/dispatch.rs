@@ -930,6 +930,7 @@ mod tests {
 
     // AC11: Custom widget with children_clip_rect returning Some → ClipRect emitted.
     // Test-only widget with a hand-written AsWidget impl that returns a custom clip rect.
+    #[derive(Debug)]
     struct ClippingWidget {
         base: WidgetBase,
         child: ObjectId,
