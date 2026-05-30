@@ -352,7 +352,7 @@ Run `/improve` when **≥3 unescalated correction entries**, **≥2 unescalated 
 - Integration tests in `tests/` directory.
 - Use `rstest` for parameterized tests when useful.
 - `mockall` for mocking traits.
-- Assert with `assert_eq!` / `assert_matches!`; `pretty_assertions` crate encouraged for diffs.
+- Assert with `assert_eq!` / `assert_matches!`; `pretty_assertions` crate encouraged for diffs. **`assert_matches!` formats the scrutinee with `{:?}` on mismatch, so its type MUST impl `Debug`** (`Result` needs both `T` + `E`; `Box<dyn Trait>` needs a `Debug` supertrait) — `assert!(matches!(...))` imposes no such bound. If the scrutinee is non-`Debug`, leave `assert!(matches!(...))` as-is; do NOT add a production `#[derive(Debug)]` to satisfy a test-only assertion. Counting `assert!(matches!)` sites for a migration: the multi-line message form is invisible to single-line `rg 'assert!\(matches!'` — use `rg -U`.
 - Test names as `snake_case` describing behavior: `returns_empty_when_not_found`.
 - No `unwrap()` in production code without justifying comment; `expect("reason")` preferred.
 - No `#[allow(clippy::...)]` / `#[allow(dead_code)]` unless unavoidable.

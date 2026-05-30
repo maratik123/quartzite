@@ -57,6 +57,7 @@ Every suspicion — investigate via Read/grep, don't guess. Don't invent problem
 - Tests cover edge cases and error paths, not just the happy path?
 - Any test that would pass even if the production code were deleted (cosmetic test)?
 - Integration tests for public-facing macro output?
+- **`assert_matches!` scrutinee impls `Debug`?** `assert_matches!` formats the scrutinee with `{:?}` on mismatch (`Result` needs `T`+`E`; `Box<dyn Trait>` needs a `Debug` supertrait). A production `#[derive(Debug)]` added *only* to satisfy a test-only `assert_matches!` is an out-of-scope API change — flag it; `assert!(matches!(...))` imposes no such bound. (AGENTS.md § Rust Test Conventions.)
 
 ### 4. Performance
 - O(n²) or worse where O(n) is straightforward?
