@@ -2797,6 +2797,7 @@ version = "0.1.0"
 dependencies = [
  "quartzite-core",
  "quartzite-geometry",
+ "quartzite-hit-test",
  "quartzite-paint-api",
  "quartzite-paint-util",
  "quartzite-style",

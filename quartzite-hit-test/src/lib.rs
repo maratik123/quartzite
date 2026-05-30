@@ -11,3 +11,7 @@
 //! rect) and a point. The shared read-only [`WidgetResolver`] trait lives here;
 //! `quartzite-style-dispatch` re-exports it so its `dispatch_paint` signature is
 //! unchanged.
+
+mod resolver;
+
+pub use resolver::WidgetResolver;

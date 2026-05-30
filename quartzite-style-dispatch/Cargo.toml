@@ -10,6 +10,7 @@ description = "Widget-tree paint dispatch bridging quartzite-widgets and quartzi
 
 [dependencies]
 quartzite-core       = { path = "../quartzite-core" }
+quartzite-hit-test   = { path = "../quartzite-hit-test" }
 quartzite-paint-api  = { path = "../quartzite-paint-api", default-features = false }
 quartzite-paint-util = { path = "../quartzite-paint-util", default-features = false }
 quartzite-style      = { path = "../quartzite-style" }
