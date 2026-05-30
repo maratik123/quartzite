@@ -1,0 +1,27 @@
+[package]
+name = "quartzite-hit-test"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Paint-free point-to-widget hit-testing traversal for quartzite"
+
+[dependencies]
+quartzite-core     = { path = "../quartzite-core" }
+quartzite-geometry = { path = "../quartzite-geometry", default-features = false }
+quartzite-widgets  = { path = "../quartzite-widgets" }
+tracing            = { version = "0.1", default-features = false }
+
+[dev-dependencies]
+quartzite-test-helpers = { path = "../quartzite-test-helpers" }
+tracing-test           = "0.2"
+
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+rustc-args = ["--cfg", "docsrs"]

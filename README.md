@@ -48,7 +48,8 @@ Early development. Core crates and the widget system are implemented; full paint
 | `quartzite-widgets` | ✅ implemented (#46) |
 | `quartzite-style-types` | ✅ implemented (#47, leaf: Palette, ColorRole; #488 DARK_PALETTE; #402 ColorGroup axis + FocusRing) |
 | `quartzite-style` | ✅ implemented (#47, downstream: Style trait, StyleRegistry; #290 DefaultStyle concrete impl; #297 GPU snapshot tests; #318 Container+LineEdit arms; #458 read-only overlay fix; #402 ColorGroup palette migration; #317 StyleClock + caret/selection rendering for TextEdit; #555 design-system conformance audit + Button/Label vertical centring) |
-| `quartzite-style-dispatch` | ✅ implemented (#312, widget-tree paint dispatcher: `dispatch_paint` + `WidgetResolver`; #393 facade `style-dispatch` feature) |
+| `quartzite-style-dispatch` | ✅ implemented (#312, widget-tree paint dispatcher: `dispatch_paint` + `WidgetResolver`; #393 facade `style-dispatch` feature; #395 `WidgetResolver` moved to `quartzite-hit-test`, re-exported here) |
+| `quartzite-hit-test` | ✅ implemented (#395, paint-free reverse-z-order `hit_test(root, point, resolver) -> Option<(ObjectId, Point)>`; owns the immutable `WidgetResolver` trait) |
 
 ## Usage
 

@@ -2673,6 +2673,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "quartzite-hit-test"
+version = "0.1.0"
+dependencies = [
+ "quartzite-core",
+ "quartzite-geometry",
+ "quartzite-test-helpers",
+ "quartzite-widgets",
+ "tracing",
+ "tracing-test",
+]
+
+[[package]]
 name = "quartzite-macros"
 version = "0.1.0"
 dependencies = [
@@ -2785,6 +2797,7 @@ version = "0.1.0"
 dependencies = [
  "quartzite-core",
  "quartzite-geometry",
+ "quartzite-hit-test",
  "quartzite-paint-api",
  "quartzite-paint-util",
  "quartzite-style",
