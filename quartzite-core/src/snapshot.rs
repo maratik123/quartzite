@@ -175,6 +175,10 @@ pub enum DeserializeError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::collections::BTreeMap;
+    #[cfg(feature = "std")]
+    use std::collections::BTreeMap;
 
     #[test]
     fn validate_version_ok() {
@@ -183,7 +187,7 @@ mod tests {
             root: ObjectNode {
                 snapshot: ObjectSnapshot {
                     class_name: "R".into(),
-                    properties: Default::default(),
+                    properties: BTreeMap::default(),
                     signals_blocked: false,
                 },
                 children: vec![],
@@ -200,7 +204,7 @@ mod tests {
             root: ObjectNode {
                 snapshot: ObjectSnapshot {
                     class_name: "R".into(),
-                    properties: Default::default(),
+                    properties: BTreeMap::default(),
                     signals_blocked: false,
                 },
                 children: vec![],
@@ -241,7 +245,7 @@ mod tests {
         };
         let s = err.to_string();
         assert!(s.contains("99"), "display: {s}");
-        assert!(s.contains("1"), "display: {s}");
+        assert!(s.contains('1'), "display: {s}");
     }
 
     #[test]

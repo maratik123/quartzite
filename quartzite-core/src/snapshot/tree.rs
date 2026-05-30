@@ -95,7 +95,7 @@ impl TreeSnapshot {
     ///     Err(DeserializeError::UnsupportedVersion { found: u32::MAX, supported: 1 })
     /// ));
     /// ```
-    pub fn validate_version(&self) -> Result<&Self, crate::snapshot::DeserializeError> {
+    pub const fn validate_version(&self) -> Result<&Self, crate::snapshot::DeserializeError> {
         if self.schema_version > crate::snapshot::CURRENT_SCHEMA_VERSION {
             Err(crate::snapshot::DeserializeError::UnsupportedVersion {
                 found: self.schema_version,
