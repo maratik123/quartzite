@@ -490,6 +490,7 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
+          components: clippy
           cache-shared-key: ${{ runner.os }}-stable-features-${{ matrix.features }}-v2-${{ env.ImageVersion }}
           cache-save-if: ${{ github.ref == 'refs/heads/master' }}
 
@@ -507,3 +508,6 @@ jobs:
 
       - name: Test
         run: cargo test ${{ matrix.features }}
+
+      - name: Clippy
+        run: cargo clippy ${{ matrix.features }} --workspace --all-targets -- -D warnings
