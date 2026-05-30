@@ -13,6 +13,7 @@ members = [
     "quartzite-style-types",
     "quartzite-style",
     "quartzite-style-dispatch",
+    "quartzite-hit-test",
     "quartzite-widgets",
     "quartzite-test-helpers",
 ]
