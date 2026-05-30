@@ -62,6 +62,8 @@ impl Label {}
 mod tests {
     use quartzite_core::{Object, Value};
 
+    use std::assert_matches;
+
     use super::*;
 
     #[test]
@@ -99,6 +101,6 @@ mod tests {
     #[test]
     fn widget_view_returns_label_variant() {
         let label = Label::new("hi".into());
-        assert!(matches!(label.widget_view(), crate::WidgetView::Label(_)));
+        assert_matches!(label.widget_view(), crate::WidgetView::Label(_));
     }
 }

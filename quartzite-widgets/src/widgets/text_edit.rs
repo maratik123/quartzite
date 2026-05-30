@@ -256,6 +256,8 @@ mod tests {
 
     use quartzite_core::{Object, Value};
 
+    use std::assert_matches;
+
     use super::*;
 
     #[test]
@@ -330,7 +332,7 @@ mod tests {
     #[test]
     fn widget_view_returns_text_edit_variant() {
         let edit = TextEdit::new();
-        assert!(matches!(edit.widget_view(), crate::WidgetView::TextEdit(_)));
+        assert_matches!(edit.widget_view(), crate::WidgetView::TextEdit(_));
     }
 
     // ── Caret + selection field tests (subtask 8) ─────────────────────────

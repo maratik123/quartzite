@@ -137,6 +137,8 @@ impl Container {}
 mod tests {
     use quartzite_core::{Object, ObjectId};
 
+    use std::assert_matches;
+
     use super::*;
 
     #[test]
@@ -195,6 +197,6 @@ mod tests {
     #[test]
     fn widget_view_returns_container_variant() {
         let c = Container::new();
-        assert!(matches!(c.widget_view(), crate::WidgetView::Container(_)));
+        assert_matches!(c.widget_view(), crate::WidgetView::Container(_));
     }
 }

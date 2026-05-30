@@ -161,6 +161,8 @@ mod tests {
 
     use quartzite_core::{Object, Value};
 
+    use std::assert_matches;
+
     use super::*;
 
     #[test]
@@ -227,7 +229,7 @@ mod tests {
     #[test]
     fn widget_view_returns_button_variant() {
         let btn = Button::new("OK".into());
-        assert!(matches!(btn.widget_view(), crate::WidgetView::Button(_)));
+        assert_matches!(btn.widget_view(), crate::WidgetView::Button(_));
     }
 
     #[test]
