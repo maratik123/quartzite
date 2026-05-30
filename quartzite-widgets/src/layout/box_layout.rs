@@ -39,7 +39,7 @@ pub enum Direction {
 /// let layout = BoxLayout::new(Direction::Horizontal);
 /// assert_eq!(layout.direction, Direction::Horizontal);
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[root]
 pub struct BoxLayout {
     /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.

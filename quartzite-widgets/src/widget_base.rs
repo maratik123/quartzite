@@ -212,6 +212,7 @@ pub enum WidgetView<'a> {
 /// let children = WidgetChildren::Empty;
 /// assert_eq!(children.into_iter().count(), 0);
 /// ```
+#[derive(Debug)]
 pub enum WidgetChildren<'a> {
     /// Slice of child [`ObjectId`]s — the common case for container widgets.
     Slice(&'a [ObjectId]),
@@ -237,6 +238,7 @@ impl<'a> IntoIterator for WidgetChildren<'a> {
 /// Iterator over [`WidgetChildren`], yielding [`ObjectId`] values.
 ///
 /// Obtained by calling `.into_iter()` on a [`WidgetChildren`] value.
+#[derive(Debug)]
 pub enum WidgetChildrenIter<'a> {
     /// Iterator over a slice of [`ObjectId`]s.
     Slice(std::slice::Iter<'a, ObjectId>),

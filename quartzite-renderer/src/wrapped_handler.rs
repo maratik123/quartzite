@@ -28,6 +28,7 @@ use vello::Scene;
 ///
 /// The caller must ensure the pointer remains valid (points into a live
 /// `WindowRegistry`) for the entire lifetime of this guard.
+#[derive(Debug)]
 pub(crate) struct ActiveLoopGuard(*const Cell<*const ActiveEventLoop>);
 
 impl Drop for ActiveLoopGuard {

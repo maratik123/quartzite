@@ -49,6 +49,7 @@ pub(crate) const BASE_COLOR: peniko::Color = peniko::Color::BLACK;
 ///     .build()
 ///     .expect("GPU available");
 /// ```
+#[derive(Debug)]
 pub struct RenderHarnessBuilder {
     width: u32,
     height: u32,
