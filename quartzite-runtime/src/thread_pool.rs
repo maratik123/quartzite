@@ -24,6 +24,7 @@ type Task = Box<dyn FnOnce() + Send>;
 /// let pool = ThreadPool::new(NonZeroUsize::new(2).unwrap());
 /// pool.spawn(|| println!("background work"));
 /// ```
+#[derive(Debug)]
 pub struct ThreadPool {
     sender: Option<Sender<Task>>,
     workers: Vec<JoinHandle<()>>,

@@ -56,6 +56,7 @@ fn slot() -> &'static Mutex<Option<&'static dyn Style>> {
 /// let style: &'static dyn Style = StyleRegistry::try_style().expect("just set");
 /// # let _ = style;
 /// ```
+#[derive(Debug)]
 pub struct StyleRegistry;
 
 impl StyleRegistry {

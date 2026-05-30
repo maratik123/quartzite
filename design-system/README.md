@@ -84,7 +84,7 @@ crate-level rustdoc, and inline doc comments.
 - **Casing:** `Title Case` for headings; `Sentence case for sub-points.`; identifiers stay verbatim (`ObjectBase`, `WidgetView::Other`). Acronyms uppercase (`GUI`, `RGBA`, `CSS`).
 - **Type names always live inside backticks** when prose mentions them — never bare. Same for module paths (`quartzite-style/src/default_style.rs`).
 - **Emoji:** none. Not in README, not in code comments, not in rustdoc. The closest the repo gets is `✅` in a status table — and that is the only emoji-like glyph that appears.
-- **Numerical precision:** units are written out. `1 px outline`, `12.0 pt`, `64×64 canvas`, `1.95` (the MSRV). Hex codes follow the `#RRGGBB` convention; alpha is mentioned in prose, not in the literal.
+- **Numerical precision:** units are written out. `1 px outline`, `12.0 pt`, `64×64 canvas`, `1.96` (the MSRV). Hex codes follow the `#RRGGBB` convention; alpha is mentioned in prose, not in the literal.
 - **Negation:** "Non-goals" are an explicit section. The system says what it _won't do_ as plainly as what it will (e.g. "Not a Qt port or a Qt binding"; "No FFI / native dependencies").
 - **Vibe:** rust-stdlib-meets-Qt-API-docs. Dry, exhaustive, every claim verifiable from the source. There is no narrative, no hero copy, no calls to action.
 

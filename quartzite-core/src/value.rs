@@ -657,6 +657,7 @@ impl<'de> Deserialize<'de> for Value {
 mod tests {
     use super::*;
     use rstest::rstest;
+    use std::assert_matches;
 
     // --- Minimal CustomValue for testing (non-serde path) ---
 
@@ -715,8 +716,8 @@ mod tests {
         let val = Value::Custom(arc);
         // Both should be Custom variants (pointer may differ due to clone_box).
         let cloned = val.clone();
-        assert!(matches!(cloned, Value::Custom(_)));
-        assert!(matches!(val, Value::Custom(_)));
+        assert_matches!(cloned, Value::Custom(_));
+        assert_matches!(val, Value::Custom(_));
     }
 
     // --- FromValue / IntoValue round-trips via rstest ---
@@ -1081,7 +1082,7 @@ mod tests {
         fn float_nan_round_trips_bincode() {
             let nan = Value::Float(f64::NAN);
             let out = rt_bincode(&nan);
-            assert!(matches!(out, Value::Float(f) if f.is_nan()));
+            assert_matches!(out, Value::Float(f) if f.is_nan());
         }
 
         #[test]

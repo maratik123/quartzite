@@ -24,7 +24,7 @@ use quartzite_widgets::{AsWidget, WidgetBase, WidgetExt, WidgetView};
 ///
 /// Uses `#[derive(Extend)]` without `#[widget_view]`, so `widget_view()`
 /// returns `WidgetView::Other(self)` automatically.
-#[derive(Extend)]
+#[derive(Debug, Extend)]
 struct ThirdPartyWidget {
     #[base]
     widget_base: WidgetBase,

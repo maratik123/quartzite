@@ -6,6 +6,8 @@
 //! resolves to `crate::default_style` — all `super::disabled` / `super::brush`
 //! calls remain valid.
 
+use std::assert_matches;
+
 use quartzite_core::ObjectId;
 use quartzite_geometry::{Point, Rect, Size};
 use quartzite_paint_api::{
@@ -386,17 +388,15 @@ fn button_records_fill_outline_and_centred_text() {
         3,
         "expected 3 events for enabled idle button"
     );
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { rect, .. }
-            if *rect == btn.widget_base().geometry),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { rect, .. }
+            if *rect == btn.widget_base().geometry,
         "first event must be FillRect covering widget geometry"
     );
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, h_align, v_align, .. }
                 if text == "OK"
                     && *h_align == HAlignment::Center
-                    && *v_align == VAlignment::Center),
+                    && *v_align == VAlignment::Center,
         "button DrawTextIn must carry text 'OK' with Center h_align and Center v_align"
     );
 }
@@ -412,13 +412,12 @@ fn label_records_fill_and_text_with_label_alignment() {
 
     // FillRect → DrawTextIn (2 events).
     assert_eq!(painter.events.len(), 2, "expected 2 events for label");
-    assert!(matches!(&painter.events[0], PaintEvent::FillRect { .. }));
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { .. });
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, h_align, v_align, .. }
                 if text == "hi"
                     && *h_align == HAlignment::Left
-                    && *v_align == VAlignment::Center),
+                    && *v_align == VAlignment::Center,
         "label DrawTextIn must carry text 'hi' with Left h_align and Center v_align"
     );
 }
@@ -439,16 +438,14 @@ fn text_edit_records_fill_outline_and_text() {
         3,
         "expected 3 events for TextEdit (read_only=false)"
     );
-    assert!(
-        matches!(first_fill(&painter.events),
+    assert_matches!(first_fill(&painter.events),
             PaintEvent::FillRect { brush, .. }
-                if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
+                if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal),
         "TextEdit fill must use ColorRole::Base"
     );
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, v_align, .. }
-                if text == "abc" && *v_align == VAlignment::Top),
+                if text == "abc" && *v_align == VAlignment::Top,
         "TextEdit DrawTextIn must carry text 'abc' and Top v_align (top-anchored)"
     );
 }
@@ -471,10 +468,9 @@ fn text_edit_read_only_inserts_overlay_fill() {
     let expected_overlay = palette
         .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
-    assert!(
-        matches!(&painter.events[1],
+    assert_matches!(&painter.events[1],
             PaintEvent::FillRect { brush, .. }
-                if brush_color(brush) == expected_overlay),
+                if brush_color(brush) == expected_overlay,
         "second FillRect must be the read-only overlay"
     );
 }
@@ -494,9 +490,8 @@ fn text_edit_read_only_dims_text() {
         "expected 4 events for read-only TextEdit with text"
     );
     // New paint order: fill → overlay → text → outline (caret absent: unfocused).
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+    assert_matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA),
         "events[2] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
@@ -520,9 +515,8 @@ fn text_edit_writable_keeps_full_alpha_text() {
         "expected 3 events for writable TextEdit"
     );
     // New paint order: fill → text → outline (caret absent: unfocused).
-    assert!(
-        matches!(&painter.events[1], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush).a() == 1.0),
+    assert_matches!(&painter.events[1], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush).a() == 1.0,
         "writable TextEdit text brush must have full alpha"
     );
 }
@@ -540,9 +534,8 @@ fn read_only_overlay_derives_from_custom_window_text() {
     DefaultStyle::new().draw_widget(&edit, &mut painter, &palette);
 
     let expected_overlay = Color::new(0.0, 0.5, 1.0, super::READ_ONLY_OVERLAY_ALPHA);
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == expected_overlay),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == expected_overlay,
         "overlay must derive from custom WindowText colour"
     );
 }
@@ -562,8 +555,8 @@ fn scroll_area_records_fill_and_outline_only() {
         2,
         "expected 2 chrome events for ScrollArea"
     );
-    assert!(matches!(&painter.events[0], PaintEvent::FillRect { .. }));
-    assert!(matches!(&painter.events[1], PaintEvent::DrawRect { .. }));
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { .. });
+    assert_matches!(&painter.events[1], PaintEvent::DrawRect { .. });
     assert!(
         !painter.events.iter().any(|e| {
             matches!(
@@ -1122,18 +1115,16 @@ fn container_records_fill_and_outline() {
     DefaultStyle::new().draw_widget(&c, &mut painter, &palette);
 
     assert_eq!(painter.events.len(), 2, "expected 2 events for Container");
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { rect, brush }
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { rect, brush }
             if *rect == c.widget_base().geometry
-                && brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal)),
+                && brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal),
         "events[0] must be FillRect(Window) covering widget geometry"
     );
-    assert!(
-        matches!(&painter.events[1], PaintEvent::DrawRect { rect, pen, brush }
+    assert_matches!(&painter.events[1], PaintEvent::DrawRect { rect, pen, brush }
             if *rect == c.widget_base().geometry
                 && pen.color() == palette.color(ColorRole::WindowText, ColorGroup::Normal)
                 && pen.width() == 1.0
-                && brush_color(brush) == Color::TRANSPARENT),
+                && brush_color(brush) == Color::TRANSPARENT,
         "events[1] must be DrawRect with WindowText 1px outline"
     );
     assert!(
@@ -1159,9 +1150,8 @@ fn container_routing_ignores_children() {
         2,
         "add_child must not change the number of recorded events"
     );
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal)),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Window, ColorGroup::Normal),
         "FillRect must still use Window role regardless of children"
     );
 }
@@ -1200,25 +1190,22 @@ fn line_edit_records_fill_outline_and_empty_text() {
         3,
         "expected 3 events for empty LineEdit"
     );
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal),
         "events[0] must be FillRect(Base)"
     );
-    assert!(
-        matches!(&painter.events[1], PaintEvent::DrawRect { pen, brush, .. }
+    assert_matches!(&painter.events[1], PaintEvent::DrawRect { pen, brush, .. }
             if pen.color() == palette.color(ColorRole::Text, ColorGroup::Normal)
                 && pen.width() == 1.0
-                && brush_color(brush) == Color::TRANSPARENT),
+                && brush_color(brush) == Color::TRANSPARENT,
         "events[1] must be DrawRect with Text 1px outline"
     );
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { rect, text, h_align, v_align, brush, .. }
+    assert_matches!(&painter.events[2], PaintEvent::DrawTextIn { rect, text, h_align, v_align, brush, .. }
             if text.is_empty()
                 && *rect == e.widget_base().geometry
                 && *h_align == HAlignment::Left
                 && *v_align == VAlignment::Center
-                && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
+                && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal),
         "events[2] must be DrawTextIn with empty text, full geom rect, Left h_align, Center v_align, full-alpha Text brush"
     );
 }
@@ -1231,14 +1218,13 @@ fn line_edit_records_text_when_non_empty() {
     let palette = line_edit_palette();
     DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { rect, text, h_align, v_align, brush, .. }
                 if text == "abc"
                     && *rect == e.widget_base().geometry
                     && *h_align == HAlignment::Left
                     && *v_align == VAlignment::Center
-                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
+                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal),
         "DrawTextIn must carry 'abc', full geom rect, Left h_align, Center v_align, full-alpha Text brush"
     );
 }
@@ -1260,13 +1246,12 @@ fn line_edit_placeholder_drawn_when_text_empty() {
         draw_text_count, 1,
         "exactly one DrawTextIn event (no duplicate)"
     );
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, h_align, v_align, brush, .. }
                 if text == "hint"
                     && *h_align == HAlignment::Left
                     && *v_align == VAlignment::Center
-                    && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
+                    && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal)),
         "placeholder DrawTextIn must carry 'hint', Left h_align, Center v_align, half-alpha Text brush"
     );
 }
@@ -1280,11 +1265,10 @@ fn line_edit_non_empty_text_ignores_placeholder() {
     let palette = line_edit_palette();
     DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, brush, .. }
                 if text == "abc"
-                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal)),
+                    && brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal),
         "non-empty text wins over placeholder: DrawTextIn must carry 'abc' with full-alpha Text"
     );
 }
@@ -1302,23 +1286,21 @@ fn line_edit_read_only_inserts_overlay() {
         4,
         "expected 4 events for read-only LineEdit (bg + overlay + outline + text)"
     );
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal)),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Normal),
         "events[0] must be FillRect(Base background)"
     );
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA),
         "events[1] must be FillRect(WindowText @ READ_ONLY_OVERLAY_ALPHA) read-only overlay"
     );
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawRect { .. }),
+    assert_matches!(
+        &painter.events[2],
+        PaintEvent::DrawRect { .. },
         "events[2] must be DrawRect (outline)"
     );
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, .. }
-            if text.is_empty()),
+    assert_matches!(&painter.events[3], PaintEvent::DrawTextIn { text, .. }
+            if text.is_empty(),
         "events[3] must be DrawTextIn with empty text (empty text + no placeholder path)"
     );
 }
@@ -1337,17 +1319,15 @@ fn line_edit_read_only_with_placeholder_overlays_and_renders_placeholder() {
         4,
         "expected 4 events: bg + overlay + outline + text"
     );
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA),
         "events[1] must be the read-only overlay"
     );
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { text, h_align, v_align, brush, .. }
+    assert_matches!(&painter.events[3], PaintEvent::DrawTextIn { text, h_align, v_align, brush, .. }
             if text == "hint"
                 && *h_align == HAlignment::Left
                 && *v_align == VAlignment::Center
-                && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal))),
+                && brush_color(brush) == super::disabled(palette.color(ColorRole::Text, ColorGroup::Normal)),
         "events[3] must be DrawTextIn('hint', Left h_align, Center v_align, half-alpha Text) — placeholder path"
     );
 }
@@ -1366,9 +1346,8 @@ fn line_edit_read_only_dims_text() {
         4,
         "expected 4 events for read-only LineEdit with text"
     );
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+    assert_matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA),
         "events[3] DrawTextIn brush must be Text dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
@@ -1384,15 +1363,13 @@ fn line_edit_read_only_empty_text_dims_text() {
     DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     // Overlay brush check
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA)),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::WindowText, ColorGroup::Normal).with_alpha(super::READ_ONLY_OVERLAY_ALPHA),
         "events[1] must be the read-only overlay"
     );
     // Text brush check — empty text, no placeholder → read-only text path
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA)),
+    assert_matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Text, ColorGroup::Normal).with_alpha(super::READ_ONLY_TEXT_ALPHA),
         "events[3] DrawTextIn brush must be dimmed for read-only even with empty text"
     );
 }
@@ -1410,10 +1387,9 @@ fn line_edit_writable_keeps_full_alpha_text() {
     let palette = line_edit_palette();
     DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { brush, .. }
-                if brush_color(brush).a() == 1.0),
+                if brush_color(brush).a() == 1.0,
         "writable LineEdit text brush must have full alpha"
     );
 }
@@ -1681,9 +1657,8 @@ fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     );
 
     // events[0] — Base × Hover fill.
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Hover)),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Hover),
         "events[0] FillRect brush must be Base × Hover"
     );
 
@@ -1691,16 +1666,14 @@ fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     let expected_overlay = palette
         .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == expected_overlay),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == expected_overlay,
         "events[1] FillRect brush must be the WindowText overlay at READ_ONLY_OVERLAY_ALPHA"
     );
 
     // events[2] — outline Text × Hover.
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawRect { pen, .. }
-            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover)),
+    assert_matches!(&painter.events[2], PaintEvent::DrawRect { pen, .. }
+            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover),
         "events[2] DrawRect pen must be Text × Hover"
     );
 
@@ -1708,9 +1681,8 @@ fn line_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     let expected_text = palette
         .color(ColorRole::Text, ColorGroup::Hover)
         .with_alpha(super::READ_ONLY_TEXT_ALPHA);
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == expected_text),
+    assert_matches!(&painter.events[3], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == expected_text,
         "events[3] DrawTextIn brush must be Text × Hover dimmed to READ_ONLY_TEXT_ALPHA"
     );
 }
@@ -1726,10 +1698,9 @@ fn line_edit_hovered_placeholder_tracks_hover_text() {
     DefaultStyle::new().draw_widget(&e, &mut painter, &palette);
 
     let expected = super::disabled(palette.color(ColorRole::Text, ColorGroup::Hover));
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, brush, .. }
-                if text == "hint" && brush_color(brush) == expected),
+                if text == "hint" && brush_color(brush) == expected,
         "hovered placeholder must be drawn at disabled(Text × Hover)"
     );
 }
@@ -1751,10 +1722,9 @@ fn line_edit_pressed_placeholder_tracks_pressed_text() {
     // `HighlightedText` (not `Text`) is the role-swap on press per
     // spec § Key decisions row "Outline role mapping".
     let expected = super::disabled(palette.color(ColorRole::HighlightedText, ColorGroup::Pressed));
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, brush, .. }
-                if text == "hint" && brush_color(brush) == expected),
+                if text == "hint" && brush_color(brush) == expected,
         "pressed placeholder must be drawn at disabled(HighlightedText × Pressed)"
     );
 }
@@ -1774,10 +1744,9 @@ fn line_edit_disabled_placeholder_composes_double_dim() {
         palette.color(ColorRole::Text, ColorGroup::Normal),
         false,
     ));
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, brush, .. }
-                if text == "hint" && brush_color(brush) == expected),
+                if text == "hint" && brush_color(brush) == expected,
         "disabled placeholder must be drawn at disabled(maybe_disabled(Text × Normal, false)) ≈ × 0.25 alpha"
     );
 }
@@ -2144,9 +2113,8 @@ fn text_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     );
 
     // events[0] — Base × Hover fill.
-    assert!(
-        matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Hover)),
+    assert_matches!(&painter.events[0], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == palette.color(ColorRole::Base, ColorGroup::Hover),
         "events[0] FillRect brush must be Base × Hover"
     );
 
@@ -2154,9 +2122,8 @@ fn text_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     let expected_overlay = palette
         .color(ColorRole::WindowText, ColorGroup::Normal)
         .with_alpha(super::READ_ONLY_OVERLAY_ALPHA);
-    assert!(
-        matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
-            if brush_color(brush) == expected_overlay),
+    assert_matches!(&painter.events[1], PaintEvent::FillRect { brush, .. }
+            if brush_color(brush) == expected_overlay,
         "events[1] FillRect brush must be the WindowText overlay at READ_ONLY_OVERLAY_ALPHA"
     );
 
@@ -2165,16 +2132,14 @@ fn text_edit_read_only_hovered_overlay_plus_hover_base_fill() {
     let expected_text = palette
         .color(ColorRole::Text, ColorGroup::Hover)
         .with_alpha(super::READ_ONLY_TEXT_ALPHA);
-    assert!(
-        matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
-            if brush_color(brush) == expected_text),
+    assert_matches!(&painter.events[2], PaintEvent::DrawTextIn { brush, .. }
+            if brush_color(brush) == expected_text,
         "events[2] DrawTextIn brush must be Text × Hover dimmed to READ_ONLY_TEXT_ALPHA"
     );
 
     // events[3] — outline Text × Hover.
-    assert!(
-        matches!(&painter.events[3], PaintEvent::DrawRect { pen, .. }
-            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover)),
+    assert_matches!(&painter.events[3], PaintEvent::DrawRect { pen, .. }
+            if pen.color() == palette.color(ColorRole::Text, ColorGroup::Hover),
         "events[3] DrawRect pen must be Text × Hover"
     );
 }
@@ -2353,12 +2318,11 @@ fn registry_round_trip_dispatches_default_style() {
         3,
         "expected 3 events for button via registry"
     );
-    assert!(
-        matches!(first_draw_text_in(&painter.events),
+    assert_matches!(first_draw_text_in(&painter.events),
             PaintEvent::DrawTextIn { text, h_align, v_align, .. }
                 if text == "OK"
                     && *h_align == HAlignment::Center
-                    && *v_align == VAlignment::Center),
+                    && *v_align == VAlignment::Center,
         "registry-dispatched DefaultStyle must produce the same events as AC2"
     );
 }
@@ -2376,14 +2340,12 @@ fn button_and_label_use_vertical_centre() {
     let btn = Button::new("OK".into());
     let mut btn_painter = RecordingPainter::default();
     DefaultStyle::new().draw_widget(&btn, &mut btn_painter, &palette);
-    assert!(
-        matches!(
-            first_draw_text_in(&btn_painter.events),
-            PaintEvent::DrawTextIn {
-                v_align: VAlignment::Center,
-                ..
-            }
-        ),
+    assert_matches!(
+        first_draw_text_in(&btn_painter.events),
+        PaintEvent::DrawTextIn {
+            v_align: VAlignment::Center,
+            ..
+        },
         "Button DrawTextIn must use v_align = Center"
     );
 
@@ -2391,14 +2353,12 @@ fn button_and_label_use_vertical_centre() {
     let lbl = Label::new("hi".into());
     let mut lbl_painter = RecordingPainter::default();
     DefaultStyle::new().draw_widget(&lbl, &mut lbl_painter, &palette);
-    assert!(
-        matches!(
-            first_draw_text_in(&lbl_painter.events),
-            PaintEvent::DrawTextIn {
-                v_align: VAlignment::Center,
-                ..
-            }
-        ),
+    assert_matches!(
+        first_draw_text_in(&lbl_painter.events),
+        PaintEvent::DrawTextIn {
+            v_align: VAlignment::Center,
+            ..
+        },
         "Label DrawTextIn must use v_align = Center"
     );
 }

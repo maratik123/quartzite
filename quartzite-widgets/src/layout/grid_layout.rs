@@ -107,7 +107,7 @@ impl GridCell {
 /// let layout = GridLayout::new();
 /// assert_eq!(layout.cell_count(), 0);
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[root]
 pub struct GridLayout {
     /// Parent-object delegation target — holds the `ObjectBase` core shared by every object.

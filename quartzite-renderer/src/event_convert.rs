@@ -215,6 +215,8 @@ pub(crate) fn key_event_from_parts(
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use rstest::rstest;
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::keyboard::{ModifiersState, NamedKey, NativeKey};
@@ -275,7 +277,7 @@ mod tests {
             pos,
             MouseButtons::empty(),
         );
-        assert!(matches!(ev.kind(), MouseEventKind::Press));
+        assert_matches!(ev.kind(), MouseEventKind::Press);
         assert!(ev.event_button().contains(MouseButton::Left));
         assert_eq!(ev.position(), Point::new(10, 20));
     }
@@ -289,7 +291,7 @@ mod tests {
             pos,
             MouseButton::Right.into(),
         );
-        assert!(matches!(ev.kind(), MouseEventKind::Release));
+        assert_matches!(ev.kind(), MouseEventKind::Release);
         assert!(ev.event_button().contains(MouseButton::Right));
     }
 
@@ -451,7 +453,7 @@ mod tests {
         let ev = ev.expect("should map 'a'");
         assert_eq!(ev.key(), Key::A);
         assert_eq!(ev.text(), "a");
-        assert!(matches!(ev.kind(), KeyEventKind::Press));
+        assert_matches!(ev.kind(), KeyEventKind::Press);
         assert!(!ev.is_repeat());
     }
 
@@ -465,7 +467,7 @@ mod tests {
             KeyModifiers::empty(),
         );
         let ev = ev.expect("Enter should map");
-        assert!(matches!(ev.kind(), KeyEventKind::Release));
+        assert_matches!(ev.kind(), KeyEventKind::Release);
         assert_eq!(ev.text(), "");
     }
 

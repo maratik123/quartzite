@@ -1,5 +1,7 @@
 //! Integration tests for the `#[derive(MetaEnum)]` macro: `IntoValue` / `FromValue` round-tripping over discriminants.
 
+use std::assert_matches;
+
 use quartzite::core::{FromValue, IntoValue, TypeError, Value};
 use quartzite_macros::MetaEnum;
 
@@ -50,6 +52,6 @@ fn from_value_wrong_type_returns_err() {
 fn into_value_then_from_value_round_trips() {
     for variant in [Status::Ok, Status::NotFound, Status::Error] {
         let val = variant.into_value();
-        assert!(matches!(val, Value::Int(_)));
+        assert_matches!(val, Value::Int(_));
     }
 }

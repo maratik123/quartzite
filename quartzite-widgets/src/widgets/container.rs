@@ -20,7 +20,7 @@ use crate::{WidgetBase, widget_base::AsWidget};
 /// assert_eq!(c.meta_object().class_name, "Container");
 /// assert!(c.children().is_empty());
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[widget_view(variant = "Container")]
 pub struct Container {
     /// Base widget — delegates geometry, state, focus policy, and object core.

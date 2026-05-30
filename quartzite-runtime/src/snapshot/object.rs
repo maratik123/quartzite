@@ -112,6 +112,7 @@ pub fn restore_object(snap: &ObjectSnapshot) -> Result<Box<dyn Object>, Deserial
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
     use std::sync::OnceLock;
 
     use quartzite_core::{
@@ -418,10 +419,10 @@ mod tests {
     #[test]
     fn capture_object_returns_property_missing_when_read_returns_none() {
         let obj = BrokenObject::new_boxed();
-        assert!(matches!(
+        assert_matches!(
             capture_object(obj.as_ref()),
             Err(SerializeError::PropertyMissing { property, .. }) if property == "broken"
-        ));
+        );
     }
 
     #[test]

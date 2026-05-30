@@ -67,6 +67,7 @@ pub struct TimerConfig {
 /// that same `Arc`. The atomic flags let both sides coordinate without holding
 /// the full timer lock. The `signal` field shares the same `Arc<Mutex<Signal<(TimerEvent,)>>>`
 /// as `Timer::tick` so both sides emit through the same `Signal` instance.
+#[derive(Debug)]
 pub(crate) struct TimerState {
     /// Shared tick signal — the same `Arc` as `Timer::tick`.
     pub(crate) signal: Arc<Mutex<Signal<(TimerEvent,)>>>,

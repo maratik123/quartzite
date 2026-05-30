@@ -38,6 +38,9 @@ fn application_singleton_enforced() {
 
     // ── AC3: second creation must fail with AlreadyExists ──────────────────
     let app2 = Application::new();
+    // Carve-out: NOT converted to `assert_matches!` — the `Ok` variant of
+    // `app2` is `Application`, which is not `Debug`, so `assert_matches!` (which
+    // formats the scrutinee on mismatch) would fail to compile.
     assert!(
         matches!(app2, Err(ApplicationError::AlreadyExists)),
         "second Application::new() must return Err(AlreadyExists)"

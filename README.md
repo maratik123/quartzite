@@ -79,7 +79,7 @@ quartzite = { git = "...", default-features = false, features = ["std"] }
 
 ## Prerequisites
 
-- Rust stable (≥ 1.95)
+- Rust stable (≥ 1.96)
 - Cargo (comes with Rust)
 
 ## Build

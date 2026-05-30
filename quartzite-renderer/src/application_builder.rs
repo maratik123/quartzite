@@ -49,6 +49,7 @@ pub enum AppEvent {
 ///     .build()
 ///     .expect("failed to create application");
 /// ```
+#[derive(Debug)]
 #[must_use = "call `.build()` to construct the WindowedApplication"]
 pub struct WindowedApplicationBuilder {
     quit_on_last_window_closed: bool,

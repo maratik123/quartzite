@@ -16,7 +16,7 @@ use crate::{HAlignment, WidgetBase, widget_base::AsWidget};
 /// assert_eq!(label.read_property("text"), Some(Value::String("hello".into())));
 /// assert_eq!(label.meta_object().class_name, "Label");
 /// ```
-#[derive(Extend, Object)]
+#[derive(Debug, Extend, Object)]
 #[widget_view(variant = "Label")]
 pub struct Label {
     /// Base widget — delegates geometry, state, focus policy, and object core.

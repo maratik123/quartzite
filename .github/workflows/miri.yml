@@ -50,7 +50,7 @@ jobs:
       - name: Install Rust nightly with miri + rust-src
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2026-05-01
+          toolchain: nightly-2026-05-29
           components: miri, rust-src
           cache-shared-key: ${{ runner.os }}-nightly-miri-v1-${{ env.ImageVersion }}
       - name: Verify cargo identity  # See #340
@@ -59,7 +59,7 @@ jobs:
           which cargo
           cargo --version
           rustc --version
-      # `setup-rust-toolchain@v1` installs `nightly-2026-05-01` and sets it as
+      # `setup-rust-toolchain@v1` installs `nightly-2026-05-29` and sets it as
       # the rustup override for this directory, so plain `cargo miri …` (no
       # `+nightly`) resolves to the pinned toolchain with miri + rust-src
       # already installed. The `+nightly` syntax bypasses the override and

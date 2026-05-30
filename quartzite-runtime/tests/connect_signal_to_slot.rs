@@ -8,6 +8,7 @@
 //! and there are no singleton races with `tests/application.rs` or
 //! `tests/application_signal_to_quit.rs`.
 
+use std::assert_matches;
 use std::{
     sync::{Arc, mpsc},
     thread,
@@ -173,8 +174,5 @@ fn ac22_unknown_signal_returns_error() {
     let target: Arc<Mutex<dyn Object>> = Arc::new(Mutex::new(ClickSource::new()));
 
     let result = connect_signal_to_slot(&mut source, "nonexistent", &target, "quit");
-    assert!(
-        matches!(result, Err(SignalConnectionError::UnknownFromSignal(_))),
-        "expected UnknownFromSignal, got {result:?}",
-    );
+    assert_matches!(result, Err(SignalConnectionError::UnknownFromSignal(_)));
 }

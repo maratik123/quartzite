@@ -30,6 +30,7 @@ use crate::event_loop::EventLoop;
 /// # Ok::<_, quartzite_runtime::ApplicationError>(app)
 /// # })();
 /// ```
+#[derive(Debug)]
 #[must_use]
 pub struct ApplicationBuilder {
     /// Tick duration for the inner [`EventLoop`].
