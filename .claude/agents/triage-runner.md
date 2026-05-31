@@ -314,23 +314,7 @@ defer  Skip creating this row's issue; return to _inbox.jsonl
 
 3. **Post-create label-apply** (after `gh issue create` returns child `#C`): `gh issue edit #C --add-label blocked --add-label ui-design`. Idempotent; failure logged but does NOT abort (back-reference already lives in the child body).
 
-4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor. Read the current body into a shell variable, then `Write` it (modified) to the staging file `ai-docs/triage/umbrella-<N>.body.md` (inside the subagent's mutation scope; `ai-docs/triage/**` is gitignored) — **no `>` file-redirect**:
-
-   ```bash
-   body=$(gh issue view <N> --json body --jq .body)
-   ```
-
-   (`--jq` is `gh`'s own JSON extraction, not a shell pipe to `jq` and not a `>` redirect.) Apply sub-steps a–d to `$body`, then use the `Write` tool to write the modified body to `ai-docs/triage/umbrella-<N>.body.md`.
-
-   a. **Locate the anchor** — verbatim substring `## Child issues (blocked on this epic)` (case-sensitive; #539–#542 share verbatim).
-
-   b. **Idempotency check (BEFORE writing).** Scan from the anchor line forward to the END-of-section boundary (rule c) for substring `#<C> ` (**trailing-ASCII-space sentinel** prevents `#54` matching `#549`). If present, **no-op** the edit; log under Phase 8's per-umbrella summary as "already linked".
-
-   c. **END-of-section detection rule.** From the line immediately after the anchor, scan forward: a line beginning with `## ` (any next h2) is the **boundary** — insert the bullet on its own line immediately BEFORE that boundary, preserving section blank-line spacing. Reaching end-of-body without another `## ` makes the boundary **EOF** — append the bullet at EOF with a trailing newline.
-
-   d. **Compose the bullet** — exactly `- #<C> — <child-title>` (full child title, NOT the menu's 80-char truncation).
-
-   e. **Push back** — `gh issue edit <N> --body-file ai-docs/triage/umbrella-<N>.body.md`. Capture exit code. Clean up the staging file after the call returns: `rm -f ai-docs/triage/umbrella-<N>.body.md`.
+4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor via the `gh issue view` → anchor-scan → `gh issue edit --body-file` machinery, staging through `ai-docs/triage/umbrella-<N>.body.md` (gitignored; **no `>` redirect**). Full procedure — sub-steps **a** locate anchor, **b** idempotency check (trailing-`#<C> `-space sentinel), **c** END-of-section detection, **d** compose `- #<C> — <child-title>` bullet, **e** push back + staging cleanup — in [`ai-docs/triage-runner-umbrella-bodyedit.md`](../../ai-docs/triage-runner-umbrella-bodyedit.md).
 
 **Two distinct fallback sub-lists (per Tech #8 + design § Risks R3) — never folded into one.**
 

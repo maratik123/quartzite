@@ -255,6 +255,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/workflow.md` | Extracted § Workflow narrative (PR-review-comment recipe) |
 | `ai-docs/triage-runner-bridge.md` | Extracted Phase 4.5 bridge `Action semantics` block from `.claude/agents/triage-runner.md` (verbatim per-conflict-type action recipe). Read on demand. |
 | `ai-docs/triage-runner-design-links.md` | Extracted Phase 8 `Design-link outcomes` sub-section shape from `.claude/agents/triage-runner.md` (per-row outcomes, per-umbrella body-edit summary, two distinct fallback sub-lists, `/next` propagation-grep result line). Read on demand. |
+| `ai-docs/triage-runner-umbrella-bodyedit.md` | Extracted Phase 6.5 / Phase 7 numbered-pick **sub-step 4** (umbrella body auto-edit, sub-steps a–e: `gh issue view` → anchor-scan → `gh issue edit --body-file`) from `.claude/agents/triage-runner.md`. Read on demand. |
 | `ai-docs/corrections-log.md` | Extracted § Learning Log carve-outs + field glossary |
 | `ai-docs/key-decisions.md` | Key Design Decisions detail bodies from context.md |
 | `ai-docs/plans-summary.md` | Maintenance-plans (cross-cutting) detail bodies from context.md |
