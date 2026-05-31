@@ -12,6 +12,10 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | `#[object_impl]` on generic types — orthogonal to this task | [macro-codegen-improvements spec](../plans/done/2026-05-03-macro-codegen-improvements.spec.md) |  | untracked |
 | Manual `Debug` impl with field filtering — auto-derive is sufficient now; can be revisited if fields are added that should be hidden | [objectbase-debug-rename-factory spec](../plans/done/2026-05-03-objectbase-debug-rename-factory.spec.md) |  | #256 |
 | Additional `impl Into<T>` sites — discovered during implementation | [generic-fn-split spec](../plans/done/2026-05-07-generic-fn-split.spec.md) |  | #257 |
+| Per-sub-attribute doc-comment paragraph template for `#[prop]` sub-attributes (`notify` / `read_only` / `constant` / `stored` / `designable` / `user`) | [annotated-attribute-docs spec](../plans/done/2026-05-26-annotated-attribute-docs.spec.md) | — |
+| Synthesised `# Inheritance` rustdoc section emitted by the `Extend` derive for `#[base]` / `#[widget_children]` fields | [annotated-attribute-docs spec](../plans/done/2026-05-26-annotated-attribute-docs.spec.md) | — |
+| Workspace CI decision: enable `quartzite-macros` cargo feature `undocumented-deny` globally to make missing annotated-item docs a hard compile error in CI | [annotated-attribute-docs spec](../plans/done/2026-05-26-annotated-attribute-docs.spec.md) | — |
+| Per-attribute rustdoc summary-line template (e.g. "Signal emitted when …" / "Slot invoked when …") for `#[signal]` / `#[slot]` / `#[invokable]` / `#[prop]` in `doc-convention.md` § *Annotated items* | [annotated-attribute-docs spec](../plans/done/2026-05-26-annotated-attribute-docs.spec.md) | — |
 
 ## Out of scope
 

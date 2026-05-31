@@ -21,6 +21,11 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | Multi-monitor placement APIs (`set_monitor`, fullscreen-on-display-N) — winit exposes the primitives but no widget-side consumer yet | [multi-window-support spec](../plans/done/2026-05-11-multi-window-support.spec.md) |  | #304 |
 | Per-window cursor / IME state plumbing — not requested in issue #53 | [multi-window-support spec](../plans/done/2026-05-11-multi-window-support.spec.md) |  | #305 |
 | Pluggable backend for headless / alternative windowing (smithay direct, sdl) — single-backend (winit) per #73 | [multi-window-support spec](../plans/done/2026-05-11-multi-window-support.spec.md) |  | #306 |
+| Adaptive tick strategies (busy-loop then sleep, idle back-off) — not part of the `Option<Duration>` proposal; speculative without a benchmarked motivating use case | [tickless-eventloop spec](../plans/done/2026-05-24-tickless-eventloop.spec.md) | — |
+| `tracing` span enrichment to record per-tick wake count / per-message recv latency under each mode — diagnostics, orthogonal to the API change | [tickless-eventloop spec](../plans/done/2026-05-24-tickless-eventloop.spec.md) | — |
+| `ObjectTree` membership for `Application` / `EventLoop` (parent / children semantics) — out-of-scope item 8; `Application` owns the tree and cannot be inside it; `EventLoop` lives inside `Application` | [tickless-eventloop spec](../plans/done/2026-05-24-tickless-eventloop.spec.md) | — |
+| Reflection-based `set_property` knobs on `Application` (e.g. `quit_on_last_window_closed` exposed as `#[prop]`) — Object-ification gives access for free but existing builder-time config covers all current use cases | [tickless-eventloop spec](../plans/done/2026-05-24-tickless-eventloop.spec.md) | — |
+| Macro extension `#[object(arc_inner)]` for b1 hand-rolled path — if a second `Arc<Inner>` Object lands, extend the macro; revisit then | [tickless-eventloop spec](../plans/done/2026-05-24-tickless-eventloop.spec.md) | — |
 
 ## Out of scope
 
