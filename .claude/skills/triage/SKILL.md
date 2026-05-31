@@ -3,7 +3,7 @@ name: triage
 description: "Batched promotion of untracked rows to gh issues; drains _inbox.md; reconciles md ↔ gh issue divergence via the bridge sweep. Default threshold ≥ 3 unhandled rows."
 argument-hint: "[N — override default threshold]"
 disable-model-invocation: true
-allowed-tools: Bash(gh issue create *) Bash(gh issue edit *) Bash(gh issue close *) Bash(gh issue reopen *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh api *) Bash(grep *) Bash(rg *) Read Edit
+allowed-tools: Bash(gh issue create *) Bash(gh issue edit *) Bash(gh issue close *) Bash(gh issue reopen *) Bash(gh issue list *) Bash(gh issue view *) Bash(gh api *) Bash(grep *) Bash(rg *) Bash(jq *) Bash(awk *) Bash(sort *) Bash(wc *) Read Edit Write
 ---
 
 Launch the `triage-runner` subagent. The subagent reads `.claude/agents/triage-runner.md` for full instructions.
@@ -119,14 +119,14 @@ Every row that reaches the Phase 7.5 `gh issue create` queue is first classified
 1. The chosen umbrella `#N` is captured as `link_to_umbrella` on the row's Phase 7.5 create-queue entry (persisted into the progress file's `design_link: umbrella=#N` field).
 2. The row's drafted body has `**Blocked by:** #N\n\n` prepended at draft-construction time — so the child issue's body carries the back-reference from the moment `gh issue create` runs (the prefix is in the body string passed to `gh issue create`, NOT applied via a post-create edit).
 3. After `gh issue create` returns the child `#C`, the labels `blocked` + `ui-design` are applied via `gh issue edit #C --add-label blocked --add-label ui-design`.
-4. The umbrella `#N`'s body is fetched via `gh issue view #N --json body --jq .body`; under the `## Child issues (blocked on this epic)` anchor, a new bullet `- #<C> — <child-title>` is appended at the END of that section's bullet list (immediately before the next `## ` heading OR end-of-body if the section is final); the edited body is pushed back via `gh issue edit #N --body-file <tmpfile>`.
+4. The umbrella `#N`'s body is fetched into a shell variable via `body=$(gh issue view #N --json body --jq .body)` (no `>` redirect); under the `## Child issues (blocked on this epic)` anchor, a new bullet `- #<C> — <child-title>` is appended at the END of that section's bullet list (immediately before the next `## ` heading OR end-of-body if the section is final); the edited body is `Write`-staged to `ai-docs/triage/umbrella-<N>.body.md` and pushed back via `gh issue edit #N --body-file ai-docs/triage/umbrella-<N>.body.md`, then `rm -f`'d.
 
 **Idempotency.** The umbrella body is scanned for the substring `#<C> ` (with a trailing-space sentinel to prevent `#54` matching `#549`) before the write — if `#<C> ` already appears under the anchor's section, the edit is a no-op (defensive against resume / re-promotion).
 
 **Two distinct fallback sub-lists** (recorded separately in the Phase 8 run summary):
 
 - **`Body-edit skipped — anchor absent`** — fires when the umbrella body has no `## Child issues (blocked on this epic)` substring (user-created umbrellas that diverge from the #539–#542 convention). Per-umbrella **structural state**: same on every `/triage` run until the umbrella body is hand-edited. A warning is emitted inline; the body edit is skipped; the umbrella is listed in Phase 8 under this sub-list with a one-line reminder.
-- **`Body-edit failed — gh API error`** — fires when `gh issue edit #N --body-file <tmpfile>` returns non-zero (network error, rate limit, auth expiry, etc.). Per-run **transient state**: a re-run may succeed because the idempotency check (the `#<C> ` sentinel) is not yet satisfied. The child issue itself is already created with the back-reference; the umbrella is listed in Phase 8 under this sub-list with the captured `gh` stderr line so the maintainer can heal manually or via a re-run.
+- **`Body-edit failed — gh API error`** — fires when `gh issue edit #N --body-file ai-docs/triage/umbrella-<N>.body.md` returns non-zero (network error, rate limit, auth expiry, etc.). Per-run **transient state**: a re-run may succeed because the idempotency check (the `#<C> ` sentinel) is not yet satisfied. The child issue itself is already created with the back-reference; the umbrella is listed in Phase 8 under this sub-list with the captured `gh` stderr line so the maintainer can heal manually or via a re-run.
 
 **Text-option branches.**
 
