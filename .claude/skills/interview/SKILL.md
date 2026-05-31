@@ -144,6 +144,8 @@ Capture the returned `agentId` into the state file's `agent_id`. If the harness 
 - If `agent_id` is null OR the `SendMessage` call fails: cold spawn a fresh `Agent(model="opus", prompt=...)` with the full state in the prompt (the Subagent definition mandates re-derivation from prompt anyway). Update state file's `agent_id` from the new spawn (may again be null).
 
 > The cold-spawn path is the **default contract**; warm reuse is an opportunistic optimization conditional on the harness returning a usable `agentId` and `SendMessage` succeeding.
+>
+> **Cold-spawn is the contract, not a fallback.** Do **NOT** probe `ToolSearch` for `SendMessage` per round — its absence is stable for the whole session, so re-probing each round is wasted overhead. Do **NOT** emit fallback-framed status lines such as *"SendMessage not available — using cold spawn"* (they read as a regression). If a status line is emitted at all, phrase it neutrally — *"Spawning round N spec-writer."* Treat warm reuse as a silent optimization, never as the headline.
 
 #### 3b. Parse the YAML status block
 

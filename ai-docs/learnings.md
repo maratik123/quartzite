@@ -1270,7 +1270,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Related:** the broader AGENTS.md *Code Style* preference for Rust idioms over copy-paste-friendly C/C++ patterns; the spec-amendment recipe used to apply this learning before Step 8 began.
 
-**Escalated?** no
+**Escalated?** agent:design, agent:spec-writer
 
 ### 2026-05-18 — process — forgot to regenerate ROADMAP.md after updating INDEX.md
 
@@ -1395,7 +1395,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Kind:** correction
 
-**Escalated?** no
+**Escalated?** skill:interview, agent:spec-writer
 
 
 ### 2026-05-23 — process — investigate holding a warmed-up spec-writer across all `/interview` rounds until the skill terminates
@@ -1582,5 +1582,11 @@ Never `mv A B && git add B` for a previously-tracked source — the deletion of 
 ### 2026-05-30 — process — Never surface AskUserQuestion options built on guessed/assumed data; wait for the authoritative source first
 **What happened:** Twice in one session I issued `AskUserQuestion` to the user with option sets I had fabricated, *before* the authoritative state was known. (1) On `/interview` resume, I batched the answer-dependent `Edit` + spec-writer spawn in the SAME turn as the re-surfaced round-1 questions, pre-committing `prior_qa` with assumed answers ("retype-only") that contradicted the user's actual choices ("typed post path") — producing a contradictory interview state I then had to reconcile. (2) On `/triage`, I fired four `AskUserQuestion` prompts with invented candidate sets (C1–C8 plain/design rows, "4 inbox rows") in parallel with spawning the `triage-runner`, before it reported the real picture: the thematic sweep had **0** candidates (not 8), the bridge had **46** conflicts (not 2), and `_inbox.md` had **287** rows (not 4). Most of the user's answers mapped to nothing real and had to be discarded, then re-asked on the true picture.
 **Rule:** When a decision depends on data a subagent or tool will return (candidate lists, conflict counts, file state, a prior question's answer), do NOT pre-emptively ask the user about it in the same turn. Surface the choice only AFTER the authoritative result lands. Calls whose inputs depend on a pending answer/result must be issued in a LATER turn — never batched in parallel with the call that produces those inputs. On skill re-entry after interrupt/compaction, re-surface questions and WAIT; do not pre-commit downstream `Edit`/spawn calls on assumed answers.
+**Kind:** correction
+**Escalated?** no
+
+### 2026-05-31 — process — committed with an over-claiming message before confirming a batched tool result
+**What happened:** During `/improve` apply, I batched an `Edit` to `.claude/agents/design-review.md` together with two `git commit` Bash calls in the same turn. The `Edit` actually failed (`String to replace not found` — I targeted a bullet structure that file doesn't have), but the failure result arrived AFTER the commits had already run. Commit A's message claimed a `design-review.md` note-severity item that never landed. I caught it on reading the delayed results, fixed the edit, and rebuilt both commits via `git reset --soft HEAD~2` so the final state matched the message — but the over-claiming commit existed transiently.
+**Rule:** Do NOT batch a `git commit` (or any step whose correctness depends on a prior tool's success) in the same parallel turn as the `Edit`/`Write` it describes. Edits can fail silently-until-confirmed (wrong anchor, non-unique match); a commit message that enumerates files must be written only after every described edit's success result is in hand. When a commit message asserts "changed files X, Y, Z", verify each edit landed (`git diff --cached --stat`) before committing. `reset --soft` is the correct recovery (never `--hard`).
 **Kind:** correction
 **Escalated?** no
