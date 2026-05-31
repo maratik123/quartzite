@@ -136,7 +136,7 @@ Every row that reaches the Phase 7.5 `gh issue create` queue is first classified
 - **`none`** — the row's issue is created normally (no labels, no `**Blocked by:**`, no umbrella body edit). Recorded in Phase 8 *Design-link outcomes* as "design-work issue without umbrella link".
 - **`defer`** — no `gh issue create` runs this run; the row is returned to `_inbox.jsonl` (or left there). Recorded in Phase 8 as a deferred row.
 
-See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt, the body-edit machinery, and the progress-file `design_link:` audit trail. Phase 8 `Design-link outcomes` shape: [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md); mandatory per-mutated-umbrella grep against `next/SKILL.md` (AC10).
+See `.claude/agents/triage-runner.md` Phase 6.5 / Phase 7 gate section for the operational specification of the umbrella prompt and the progress-file `design_link:` audit trail; the umbrella body-edit machinery (sub-steps a–e) is extracted to [triage-runner-umbrella-bodyedit.md](../../../ai-docs/triage-runner-umbrella-bodyedit.md). Phase 8 `Design-link outcomes` shape: [triage-runner-design-links.md](../../../ai-docs/triage-runner-design-links.md); mandatory per-mutated-umbrella grep against `next/SKILL.md` (AC10).
 
 **Scope.** Gate is FORWARD-only — no retroactive sweep of existing `_inbox.jsonl` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
 
