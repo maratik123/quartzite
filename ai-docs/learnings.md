@@ -1270,7 +1270,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Related:** the broader AGENTS.md *Code Style* preference for Rust idioms over copy-paste-friendly C/C++ patterns; the spec-amendment recipe used to apply this learning before Step 8 began.
 
-**Escalated?** no
+**Escalated?** agent:design, agent:spec-writer
 
 ### 2026-05-18 — process — forgot to regenerate ROADMAP.md after updating INDEX.md
 
@@ -1395,7 +1395,7 @@ Without `Write` / `Edit`, the agent's only file-writing path is `Bash(cat > 'ai-
 
 **Kind:** correction
 
-**Escalated?** no
+**Escalated?** skill:interview, agent:spec-writer
 
 
 ### 2026-05-23 — process — investigate holding a warmed-up spec-writer across all `/interview` rounds until the skill terminates
