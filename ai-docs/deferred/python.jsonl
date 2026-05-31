@@ -1,0 +1,6 @@
+{"item": "Python interop (deferred)", "source_label": "core-types spec", "source_path": "../plans/done/2026-05-01-core-types.spec.md", "status": "", "tracked": "#58"}
+{"item": "Python interop (deferred)", "source_label": "runtime spec", "source_path": "../plans/done/2026-05-01-runtime.spec.md", "status": "", "tracked": "#58"}
+{"item": "Python-specific code generation (deferred)", "source_label": "macros spec", "source_path": "../plans/done/2026-05-01-macros.spec.md", "status": "", "tracked": "#58"}
+{"item": "Python interop examples", "source_label": "examples-crate spec", "source_path": "../plans/done/2026-05-02-examples-crate.spec.md", "status": "", "tracked": "#58"}
+{"item": "Python interop", "source_label": "lookup-perf spec", "source_path": "../plans/done/2026-05-02-lookup-perf.spec.md", "status": "", "tracked": "#58"}
+{"item": "Python interop (deferred plan)", "source_label": "signals-blocked spec", "source_path": "../plans/done/2026-05-02-signals-blocked.spec.md", "status": "", "tracked": "#58"}
