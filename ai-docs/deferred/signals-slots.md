@@ -13,6 +13,9 @@ Items extracted from completed plans. See [index](../deferred-items.md).
 | `auto_cross_thread_slot_not_posted_after_receiver_destroyed` test \| requires `Weak<ReceiverGuard>` in the auto slot entry; `AutoSlotInner` does not hold a guard in v1 | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 (closed) |
 | `ReceiverGuard` for `Auto` connections \| `connect_auto` currently accepts no guard; cross-thread Auto slots will post even after the receiver is destroyed; requires `ConnectionTable` integration | [auto-connection design](../plans/done/2026-05-01-auto-connection.design.md) | | #50 (closed) |
 | `connect_<signal>_queued` typed codegen wrappers — out of issue scope; natural follow-up after this lands. | [receiver-guard-auto spec](../plans/done/2026-05-03-receiver-guard-auto.spec.md) |  | untracked |
+| Future `CURRENT_SCHEMA_VERSION` bump policy — `#[serde(default)]` covers additive evolution within v1; a bump is reserved for non-additive shape changes (rename, type change, removal). Open a new issue when that need arises. | [persist-signals-blocked-serialization spec](../plans/done/2026-05-22-persist-signals-blocked-serialization.spec.md) | — |
+| `(a, b, c) → (a, c)` projection adapters for signal connections — separate issue; not in scope for arity relaxation | [signal-arity-relaxation spec](../plans/done/2026-05-25-signal-arity-relaxation.spec.md) | — |
+| Return-type checking for slots — slots are fire-and-forget today; `invoke_method` return value is discarded | [signal-arity-relaxation spec](../plans/done/2026-05-25-signal-arity-relaxation.spec.md) | — |
 
 ## Out of scope
 
