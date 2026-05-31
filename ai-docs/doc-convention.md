@@ -19,7 +19,7 @@ across the workspace. Every public item in every workspace crate
 <a id="self-sufficiency-no-repo-internal-references"></a>
 ### Self-sufficiency: no repo-internal references
 
-Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. Three families of repo-internal references are forbidden:
+Every `///`, `//!`, and `#[doc = "..."]` doc-comment in the published rustdoc surface must stand alone for a downstream reader on docs.rs. The same prohibition applies to `##` feature docstrings in a `Cargo.toml [features]` block — `document_features!()` renders them onto the crate's docs.rs page, so Families A and B below bind them exactly as they bind rustdoc. Three families of repo-internal references are forbidden:
 
 - **Family A — internal-artefact citations.** GitHub issue / PR numbers (`#NN`, `github.com/.../issues/N`); repo-internal paths (`ai-docs/...`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `design-system/...`, `.claude/...`, `scripts/...`, `.github/...`); internal-artefact references ("plan #N", "spec AC<n>", "the X spec", "tracked in", "deferred to a future plan / spec / follow-up", "per AGENTS.md"). Replace with self-contained behaviour wording, an intra-doc link to an in-workspace item, or a docs.rs / external-spec URL.
 - **Family B — contributor-tooling instructions.** Verify-locally / how-to-verify command incantations directed at a contributor (`cargo build -p X`, `cargo test`, `cargo clippy`, `RUSTDOCFLAGS=...`, `cargo doc --no-deps`); references to repo-internal scripts (`scripts/<name>.sh`) or workflow files (`.github/workflows/...`); coupling-to-the-development-process language ("this PR", "this commit", "this implementation"). Drop the sentence or replace with a worked API-use example.
@@ -42,9 +42,12 @@ rg --type rust -n '^\s*(///|//!).*(\bissue #[0-9]|\bPR #[0-9]|github\.com/.+/(is
 
 # Pattern B — contributor-tooling instructions
 rg --type rust -n '^\s*(///|//!).*(\bVerify locally|\bcargo build -p|\bcargo test\b|\bcargo clippy\b|\bcargo fmt\b|RUSTDOCFLAGS|cargo doc --|scripts/[a-z]|\bthis PR\b|\bthis commit\b|\bthis implementation\b)'
+
+# Pattern C — Cargo.toml [features] ## docstrings (rendered on docs.rs via document_features!())
+rg -n '^\s*##' -g '**/Cargo.toml'
 ```
 
-Both must return empty against the published surface. CI runs them via `scripts/check-rustdoc-internal-refs.sh` (wired into `.github/workflows/ci.yml`'s `docs:` job).
+Patterns A and B must return empty against the published surface — CI runs them via `scripts/check-rustdoc-internal-refs.sh` (wired into `.github/workflows/ci.yml`'s `docs:` job). Pattern C surfaces *every* `##` feature docstring rather than only violations; inspect each hit for Family A / B content.
 
 ## References
 
