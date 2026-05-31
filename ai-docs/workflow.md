@@ -141,3 +141,14 @@ Extracted from the AGENTS.md § Propagation Rule *Spec-Amendment group* row so t
 **Recurrence record:** the trigger recurred in 2026-05-21 inside the `/task` Step 11 self-review fix flow — a fix commit touched `ai-docs/plans/*.spec.md` while in a non-Amendment branch of the workflow. The 2026-05-21 recurrence is the canonical reference for why each downstream skill's fix step explicitly re-checks the trigger before commit.
 
 **Sync-group sister files** (must co-evolve when the recipe changes): `.claude/skills/task/SKILL.md`, `.claude/skills/pr-commented/SKILL.md`, `.claude/skills/pr-ci-failed/SKILL.md`, `.claude/skills/master-ci-failed/SKILL.md`, `.claude/agents/self-review.md`.
+
+## Dependent tool calls must not be batched with the call that produces their inputs
+
+**NEVER** issue a `git commit`, an `AskUserQuestion`, or any step whose correctness depends on a prior tool's result in the *same parallel turn* as the `Edit` / `Write` / subagent / Bash call that produces that result. Tool results can fail or differ from expectation (a non-unique `Edit` anchor fails; a subagent reports 0 candidates where you assumed 8), and a batched dependent call then acts on data that has not arrived — producing an over-claiming commit message or an `AskUserQuestion` whose options map to nothing real.
+
+Issue the dependent call in a **later turn**, after the producing result is in hand. Specifically:
+
+- Before any `git commit` whose message enumerates files or changes, verify each edit landed: `git diff --cached --stat`. Do not commit in the same turn as the edits it describes.
+- Before any `AskUserQuestion` whose options are built on data a subagent or tool will return (candidate lists, conflict counts, file state, a prior question's answer), wait for that data; never fabricate option sets in parallel with the call that produces them.
+
+Recurrence record: 2026-05-30 (`/triage` fabricated option sets in parallel with the `triage-runner` spawn — 0 candidates not 8, 46 conflicts not 2, 287 inbox rows not 4) and 2026-05-31 (`/improve` apply batched a `git commit` with the `Edit` it described; the `Edit` failed and the commit message over-claimed; recurred a second time the same session when a six-`Edit` + commit batch had most anchors miss). Root cause shared across all three: acting on a not-yet-arrived result.

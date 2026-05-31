@@ -197,7 +197,7 @@ Number all proposals. Let user choose.
 
 **Apply in two commits on the same feature branch:**
 
-1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / Skill / Subagent / `rules:[name]` / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation.
+1. **Commit A — instruction-file edits.** Apply the approved diffs to `AGENTS.md` / Skill / Subagent / `rules:[name]` / hook / `ai-docs/code-style.md` / `ai-docs/doc-convention.md` / `.claude/settings.json`. Stage explicitly by name. Run any applicable gates (`actionlint` on changed workflows, `cargo fmt -- --check` if a code-style example changed). Commit with a message describing the escalation. Do **NOT** batch the `git commit` in the same turn as the `Edit` calls it describes — an `Edit` can fail (non-unique / not-found anchor; the proposed `old_string` may not match the file's actual text) and the failure result arrives after the commit runs, yielding an over-claiming message. Wait for every edit's success result, then verify each landed with `git diff --cached --stat` before committing. See [`ai-docs/workflow.md` § Dependent tool calls must not be batched with the call that produces their inputs](../../ai-docs/workflow.md#dependent-tool-calls-must-not-be-batched-with-the-call-that-produces-their-inputs).
 
 2. **Commit B — backfill `Escalated?` and (when applicable) `Superseded by:`.** Two kinds of field updates may happen here, on EXISTING entries only (NEVER append new entries):
 
