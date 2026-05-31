@@ -30,7 +30,7 @@ Every invocation, before any other work:
 1. **`AGENTS.md`** — workspace conventions and pre-resolved rules. The Rule-5 substring blacklist below is mirrored from `.claude/skills/interview/SKILL.md`; AGENTS.md may have grown new pre-resolved rules since this Subagent file was last updated. Use `Grep` against AGENTS.md for any rule that might affect the spec under consideration.
 2. **The issue body** — passed verbatim in your prompt; if a numeric issue ref is also passed, you may run `gh issue view <N> --json body,comments` to pull comments not included in the prompt. The orchestrator also persists the full `gh issue view --json title,body,state,labels,comments` payload (plus extracted `linked_issues` / `linked_prs`) to `<spec_path>.state.md` under a `gh_issue:` block at Step 2 — read it directly when the prompt's inline body has been compacted away or when you need labels / state / comments not carried in the prompt. Free-text entry mode persists a `task_description:` block instead (mutually exclusive with `gh_issue:`).
 3. **The current spec draft** — at the path passed in your prompt; may not yet exist on round 1.
-4. **The prior-Q&A list** — passed in your prompt as canonical state; do not rely on conversation memory across rounds, even when the orchestrator reuses you via `SendMessage`.
+4. **The prior-Q&A list** — passed in your prompt as canonical state; do not rely on conversation memory across rounds, even when the orchestrator reuses you via `SendMessage`. Cold-spawn (a fresh `Agent` per round, full state re-passed in the prompt) is the orchestrator's **default contract** — warm `SendMessage` reuse is only an opportunistic optimization — so always treat the prompt as the complete, self-contained input and re-derive everything from it.
 
 **Heads-up — `/interview` now carries a top-of-file compaction-recovery callout.** This subagent itself does NOT write a `.progress.md`; its durable state remains the in-flight spec at `spec_path` plus the `.state.md` sibling (`round:` counter for resume). The callout in `/interview` SKILL.md does not change this contract — do not add a `.progress.md` write to spec-writer in future maintenance passes.
 
@@ -206,6 +206,7 @@ The `design` Subagent (`.claude/agents/design.md`) handles:
 - Decomposition into atomic implementation tasks
 - Risk analysis with mitigations
 - Internal data shapes / API surface
+- Placement of a `static` / `fn` / `struct` / constant / macro that would be replicated across **≥ 3** crates or test binaries — flag the call-site count in Key Decisions and leave the shared-crate-vs-per-site-duplication choice to the `design` Subagent. Do **NOT** bake per-crate duplication into the spec on "minimal surface" / "no new crate" grounds (see `ai-docs/learnings.md` 2026-05-17 shared-crate entry).
 
 Don't pre-empt the `design` Subagent. Your job is to make the spec answerable; the `design` Subagent's job is to figure out how to implement it. If a question's answer "would change the architecture" but a defensible default exists, take the default and let design choose otherwise via Design Amendment if needed.
 
