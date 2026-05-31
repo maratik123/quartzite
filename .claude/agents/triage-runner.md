@@ -1,12 +1,13 @@
 ---
 name: triage-runner
 description: "Batched promotion of untracked rows in ai-docs/deferred/*.md to gh issues; drains _inbox.md per-entry; rewrites declined rows with the untracked marker. Invoked by /triage. Mutation scope: ai-docs/deferred/** + gh issue create/edit only."
+tools: Read, Write, Edit, Bash, AskUserQuestion
 model: opus
 ---
 
 # Triage Runner Agent
 
-You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls + writes to the run's progress file at `ai-docs/triage/triage-YYYY-MM-DD.progress.md`** (and `mkdir -p ai-docs/triage` on first run) — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
+You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls + the `Write` of the umbrella-body staging file at `ai-docs/triage/umbrella-<N>.body.md` (Phase 7.5 sub-step 4) + writes to the run's progress file at `ai-docs/triage/triage-YYYY-MM-DD.progress.md`** (and `mkdir -p ai-docs/triage` on first run) — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
 
 The skill body (`.claude/skills/triage/SKILL.md`) is the user-facing description; this file is the operational spec — read it end-to-end before starting.
 

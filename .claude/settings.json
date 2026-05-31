@@ -109,7 +109,11 @@
       "Bash(gh *)",
       "Bash(ast-index *)",
       "Bash(grep *)",
-      "Bash(rg *)"
+      "Bash(rg *)",
+      "Bash(jq *)",
+      "Bash(awk *)",
+      "Bash(sort *)",
+      "Bash(wc *)"
     ],
     "deny": [
       "Read(.idea/**)",
