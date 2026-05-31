@@ -314,11 +314,13 @@ defer  Skip creating this row's issue; return to _inbox.md
 
 3. **Post-create label-apply** (after `gh issue create` returns child `#C`): `gh issue edit #C --add-label blocked --add-label ui-design`. Idempotent; failure logged but does NOT abort (back-reference already lives in the child body).
 
-4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor:
+4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor. Read the current body into a shell variable, then `Write` it (modified) to the staging file `ai-docs/triage/umbrella-<N>.body.md` (inside the subagent's mutation scope; `ai-docs/triage/**` is gitignored) — **no `>` file-redirect**:
 
+   ```bash
+   body=$(gh issue view <N> --json body --jq .body)
    ```
-   gh issue view <N> --json body --jq .body  >  /tmp/triage-umbrella-<N>.body.md
-   ```
+
+   (`--jq` is `gh`'s own JSON extraction, not a shell pipe to `jq` and not a `>` redirect.) Apply sub-steps a–d to `$body`, then use the `Write` tool to write the modified body to `ai-docs/triage/umbrella-<N>.body.md`.
 
    a. **Locate the anchor** — verbatim substring `## Child issues (blocked on this epic)` (case-sensitive; #539–#542 share verbatim).
 
@@ -328,7 +330,7 @@ defer  Skip creating this row's issue; return to _inbox.md
 
    d. **Compose the bullet** — exactly `- #<C> — <child-title>` (full child title, NOT the menu's 80-char truncation).
 
-   e. **Push back** — `gh issue edit <N> --body-file /tmp/triage-umbrella-<N>.body.md`. Capture exit code. Clean up the tmp file after the call returns.
+   e. **Push back** — `gh issue edit <N> --body-file ai-docs/triage/umbrella-<N>.body.md`. Capture exit code. Clean up the staging file after the call returns: `rm -f ai-docs/triage/umbrella-<N>.body.md`.
 
 **Two distinct fallback sub-lists (per Tech #8 + design § Risks R3) — never folded into one.**
 
