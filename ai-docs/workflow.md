@@ -74,7 +74,7 @@ Any file with substantial logic (~50+ lines of non-trivial code) must have a `#[
 
 ## Markdown link tracing after generate/move
 
-After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From `ai-docs/deferred/file.md`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
+After generating or moving any markdown file with relative links to siblings (`../`, `../../`), trace at least one link by hand or with `realpath` before committing. From a file in `ai-docs/deferred/`: `..` reaches `ai-docs/`, `../..` reaches the repo root.
 
 ## Merge strategy
 

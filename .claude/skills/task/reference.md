@@ -276,15 +276,15 @@ If any source for an auto-generated file was touched in this commit, regenerate 
 
 ## Step 12 — inbox propagation (detail)
 
-The Step 12 sub-step 4 parser specification lives in a dedicated reference file: **[inbox-propagation.md](inbox-propagation.md)**. It covers the six shape rules (NONE / TABLE / PIPEBULLET3 / PIPEBULLET2 / BOLDBULLET / PLAINBULLET), the unrecognised-shape warning behaviour, the per-row mapping format (4-cell `_inbox.md` row), and the file-level dedupe rule against the 8 thematic files. Load it on demand when implementing or modifying Step 12's propagation logic.
+The Step 12 sub-step 4 parser specification lives in a dedicated reference file: **[inbox-propagation.md](inbox-propagation.md)**. It covers the six shape rules (NONE / TABLE / PIPEBULLET3 / PIPEBULLET2 / BOLDBULLET / PLAINBULLET), the unrecognised-shape warning behaviour, the per-row mapping format (one JSON line per item appended to `_inbox.jsonl`), and the file-level dedupe rule against the 8 thematic files. Load it on demand when implementing or modifying Step 12's propagation logic.
 
 **Per-step recap** of the Step 12 inbox-propagation sub-step:
 
 - Run the parser against `ai-docs/plans/done/YYYY-MM-DD-name.spec.md` (and the matching `*.design.md` if it exists).
-- Build the live dedupe set `H`: every `Source`-cell path appearing in the 8 thematic files (`ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.md`). `widget-backlog.md` is NOT in `H` — its rows are tracked via the `Notes` cell, not via thematic-file membership.
-- For each candidate row, dedupe at *file* granularity: if the candidate's `Source` path is in `H`, skip the entire file (all of its sections); otherwise append the row to `ai-docs/deferred/_inbox.md` below the existing body.
+- Build the live dedupe set `H`: every `.source_path` value in the 8 thematic files (`ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.jsonl`), harvested via `jq -r '.source_path' <file>.jsonl | sort -u`. `widget-backlog.jsonl` is NOT in `H` — its widget rows are tracked via the `notes` field, not via thematic-file membership.
+- For each candidate row, dedupe at *file* granularity: if the candidate's `source_path` is in `H`, skip the entire file (all of its sections); otherwise append the JSON line to `ai-docs/deferred/_inbox.jsonl` below the existing body.
 - Emit one `WARN: <spec-path> :: <section heading> — unrecognised body shape, no rows emitted` line to stdout for any section whose body matches none of the six shape rules; the row count for that section is zero and Step 12 continues normally.
-- The Step 12 commit stages `_inbox.md` alongside the existing artefacts.
+- The Step 12 commit stages `_inbox.jsonl` alongside the existing artefacts.
 
 ## FORBIDDEN
 
@@ -310,4 +310,4 @@ The Step 12 sub-step 4 parser specification lives in a dedicated reference file:
 | Step 10 | Self-review APPROVE? (Progress file persists in working tree — gitignored — until `/pr-merged`. Do NOT `rm` it here.) |
 | Step 11 | `major`/`blocker` objections confirmed by user? Design change → Design Amendment triggered? `gh pr view <N>` re-read after every push (unconditional) — `gh pr edit` only if body contradicts new commits? |
 | Design Amendment | User approved the amendment? Design review returned GO before resuming? |
-| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `_inbox.md` parsed and appended (or warning logged for unrecognised shape) and staged? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |
+| Step 12 | Branch ≠ master? INDEX.md ✅? spec/design moved to done/? `_inbox.jsonl` parsed and appended (or warning logged for unrecognised shape) and staged? Auto-derived artefacts regenerated and staged (e.g. `ROADMAP.md` from `INDEX.md`)? `Cargo.lock` refreshed? PR body references the tracking issue (`Closes #N` or `Refs #N`)? PR created and URL posted? |

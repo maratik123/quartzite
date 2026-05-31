@@ -84,7 +84,7 @@ Completed plans (spec + design, implemented).
 
 Blocked or future plans.
 
-### ai-docs/deferred/_inbox.md
+### ai-docs/deferred/_inbox.jsonl
 
 triage queue — rows from completed specs awaiting `/triage` classification (writers: `/task` Step 12 and `/triage` only).
 
@@ -102,7 +102,7 @@ Spec-writer subagent (`model: opus`) — drafts the task spec one interview roun
 
 ### .claude/skills/triage/SKILL.md + .claude/agents/triage-runner.md
 
-`/triage` skill — batched promotion of `Tracked` = `—` rows in `ai-docs/deferred/*.md` (+ `🟡 v2` rows in `widget-backlog.md`) to gh issues; drains `_inbox.md` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`.
+`/triage` skill — batched promotion of `tracked` = `—` rows in `ai-docs/deferred/*.jsonl` (+ `🟡 v2` rows in `widget-backlog.jsonl`) to gh issues; drains `_inbox.jsonl` per-entry. Opus subagent; mutation scope strictly `ai-docs/deferred/**` + `gh issue create/edit`.
 
 ### .claude/skills/pr-commented/SKILL.md
 

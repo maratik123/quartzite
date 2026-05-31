@@ -1,12 +1,13 @@
 ---
 name: triage-runner
-description: "Batched promotion of untracked rows in ai-docs/deferred/*.md to gh issues; drains _inbox.md per-entry; rewrites declined rows with the untracked marker. Invoked by /triage. Mutation scope: ai-docs/deferred/** + gh issue create/edit only."
+description: "Batched promotion of untracked rows in ai-docs/deferred/*.jsonl to gh issues; drains _inbox.jsonl per-entry; rewrites declined rows with the untracked marker. Invoked by /triage. Mutation scope: ai-docs/deferred/** + gh issue create/edit only."
+tools: Read, Write, Edit, Bash, AskUserQuestion
 model: opus
 ---
 
 # Triage Runner Agent
 
-You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls + writes to the run's progress file at `ai-docs/triage/triage-YYYY-MM-DD.progress.md`** (and `mkdir -p ai-docs/triage` on first run) — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
+You are a deep batched-mutation subagent invoked by the `/triage` skill. Your **mutation scope is strictly `ai-docs/deferred/**` writes + `gh issue create / edit` calls + the `Write` of the umbrella-body staging file at `ai-docs/triage/umbrella-<N>.body.md` (Phase 7.5 sub-step 4) + writes to the run's progress file at `ai-docs/triage/triage-YYYY-MM-DD.progress.md`** (and `mkdir -p ai-docs/triage` on first run) — no code edits, no other instruction-file writes, no `ai-docs/learnings.md` writes (AGENTS.md *Boundary rule 2*), no edits to `AGENTS.md` / `.claude/**` / source files.
 
 The skill body (`.claude/skills/triage/SKILL.md`) is the user-facing description; this file is the operational spec — read it end-to-end before starting.
 
@@ -14,10 +15,10 @@ The skill body (`.claude/skills/triage/SKILL.md`) is the user-facing description
 
 Read on session start:
 
-1. All 8 thematic files: `ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.md`.
-2. `ai-docs/deferred/widget-backlog.md`.
-3. `ai-docs/deferred/_inbox.md`.
-4. `ai-docs/deferred-items.md` (for end-of-run row-count update).
+1. All 8 thematic files: `ai-docs/deferred/{signals-slots,properties,macros-codegen,object-tree,threading-runtime,future-crates,ci-docs-workflow,python}.jsonl`.
+2. `ai-docs/deferred/widget-backlog.jsonl`.
+3. `ai-docs/deferred/_inbox.jsonl`.
+4. (No index file — `ai-docs/deferred-items.md` was removed in the JSONL migration; per-theme `wc -l` is the canonical row tally for the end-of-run count summary.)
 5. `ai-docs/triage/triage-YYYY-MM-DD.progress.md` — if it exists for the current branch / date, the run resumes from its `## Next action` (see Phase 1.5 below). Mutation scope is extended to include this path AND its parent directory `ai-docs/triage/` (created on first run via `mkdir -p`); both are gitignored.
 6. Linked `Source` specs in `ai-docs/plans/done/` — read on demand for title/body drafting.
 
@@ -68,13 +69,13 @@ If `candidate_count < N` AND `$ARGUMENTS` explicitly set `N` to lower than candi
 
 Per-source candidate rules:
 
-| Source | Candidate rule | Anchor |
+| Source | Candidate rule (baked-in `jq`) | Notes |
 |---|---|---|
-| 8 thematic files | `Tracked` cell (column 4) = `—` | Header row `\| Item \| Source \| Status \| Tracked \|` must appear above the row. |
-| `widget-backlog.md` | `Status` cell = `🟡 v2` | Header row `\| Widget \| Status \| Notes \|` must appear above the row. **Ignore bare `Tracked:` substrings in prose** — `widget-backlog.md:89` contains a non-row `Tracked: TBD` blockquote that must NOT be classified as a row. |
-| `_inbox.md` | `Tracked` cell (column 4) = `—` | Header row `\| Item \| Source \| Section \| Tracked \|` must appear above the row. |
+| 8 thematic files | `jq -c 'select(.tracked=="—")' <theme>.jsonl` | Thematic rows carry no `kind` key. |
+| `widget-backlog.jsonl` | `jq -c 'select(.kind=="widget") \| select(.emoji_status=="🟡 v2")' widget-backlog.jsonl` | Widget rows only (`kind=="widget"`); the no-`kind` topic-area rows in the same file follow the thematic rule (`tracked=="—"`). JSONL keys are read directly — the former `widget-backlog.md:89` `Tracked:`-in-prose hazard is structurally impossible. |
+| `_inbox.jsonl` | `jq -c 'select(.tracked=="—")' _inbox.jsonl` | Each line is a `{item, source_label, source_path, section, tracked}` object. |
 
-`_inbox.md` candidates are tagged for the **drain phase (Phase 7)**, NOT the cell-iteration sweep — drain is canonical to avoid double-handling.
+`_inbox.jsonl` candidates are tagged for the **drain phase (Phase 7)**, NOT the cell-iteration sweep — drain is canonical to avoid double-handling.
 
 ### Phase 4: Bulk `gh issue list` dedupe
 
@@ -104,22 +105,22 @@ Otherwise build a local **`{number → {state, title, labels, body}}`** map keye
 
 For each cell-iteration candidate, exact-title-match dedupe against the `{title → #N}` view. If the proposed title already matches an existing issue:
 
-- **Matched issue OPEN.** Skip `gh issue create` for that row; write the existing `#N` into the destination cell (cell 4 for thematic / `_inbox.md`; `Notes` for widget-backlog) as if it were a fresh promotion. Log the dedupe hit in the run summary.
+- **Matched issue OPEN.** Skip `gh issue create` for that row; write the existing `#N` into the destination field (`tracked` for thematic / `_inbox.jsonl`; `notes` prefix for widget-backlog) as if it were a fresh promotion. Log the dedupe hit in the run summary.
 - **Matched issue CLOSED.** Still treat as a match; write the closed `#N`. The Phase 4.5 bridge flags closed-state mismatches on a future run.
 
 Edge cases recorded in the run summary but not auto-resolved:
 
 - **Matched issue's title was rephrased after creation** → out of reach of exact-match dedupe; the Subagent will propose a duplicate; user can decline during approval (the alternative — fuzzy matching — has too many false positives).
-- **Title not matched but row's `Source` link already cites an issue** → not a dedupe path; the row's `Tracked` cell already holds `#N`, so the row is not a candidate.
+- **Title not matched but row's `source_path` spec already cites an issue** → not a dedupe path; the row's `tracked` field already holds `#N`, so the row is not a candidate.
 
 ### Phase 4.5: Bridge sweep
 
-The bridge detects divergence between md state and `gh issue` state. Runs after Phase 4's map is built, before Phase 5's title drafting, so the user sees stale-tracked rows in the same overall batch as untracked candidates.
+The bridge detects divergence between JSONL state and `gh issue` state. Runs after Phase 4's map is built, before Phase 5's title drafting, so the user sees stale-tracked rows in the same overall batch as untracked candidates.
 
-**Iterate `Tracked` refs across the 10 row sources:**
-- 8 thematic files: cell 4 (`Tracked`) when it holds `#N`.
-- `_inbox.md`: cell 4 (`Tracked`) **only when it holds `#N`** — `—` rows route to Phase 7's drain step and are explicitly excluded.
-- `widget-backlog.md`: `Notes` cell when it holds a `tracked: #N — ` prefix. Anchor on `| Widget | Status | Notes |` column header; ignore bare `Tracked:` substrings in prose (`widget-backlog.md:89` blockquote).
+**Harvest tracked refs across the 10 row sources (baked-in `jq`):**
+- 8 thematic files + `_inbox.jsonl`: `jq -rc 'select(.tracked|test("#[0-9]+")) | .tracked' <file>.jsonl` — yields every `tracked` value holding at least one `#N`. `—` / `untracked` rows fail the `test("#[0-9]+")` filter and are excluded (the `_inbox.jsonl` `—` rows route to Phase 7's drain step).
+- `widget-backlog.jsonl`: `jq -rc 'select(.kind=="widget") | select(.notes|test("tracked: #[0-9]+")) | .notes' widget-backlog.jsonl` — yields every widget `notes` value carrying a `tracked: #N` prefix.
+- A harvested value may be a **multi-issue** string (e.g. `#45 (closed), #46 (closed), #47 (closed)`); extract **every** `#N` token from it (regex `#[0-9]+`) and look up each one in the map.
 
 **Look up each `#N` in the Phase 4 `{number → {state, title, labels, body}}` map.** If `#N` is NOT in the map, record as an *orphan ref* in the diagnostics block of the bridge sub-section — no per-conflict prompt opens for orphans. The bridge consults only `state` + `title`; the `labels` + `body` fields are inert here (they serve the UI-design gate).
 
@@ -127,11 +128,11 @@ The bridge detects divergence between md state and `gh issue` state. Runs after 
 
 | Type | Condition | Notes |
 |---|---|---|
-| 1 — Stale tracked | Map entry's `state` is `CLOSED` | Canonical case: `#60` refs in `ci-docs-workflow.md`. Closed-as-not-planned folds into this type per spec. |
-| 2 — Status mismatch | Map entry's `state` is `OPEN` AND row asserts done | Only widget-backlog can produce this in current schema (`Status: ✅` ⇒ asserts done). Thematic files + `_inbox.md` have no `Status` column. |
-| 3 — Untracked candidate | Row's `Tracked` cell = `—` | Counted only; **no per-conflict prompt**. Already handled by Phase 6 sweep + Phase 7 drain. |
+| 1 — Stale tracked | Map entry's `state` is `CLOSED` | Canonical case: `#60` refs in `ci-docs-workflow.jsonl`. Closed-as-not-planned folds into this type per spec. |
+| 2 — Status mismatch | Map entry's `state` is `OPEN` AND row asserts done | Only widget-backlog can produce this in current schema (`emoji_status` = `✅` ⇒ asserts done). Thematic files + `_inbox.jsonl` have no `emoji_status` field. |
+| 3 — Untracked candidate | Row's `tracked` = `—` | Counted only; **no per-conflict prompt**. Already handled by Phase 6 sweep + Phase 7 drain. |
 
-**Idempotency short-circuit for type 1.** Before classifying as type 1, check the cell content for the literal substring `(closed)` after `#N`. If present, the conflict was already resolved on a prior `/triage` run — skip classification (no prompt).
+**Idempotency short-circuit for type 1.** Before classifying as type 1, check the `tracked` value for the literal substring `(closed)` after `#N`. If present, the conflict was already resolved on a prior `/triage` run — skip classification (no prompt).
 
 **Collect all type-1 and type-2 conflicts as a batched preamble**, listing file path + cell location + `#N` + classification + a one-line diff preview. The user sees the full conflict surface before any per-conflict prompt opens (mirrors Phase 6's batched-table mental model, distinct conflict shape).
 
@@ -140,7 +141,7 @@ The bridge detects divergence between md state and `gh issue` state. Runs after 
 ```
 Conflict N of M — <type 1: stale tracked | type 2: status mismatch>
   File:     <path>
-  Cell:     <line N: column 4 / Notes>
+  Field:    <line N: .tracked / .notes>
   Tracked:  #N — <issue title from map>
   Issue state: <CLOSED | OPEN>
   Row state:   <implied open | ✅ done>
@@ -160,50 +161,50 @@ See [triage-runner-bridge.md](../../ai-docs/triage-runner-bridge.md) § *Bridge 
 
 ### Phase 5: Draft titles and bodies
 
-For each cell-iteration candidate (NOT `_inbox.md` rows — those are drained in Phase 7):
+For each cell-iteration candidate (NOT `_inbox.jsonl` rows — those are drained in Phase 7):
 
-- **Title.** ≤ 70 chars. Derived from the `Item` cell text, stripped of trailing `| Why …` continuations and any `\|` escapes:
+- **Title.** ≤ 70 chars. Derived from the `.item` text, stripped of trailing `| Why …` continuations (any embedded `|` is already a literal byte in the JSON value — no `\|` un-escaping needed):
 
   ```
-  <Item cell, trimmed>
+  <.item, trimmed>
   ```
 
 - **Body.** Markdown:
 
   ```
-  Surfaced by `/triage` from [`<source path>`](<source path>).
+  Surfaced by `/triage` from [`<.source_path>`](<.source_path>).
 
-  **Item:** <Item cell text>
-  **Section:** <out-of-scope | deferred | open-question>  <!-- from `_inbox.md`'s Section cell when applicable; omit for thematic-file rows where not derivable -->
+  **Item:** <.item text>
+  **Section:** <out-of-scope | deferred | open-question>  <!-- from the `_inbox.jsonl` row's `.section` field when applicable; omit for thematic-file rows where not derivable -->
   **Source spec:** [`<file>.spec.md`](<file>.spec.md)
 
-  <one-paragraph context derived from the linked Source spec's surrounding text>
+  <one-paragraph context derived from the `.source_path` spec's surrounding text>
   ```
 
 ### Phase 6: Present batch and collect approvals (no creates yet)
 
 Present a table to the user listing every cell-iteration candidate (8 thematic + widget-backlog 🟡 v2), one row per candidate, with columns:
 
-| # | File | Cell location | Item | Drafted title | Drafted body (collapsed) |
+| # | File | Row (`.item` / `.widget`) | Drafted title | Drafted body (collapsed) |
 
 User responds per row: approve / decline / skip-this-run.
 
 - **Approve** → **Run the Phase 6.5 / Phase 7 UI-design classification gate** for the row (per the gate section below; the per-row classification fires at this approval moment, BEFORE the row joins the queue). Once the gate fully resolves (classification + umbrella decision), append the row's `(title, body, destination)` tuple to the **in-memory approval queue**. **DO NOT call `gh issue create` yet** — all creates are deferred to Phase 7.5 so they share a single contiguous pass with drain promotes (the spec's "one bulk call" contract).
 - **Decline** → write the decline marker immediately:
-  1. **Concurrent-edit guard:** re-read the target file's content and confirm the row's line still matches the start-of-session snapshot. If mismatch: abort that row's rewrite, print the unified diff, name the file, continue with the next row.
-  2. On match, write the decline marker per the action table:
+  1. **Concurrent-edit guard:** re-read the target `.jsonl` and confirm the row's JSON line still matches the start-of-session snapshot byte-for-byte. If mismatch: abort that row's rewrite, print the unified diff, name the file, continue with the next row.
+  2. On match, write the decline marker per the action table. Each write is a read-modify-write `Write` — read the file, replace exactly the one matching line with the rewritten JSON object, write the file back (no `>` redirect):
 
   | Destination | Approval → write (in Phase 7.5) | Decline → write (now) |
   |---|---|---|
-  | 8 thematic files (cell 4) | `#N` | `untracked` |
-  | `_inbox.md` (cell 4) | `#N` (then migrate row per drain rules) | `untracked` (then migrate per drain rules) |
-  | `widget-backlog.md` (`Notes`) | prepend `tracked: #N — ` to existing notes | rewrite to `untracked (declined YYYY-MM-DD): <prev>` |
+  | 8 thematic files (`tracked`) | `tracked` ← `#N` | `tracked` ← `untracked` |
+  | `_inbox.jsonl` (`tracked`) | `tracked` ← `#N` (then migrate row per drain rules) | `tracked` ← `untracked` (then migrate per drain rules) |
+  | `widget-backlog.jsonl` (`notes`, `kind=="widget"`) | prepend `tracked: #N — ` to `notes` | rewrite `notes` to `untracked (declined YYYY-MM-DD): <prev>` |
 
 - **Skip** → leave the row unchanged for a future `/triage` run.
 
 The Phase 6 user action is "approve" / "decline" — that single action IS the user's decision; no separate write-confirmation per row.
 
-**Persist** the Phase 6 partition into `## Phase 6 / Phase 7 partitions` of the progress file: list of approves (per-row `file + cell + drafted title`), list of declines (per-row `file + cell + Item`), list of skips (per-row `file + cell + Item`). Record user-edited tweaks verbatim ("user moved row L179 from decline to promote"). Update `## Next action` to `Phase 6.5` once the Phase 6 table is fully resolved; resume the gate from Phase 6.5 below for each approved row before reaching Phase 7.
+**Persist** the Phase 6 partition into `## Phase 6 / Phase 7 partitions` of the progress file: list of approves (per-row `file + .item/.widget + drafted title`), list of declines (per-row `file + .item/.widget`), list of skips (per-row `file + .item/.widget`). Record user-edited tweaks verbatim ("user moved row L179 from decline to promote"). Update `## Next action` to `Phase 6.5` once the Phase 6 table is fully resolved; resume the gate from Phase 6.5 below for each approved row before reaching Phase 7.
 
 ### Phase 6.5 / Phase 7 — UI-design classification gate
 
@@ -230,7 +231,7 @@ classify_input = lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec
    - `y` → classification = `DESIGN-WORK`; continue to umbrella selection (Phase 6.5 / Phase 7 umbrella-prompt below — operationally specified in the design-decomp Task 5+ steps and finalised in later groups).
    - `n` → classification = `PLAIN`; skip the gate; the row enters Phase 7.5 without `blocked` / `ui-design` labels and without a `**Blocked by:**` body line.
 
-2. **No-hit branch.** When the scan returns zero hits, run the orchestrator-internal LLM auto-detect. The `/triage` orchestrator (Claude Code itself) reads the row's `Item` cell text + the row's `Source spec` file (bounded to that ONE spec file's content — see *Source-spec path resolution* + *Read-scope limit* below) and INFERS a classification `DESIGN-WORK | PLAIN` + a one-line reason (≤ 100 chars). Emit one y/n confirm prompt with the inference as default:
+2. **No-hit branch.** When the scan returns zero hits, run the orchestrator-internal LLM auto-detect. The `/triage` orchestrator (Claude Code itself) reads the row's `.item` text + the row's `.source_path` spec file (bounded to that ONE spec file's content — see *Source-spec path resolution* + *Read-scope limit* below) and INFERS a classification `DESIGN-WORK | PLAIN` + a one-line reason (≤ 100 chars). Emit one y/n confirm prompt with the inference as default:
 
    ```
    Auto-classification: <DESIGN-WORK | PLAIN> (reason: <one-line summary>). Accept? (y/n)
@@ -241,9 +242,9 @@ classify_input = lowercase(row.Item_cell_text) + " " + lowercase(row.Source_spec
 
    The inference uses the orchestrator's own LLM context — no external API, no model-selection plumbing.
 
-   **Source-spec path resolution.** Accept BOTH forms of the row's `Source spec` link: (a) bare-path `ai-docs/plans/done/<name>.spec.md`; (b) markdown-link `[<text>](../plans/done/<name>.spec.md)` — strip the wrapper and resolve the inner path relative to the deferred-row file's directory (typically `ai-docs/deferred/`) into workspace-relative form before reading. If the resolved path is absent (moved / renamed / stale), fall back to inferring from `row.Item` text alone with reason `source spec not found — inferred from Item text`.
+   **Source-spec path resolution.** The row's `.source_path` is the path directly (the `[label](path)` split already happened at conversion time — `source_label` is the display label, `source_path` the raw path, both link-form and bare-form cells resolve to a path here). Resolve `.source_path` relative to the deferred-file directory (typically `ai-docs/deferred/`) into workspace-relative form before reading. If the resolved path is absent (moved / renamed / stale), fall back to inferring from the `.item` text alone with reason `source spec not found — inferred from Item text`.
 
-   **Read-scope LIMIT.** Read **exactly ONE file** — the resolved Source-spec path. NOT the whole repo, NOT every spec in `ai-docs/plans/done/`, NOT any glob, NOT any `quartzite-*/src/` file. One row → one file read (per design § Risks R1).
+   **Read-scope LIMIT.** Read **exactly ONE file** — the resolved `.source_path`. NOT the whole repo, NOT every spec in `ai-docs/plans/done/`, NOT any glob, NOT any `quartzite-*/src/` file. One row → one file read (per design § Risks R1).
 
    **Inference output schema.** Exactly two values: (i) one token from `{DESIGN-WORK, PLAIN}` (uppercase, hyphenated for `DESIGN-WORK`; no other variants); (ii) one reason — single line, ≤ 100 chars. No multi-line, no JSON. The two values fill the prompt's `<DESIGN-WORK | PLAIN>` and `<one-line summary>` placeholders directly.
 
@@ -287,12 +288,12 @@ A shared keyword (substring hit on BOTH sides) counts +1; a shared NON-keyword t
 N. #<num> <title> — <truncated body summary>
 new    Create a new ui-design umbrella inline
 none   Create the issue without an umbrella link
-defer  Skip creating this row's issue; return to _inbox.md
+defer  Skip creating this row's issue; return to _inbox.jsonl
 ```
 
 `<truncated body summary>` = first 80 chars of the umbrella body's first non-empty paragraph (intra-paragraph line breaks collapsed to spaces); `…` suffix if truncated; `<no body>` if empty.
 
-**User input.** Pick one of: **number `1..N`** (numbered-pick — operational sub-steps below); **`new`** (inline-create new umbrella — design-decomp Task 7); **`none`** (create the row's issue without labels/`**Blocked by:**`; recorded as "design-work issue without umbrella link" in Phase 8; no umbrella body edit); **`defer`** (do NOT create the row's issue this run; return to `_inbox.md`; recorded as deferred in Phase 8; no umbrella body edit).
+**User input.** Pick one of: **number `1..N`** (numbered-pick — operational sub-steps below); **`new`** (inline-create new umbrella — design-decomp Task 7); **`none`** (create the row's issue without labels/`**Blocked by:**`; recorded as "design-work issue without umbrella link" in Phase 8; no umbrella body edit); **`defer`** (do NOT create the row's issue this run; return to `_inbox.jsonl`; recorded as deferred in Phase 8; no umbrella body edit).
 
 **Numbered-pick branch — end-to-end flow.** Pick number `i` resolves to umbrella `#N`. Four sub-steps:
 
@@ -304,7 +305,7 @@ defer  Skip creating this row's issue; return to _inbox.md
    { kind: "child",
      title: <drafted title>,
      body:  <drafted body with `**Blocked by:** #N\n\n` prepended at draft-construction time>,
-     destination_cell: <thematic cell 4 / widget-backlog Notes / _inbox.md cell 4>,
+     destination_field: <thematic .tracked / widget-backlog .notes / _inbox.jsonl .tracked>,
      link_to_umbrella: #N,
      labels_to_apply_post_create: ["blocked", "ui-design"] }
    ```
@@ -313,11 +314,13 @@ defer  Skip creating this row's issue; return to _inbox.md
 
 3. **Post-create label-apply** (after `gh issue create` returns child `#C`): `gh issue edit #C --add-label blocked --add-label ui-design`. Idempotent; failure logged but does NOT abort (back-reference already lives in the child body).
 
-4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor:
+4. **Umbrella body auto-edit (per Tech #8).** Edit `#N`'s body in-place under the `## Child issues (blocked on this epic)` anchor. Read the current body into a shell variable, then `Write` it (modified) to the staging file `ai-docs/triage/umbrella-<N>.body.md` (inside the subagent's mutation scope; `ai-docs/triage/**` is gitignored) — **no `>` file-redirect**:
 
+   ```bash
+   body=$(gh issue view <N> --json body --jq .body)
    ```
-   gh issue view <N> --json body --jq .body  >  /tmp/triage-umbrella-<N>.body.md
-   ```
+
+   (`--jq` is `gh`'s own JSON extraction, not a shell pipe to `jq` and not a `>` redirect.) Apply sub-steps a–d to `$body`, then use the `Write` tool to write the modified body to `ai-docs/triage/umbrella-<N>.body.md`.
 
    a. **Locate the anchor** — verbatim substring `## Child issues (blocked on this epic)` (case-sensitive; #539–#542 share verbatim).
 
@@ -327,7 +330,7 @@ defer  Skip creating this row's issue; return to _inbox.md
 
    d. **Compose the bullet** — exactly `- #<C> — <child-title>` (full child title, NOT the menu's 80-char truncation).
 
-   e. **Push back** — `gh issue edit <N> --body-file /tmp/triage-umbrella-<N>.body.md`. Capture exit code. Clean up the tmp file after the call returns.
+   e. **Push back** — `gh issue edit <N> --body-file ai-docs/triage/umbrella-<N>.body.md`. Capture exit code. Clean up the staging file after the call returns: `rm -f ai-docs/triage/umbrella-<N>.body.md`.
 
 **Two distinct fallback sub-lists (per Tech #8 + design § Risks R3) — never folded into one.**
 
@@ -341,31 +344,31 @@ defer  Skip creating this row's issue; return to _inbox.md
 
 **`none` branch.** Queue the child normally — no `link_to_umbrella`, no `**Blocked by:**`, no labels, no umbrella body edit. Persist `design_link: skip-link`; record in Phase 8 as `#<C> (skip-link)`.
 
-**`defer` branch.** Remove the row from Phase 7.5's queue. `_inbox.md`-origin rows stay in `_inbox.md` unchanged; Phase 6-origin approves downgrade to "deferred (gate)" with the source cell untouched (`defer` ≠ decline). No create, no labels, no umbrella body edit. Persist `design_link: defer`; record in Phase 8 as `<row> deferred`.
+**`defer` branch.** Remove the row from Phase 7.5's queue. `_inbox.jsonl`-origin rows stay in `_inbox.jsonl` unchanged; Phase 6-origin approves downgrade to "deferred (gate)" with the source row untouched (`defer` ≠ decline). No create, no labels, no umbrella body edit. Persist `design_link: defer`; record in Phase 8 as `<row> deferred`.
 
-**Scope.** Gate is FORWARD-only — no retroactive sweep of the 277 existing `_inbox.md` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
+**Scope.** Gate is FORWARD-only — no retroactive sweep of existing `_inbox.jsonl` rows; no new bridge-sweep conflict type for legacy un-linked design issues. Future `/triage --backfill-design-link` one-shot is in Deferred. Diff is instruction-files-only (AC9 zero-Rust verified).
 
-### Phase 7: Drain `_inbox.md`
+### Phase 7: Drain `_inbox.jsonl`
 
-Per-entry user prompt for every `_inbox.md` row tagged in Phase 3. For each row, present:
+Per-entry user prompt for every `_inbox.jsonl` row tagged in Phase 3. Read rows via `jq -c '.' _inbox.jsonl`; for each row, present:
 
 ```
 Row N of M:
-  Item:    <Item cell>
-  Source:  <Source cell>
-  Section: <Section cell>
+  Item:    <.item>
+  Source:  <.source_label or .source_path>
+  Section: <.section>
 
 Action? (s)ort / (p)romote / (d)rop / (k)eep
 ```
 
-Actions:
+Actions (all `_inbox.jsonl` line removals / appends use a read-modify-write `Write` — no `>` redirect):
 
-- **sort** → follow-up prompt: pick destination thematic file (numbered menu, 1–8). Append the row to that file with cell 4 = `—`; remove from `_inbox.md`. The row remains untracked at the thematic-file level and can be promoted on a future `/triage` run via the standard sweep.
-- **promote** → follow-up prompt: pick destination thematic file (numbered menu). **Run the Phase 6.5 / Phase 7 UI-design classification gate** for the row (per the gate section above; this is the Phase 7 application of the same per-row gate that Phase 6 already ran for sweep approvals). Once the gate fully resolves (classification + umbrella decision), **append the row to the same approval queue collected in Phase 6** (Phase 6 deferred its creates exactly so this union is possible). The actual create + cell-4-write happens in Phase 7.5. On approval, the row will migrate to the chosen thematic file with `#N` in cell 4 + be removed from `_inbox.md`. On decline, migrate with `untracked` + remove.
-- **drop** → physically remove the row from `_inbox.md`. No migration. Reserved for legitimately-bad rows.
-- **keep** → leave the row in `_inbox.md` unchanged.
+- **sort** → follow-up prompt: pick destination thematic file (numbered menu, 1–8). Append a thematic-shaped JSON line (`{item, source_label, source_path, status:"", tracked:"—"}`; the `.section` key is dropped) to that file's `.jsonl`; remove the row's line from `_inbox.jsonl`. The row remains untracked at the thematic-file level and can be promoted on a future `/triage` run via the standard sweep.
+- **promote** → follow-up prompt: pick destination thematic file (numbered menu). **Run the Phase 6.5 / Phase 7 UI-design classification gate** for the row (per the gate section above; this is the Phase 7 application of the same per-row gate that Phase 6 already ran for sweep approvals). Once the gate fully resolves (classification + umbrella decision), **append the row to the same approval queue collected in Phase 6** (Phase 6 deferred its creates exactly so this union is possible). The actual create + `tracked`-write happens in Phase 7.5. On approval, the row will migrate to the chosen thematic `.jsonl` with `tracked:"#N"` + be removed from `_inbox.jsonl`. On decline, migrate with `tracked:"untracked"` + remove.
+- **drop** → physically remove the row's line from `_inbox.jsonl`. No migration. Reserved for legitimately-bad rows.
+- **keep** → leave the row in `_inbox.jsonl` unchanged.
 
-**Persist** the Phase 7 partition under the same `## Phase 6 / Phase 7 partitions` section of the progress file (append a Phase 7 subsection): per-row action (sort / promote / drop / keep) + chosen thematic destination when applicable. Update `## Next action` to `Phase 7.5` once every `_inbox.md` row has been actioned.
+**Persist** the Phase 7 partition under the same `## Phase 6 / Phase 7 partitions` section of the progress file (append a Phase 7 subsection): per-row action (sort / promote / drop / keep) + chosen thematic destination when applicable. Update `## Next action` to `Phase 7.5` once every `_inbox.jsonl` row has been actioned.
 
 ### Phase 7.5: Combined `gh issue create` pass
 
@@ -375,19 +378,19 @@ For each queue entry, sequentially in collection order:
 
 1. **Title-dedupe re-check** against the Phase-4 map (a freshly-approved title may collide with an entry that came back in the bulk `gh issue list`; if so, surface to user — accept the existing issue's `#N` or abort the create for this entry).
 2. Run `gh issue create --title "<title>" --body "<body>"` and capture the returned `#N`.
-3. **Concurrent-edit guard:** immediately before writing `#N` to the target cell, re-read the target file's content and confirm the row's line still matches the start-of-session snapshot. If mismatch, abort the write, print the unified diff, name the file, continue with the next queue entry.
-4. On match, write `#N` per the action table from Phase 6 — cell 4 for thematic files and `_inbox.md`; `tracked: #N — <prev>` in the `Notes` cell for widget-backlog. For `_inbox.md` drain-promote rows, also migrate the row to its chosen thematic file (per Phase 7's sub-prompt) with `#N` in cell 4 and remove from `_inbox.md`.
+3. **Concurrent-edit guard:** immediately before writing `#N` to the target row, re-read the target `.jsonl` and confirm the row's JSON line still matches the start-of-session snapshot byte-for-byte. If mismatch, abort the write, print the unified diff, name the file, continue with the next queue entry.
+4. On match, write `#N` per the action table from Phase 6 (read-modify-write `Write`, no `>` redirect) — `tracked:"#N"` for thematic files and `_inbox.jsonl`; `notes` prefixed `tracked: #N — ` for widget-backlog widget rows. For `_inbox.jsonl` drain-promote rows, also migrate the row to its chosen thematic file (per Phase 7's sub-prompt) with `tracked:"#N"` and remove its line from `_inbox.jsonl`.
 
-### Phase 8: Update `deferred-items.md` and emit summary
+### Phase 8: Recount JSONL rows and emit summary
 
-Re-count rows in every `ai-docs/deferred/*.md` file post-rewrite. Rewrite the count column in `ai-docs/deferred-items.md` to match the new counts.
+Re-count rows in every `ai-docs/deferred/*.jsonl` file post-rewrite via `wc -l` (one JSON object per line). There is no longer a `deferred-items.md` index to rewrite — the per-file `wc -l` numbers are the canonical row tally; report the before/after diff in the summary below.
 
 Emit the run-output summary per the skill body's *Run-output summary* section. Sub-section order:
 
 - Status table covering all 10 row sources (before / after counts).
-- **Bridge sub-section** (md ↔ gh issue divergence; placed here for visibility near the top of the summary):
+- **Bridge sub-section** (JSONL ↔ gh issue divergence; placed here for visibility near the top of the summary):
   ```
-  ## Bridge sub-section (md ↔ gh issue divergence)
+  ## Bridge sub-section (JSONL ↔ gh issue divergence)
 
   Conflicts detected: <total>
     Type 1 (stale tracked):   <count>
@@ -398,21 +401,21 @@ Emit the run-output summary per the skill body's *Run-output summary* section. S
     <list, one per line>
 
   Resolutions:
-    update md:    <count>   <list: file + cell + #N + before/after>
+    update md:    <count>   <list: file + .tracked/.notes + #N + before/after>
     update issue: <count>   <list: #N + before-state → after-state>
-    keep both:    <count>   <list: file + cell + #N + user reason>
+    keep both:    <count>   <list: file + .tracked/.notes + #N + user reason>
 
   gh issue calls made by bridge this run:
     <list of close/reopen commands executed>
   ```
 - **Design-link outcomes** — sub-section shape: [triage-runner-design-links.md](../../ai-docs/triage-runner-design-links.md). Mandatory per-mutated-umbrella `grep -n "#<N>" .claude/skills/next/SKILL.md` recorded per AC10.
 - Issues created (`#N` + one-line title each).
-- Rows declined (file path + `Item` cell content).
+- Rows declined (file path + `.item` / `.widget` content).
 - Inbox actions (sort / promote / drop, with destination thematic file).
 - Concurrent-edit aborts (if any), listing affected files + diff snippets.
-- `deferred-items.md` row-count diff.
+- Per-theme JSONL `wc -l` row-count diff (before / after the run).
 
-Phase 8 is read-only across `ai-docs/deferred/*.md` after the count rewrite — no further row mutations.
+Phase 8 is read-only across `ai-docs/deferred/*.jsonl` after the recount — no further row mutations.
 
 **Progress-file cleanup (final action of the run).** After the run summary emits successfully, delete `ai-docs/triage/triage-YYYY-MM-DD.progress.md`:
 
@@ -467,7 +470,7 @@ BiDi
           ∧ kw_lower is substring of lowercase(umbrella.title + " " + umbrella.body) }|
    ```
 
-   A shared keyword (substring hit on BOTH the row's `Item` text AND the umbrella's `title + body`) counts +1; a shared NON-keyword token does not count (avoids generic noise like "the", "and", "a"). Sort umbrellas by descending score; tie-break by `#N` ascending (oldest first). The menu still shows ALL open `ui-design` umbrellas — ranking only affects ORDER.
+   A shared keyword (substring hit on BOTH the row's `.item` text AND the umbrella's `title + body`) counts +1; a shared NON-keyword token does not count (avoids generic noise like "the", "and", "a"). Sort umbrellas by descending score; tie-break by `#N` ascending (oldest first). The menu still shows ALL open `ui-design` umbrellas — ranking only affects ORDER.
 
 **List extension policy.** The spec lists this as the minimum starting set. Future list-tuning PRs may extend / reorder entries with rationale; the list extension is a one-line `## List extensions` sub-section appended to this section, preserving the original 23 entries verbatim for audit (the dual-role contract above is unchanged by additions).
 
@@ -477,8 +480,8 @@ BiDi
 - **Do NOT** run multiple `gh issue list` calls per session — exactly one bulk call per run.
 - **Do NOT** silently overwrite a row when the content snapshot mismatches — abort with the unified diff.
 - **Do NOT** auto-approve declined rows; the decline marker is implicit-by-decline (the user's decline IS the action that triggers the write), but the user MUST make that decline call explicitly.
-- **Do NOT** route `_inbox.md` `—` rows through the cell-iteration sweep — drain (Phase 7) is canonical.
-- **Do NOT** edit `widget-backlog.md`'s `Status` cell during promotion — only the `Notes` cell changes.
+- **Do NOT** route `_inbox.jsonl` `tracked=="—"` rows through the cell-iteration sweep — drain (Phase 7) is canonical.
+- **Do NOT** edit `widget-backlog.jsonl`'s `emoji_status` during promotion — only the `notes` field changes.
 
 ## Concurrent-edit guard
 

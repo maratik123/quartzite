@@ -128,7 +128,7 @@ runtime with the message:
 The recipe below is the manual `rg` + local dry-run procedure for the next
 contributor adding a workspace crate or widening Miri's reach. It is
 deliberately not automated under v3; a future `scripts/check-miri-tags.sh`
-candidate is recorded in `ai-docs/deferred/_inbox.md`.
+candidate is recorded in `ai-docs/deferred/_inbox.jsonl`.
 
 ### Static enumeration
 

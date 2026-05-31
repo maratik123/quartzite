@@ -184,14 +184,14 @@ When adding or editing dependencies in `Cargo.toml`:
 >
 > APPROVE = push. REJECT = fix on the same branch and re-run; after 3 REJECTs in a row, surface and stop without pushing.
 
-> **AXIOM — `ai-docs/deferred/_inbox.md` is written ONLY by `/task` Step 12 and `/triage`.**
-> Hand-edits to `_inbox.md` defeat the propagation contract that Issue A2 sets up — they hide rows from the parser and conflict with future Step-12 appends.
+> **AXIOM — `ai-docs/deferred/_inbox.jsonl` is written ONLY by `/task` Step 12 and `/triage`.**
+> Hand-edits to `_inbox.jsonl` defeat the propagation contract that Issue A2 sets up — they hide rows from the parser and conflict with future Step-12 appends; the JSONL line-per-object format is hand-edit-hostile by design (one malformed line breaks the whole `jq` read).
 >
 > | If you see... | Action |
 > |---|---|
-> | A row in `_inbox.md` you want to move to a thematic file | Run `/triage`; let it sort the row |
-> | A row in `_inbox.md` you want to drop | Run `/triage`; mark "drop" during the drain step |
-> | A row missing from `_inbox.md` for a freshly-merged spec | Re-run `/task` Step 12 manually (or wait for the next merged spec to trigger it) |
+> | A row in `_inbox.jsonl` you want to move to a thematic file | Run `/triage`; let it sort the row |
+> | A row in `_inbox.jsonl` you want to drop | Run `/triage`; mark "drop" during the drain step |
+> | A row missing from `_inbox.jsonl` for a freshly-merged spec | Re-run `/task` Step 12 manually (or wait for the next merged spec to trigger it) |
 > | An entry whose source-spec section shape was unrecognised by the parser | Step 12 emits a warning; resolve by reformatting the source spec OR by adding the shape to the parser's allow-list (Issue A2 design phase) |
 
 ## Propagation Rule
@@ -273,7 +273,7 @@ Interpret user phrasing literally and conservatively. When uncertain — ask, do
 | `ai-docs/triage/triage-YYYY-MM-DD.progress.md` | `/triage` resume state for multi-turn runs (gitignored) |
 | `ai-docs/plans/done/` | Completed plans (spec + design, implemented) |
 | `ai-docs/plans/deferred/` | Blocked or future plans |
-| `ai-docs/deferred/_inbox.md` | triage queue — rows from completed specs awaiting `/triage` |
+| `ai-docs/deferred/_inbox.jsonl` | triage queue — rows from completed specs awaiting `/triage` |
 | `ai-docs/bugfix/trace-*.md` | Bugfix trace + durable-state surface — deleted on resolution |
 | `ai-docs/learnings.md` | Corrections log — feed for `/improve` |
 | `.claude/agents/spec-writer.md` | Spec-writer subagent — drafts task spec one round per call |

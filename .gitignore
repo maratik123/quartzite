@@ -28,6 +28,9 @@ librust_out.rlib
 # /triage runs persist resume state to ai-docs/triage/triage-YYYY-MM-DD.progress.md.
 # Created by the triage-runner subagent at Phase 1.5, deleted at Phase 8.
 /ai-docs/triage/**/*.progress.md
+# /triage umbrella-body staging files: Written by the runner at Phase 7.5
+# sub-step 4 (gh issue edit --body-file source), deleted via rm -f after push-back.
+/ai-docs/triage/**/umbrella-*.body.md
 # /pr-ci-failed fallback progress files (when invoked on a PR not produced by /task).
 # Created by the skill at Step 1, deleted by /pr-merged. Never committed.
 /ai-docs/ci-fixes/

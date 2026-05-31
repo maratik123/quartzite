@@ -19,40 +19,27 @@ cat ai-docs/plans/INDEX.md
 
 ## Deferred-file backlog (8 thematic files + widget-backlog)
 
+The deferred store is canonical **JSONL** (one JSON object per line). Each block
+below surfaces the *untracked candidates* for one file via a baked-in `jq`
+one-liner — the candidate set is identical to the former markdown `cat` output
+(see *Deferred-file rows* below for the field semantics).
+
+Thematic files — untracked rows are `tracked=="—"`:
+
 ```!
-cat ai-docs/deferred/ci-docs-workflow.md
+for f in ci-docs-workflow future-crates macros-codegen object-tree properties python signals-slots threading-runtime; do echo "== $f.jsonl =="; jq -c 'select(.tracked=="—")' ai-docs/deferred/$f.jsonl; done
+```
+
+`widget-backlog.jsonl` carries two row kinds in one file — widget rows
+(`kind=="widget"`, candidate when `emoji_status=="🟡 v2"`) and topic-area
+thematic rows (no `kind`, candidate when `tracked=="—"`):
+
+```!
+jq -c 'select(.kind=="widget") | select(.emoji_status=="🟡 v2")' ai-docs/deferred/widget-backlog.jsonl
 ```
 
 ```!
-cat ai-docs/deferred/future-crates.md
-```
-
-```!
-cat ai-docs/deferred/macros-codegen.md
-```
-
-```!
-cat ai-docs/deferred/object-tree.md
-```
-
-```!
-cat ai-docs/deferred/properties.md
-```
-
-```!
-cat ai-docs/deferred/python.md
-```
-
-```!
-cat ai-docs/deferred/signals-slots.md
-```
-
-```!
-cat ai-docs/deferred/threading-runtime.md
-```
-
-```!
-cat ai-docs/deferred/widget-backlog.md
+jq -c 'select(.kind!="widget") | select(.tracked=="—")' ai-docs/deferred/widget-backlog.jsonl
 ```
 
 ## Task
@@ -102,18 +89,33 @@ Issues that need an out-of-harness designer pass (Figma asset, visual spec, `des
 
 ### Deferred-file rows (8 thematic + widget-backlog)
 
-Apply this classification to every row in the deferred files surfaced above (`ci-docs-workflow.md`, `future-crates.md`, `macros-codegen.md`, `object-tree.md`, `properties.md`, `python.md`, `signals-slots.md`, `threading-runtime.md`, `widget-backlog.md`):
+The blocks above already filter to the candidate set via `jq`; this classification
+documents the field semantics behind those filters (deferred store is JSONL —
+`ci-docs-workflow.jsonl`, `future-crates.jsonl`, `macros-codegen.jsonl`,
+`object-tree.jsonl`, `properties.jsonl`, `python.jsonl`, `signals-slots.jsonl`,
+`threading-runtime.jsonl`, `widget-backlog.jsonl`):
 
-1. **Tracked vs. untracked.** Schemas differ between the two file kinds:
-   - **8 thematic files** (`signals-slots.md`, `properties.md`, `macros-codegen.md`, `object-tree.md`, `threading-runtime.md`, `future-crates.md`, `ci-docs-workflow.md`, `python.md`) — column 4 (`Tracked`): `#N` ⇒ tracked, `—` ⇒ untracked.
-   - **`widget-backlog.md`** — `Status` column emoji `🟡 v2` ⇒ untracked candidate; `Notes` cell containing literal `tracked: #N` ⇒ tracked. Other emojis (`✅` / `🤔` / `❌` / `📭`) ⇒ skip — they are not in the candidate set at all.
+1. **Tracked vs. untracked.** Two row kinds (`kind` key absent ⇒ thematic;
+   `kind=="widget"` ⇒ widget):
+   - **Thematic rows** (the 8 thematic files AND the no-`kind` topic-area rows in
+     `widget-backlog.jsonl`) — field `tracked`: `#N` ⇒ tracked, `—` ⇒ untracked
+     (the `jq 'select(.tracked=="—")'` filter above). Emoji-status legend (`🟡 v2`
+     etc.): ✅ first pass / 🟡 v2 / 🤔 undecided / ❌ dropped / 📭 future.
+   - **`widget-backlog.jsonl` widget rows** (`kind=="widget"`) — `emoji_status`
+     `🟡 v2` ⇒ untracked candidate (the `jq 'select(.emoji_status=="🟡 v2")'`
+     filter above); `notes` containing literal `tracked: #N` ⇒ tracked. Other
+     `emoji_status` values (`✅` / `🤔` / `❌` / `📭`) ⇒ skip — not candidates.
 2. **Double-recommendation guard.** If a tracked row's `#N` is already in the `gh issue list` candidate set, the deferred-file row is **not** re-listed as a separate item — at most one supplementary one-liner under that issue's recommendation cites the deferred row.
-3. **Anchor on column-header context, not bare substrings.** The string `Tracked` appears once as prose in `widget-backlog.md` (`> spec. Tracked: TBD (file an issue when first item-view need surfaces).`). **Do not** treat this as a row — only rows inside an actual table count. Apply the same anchor for any future prose hits in other deferred files.
+3. **`jq` filters the candidate set precisely.** The `jq` blocks above already
+   exclude every non-candidate row (the former markdown prose hit `> spec.
+   Tracked: TBD` is not a JSONL row at all, so it cannot leak in). Treat each
+   emitted JSON object as one candidate; read `.item` (thematic) or `.widget`
+   (widget) for the title and `.source_path` for the source citation.
 4. **Output the *Candidates needing `/triage`* section.** Untracked rows surface in a new section titled **Candidates needing `/triage`** in the output (see *Output (both modes)* below). They are **never** the top-line recommendation or a runner-up — only listed for situational awareness, with a brief note that `/triage` ships in Issue B (#204); until then, the user can act on a candidate manually via `/interview`.
 
 ### Output (both modes)
 
 - **Recommendation:** title + link or file path + a 2–4 sentence rationale (scope, readiness, why now; in small mode, also why it counts as small and which larger work it sets up).
 - **Runner-ups (2–3):** one line each, with the reason each ranked lower.
-- **Candidates needing `/triage` (informational):** any untracked rows from the deferred files. Title each row with the row's `Item`-cell text and cite the source file. **Items in this section are never the top-line recommendation or a runner-up** — they are listed for situational awareness only. End the section with a one-sentence reminder that `/triage` ships in Issue B (#204) and until then the user can act on a candidate manually via `/interview`.
+- **Candidates needing `/triage` (informational):** any untracked rows from the deferred files. Title each row with the row's `.item` (thematic) or `.widget` (widget) text and cite the source via `.source_path` (thematic) or the originating file (`widget-backlog.jsonl`). **Items in this section are never the top-line recommendation or a runner-up** — they are listed for situational awareness only. End the section with a one-sentence reminder that `/triage` ships in Issue B (#204) and until then the user can act on a candidate manually via `/interview`.
 - **Candidates for UI-designer handoff (informational):** any open GitHub issue whose `labels` array contains `ui-design`. Format each row as `#N — <title> (<link>): <one-line rationale>` — default rationale "needs design-system visual spec / designer pass" unless the issue body's first line gives a more specific cue. **Items in this section are never the top-line recommendation or a runner-up** — they are listed for situational awareness only. End the section with a one-sentence reminder that items here need an out-of-harness designer pass (Figma / `design-system/` folder) and unblock once the designer's PR lands and the `ui-design` label is removed. **Section always renders** — when zero issues carry the label, the body is the single line `No issues currently labelled \`ui-design\`.` (schema stability for `/next` consumers).
