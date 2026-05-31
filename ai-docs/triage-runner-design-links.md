@@ -9,7 +9,7 @@ Extracted from .claude/agents/triage-runner.md § Phase 8 — Run-output summary
 - `#<C> → #<N> (existing)` — numbered-pick branch resolved to an open ui-design umbrella that already existed at Phase 4's bulk-list snapshot.
 - `#<C> → #<N> (new)` — `new`-branch inline-created umbrella; `#<N>` is the umbrella's number returned by Phase 7.5's umbrella-first sub-pass.
 - `#<C> (skip-link)` — `none`-branch row: child created without `blocked` / `ui-design` labels and without a `**Blocked by:**` body line. The "design-work issue without umbrella link" status is captured here.
-- `<row> deferred` — `defer`-branch row: no `gh issue create` ran; the row remained in `_inbox.md` (or its Phase 6 sweep approval was downgraded to "deferred (gate)" with source cell untouched). `<row>` identifies the row by `file + cell` (e.g. `ai-docs/deferred/widgets.md cell 4`) so the maintainer can re-promote on a future run.
+- `<row> deferred` — `defer`-branch row: no `gh issue create` ran; the row remained in `_inbox.jsonl` (or its Phase 6 sweep approval was downgraded to "deferred (gate)" with the source row untouched). `<row>` identifies the row by `file + .item` (e.g. `ai-docs/deferred/widget-backlog.jsonl .item="ProgressBar"`) so the maintainer can re-promote on a future run.
 
 **Per-umbrella body-edit summary.** One bullet per umbrella the run touched (mutated OR widened), in `#N` ascending order. Shape:
 
@@ -25,7 +25,7 @@ where `<count>` is the number of children appended under the umbrella's `## Chil
 #<N> — <umbrella-title> — manual update needed: add child checklist anchor
 ```
 
-**`Body-edit failed — gh API error` sub-list.** Per-run **transient** state — fires when sub-step 4e (`gh issue edit <N> --body-file <tmpfile>`) returns non-zero (network error, rate limit, auth expiry, etc.); parse + idempotency + compose succeeded, only push-back failed. **Separate** from anchor-absent because the recovery path differs (re-run heals it via the unsatisfied `#<C> ` sentinel; the child already carries `**Blocked by:** #N`). One bullet per (umbrella, child) pair that failed:
+**`Body-edit failed — gh API error` sub-list.** Per-run **transient** state — fires when sub-step 4e (`gh issue edit <N> --body-file ai-docs/triage/umbrella-<N>.body.md`) returns non-zero (network error, rate limit, auth expiry, etc.); parse + idempotency + compose succeeded, only push-back failed. **Separate** from anchor-absent because the recovery path differs (re-run heals it via the unsatisfied `#<C> ` sentinel; the child already carries `**Blocked by:** #N`). One bullet per (umbrella, child) pair that failed:
 
 ```
 #<N> ← #<C> — body edit failed: <gh stderr first-line>
