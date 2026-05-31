@@ -84,7 +84,7 @@ If a referenced behavior in the codebase is unclear, ask `claude-code-guide` for
 Read every file in these locations (use Read, not grep — content matters, not just keywords):
 
 - `AGENTS.md` and `CLAUDE.md`
-- `ai-docs/context.md`, `ai-docs/doc-convention.md`, `ai-docs/learnings.md`, `ai-docs/deferred-items.md`
+- `ai-docs/context.md`, `ai-docs/doc-convention.md`, `ai-docs/learnings.md`
 - `ai-docs/plans/INDEX.md` and any active `*.spec.md` / `*.design.md` / `*.progress.md` (skip `done/` and `deferred/` content; just note their existence)
 - Every `.claude/skills/*/SKILL.md`
 - Every `.claude/agents/*.md`
