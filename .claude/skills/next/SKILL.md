@@ -27,7 +27,7 @@ one-liner — the candidate set is identical to the former markdown `cat` output
 Thematic files — untracked rows are `tracked=="—"`:
 
 ```!
-for f in ci-docs-workflow future-crates macros-codegen object-tree properties python signals-slots threading-runtime; do echo "== $f.jsonl =="; jq -c 'select(.tracked=="—")' ai-docs/deferred/$f.jsonl; done
+jq -c 'select(.tracked=="—")' ai-docs/deferred/ci-docs-workflow.jsonl ai-docs/deferred/future-crates.jsonl ai-docs/deferred/macros-codegen.jsonl ai-docs/deferred/object-tree.jsonl ai-docs/deferred/properties.jsonl ai-docs/deferred/python.jsonl ai-docs/deferred/signals-slots.jsonl ai-docs/deferred/threading-runtime.jsonl
 ```
 
 `widget-backlog.jsonl` carries two row kinds in one file — widget rows
@@ -98,8 +98,11 @@ documents the field semantics behind those filters (deferred store is JSONL —
 1. **Tracked vs. untracked.** Two row kinds (`kind` key absent ⇒ thematic;
    `kind=="widget"` ⇒ widget):
    - **Thematic rows** (the 8 thematic files AND the no-`kind` topic-area rows in
-     `widget-backlog.jsonl`) — field `tracked`: `#N` ⇒ tracked, `—` ⇒ untracked
-     (the `jq 'select(.tracked=="—")'` filter above). Emoji-status legend (`🟡 v2`
+     `widget-backlog.jsonl`) — field `tracked`: `#N` ⇒ tracked; `—` (em-dash) ⇒
+     **un-triaged / fresh** ⇒ candidate (the `jq 'select(.tracked=="—")'` filter
+     above); `untracked` (literal word) ⇒ **consciously declined**, intentionally
+     NOT a candidate. These two non-`#N` states are a deliberate two-state model
+     (not a bug) — see `triage-runner.md` Phase 3. Emoji-status legend (`🟡 v2`
      etc.): ✅ first pass / 🟡 v2 / 🤔 undecided / ❌ dropped / 📭 future.
    - **`widget-backlog.jsonl` widget rows** (`kind=="widget"`) — `emoji_status`
      `🟡 v2` ⇒ untracked candidate (the `jq 'select(.emoji_status=="🟡 v2")'`

@@ -29,7 +29,7 @@ Subagent context isolation makes classification state unrecoverable across invoc
 
 Default threshold is **≥ 3 unhandled rows** across the 10 row sources. Tunable via `/triage [N]` — passing `N` overrides the default. Below the threshold the subagent exits with a brief status report; no approval prompt opens.
 
-"Unhandled" counts rows with `tracked=="—"` across the 8 thematic files + `_inbox.jsonl`, plus `emoji_status=="🟡 v2"` widget rows in `widget-backlog.jsonl`. `_inbox.jsonl` rows count individually toward the threshold. Count via `jq -c 'select(.tracked=="—")' <theme>.jsonl | wc -l` (thematic) and `jq -c 'select(.kind=="widget") | select(.emoji_status=="🟡 v2")' widget-backlog.jsonl | wc -l` (widget).
+"Unhandled" counts rows with `tracked=="—"` across the 8 thematic files + `_inbox.jsonl`, plus `emoji_status=="🟡 v2"` widget rows in `widget-backlog.jsonl`. `_inbox.jsonl` rows count individually toward the threshold. Count via `jq -c 'select(.tracked=="—")' <theme>.jsonl | wc -l` (thematic) and `jq -c 'select(.kind=="widget") | select(.emoji_status=="🟡 v2")' widget-backlog.jsonl | wc -l` (widget). (`tracked=="untracked"` rows are **consciously declined**, not un-triaged — they are intentionally excluded from this count and from `/next`, the deliberate non-`#N` counterpart of `—`; see `triage-runner.md` Phase 3. Not a bug.)
 
 Manual invocation always proceeds regardless of threshold — the `[N]` argument can explicitly raise *or* lower the gate (e.g. `/triage 1` drains anything; `/triage 100` forces the threshold to skip a small batch).
 
