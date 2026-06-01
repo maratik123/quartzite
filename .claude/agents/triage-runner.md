@@ -77,6 +77,17 @@ Per-source candidate rules:
 
 `_inbox.jsonl` candidates are tagged for the **drain phase (Phase 7)**, NOT the cell-iteration sweep — drain is canonical to avoid double-handling.
 
+> **Two-state `tracked` (non-`#N`) — intended, not a bug.** The `tracked` field has two
+> deliberately-distinct non-`#N` states: `—` (em-dash U+2014) = **un-triaged / fresh** → a
+> candidate (selected by the `tracked=="—"` rule above); `untracked` (literal word) =
+> **consciously declined** — the row was seen and judged not worth a GitHub issue, so the
+> Phase 6 decline-write set `tracked` to `untracked` (line 199; the approval/promote half of
+> that same action table lands in Phase 7.5). Declined rows are **intentionally excluded**
+> by the `tracked=="—"` filter and are never resurfaced. This is by design — the #596
+> migration design's AC8 candidate-set proof
+> (`ai-docs/plans/done/2026-05-31-triage-deferred-jsonl.design.md` lines 236–240) treats
+> both as non-candidate states.
+
 ### Phase 4: Bulk `gh issue list` dedupe
 
 Run **exactly one** call per `/triage` session:
