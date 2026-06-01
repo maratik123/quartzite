@@ -81,8 +81,8 @@ Per-source candidate rules:
 > deliberately-distinct non-`#N` states: `—` (em-dash U+2014) = **un-triaged / fresh** → a
 > candidate (selected by the `tracked=="—"` rule above); `untracked` (literal word) =
 > **consciously declined** — the row was seen and judged not worth a GitHub issue, so the
-> Phase 6 decline-write set `tracked` to `untracked` (line 199; the approval/promote half of
-> that same action table lands in Phase 7.5). Declined rows are **intentionally excluded**
+> Phase 6 decline-write set `tracked` to `untracked` (the approval/promote half of that same
+> Phase 6 action table lands in Phase 7.5). Declined rows are **intentionally excluded**
 > by the `tracked=="—"` filter and are never resurfaced. This is by design — the #596
 > migration design's AC8 candidate-set proof
 > (`ai-docs/plans/done/2026-05-31-triage-deferred-jsonl.design.md` lines 236–240) treats
