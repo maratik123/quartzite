@@ -10,6 +10,28 @@
       <sourceFolder url="file://$MODULE_DIR$/quartzite-runtime/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/quartzite-runtime/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/quartzite/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-core/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-event-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-events/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-geometry/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-hit-test/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-paint-api/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-paint-util/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-paint-util/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-paint/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-renderer/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-renderer/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-runtime/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-style-dispatch/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-style-types/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-style/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-style/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-test-helpers/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-widgets/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/quartzite-widgets/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
