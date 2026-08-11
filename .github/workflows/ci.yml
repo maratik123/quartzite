@@ -89,7 +89,7 @@ jobs:
           cargo --version
           rustc --version
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -134,7 +134,7 @@ jobs:
           cargo --version
           rustc --version
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -176,7 +176,7 @@ jobs:
           cargo --version
           rustc --version
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -248,7 +248,7 @@ jobs:
         if: runner.os == 'Linux'
         run: vulkaninfo --summary || true
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
       # Windows DX12 stack: vello requires modern D3D12 runtime features
       # that `windows-latest` does not ship by default. Mirror the install
       # dance gfx-rs/wgpu uses on its own CI — drop the D3D12 Agility SDK,
@@ -432,7 +432,7 @@ jobs:
           cargo --version
           rustc --version
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -501,7 +501,7 @@ jobs:
           rustc --version
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
